@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FortitudeFX | Catch The Wick — Mechanical Forex Trading System</title>
+  <meta name="description" content="FortitudeFX teaches the Catch The Wick framework — 5 mechanical entry models built around two candles. No discretion. No guesswork. Trade any HTF/LTF pair with a repeatable system." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://fortitudefx.com/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://fortitudefx.com/" />
+  <meta property="og:title"       content="FortitudeFX | Catch The Wick — Mechanical Forex Trading System" />
+  <meta property="og:description" content="5 mechanical entry models. Two candles. One story. Zero guesswork. Join the FortitudeFX community and trade with a repeatable, rule-based system." />
+  <meta property="og:image"       content="https://fortitudefx.com/assets/og-fortitudefx.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name"   content="FortitudeFX" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:site"        content="@_fortitudefx" />
+  <meta name="twitter:title"       content="FortitudeFX | Catch The Wick — Mechanical Forex Trading System" />
+  <meta name="twitter:description" content="5 mechanical entry models. Two candles. One story. Zero guesswork. Join the FortitudeFX community and trade with a repeatable, rule-based system." />
+  <meta name="twitter:image"       content="https://fortitudefx.com/assets/og-fortitudefx.png" />
+
+  <!-- Schema.org -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://fortitudefx.com/#organization",
+      "name": "FortitudeFX",
+      "url": "https://fortitudefx.com",
+      "sameAs": [
+        "https://www.youtube.com/@FortitudeFX",
+        "https://discord.gg/fWAPJdR8TR",
+        "https://t.me/FFX_Official",
+        "https://instagram.com/fortitudefx_official",
+        "https://tiktok.com/@fortitudefx_official",
+        "https://x.com/_fortitudefx",
+        "https://facebook.com/FortitudefxOfficial",
+        "https://whop.com/joined/fortitude-fx/"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "url": "https://fortitudefx.com",
+      "name": "FortitudeFX"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "I already know SMC and ICT \u2014 is FortitudeFX for me?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Most FFX members come from SMC or ICT backgrounds. The missing piece is the mechanical trigger. Catch The Wick fills exactly that gap."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What timeframes does the Catch The Wick system work on?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Any HTF/LTF combination \u2014 1H/5M, 4H/30M, 15M/1M. The framework adapts to when you are available."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What makes the FortitudeFX entry models mechanical?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Either the model is printing or it is not. Each model has a specific set of conditions. When they are met you execute. When they are not, you wait."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where do I start \u2014 VIP Discord or Bootcamp?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Bootcamp if you want to learn the complete framework from scratch. VIP Discord if you are already trading and want live daily application of Catch The Wick."
+          }
+        }
+      ]
+    }
+  ]
+}
+  </script>
+
+  <meta name="theme-color" content="#06060a" />
+  <link rel="stylesheet" href="styles-base-v10.css" />
+</head>
+<body class="page-home">
+
+
+  <!-- Glows -->
+  <div class="ffx-bg" aria-hidden="true">
+    <div class="ffx-glow ffx-glow-violet" style="width:900px;height:900px;top:-200px;right:-300px;opacity:0.75;"></div>
+    <div class="ffx-glow ffx-glow-deep"   style="width:800px;height:800px;top:-100px;left:-350px;opacity:0.65;"></div>
+    <div class="ffx-glow ffx-glow-violet" style="width:700px;height:700px;top:900px;left:-200px;opacity:0.55;"></div>
+    <div class="ffx-glow ffx-glow-deep"   style="width:750px;height:750px;top:1100px;right:-280px;opacity:0.60;"></div>
+    <div class="ffx-glow ffx-glow-mid"    style="width:1000px;height:600px;top:1900px;left:50%;transform:translateX(-50%);opacity:0.50;"></div>
+    <div class="ffx-glow ffx-glow-violet" style="width:700px;height:700px;top:2700px;right:-220px;opacity:0.52;"></div>
+    <div class="ffx-glow ffx-glow-deep"   style="width:750px;height:750px;top:2900px;left:-280px;opacity:0.58;"></div>
+    <div class="ffx-glow ffx-glow-mid"    style="width:900px;height:700px;top:3700px;left:50%;transform:translateX(-50%);opacity:0.48;"></div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-wrap">
+      <div class="nav-brand"><a href="#top">FORTITUDEFX</a></div>
+      <div class="nav-center">
+        <a href="#about">About</a>
+        <a href="vipdiscord-v10.html">VIP Discord</a>
+        <a href="bootcamp-v10.html">Bootcamp</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <button class="nav-toggle" id="navToggle" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <div class="nav-cta">
+        <a class="nav-btn nav-btn-primary" href="waitlist-v10.html#form">Join Waitlist</a>
+      </div>
+    </div>
+    <div class="nav-mobile" id="navMobile">
+      <a href="#about">About</a>
+      <a href="vipdiscord-v10.html">VIP Discord</a>
+      <a href="bootcamp-v10.html">Bootcamp</a>
+      <a href="#faq">FAQ</a>
+      <div class="nav-mobile-cta">
+        <a class="nav-btn nav-btn-primary" href="waitlist-v10.html#form">Join Waitlist</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-container">
+
+  <!-- ═══ HERO ═══ -->
+  <section class="section hero ffx-reveal" id="top">
+    <div class="hero-glow"></div>
+
+    <div class="section-wrap hero-grid">
+      <div style="position:relative;z-index:1;">
+        <div class="ffx-tagline-pill">
+          <div class="ffx-tagline-pill-dot"></div>
+          <span>2 Candles. 1 Story.</span>
+        </div>
+
+        <h1>2 Candles. 1 Story.<br><span class="gradient">5 Ways In.</span></h1>
+
+        <p class="hero-copy">
+          Most traders see the move after it happens. Catch The Wick puts you in the trade at the exact moment before continuation — mechanically, every time. Two candles tell you everything. Five entry models tell you exactly when.
+        </p>
+
+        <div class="hero-actions">
+          <a href="vipdiscord-v10.html" class="btn btn-primary">Explore VIP Discord</a>
+          <a href="bootcamp-v10.html" class="btn btn-secondary">Explore the Bootcamp</a>
+        </div>
+
+        <div class="hero-tags">
+          <span>5 Mechanical Entry Models</span>
+          <span>Any Timeframe Pair</span>
+          <span>Zero Guesswork</span>
+        </div>
+      </div>
+
+      <div class="hero-panel" style="position:relative;z-index:1;">
+        <div class="panel-top">
+          <div class="panel-brand">
+            <small>FortitudeFX</small>
+            <strong>Catch The Wick</strong>
+          </div>
+          <div class="panel-badge panel-badge-gold">2 Candles. 1 Story.</div>
+        </div>
+
+        <div class="benefit-list">
+          <div class="benefit-item">Candle 1 establishes direction — a strong HTF move that breaks lower timeframe structure and confirms the trend.</div>
+          <div class="benefit-item">Candle 2 follows. Before it continues, the wick grabs liquidity and mitigates a zone. <span class="gold-line">That wick is your entry.</span></div>
+          <div class="benefit-item">5 mechanical models tell you exactly when price is doing this — across any HTF/LTF pair you choose.</div>
+          <div class="benefit-item">Trade when you're available. 1H/5M, 4H/30M, 15M/1M — the framework adapts to your schedule, not the other way around.</div>
+          <div class="benefit-item">Every HTF candle is a setup. 8 candles in a 2-hour London session — multiply by pairs, multiply by sessions. The opportunity is not scarce. Most traders just don't know exactly when to act.</div>
+          <div class="benefit-item ffx-benefit-gold"><span style="color:rgba(232,210,140,0.95);font-weight:700;display:block;margin-bottom:4px;">A skill for life. Not a strategy for the month.</span><span style="color:rgba(255,255,255,0.68);font-size:0.92rem;">No strategy hopping. No shiny ball syndrome. One framework — compounding for the next 20 to 30 years.</span></div>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-card">Direction</div>
+          <div class="mini-card">The Wick</div>
+          <div class="mini-card">The Trigger</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-break"></div>
+
+  <!-- ═══ THE PHILOSOPHY ═══ -->
+  <section class="section ffx-reveal" id="about">
+    <div class="section-wrap">
+      <div class="section-head">
+        <div>
+          <span class="kicker">THE FFX EDGE</span>
+          <h2>You understand the market.<br>You just don't know <span class="gold">exactly when.</span></h2>
+        </div>
+        <p>
+          Most traders who've studied SMC, ICT, or supply and demand can read a chart. They see structure. They understand liquidity. But they still hesitate at the entry — because their system gives them conditions, not a trigger. FortitudeFX is built around the moment before the continuation, not the concept that leads to it.
+        </p>
+      </div>
+
+      <!-- Two candle story — same card structure as distinction section -->
+      <div class="ffx-diff-grid" style="margin-top:36px;">
+        <div class="ffx-diff-card">
+          <div class="ffx-diff-card-label">HTF Candle 1</div>
+          <h3>The Story Begins</h3>
+          <ul>
+            <li>A strong directional HTF candle establishes the trend</li>
+            <li>Structure breaks on the lower timeframe — momentum confirmed</li>
+            <li>Market has told you where it wants to go</li>
+          </ul>
+        </div>
+        <div class="ffx-diff-card is-us ffx-gold">
+          <div class="ffx-diff-card-label">HTF Candle 2 — The Wick</div>
+          <h3>Your Entry Point</h3>
+          <ul>
+            <li>Before continuation, the wick grabs liquidity and mitigates a zone</li>
+            <li>On the 1-minute, that entire sequence is one full trend cycle</li>
+            <li>This is the trigger — mechanical, repeatable, no interpretation</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 5 Models -->
+      <div style="margin-top:48px;">
+        <span class="kicker">5 MECHANICAL ENTRY MODELS</span>
+        <p style="color:rgba(255,255,255,0.55);font-size:0.92rem;margin:10px 0 0;max-width:480px;">Every model removes discretion from the entry. Either the model is printing or it isn't. No interpretation required.</p>
+        <div class="ffx-models-strip">
+          <div class="ffx-model-pill"><div class="ffx-model-num">01</div><div class="ffx-model-name">LC&#8209;E</div></div>
+          <div class="ffx-model-pill"><div class="ffx-model-num">02</div><div class="ffx-model-name">LE&#8209;I</div></div>
+          <div class="ffx-model-pill"><div class="ffx-model-num">03</div><div class="ffx-model-name">LC&#8209;ZIE</div></div>
+          <div class="ffx-model-pill"><div class="ffx-model-num">04</div><div class="ffx-model-name">LC&#8209;ZR</div></div>
+          <div class="ffx-model-pill"><div class="ffx-model-num">05</div><div class="ffx-model-name">LC&#8209;FR</div></div>
+        </div>
+        <p style="color:rgba(255,255,255,0.28);font-size:0.78rem;margin-top:12px;">Model names are illustrative — exact models taught inside the Bootcamp.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-break"></div>
+
+  <!-- ═══ WHY FFX IS DIFFERENT ═══ -->
+  <section class="section ffx-reveal" id="difference">
+    <div class="section-wrap">
+      <div class="section-head">
+        <div>
+          <span class="kicker">THE DISTINCTION</span>
+          <h2>Most systems teach you to think.<br>FFX gives you <span class="gold">the exact moment.</span></h2>
+        </div>
+        <p>
+          The trading education space is full of frameworks built around concepts. SMC. ICT. Supply and demand. Order flow. These are all valid reads of the market — but none of them tell you precisely when to pull the trigger. That gap is where traders blow accounts, miss trades, and lose confidence.
+        </p>
+      </div>
+
+      <div class="ffx-diff-grid">
+        <div class="ffx-diff-card is-them">
+          <div class="ffx-diff-card-label">Everyone else</div>
+          <h3>Concepts without a trigger</h3>
+          <ul>
+            <li>Teaches zones, structure, and order flow</li>
+            <li>Leaves execution to your discretion</li>
+            <li>Arbitrary decisions dressed up as a system</li>
+            <li>Results depend on how you feel in the moment</li>
+            <li>Works until pressure hits — then it breaks down</li>
+          </ul>
+        </div>
+        <div class="ffx-diff-card is-us ffx-gold">
+          <div class="ffx-diff-card-label">FortitudeFX</div>
+          <h3>Mechanical entries. Zero interpretation.</h3>
+          <ul>
+            <li>5 models built around one specific market behaviour</li>
+            <li>Either the model is printing or it isn't</li>
+            <li>Process rewarded — not individual trade outcomes</li>
+            <li>Works on any timeframe pair you choose</li>
+            <li>The trigger removes FOMO, hesitation, and doubt</li>
+            <li>A skill built for the next 20–30 years — not next week's trade</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="section-break"></div>
+
+  <!-- ═══ TIMEFRAME ADAPTIVE ═══ -->
+  <section class="section ffx-reveal" id="adaptive">
+    <div class="section-wrap">
+      <div class="section-head">
+        <div>
+          <span class="kicker">BUILT FOR YOUR LIFE</span>
+          <h2>Trade when you're available.<br><span class="gold">The framework adapts.</span></h2>
+        </div>
+        <p>
+          Most educators build their system around one specific setup — one session, one timeframe, one schedule. If it doesn't match your life, you're on your own. Catch The Wick is timeframe-agnostic by design. The logic is the same whether you have two hours in the morning or can only trade the New York close.
+        </p>
+      </div>
+
+      <div class="ffx-tf-grid">
+        <div class="ffx-tf-card">
+          <div class="ffx-tf-pair">1H / 5M</div>
+          <div class="ffx-tf-desc">Active trader. Multiple sessions. Frequent setups.</div>
+        </div>
+        <div class="ffx-tf-card">
+          <div class="ffx-tf-pair">4H / 30M</div>
+          <div class="ffx-tf-desc">Part-time trader. Morning or evening check-in. Fewer, higher quality setups.</div>
+        </div>
+        <div class="ffx-tf-card">
+          <div class="ffx-tf-pair">15M / 1M</div>
+          <div class="ffx-tf-desc">Precision entry. Tighter execution. Maximum reward-to-risk.</div>
+        </div>
+      </div>
+
+      <p class="ffx-tf-note">One framework. Any combination. Zero compromise on process.</p>
+    </div>
+  </section>
+
+  <div class="section-break"></div>
+
+  <!-- ═══ VIP ═══ -->
+  <section class="section soft-strip ffx-reveal" id="vip">
+    <div class="section-wrap">
+      <div class="section-head">
+        <div>
+          <span class="kicker">VIP DISCORD</span>
+          <h2>The live environment where the framework is applied daily.</h2>
+        </div>
+        <p>
+          The VIP Discord is not a signal group or a chat room. It is a structured live environment where you see Catch The Wick applied to real markets, in real time, every session. Direct access to Salman — not a moderation team.
+        </p>
+      </div>
+
+      <div class="vip-grid">
+        <article class="vip-card">
+          <div class="vip-number">01</div>
+          <h3>Daily Recap Videos</h3>
+          <p>Session breakdowns showing how price moved, which candle story played out, and how the FFX framework read the move — no hindsight, no noise.</p>
+        </article>
+        <article class="vip-card">
+          <div class="vip-number">02</div>
+          <h3>Every Question Answered</h3>
+          <p>Submit your charts, your analysis, your execution — and get direct feedback from Salman. Not a moderator, not a coach. The person who built the framework reviewing your specific trades and thought process.</p>
+        </article>
+        <article class="vip-card">
+          <div class="vip-number">03</div>
+          <h3>Chart Markups</h3>
+          <p>Pre-market preparation shared before every session — HTF directional bias, liquidity levels mapped, and potential entry zones highlighted with the WHY behind each one. You arrive at the chart knowing exactly what to look for and why it matters.</p>
+        </article>
+        <article class="vip-card">
+          <div class="vip-number">04</div>
+          <h3>FFX Community</h3>
+          <p>A healthy trading community of like-minded traders — respectful, serious, and growing together the FFX way. Shared analysis, mutual accountability, and a culture built around the process rather than the outcome.</p>
+        </article>
+        <article class="vip-card">
+          <div class="vip-number">05</div>
+          <h3>Monthly Virtual Coffee Chat</h3>
+          <p>Open group sessions with Salman — trading mindset, progress reviews, honest discussion about what's working and what isn't.</p>
+        </article>
+        <article class="vip-card">
+          <div class="vip-number">06</div>
+          <h3>1:1 Private Session</h3>
+          <p>Direct one-on-one time with Salman — your charts, your specific questions, your execution reviewed against the framework.</p>
+        </article>
+        <article class="vip-card">
+          <div class="vip-number">07</div>
+          <h3>FortitudeFX Mindset</h3>
+          <p>The mental and emotional framework that makes the system work — discipline, resilience, and the process-over-outcome approach that separates consistent traders from the rest.</p>
+        </article>
+        <article class="vip-card">
+          <div class="vip-number">08</div>
+          <h3>Rules-Based Strategy Entries</h3>
+          <p>All 5 mechanical entry models — LC-E, LE-I, LC-ZIE, LC-ZR, LC-FR — applied live every session. Either the model is printing or it isn't. No interpretation required.</p>
+        </article>
+      </div>
+
+      <div class="section-actions" style="margin-top:32px;">
+        <a href="vipdiscord-v10.html" class="btn btn-primary">Explore VIP Discord</a>
+        <a href="waitlist-v10.html?path=VIP#form" class="btn btn-secondary">Join the Waitlist</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-break"></div>
+
+  <!-- ═══ BOOTCAMP ═══ -->
+  <section class="section section-feature ffx-reveal" id="bootcamp">
+    <div class="section-wrap section-split">
+      <div class="section-feature-left">
+        <span class="kicker">CATCH THE WICK BOOTCAMP</span>
+        <h2>Learn the framework properly.<br>Not surface level. <span class="gold">All the way in.</span></h2>
+        <p class="section-lead">
+          The Bootcamp exists because concepts without execution are worthless. Most traders have spent years consuming information — SMC, ICT, supply and demand — and still can't trade consistently. This 5-week structured program takes you from scattered knowledge into a complete mechanical system you can apply the same day.
+        </p>
+        <p class="section-copy">
+          You learn Catch The Wick from the ground up. The two-candle philosophy. The HTF/LTF relationship. All 5 entry models. Timeframe selection for your schedule. And the process mindset that turns the system into consistency.
+        </p>
+      </div>
+
+      <div class="section-feature-right">
+        <div class="feature-card">
+          <span class="bootcamp-card-label">WHAT THIS BUILDS</span>
+          <ul class="bootcamp-card-points">
+            <li>The two-candle read — structure, liquidity, and the wick</li>
+            <li>All 5 mechanical entry models — no discretion, no guesswork</li>
+            <li>HTF/LTF timeframe pairing for your availability</li>
+            <li>Process discipline — rewarding execution, not outcomes</li>
+          </ul>
+
+          <div class="bootcamp-card-divider"></div>
+
+          <span class="bootcamp-card-label">WHY THIS IS DIFFERENT</span>
+          <p class="bootcamp-card-note">
+            No arbitrary decisions loosely labelled as a system. No concepts without a trigger. Every lesson builds toward one thing — knowing exactly when price is doing what you've been waiting for, and having a mechanical model ready for it.
+          </p>
+        </div>
+      </div>
+
+      <!-- No candle is random — gold statement card, full width below -->
+      <div class="section-wrap">
+        <div class="ffx-statement-card ffx-gold">
+          <p class="ffx-statement-card-title">No candle is random &nbsp;&middot;&nbsp; No timeframe is noise.</p>
+          <p class="ffx-statement-card-body">Every candle printed on any chart has a purpose and tells a story. Understanding that is the foundation of everything taught inside the Bootcamp.</p>
+        </div>
+      </div>
+
+      <!-- No candle is random gold card sits above — CTAs follow as the action close -->
+      <div class="section-wrap ffx-cta-wrap">
+        <div class="section-actions">
+          <a href="bootcamp-v10.html" class="btn btn-primary">Explore the Bootcamp</a>
+          <a href="waitlist-v10.html?path=Bootcamp#form" class="btn btn-secondary">Join the Waitlist</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="section-break"></div>
+
+  <!-- ═══ FAQ ═══ -->
+  <section class="section ffx-reveal" id="faq">
+    <div class="section-wrap split-section">
+      <div class="sticky-left">
+        <span class="kicker">COMMON QUESTIONS</span>
+        <h2>Before you step in, know what matters.</h2>
+        <p>If you've come from SMC, ICT, or another trading educator and you're still not consistent — this section is for you.</p>
+      </div>
+      <div class="faq-cards">
+        <article class="faq-card">
+          <div class="faq-num">01</div>
+          <div>
+            <h3>I already know SMC and ICT — is this for me?</h3>
+            <p>Yes. Most FFX members come from SMC or ICT backgrounds. The issue is never the concepts — it's the missing mechanical trigger. Catch The Wick fills exactly that gap.</p>
+          </div>
+        </article>
+        <article class="faq-card">
+          <div class="faq-num">02</div>
+          <div>
+            <h3>What timeframes does this work on?</h3>
+            <p>Any HTF/LTF combination. 1H/5M, 4H/30M, 15M/1M — the framework adapts to when you're available at the charts. You don't need to change your schedule to fit the system.</p>
+          </div>
+        </article>
+        <article class="faq-card">
+          <div class="faq-num">03</div>
+          <div>
+            <h3>What makes the entry models mechanical?</h3>
+            <p>Either the model is printing or it isn't. There is no "this kind of looks like it" or "I think this qualifies." Each model has a specific set of conditions. When they're met, you execute. When they're not, you wait.</p>
+          </div>
+        </article>
+        <article class="faq-card">
+          <div class="faq-num">04</div>
+          <div>
+            <h3>Where do I start — VIP or Bootcamp?</h3>
+            <p>Bootcamp if you want to learn the complete framework from scratch with full structure. VIP if you're already trading and want live daily application of Catch The Wick alongside your existing process.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-break"></div>
+
+  <!-- ═══ TESTIMONIALS ═══ -->
+  <section class="section ffx-reveal" id="testimonials">
+    <div class="section-wrap">
+      <div class="section-head">
+        <div>
+          <span class="kicker">FROM THE COMMUNITY</span>
+          <h2>Traders who found <span class="gold">the trigger.</span></h2>
+        </div>
+        <p>Real traders from inside the FortitudeFX community. The framework either clicks or it doesn't — for these members, it clicked.</p>
+      </div>
+      <div class="ffx-testimonial-grid">
+        <div class="ffx-quote-card">
+          <p class="ffx-quote-card-text">&ldquo;I followed Fortitude way of trading of doing trade for 2 hours each session — it gives me right energy at the right time. Otherwise I was all in for the trades, trying to trade every market.&rdquo;</p>
+          <div class="ffx-quote-card-attr">FortitudeFX Member</div>
+        </div>
+        <div class="ffx-quote-card">
+          <p class="ffx-quote-card-text">&ldquo;I've purchased about 80 mentorship courses — you name the mentor, I was there. Your words have given me so much hope to stick to this one strategy and this one only.&rdquo;</p>
+          <div class="ffx-quote-card-attr">FortitudeFX Member</div>
+        </div>
+        <div class="ffx-quote-card">
+          <p class="ffx-quote-card-text">&ldquo;If it's a loss then a rule followed loss — and if it's a WIN, a rule followed win. This challenge is teaching me to follow the rules no matter what.&rdquo;</p>
+          <div class="ffx-quote-card-attr">FortitudeFX Member</div>
+        </div>
+        <div class="ffx-quote-card">
+          <p class="ffx-quote-card-text">&ldquo;I didn't see any of my previous mentors coming live and helping their students. They just give videos and don't bother to respond. You are helping people to get success.&rdquo;</p>
+          <div class="ffx-quote-card-attr">FortitudeFX Member</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+    <div class="section-break"></div>
+
+  <!-- ═══ CTA ═══ -->
+  <section class="section section-last ffx-reveal" id="cta">
+    <div class="section-wrap">
+      <div class="cta-shell">
+        <div class="cta-grid">
+          <div>
+            <span class="kicker">JOIN FORTITUDEFX</span>
+            <h2>Stop learning. <span class="gold">Start knowing exactly when.</span></h2>
+            <p>
+              The market has been telling you where it's going. You've just been missing the trigger. Join the waitlist and be first to access Catch The Wick — the 5-model mechanical entry system built around the one moment that matters.
+            </p>
+          </div>
+          <div class="cta-actions">
+            <a class="btn btn-primary" href="waitlist-v10.html#form">Join the Waitlist</a>
+            <a class="btn btn-secondary" href="vipdiscord-v10.html">Explore VIP Discord</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /.page-container -->
+
+  <footer>
+    <div class="footer-wrap">
+      <div class="footer-left">
+        <div class="footer-brand">FORTITUDEFX</div>
+        <div class="footer-tagline">Catch The Wick</div>
+                <div class="footer-socials">
+          <a href="https://www.youtube.com/@FortitudeFX" class="footer-social" aria-label="YouTube" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+          </a>
+          <a href="https://discord.gg/fWAPJdR8TR" class="footer-social" aria-label="Discord" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+          </a>
+          <a href="https://t.me/FFX_Official" class="footer-social" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          </a>
+          <a href="https://instagram.com/fortitudefx_official" class="footer-social" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+          </a>
+          <a href="https://tiktok.com/@fortitudefx_official" class="footer-social" aria-label="TikTok" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg>
+          </a>
+          <a href="https://x.com/_fortitudefx" class="footer-social" aria-label="X" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </a>
+          <a href="https://facebook.com/FortitudefxOfficial" class="footer-social" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          </a>
+          <a href="https://whop.com/joined/fortitude-fx/" class="footer-social" aria-label="Whop" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </a>
+        </div>
+      </div>
+      <div class="footer-right">
+        <nav class="footer-nav">
+          <a href="#about">About</a>
+          <a href="vipdiscord-v10.html">VIP Discord</a>
+          <a href="bootcamp-v10.html">Bootcamp</a>
+          <a href="waitlist-v10.html#form">Waitlist</a>
+          <a href="privacy-v10.html" class="footer-privacy-link">Privacy Policy</a>
+        </nav>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 FortitudeFX. All rights reserved. &nbsp;&middot;&nbsp;
+      <a href="privacy-v10.html" class="footer-privacy-link">Privacy Policy</a>
+    </div>
+  </footer>
+
+  <button class="back-to-top" id="backToTop" aria-label="Back to top">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg>
+  </button>
+
+  <script>
+    (() => {
+      const toggle = document.getElementById('navToggle');
+      const mobile = document.getElementById('navMobile');
+      if (toggle && mobile) {
+        toggle.addEventListener('click', () => {
+          const open = mobile.classList.toggle('is-open');
+          toggle.setAttribute('aria-expanded', open);
+        });
+        mobile.querySelectorAll('a').forEach(a => {
+          a.addEventListener('click', () => {
+            mobile.classList.remove('is-open');
+            toggle.setAttribute('aria-expanded', false);
+          });
+        });
+      }
+      const btt = document.getElementById('backToTop');
+      if (btt) {
+        window.addEventListener('scroll', () => {
+          btt.classList.toggle('is-visible', window.scrollY > 400);
+        }, { passive: true });
+        btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+      }
+      const reveals = document.querySelectorAll('.ffx-reveal');
+      if (reveals.length) {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach(e => {
+            if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+          });
+        }, { threshold: 0.10 });
+        reveals.forEach(el => io.observe(el));
+      }
+    })();
+  </script>
+
+
+</body>
+</html>
