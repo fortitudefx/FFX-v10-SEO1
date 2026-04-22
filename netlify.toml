@@ -1,9 +1,38 @@
 # Netlify configuration — FortitudeFX
-# Tells Netlify where to find the serverless functions folder.
 
 [functions]
   directory = "netlify/functions"
 
+# ── Page redirects ────────────────────────────────────────────────────────────
+# Routes clean URLs to the versioned HTML files.
+# Visitors go to fortitudefx.com/ — Netlify serves index-v10.html.
+
+[[redirects]]
+  from = "/"
+  to   = "/index-v10.html"
+  status = 200
+
+[[redirects]]
+  from = "/bootcamp"
+  to   = "/bootcamp-v10.html"
+  status = 200
+
+[[redirects]]
+  from = "/vip-discord"
+  to   = "/vipdiscord-v10.html"
+  status = 200
+
+[[redirects]]
+  from = "/waitlist"
+  to   = "/waitlist-v10.html"
+  status = 200
+
+[[redirects]]
+  from = "/privacy"
+  to   = "/privacy-v10.html"
+  status = 200
+
+# ── Security headers ──────────────────────────────────────────────────────────
 [[headers]]
   for = "/*"
   [headers.values]
