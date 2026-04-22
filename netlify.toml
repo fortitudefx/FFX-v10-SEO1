@@ -1,35 +1,32 @@
-# Netlify configuration — FortitudeFX
+# Netlify configuration — FortitudeFX v11
 
 [functions]
   directory = "netlify/functions"
 
 # ── Page redirects ────────────────────────────────────────────────────────────
-# Routes clean URLs to the versioned HTML files.
-# Visitors go to fortitudefx.com/ — Netlify serves index-v10.html.
-
 [[redirects]]
   from = "/"
-  to   = "/index-v10.html"
+  to   = "/index-v11.html"
   status = 200
 
 [[redirects]]
   from = "/bootcamp"
-  to   = "/bootcamp-v10.html"
+  to   = "/bootcamp-v11.html"
   status = 200
 
 [[redirects]]
   from = "/vip-discord"
-  to   = "/vipdiscord-v10.html"
+  to   = "/vipdiscord-v11.html"
   status = 200
 
 [[redirects]]
   from = "/waitlist"
-  to   = "/waitlist-v10.html"
+  to   = "/waitlist-v11.html"
   status = 200
 
 [[redirects]]
   from = "/privacy"
-  to   = "/privacy-v10.html"
+  to   = "/privacy-v11.html"
   status = 200
 
 # ── Security headers ──────────────────────────────────────────────────────────
