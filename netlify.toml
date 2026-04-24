@@ -1,4 +1,4 @@
-# Netlify configuration — FortitudeFX v11
+# Netlify configuration — FortitudeFX
 
 [functions]
   directory = "netlify/functions"
@@ -6,27 +6,27 @@
 # ── Page redirects ────────────────────────────────────────────────────────────
 [[redirects]]
   from = "/"
-  to   = "/index-v11.html"
+  to   = "/index.html"
   status = 200
 
 [[redirects]]
   from = "/bootcamp"
-  to   = "/bootcamp-v11.html"
+  to   = "/bootcamp.html"
   status = 200
 
 [[redirects]]
   from = "/vip-discord"
-  to   = "/vipdiscord-v11.html"
+  to   = "/vipdiscord.html"
   status = 200
 
 [[redirects]]
   from = "/waitlist"
-  to   = "/waitlist-v11.html"
+  to   = "/waitlist.html"
   status = 200
 
 [[redirects]]
   from = "/privacy"
-  to   = "/privacy-v11.html"
+  to   = "/privacy.html"
   status = 200
 
 # ── Security headers ──────────────────────────────────────────────────────────
