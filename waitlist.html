@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y056J2K2WK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-Y056J2K2WK');
+</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Join the FortitudeFX Waitlist | Catch The Wick Trading System</title>
@@ -638,7 +646,7 @@
         }
 
         // Call our secure Netlify function — API key is stored server-side
-        const res = await fetch('/submit', {
+        const res = await fetch('/.netlify/functions/submit', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({
