@@ -3,16 +3,12 @@
 //
 // Called by waitlist.html via fetch('/functions/submit')
 // The BREVO_API_KEY is stored in Cloudflare Pages → Settings → Environment Variables
-// — never in source code.
-//
-// CHANGES FROM NETLIFY VERSION:
-//   1. exports.handler replaced with export async function onRequestPost()
-//   2. event.httpMethod check removed — Cloudflare routes by method via function name (onRequestPost)
-//   3. event.body replaced with await context.request.json()
-//   4. process.env replaced with context.env
-//   5. Return values use new Response() instead of { statusCode, body }
 
-export async function onRequestPost(context) {
+export async function onRequest(context) {
+  // Only allow POST
+  if (context.request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
 
   // Parse the incoming JSON body
   let payload;
@@ -28,7 +24,7 @@ export async function onRequestPost(context) {
     return new Response('Server configuration error', { status: 500 });
   }
 
-  // Forward to Brevo — identical logic to Netlify version
+  // Forward to Brevo
   try {
     const res = await fetch('https://api.brevo.com/v3/contacts', {
       method:  'POST',
