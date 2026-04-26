@@ -1,0 +1,455 @@
+/* ============================================================
+   FORTITUDEFX — BLOG STYLESHEET
+   Covers: blog.html (index) + article.html (single article)
+   Depends on: styles-base.css (tokens, nav, footer, base reset)
+   ============================================================ */
+
+
+/* ============================================================
+   BLOG INDEX — Layout
+   ============================================================ */
+
+.blog-section {
+  position: relative;
+  padding: 80px 48px 96px;
+}
+
+.blog-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+
+/* ============================================================
+   BLOG INDEX — Header
+   ============================================================ */
+
+.blog-header {
+  margin-bottom: 56px;
+  padding-bottom: 48px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.blog-header h1 {
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 16px 0 14px;
+}
+
+.blog-header-meta {
+  font-size: 0.90rem;
+  color: rgba(255,255,255,0.38);
+  line-height: 1.7;
+  margin: 0;
+}
+
+
+/* ============================================================
+   BLOG INDEX — Article list
+   ============================================================ */
+
+.blog-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.blog-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 28px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.22s ease;
+}
+
+.blog-item:first-child {
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.blog-item:hover .blog-item-title {
+  color: rgba(196,181,253,0.96);
+}
+
+.blog-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.blog-item-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-warm-text);
+}
+
+.blog-item-tag::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-warm);
+  box-shadow: 0 0 8px rgba(201,168,76,0.65);
+  flex-shrink: 0;
+}
+
+.blog-item-title {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.90);
+  line-height: 1.40;
+  letter-spacing: -0.02em;
+  transition: color 0.22s ease;
+  margin: 0;
+}
+
+.blog-item-excerpt {
+  font-size: 0.88rem;
+  line-height: 1.72;
+  color: rgba(255,255,255,0.38);
+  margin: 0;
+}
+
+.blog-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.blog-item-date {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.26);
+  white-space: nowrap;
+}
+
+.blog-item-read {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.20);
+  white-space: nowrap;
+}
+
+.blog-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(167,139,250,0.16);
+  color: rgba(167,139,250,0.44);
+  margin-top: 6px;
+  flex-shrink: 0;
+  transition: border-color 0.24s ease, color 0.24s ease, transform 0.24s ease;
+}
+
+.blog-item:hover .blog-arrow {
+  border-color: rgba(167,139,250,0.48);
+  color: rgba(167,139,250,0.90);
+  transform: translateX(3px);
+}
+
+.blog-arrow svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.blog-empty {
+  text-align: center;
+  padding: 80px 0;
+  color: rgba(255,255,255,0.26);
+  font-size: 0.90rem;
+  letter-spacing: 0.04em;
+}
+
+
+/* ============================================================
+   ARTICLE PAGE — Layout
+   ============================================================ */
+
+.article-section {
+  position: relative;
+  padding: 80px 48px 96px;
+}
+
+.article-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+
+/* ============================================================
+   ARTICLE PAGE — Back link
+   ============================================================ */
+
+.article-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.30);
+  text-decoration: none;
+  margin-bottom: 44px;
+  transition: color 0.22s ease;
+}
+
+.article-back:hover {
+  color: rgba(167,139,250,0.80);
+}
+
+.article-back svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+
+/* ============================================================
+   ARTICLE PAGE — Meta row (category + date)
+   ============================================================ */
+
+.article-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.article-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-warm-text);
+}
+
+.article-cat::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-warm);
+  box-shadow: 0 0 8px rgba(201,168,76,0.65);
+  flex-shrink: 0;
+}
+
+.article-date-read {
+  font-size: 11px;
+  color: rgba(255,255,255,0.26);
+  letter-spacing: 0.06em;
+}
+
+
+/* ============================================================
+   ARTICLE PAGE — Title
+   ============================================================ */
+
+.article-wrap h1 {
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 44px;
+}
+
+
+/* ============================================================
+   ARTICLE PAGE — Body typography
+   ============================================================ */
+
+.article-body {
+  color: rgba(255,255,255,0.68);
+  font-size: 1.00rem;
+  line-height: 1.90;
+}
+
+.article-body h2 {
+  font-size: 1.28rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.022em;
+  margin: 48px 0 16px;
+  line-height: 1.22;
+}
+
+.article-body h3 {
+  font-size: 1.06rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.86);
+  letter-spacing: -0.014em;
+  margin: 34px 0 12px;
+  line-height: 1.28;
+}
+
+.article-body p {
+  margin: 0 0 22px;
+}
+
+.article-body ul,
+.article-body ol {
+  margin: 0 0 22px;
+  padding-left: 22px;
+}
+
+.article-body li {
+  margin-bottom: 8px;
+  line-height: 1.78;
+}
+
+.article-body a {
+  color: rgba(196,181,253,0.88);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(167,139,250,0.28);
+  transition: color 0.22s ease, text-decoration-color 0.22s ease;
+}
+
+.article-body a:hover {
+  color: rgba(196,181,253,1);
+  text-decoration-color: rgba(167,139,250,0.68);
+}
+
+.article-body strong {
+  color: rgba(255,255,255,0.90);
+  font-weight: 700;
+}
+
+.article-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin: 52px 0;
+}
+
+
+/* ============================================================
+   ARTICLE PAGE — CTA block
+   ============================================================ */
+
+.article-cta {
+  margin-top: 56px;
+  padding: 36px 36px 32px;
+  border-radius: 24px;
+  border-left: 2px solid rgba(201,168,76,0.75);
+  border-top: 1px solid rgba(201,168,76,0.16);
+  border-right: 1px solid rgba(201,168,76,0.08);
+  border-bottom: 1px solid rgba(201,168,76,0.08);
+  background: linear-gradient(160deg, rgba(201,168,76,0.07) 0%, rgba(45,20,114,0.14) 100%);
+  box-shadow: -4px 0 28px rgba(201,168,76,0.20), 0 8px 32px rgba(0,0,0,0.20);
+}
+
+.article-cta-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-warm-text);
+  margin-bottom: 12px;
+}
+
+.article-cta-kicker::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-warm);
+  box-shadow: 0 0 8px rgba(201,168,76,0.65);
+  flex-shrink: 0;
+}
+
+.article-cta h3 {
+  font-size: 1.36rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.028em;
+  margin: 0 0 10px;
+  line-height: 1.20;
+}
+
+.article-cta p {
+  font-size: 0.92rem;
+  line-height: 1.76;
+  color: rgba(255,255,255,0.50);
+  margin: 0 0 26px;
+}
+
+.article-cta-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .blog-section  { padding: 80px 24px 64px; }
+  .article-section { padding: 80px 24px 64px; }
+
+  .blog-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .blog-item-right {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .blog-arrow { margin-top: 0; }
+
+  .article-cta { padding: 24px 22px 22px; }
+
+  .article-cta-actions {
+    flex-direction: column;
+  }
+
+  .article-cta-actions .btn {
+    justify-content: center;
+  }
+}
