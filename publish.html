@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FFX — Publish Article</title>
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #06060a; --surface: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08);
+      --accent: #a78bfa; --gold: #c9a84c; --gold-text: #d4a843;
+      --text: rgba(255,255,255,0.90); --muted: rgba(255,255,255,0.38); --radius: 14px;
+    }
+    html, body { min-height: 100vh; background: var(--bg); font-family: 'Satoshi', sans-serif; color: var(--text); }
+    .bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .glow { position: absolute; border-radius: 50%; filter: blur(120px); }
+    .glow-1 { width: 700px; height: 700px; top: -200px; right: -200px; background: rgba(109,40,217,0.28); }
+    .glow-2 { width: 600px; height: 600px; bottom: -100px; left: -200px; background: rgba(45,20,114,0.32); }
+    .wrap { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 64px 32px 96px; }
+    .header { margin-bottom: 48px; }
+    .header-kicker {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--gold-text); margin-bottom: 16px;
+    }
+    .header-kicker::before {
+      content: ""; width: 4px; height: 4px; border-radius: 50%;
+      background: var(--gold); box-shadow: 0 0 8px rgba(201,168,76,0.65); flex-shrink: 0;
+    }
+    .header h1 { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.04em; line-height: 0.96; color: #fff; margin-bottom: 12px; }
+    .header p { font-size: 0.92rem; color: var(--muted); line-height: 1.7; }
+    .prefilled-notice {
+      display: none; padding: 12px 18px; border-radius: var(--radius);
+      background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.20);
+      color: var(--accent); font-size: 12px; margin-bottom: 28px; line-height: 1.6;
+    }
+    .prefilled-notice.show { display: block; }
+    .form { display: flex; flex-direction: column; gap: 24px; }
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    label { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    label span { color: var(--gold-text); margin-left: 4px; }
+    .hint { font-size: 11px; color: rgba(255,255,255,0.22); margin-top: -4px; }
+    input, select, textarea {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text); font-family: 'Satoshi', sans-serif;
+      font-size: 0.94rem; padding: 14px 16px; outline: none;
+      transition: border-color 0.22s ease, box-shadow 0.22s ease; -webkit-appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(167,139,250,0.40); box-shadow: 0 0 0 3px rgba(167,139,250,0.08);
+    }
+    select option { background: #1a1a2e; color: #fff; }
+    textarea { resize: vertical; min-height: 120px; line-height: 1.7; }
+    textarea.body-field { min-height: 320px; font-size: 0.88rem; font-family: 'Courier New', monospace; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+    .submit-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .submit-note { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .btn-publish {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+      color: #fff; font-family: 'Satoshi', sans-serif; font-size: 14px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; border: none; border-radius: 999px;
+      padding: 14px 32px; cursor: pointer; transition: opacity 0.22s ease, transform 0.22s ease;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-publish:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-publish:active { transform: translateY(0); }
+    .btn-publish:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-publish svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .status { display: none; padding: 16px 20px; border-radius: var(--radius); font-size: 0.92rem; font-weight: 500; line-height: 1.6; }
+    .status.success { display: block; background: rgba(34,197,94,0.10); border: 1px solid rgba(34,197,94,0.24); color: #4ade80; }
+    .status.error { display: block; background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.24); color: #f87171; }
+    .status.loading { display: block; background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.20); color: var(--accent); }
+    @media (max-width: 600px) { .row-2 { grid-template-columns: 1fr; } .wrap { padding: 40px 20px 64px; } }
+  </style>
+</head>
+<body>
+  <div class="bg">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+  </div>
+
+  <div class="wrap">
+    <div class="header">
+      <div class="header-kicker">FortitudeFX</div>
+      <h1>Publish Article</h1>
+      <p>Review the pre-filled fields, make any edits, then click Publish to push live via GitHub.</p>
+    </div>
+
+    <div id="prefilledNotice" class="prefilled-notice">
+      ✓ Article fields pre-filled from Claude. Review everything before publishing.
+    </div>
+
+    <div class="form">
+      <div class="field">
+        <label>Slug <span>*</span></label>
+        <p class="hint">Lowercase, hyphens only — e.g. why-your-strategy-fails</p>
+        <input type="text" id="slug" placeholder="why-your-strategy-fails" required />
+      </div>
+      <div class="field">
+        <label>Title <span>*</span></label>
+        <input type="text" id="title" placeholder="Article title" required />
+      </div>
+      <div class="field">
+        <label>Excerpt <span>*</span></label>
+        <p class="hint">Max 160 characters — shown on blog index.</p>
+        <input type="text" id="excerpt" placeholder="One sentence summary" required />
+        <p class="hint" id="excerptCount">0 / 160</p>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>Category <span>*</span></label>
+          <select id="category" required>
+            <option value="">Select a category</option>
+            <option value="Price Action">Price Action</option>
+            <option value="Risk Management">Risk Management</option>
+            <option value="Trader Mindset">Trader Mindset</option>
+            <option value="Market Analysis">Market Analysis</option>
+            <option value="Trading Education">Trading Education</option>
+            <option value="Strategy">Strategy</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Read Time <span>*</span></label>
+          <input type="text" id="readTime" placeholder="8 min read" required />
+        </div>
+      </div>
+      <div class="field">
+        <label>Tags <span>*</span></label>
+        <p class="hint">Comma separated — e.g. price action, forex strategy</p>
+        <input type="text" id="tags" placeholder="price action, forex strategy, entry models" required />
+      </div>
+      <hr class="divider" />
+      <div class="field">
+        <label>Article Body <span>*</span></label>
+        <p class="hint">HTML format with &lt;p&gt;, &lt;h2&gt;, &lt;a href=""&gt; tags</p>
+        <textarea class="body-field" id="body" placeholder="<p>Article body here...</p>" required></textarea>
+      </div>
+      <div id="status" class="status"></div>
+      <div class="submit-row">
+        <p class="submit-note">Updates articles.json on GitHub →<br>Cloudflare deploys in ~30 seconds.</p>
+        <button class="btn-publish" id="publishBtn" onclick="publish()">
+          <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          Publish to Blog
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WEBHOOK = 'https://hook.eu1.make.com/0iwx8y8ufy318mfml1jmgs1cjjeii388';
+
+    // Pre-fill from URL params on load
+    window.addEventListener('DOMContentLoaded', () => {
+      const p = new URLSearchParams(window.location.search);
+      const fields = ['slug','title','excerpt','category','readTime','tags','body'];
+      let prefilled = false;
+
+      fields.forEach(f => {
+        const val = p.get(f);
+        if (val) {
+          const el = document.getElementById(f);
+          if (el) { el.value = decodeURIComponent(val); prefilled = true; }
+        }
+      });
+
+      if (prefilled) {
+        document.getElementById('prefilledNotice').classList.add('show');
+      }
+
+      // Excerpt counter
+      const excerpt = document.getElementById('excerpt');
+      const counter = document.getElementById('excerptCount');
+      const update = () => {
+        const len = excerpt.value.length;
+        counter.textContent = `${len} / 160`;
+        counter.style.color = len > 160 ? '#f87171' : 'rgba(255,255,255,0.22)';
+      };
+      excerpt.addEventListener('input', update);
+      update();
+    });
+
+    async function publish() {
+      const slug     = document.getElementById('slug').value.trim();
+      const title    = document.getElementById('title').value.trim();
+      const excerpt  = document.getElementById('excerpt').value.trim();
+      const category = document.getElementById('category').value;
+      const readTime = document.getElementById('readTime').value.trim();
+      const tagsRaw  = document.getElementById('tags').value.trim();
+      const body     = document.getElementById('body').value.trim();
+
+      if (!slug || !title || !excerpt || !category || !readTime || !tagsRaw || !body) {
+        showStatus('error', 'All fields are required.');
+        return;
+      }
+      if (excerpt.length > 160) {
+        showStatus('error', `Excerpt is ${excerpt.length} chars — keep under 160.`);
+        return;
+      }
+      if (!/^[a-z0-9-]+$/.test(slug)) {
+        showStatus('error', 'Slug must be lowercase letters, numbers and hyphens only.');
+        return;
+      }
+
+      const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+      const btn = document.getElementById('publishBtn');
+      btn.disabled = true;
+      showStatus('loading', 'Publishing — sending to Make.com and updating GitHub...');
+
+      try {
+        const res = await fetch(WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, title, excerpt, category, readTime, tags: JSON.stringify(tags), body })
+        });
+        if (res.ok) {
+          showStatus('success', '✓ Published. GitHub updated — Cloudflare deploys in ~30 seconds. Check fortitudefx.com/blog');
+        } else {
+          showStatus('error', `Error ${res.status} — check Make.com logs.`);
+        }
+      } catch(e) {
+        showStatus('error', 'Network error — check connection and try again.');
+      }
+      btn.disabled = false;
+    }
+
+    function showStatus(type, msg) {
+      const el = document.getElementById('status');
+      el.className = 'status ' + type;
+      el.textContent = msg;
+    }
+  </script>
+</body>
+</html>
