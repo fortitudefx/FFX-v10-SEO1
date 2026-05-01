@@ -59,7 +59,7 @@ export async function onRequestPost(context) {
   articles.unshift(article); // unshift puts newest article first
 
   // 5. Encode updated array back to base64
-  const updated = btoa(JSON.stringify(articles, null, 2));
+  const updated = btoa(unescape(encodeURIComponent(JSON.stringify(articles, null, 2))));
 
   // 6. PUT back to GitHub
   let putRes;
