@@ -15,6 +15,11 @@ export async function onRequestPost(context) {
     return json({ message: 'Invalid JSON' }, 400);
   }
 
+  if (article.date) article.date = article.date.replace(/"/g, '');
+  if (typeof article.tags === 'string') {
+    try { article.tags = JSON.parse(article.tags); } catch { article.tags = []; }
+  }
+
   const GITHUB_TOKEN = context.env.GITHUB_TOKEN;
   if (!GITHUB_TOKEN) {
     return json({ message: 'GITHUB_TOKEN not configured' }, 500);
