@@ -54,8 +54,13 @@
     select option { background: #1a1a2e; color: #fff; }
     textarea { resize: vertical; min-height: 120px; line-height: 1.7; }
     textarea.body-field { min-height: 320px; font-size: 0.88rem; font-family: 'Courier New', monospace; }
+    textarea.tweet-field { min-height: 80px; font-size: 0.88rem; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--gold-text); margin-bottom: -8px;
+    }
     .submit-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
     .submit-note { font-size: 12px; color: var(--muted); line-height: 1.6; }
     .btn-publish {
@@ -95,6 +100,8 @@
     </div>
 
     <div class="form">
+
+      <!-- ARTICLE FIELDS -->
       <div class="field">
         <label>Slug <span>*</span></label>
         <p class="hint">Lowercase, hyphens only — e.g. why-your-strategy-fails</p>
@@ -133,15 +140,52 @@
         <p class="hint">Comma separated — e.g. price action, forex strategy</p>
         <input type="text" id="tags" placeholder="price action, forex strategy, entry models" required />
       </div>
+      <div class="field">
+        <label>YouTube URL</label>
+        <p class="hint">The video whose transcript generated this article</p>
+        <input type="text" id="yt_url" placeholder="https://youtube.com/watch?v=..." />
+      </div>
       <hr class="divider" />
       <div class="field">
         <label>Article Body <span>*</span></label>
         <p class="hint">HTML format with &lt;p&gt;, &lt;h2&gt;, &lt;a href=""&gt; tags</p>
         <textarea class="body-field" id="body" placeholder="<p>Article body here...</p>" required></textarea>
       </div>
+
+      <hr class="divider" />
+
+      <!-- X THREAD FIELDS -->
+      <p class="section-label">X Thread — 6 Tweets</p>
+      <p class="hint" style="margin-top:4px">Pre-filled from Claude output. Each tweet max 260 chars. Tweet 6 contains all links.</p>
+
+      <div class="field">
+        <label>Tweet 1 — Hook</label>
+        <textarea class="tweet-field" id="tweet1" placeholder="Hook tweet — no links"></textarea>
+      </div>
+      <div class="field">
+        <label>Tweet 2</label>
+        <textarea class="tweet-field" id="tweet2" placeholder="Insight 1"></textarea>
+      </div>
+      <div class="field">
+        <label>Tweet 3</label>
+        <textarea class="tweet-field" id="tweet3" placeholder="Insight 2"></textarea>
+      </div>
+      <div class="field">
+        <label>Tweet 4</label>
+        <textarea class="tweet-field" id="tweet4" placeholder="Insight 3"></textarea>
+      </div>
+      <div class="field">
+        <label>Tweet 5 — Takeaway</label>
+        <textarea class="tweet-field" id="tweet5" placeholder="Practical takeaway — no links"></textarea>
+      </div>
+      <div class="field">
+        <label>Tweet 6 — Links</label>
+        <textarea class="tweet-field" id="tweet6" placeholder="▶ Watch: [YT URL]&#10;📖 Read: fortitudefx.com/article?slug=...&#10;More: fortitudefx.com&#10;Free community: discord.com/invite/fWAPJdR8TR"></textarea>
+      </div>
+
       <div id="status" class="status"></div>
       <div class="submit-row">
-        <p class="submit-note">Updates articles.json on GitHub →<br>Cloudflare deploys in ~30 seconds.</p>
+        <p class="submit-note">Updates articles.json on GitHub →<br>Cloudflare deploys in ~30 seconds.<br>Posts X thread automatically.</p>
         <button class="btn-publish" id="publishBtn" onclick="publish()">
           <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
           Publish to Blog
@@ -153,10 +197,9 @@
   <script>
     const WEBHOOK = 'https://hook.eu1.make.com/0iwx8y8ufy318mfml1jmgs1cjjeii388';
 
-    // Pre-fill from URL params on load
     window.addEventListener('DOMContentLoaded', () => {
       const p = new URLSearchParams(window.location.search);
-      const fields = ['slug','title','excerpt','category','readTime','tags','body'];
+      const fields = ['slug','title','excerpt','category','readTime','tags','body','yt_url','tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'];
       let prefilled = false;
 
       fields.forEach(f => {
@@ -191,9 +234,16 @@
       const readTime = document.getElementById('readTime').value.trim();
       const tagsRaw  = document.getElementById('tags').value.trim();
       const body     = document.getElementById('body').value.trim();
+      const yt_url   = document.getElementById('yt_url').value.trim();
+      const tweet1   = document.getElementById('tweet1').value.trim();
+      const tweet2   = document.getElementById('tweet2').value.trim();
+      const tweet3   = document.getElementById('tweet3').value.trim();
+      const tweet4   = document.getElementById('tweet4').value.trim();
+      const tweet5   = document.getElementById('tweet5').value.trim();
+      const tweet6   = document.getElementById('tweet6').value.trim();
 
       if (!slug || !title || !excerpt || !category || !readTime || !tagsRaw || !body) {
-        showStatus('error', 'All fields are required.');
+        showStatus('error', 'All article fields are required.');
         return;
       }
       if (excerpt.length > 160) {
@@ -208,16 +258,20 @@
       const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
       const btn = document.getElementById('publishBtn');
       btn.disabled = true;
-      showStatus('loading', 'Publishing — sending to Make.com and updating GitHub...');
+      showStatus('loading', 'Publishing — sending to Make.com, updating GitHub, posting X thread...');
 
       try {
         const res = await fetch(WEBHOOK, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug, title, excerpt, category, readTime, tags: JSON.stringify(tags), body })
+          body: JSON.stringify({
+            slug, title, excerpt, category, readTime,
+            tags: JSON.stringify(tags), body, yt_url,
+            tweet1, tweet2, tweet3, tweet4, tweet5, tweet6
+          })
         });
         if (res.ok || res.status === 200) {
-          showStatus('success', '✓ Published. GitHub updated — Cloudflare deploys in ~30 seconds. Check fortitudefx.com/blog');
+          showStatus('success', '✓ Published. GitHub updated — Cloudflare deploys in ~30 seconds. X thread posted. Check fortitudefx.com/blog');
         } else {
           showStatus('error', `Error ${res.status} — check Make.com logs.`);
         }
