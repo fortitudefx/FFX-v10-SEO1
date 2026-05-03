@@ -1,12 +1,13 @@
 // Cloudflare Pages Function — FortitudeFX article publisher
 // File location in your repo: /functions/publish.js
 //
-// Called by Make.com webhook scenario via POST to /functions/publish
+// Called by Make.com webhook scenario via POST to /publish
 // Requires GITHUB_TOKEN in Cloudflare Pages → Settings → Environment Variables
 
 const GITHUB_API = 'https://api.github.com/repos/fortitudefx/FFX-v10-SEO1/contents/articles.json';
 
 export async function onRequestPost(context) {
+
   // 1. Parse incoming article data from Make
   let article;
   try {
@@ -16,9 +17,22 @@ export async function onRequestPost(context) {
   }
 
   if (article.date) article.date = article.date.replace(/"/g, '');
+
   if (typeof article.tags === 'string') {
     try { article.tags = JSON.parse(article.tags); } catch { article.tags = []; }
   }
+
+  // Sanitise tweet fields — strip newlines so they store cleanly
+  const tweetFields = ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'];
+  tweetFields.forEach(field => {
+    if (article[field]) {
+      article[field] = article[field].replace(/[\r\n\t]+/g, ' ').trim();
+    }
+  });
+
+  // Sanitise linkedin and yt_url
+  if (article.linkedin) article.linkedin = article.linkedin.trim();
+  if (article.yt_url) article.yt_url = article.yt_url.trim();
 
   const GITHUB_TOKEN = context.env.GITHUB_TOKEN;
   if (!GITHUB_TOKEN) {
@@ -60,8 +74,8 @@ export async function onRequestPost(context) {
     return json({ message: 'articles.json is not an array' }, 500);
   }
 
-  // 4. Append new article
-  articles.unshift(article); // unshift puts newest article first
+  // 4. Append new article (newest first)
+  articles.unshift(article);
 
   // 5. Encode updated array back to base64
   const updated = btoa(unescape(encodeURIComponent(JSON.stringify(articles, null, 2))));
