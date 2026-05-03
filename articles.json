@@ -1,5 +1,21 @@
 [
   {
+    "body": "Test Blog Salamn ali",
+    "date": "2026-05-04",
+    "slug": "why-your-trading-strategy-fails",
+    "tags": [
+      "trading strategy",
+      "trader personality",
+      "day trading",
+      "swing trading",
+      "forex discipline"
+    ],
+    "title": "Why Your Trading Strategy Fails Before You Even Place a Trade",
+    "excerpt": "Most traders fail not because their strategy is wrong, but because it was never theirs to begin with.",
+    "category": "Trader Mindset",
+    "readTime": "8 min read"
+  },
+  {
     "body": "Test Blog Salamn",
     "date": "2026-05-04",
     "slug": "why-your-trading-strategy-fails",
@@ -55,7 +71,7 @@
       "test",
       "sandbox"
     ],
-    "title": "TEST ARTICLE ÃÂ¢ÃÂÃÂ Sandbox Only",
+    "title": "TEST ARTICLE ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Sandbox Only",
     "excerpt": "Sandbox test. Not for live blog.",
     "category": "Trading Education",
     "readTime": "1 min read"
@@ -68,7 +84,7 @@
       "test",
       "sandbox"
     ],
-    "title": "TEST ARTICLE ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Sandbox Only",
+    "title": "TEST ARTICLE ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Sandbox Only",
     "excerpt": "Sandbox test. Not for live blog.",
     "category": "Trading Education",
     "readTime": "1 min read"
