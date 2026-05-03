@@ -18,7 +18,10 @@ export async function onRequestPost(context) {
     return json({ message: 'Invalid JSON' }, 400);
   }
 
-  const { text, reply_to_tweet_id } = body;
+  const { text: rawText, reply_to_tweet_id } = body;
+
+  // Sanitise text — strip control characters that break JSON parsing in Make
+  const text = rawText ? rawText.replace(/[\r\n\t]+/g, ' ').trim() : '';
 
   if (!text) {
     return json({ message: 'Missing tweet text' }, 400);
