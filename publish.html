@@ -55,6 +55,7 @@
     textarea { resize: vertical; min-height: 120px; line-height: 1.7; }
     textarea.body-field { min-height: 320px; font-size: 0.88rem; font-family: 'Courier New', monospace; }
     textarea.tweet-field { min-height: 80px; font-size: 0.88rem; }
+    textarea.linkedin-field { min-height: 200px; font-size: 0.88rem; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
     .section-label {
@@ -92,19 +93,20 @@
     <div class="header">
       <div class="header-kicker">FortitudeFX</div>
       <h1>Publish Article</h1>
-      <p>Review the pre-filled fields, make any edits, then click Publish to push live via GitHub.</p>
+      <p>Review all pre-filled fields, then click Publish to push to blog, X, and LinkedIn simultaneously.</p>
     </div>
 
     <div id="prefilledNotice" class="prefilled-notice">
-      ✓ Article fields pre-filled from Claude. Review everything before publishing.
+      All fields pre-filled from Claude. Review before publishing.
     </div>
 
     <div class="form">
 
       <!-- ARTICLE FIELDS -->
+      <p class="section-label">Article</p>
       <div class="field">
         <label>Slug <span>*</span></label>
-        <p class="hint">Lowercase, hyphens only — e.g. why-your-strategy-fails</p>
+        <p class="hint">Lowercase, hyphens only</p>
         <input type="text" id="slug" placeholder="why-your-strategy-fails" required />
       </div>
       <div class="field">
@@ -113,7 +115,7 @@
       </div>
       <div class="field">
         <label>Excerpt <span>*</span></label>
-        <p class="hint">Max 160 characters — shown on blog index.</p>
+        <p class="hint">Max 160 characters</p>
         <input type="text" id="excerpt" placeholder="One sentence summary" required />
         <p class="hint" id="excerptCount">0 / 160</p>
       </div>
@@ -137,26 +139,38 @@
       </div>
       <div class="field">
         <label>Tags <span>*</span></label>
-        <p class="hint">Comma separated — e.g. price action, forex strategy</p>
-        <input type="text" id="tags" placeholder="price action, forex strategy, entry models" required />
+        <p class="hint">Comma separated</p>
+        <input type="text" id="tags" placeholder="price action, forex strategy" required />
       </div>
       <div class="field">
         <label>YouTube URL</label>
         <p class="hint">The video whose transcript generated this article</p>
         <input type="text" id="yt_url" placeholder="https://youtube.com/watch?v=..." />
       </div>
+
       <hr class="divider" />
+
       <div class="field">
         <label>Article Body <span>*</span></label>
-        <p class="hint">HTML format with &lt;p&gt;, &lt;h2&gt;, &lt;a href=""&gt; tags</p>
+        <p class="hint">HTML only — p and h2 tags</p>
         <textarea class="body-field" id="body" placeholder="<p>Article body here...</p>" required></textarea>
       </div>
 
       <hr class="divider" />
 
-      <!-- X THREAD FIELDS -->
-      <p class="section-label">X Thread — 6 Tweets</p>
-      <p class="hint" style="margin-top:4px">Pre-filled from Claude output. Each tweet max 260 chars. Tweet 6 contains all links.</p>
+      <!-- LINKEDIN -->
+      <p class="section-label">LinkedIn — Company Page post</p>
+      <p class="hint" style="margin-top:4px">800-1200w native longform. Pre-filled from Claude output.</p>
+      <div class="field">
+        <label>LinkedIn Content</label>
+        <textarea class="linkedin-field" id="linkedin" placeholder="LinkedIn post content..."></textarea>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- X THREAD -->
+      <p class="section-label">X Thread — 6 tweets</p>
+      <p class="hint" style="margin-top:4px">Pre-filled from Claude output. No em dashes. No emoji.</p>
 
       <div class="field">
         <label>Tweet 1 — Hook</label>
@@ -164,33 +178,35 @@
       </div>
       <div class="field">
         <label>Tweet 2</label>
-        <textarea class="tweet-field" id="tweet2" placeholder="Insight 1"></textarea>
+        <textarea class="tweet-field" id="tweet2"></textarea>
       </div>
       <div class="field">
         <label>Tweet 3</label>
-        <textarea class="tweet-field" id="tweet3" placeholder="Insight 2"></textarea>
+        <textarea class="tweet-field" id="tweet3"></textarea>
       </div>
       <div class="field">
         <label>Tweet 4</label>
-        <textarea class="tweet-field" id="tweet4" placeholder="Insight 3"></textarea>
+        <textarea class="tweet-field" id="tweet4"></textarea>
       </div>
       <div class="field">
         <label>Tweet 5 — Takeaway</label>
-        <textarea class="tweet-field" id="tweet5" placeholder="Practical takeaway — no links"></textarea>
+        <textarea class="tweet-field" id="tweet5"></textarea>
       </div>
       <div class="field">
         <label>Tweet 6 — Links</label>
-        <textarea class="tweet-field" id="tweet6" placeholder="▶ Watch: [YT URL]&#10;📖 Read: fortitudefx.com/article?slug=...&#10;More: fortitudefx.com&#10;Free community: discord.com/invite/fWAPJdR8TR"></textarea>
+        <textarea class="tweet-field" id="tweet6" placeholder="Watch: [YT] | Read: fortitudefx.com/article?slug=... | More: fortitudefx.com | Community: discord.com/invite/fWAPJdR8TR"></textarea>
       </div>
 
       <div id="status" class="status"></div>
+
       <div class="submit-row">
-        <p class="submit-note">Updates articles.json on GitHub →<br>Cloudflare deploys in ~30 seconds.<br>Posts X thread automatically.</p>
+        <p class="submit-note">Publishes to blog, X thread, and LinkedIn<br>simultaneously on one click.</p>
         <button class="btn-publish" id="publishBtn" onclick="publish()">
           <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-          Publish to Blog
+          Publish Everything
         </button>
       </div>
+
     </div>
   </div>
 
@@ -199,9 +215,8 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       const p = new URLSearchParams(window.location.search);
-      const fields = ['slug','title','excerpt','category','readTime','tags','body','yt_url','tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'];
+      const fields = ['slug','title','excerpt','category','readTime','tags','body','yt_url','linkedin','tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'];
       let prefilled = false;
-
       fields.forEach(f => {
         const val = p.get(f);
         if (val) {
@@ -209,17 +224,13 @@
           if (el) { el.value = decodeURIComponent(val); prefilled = true; }
         }
       });
+      if (prefilled) document.getElementById('prefilledNotice').classList.add('show');
 
-      if (prefilled) {
-        document.getElementById('prefilledNotice').classList.add('show');
-      }
-
-      // Excerpt counter
       const excerpt = document.getElementById('excerpt');
       const counter = document.getElementById('excerptCount');
       const update = () => {
         const len = excerpt.value.length;
-        counter.textContent = `${len} / 160`;
+        counter.textContent = len + ' / 160';
         counter.style.color = len > 160 ? '#f87171' : 'rgba(255,255,255,0.22)';
       };
       excerpt.addEventListener('input', update);
@@ -235,6 +246,7 @@
       const tagsRaw  = document.getElementById('tags').value.trim();
       const body     = document.getElementById('body').value.trim();
       const yt_url   = document.getElementById('yt_url').value.trim();
+      const linkedin = document.getElementById('linkedin').value.trim();
       const tweet1   = document.getElementById('tweet1').value.trim();
       const tweet2   = document.getElementById('tweet2').value.trim();
       const tweet3   = document.getElementById('tweet3').value.trim();
@@ -247,7 +259,7 @@
         return;
       }
       if (excerpt.length > 160) {
-        showStatus('error', `Excerpt is ${excerpt.length} chars — keep under 160.`);
+        showStatus('error', 'Excerpt is ' + excerpt.length + ' chars - keep under 160.');
         return;
       }
       if (!/^[a-z0-9-]+$/.test(slug)) {
@@ -258,7 +270,7 @@
       const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
       const btn = document.getElementById('publishBtn');
       btn.disabled = true;
-      showStatus('loading', 'Publishing — sending to Make.com, updating GitHub, posting X thread...');
+      showStatus('loading', 'Publishing - blog, X thread, and LinkedIn posting now...');
 
       try {
         const res = await fetch(WEBHOOK, {
@@ -267,16 +279,16 @@
           body: JSON.stringify({
             slug, title, excerpt, category, readTime,
             tags: JSON.stringify(tags), body, yt_url,
-            tweet1, tweet2, tweet3, tweet4, tweet5, tweet6
+            linkedin, tweet1, tweet2, tweet3, tweet4, tweet5, tweet6
           })
         });
         if (res.ok || res.status === 200) {
-          showStatus('success', '✓ Published. GitHub updated — Cloudflare deploys in ~30 seconds. X thread posted. Check fortitudefx.com/blog');
+          showStatus('success', 'Published. Blog live in ~30 seconds. X thread and LinkedIn posted. Check fortitudefx.com/blog');
         } else {
-          showStatus('error', `Error ${res.status} — check Make.com logs.`);
+          showStatus('error', 'Error ' + res.status + ' - check Make.com logs.');
         }
       } catch(e) {
-        showStatus('error', 'Network error — check connection and try again.');
+        showStatus('error', 'Network error - check connection and try again.');
       }
       btn.disabled = false;
     }
