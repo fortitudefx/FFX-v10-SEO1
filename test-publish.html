@@ -57,12 +57,10 @@
     select option { background: #1a1a2e; color: #fff; }
     textarea { resize: vertical; line-height: 1.7; }
     .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
-    .section-header {
-      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 16px 20px;
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--gold-text); margin-bottom: -8px;
     }
-    .section-header h2 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-    .section-header p { font-size: 12px; color: var(--muted); line-height: 1.6; }
     .btn {
       display: inline-flex; align-items: center; gap: 10px;
       color: #fff; font-family: 'Satoshi', sans-serif; font-size: 14px; font-weight: 700;
@@ -74,6 +72,7 @@
     .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     .btn-tweet { background: linear-gradient(135deg, #1d9bf0 0%, #0d6eac 100%); }
     .btn-full { background: linear-gradient(135deg, #d97706 0%, #92400e 100%); }
+    .submit-row { display: flex; align-items: center; justify-content: flex-end; gap: 16px; flex-wrap: wrap; }
     .status { display: none; padding: 16px 20px; border-radius: var(--radius); font-size: 0.92rem; font-weight: 500; line-height: 1.6; }
     .status.success { display: block; background: rgba(34,197,94,0.10); border: 1px solid rgba(34,197,94,0.24); color: #4ade80; }
     .status.error { display: block; background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.24); color: #f87171; }
@@ -86,6 +85,12 @@
     .ri { font-size: 15px; flex-shrink: 0; }
     .rl { color: var(--muted); min-width: 140px; flex-shrink: 0; }
     .rv { color: var(--text); word-break: break-all; }
+    .section-header {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 20px;
+    }
+    .section-header h2 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .section-header p { font-size: 12px; color: var(--muted); line-height: 1.6; }
     @media (max-width: 600px) { .wrap { padding: 40px 20px 64px; } }
   </style>
 </head>
@@ -97,28 +102,28 @@
     <div class="sandbox-banner">
       <div class="icon">⚠</div>
       <div>
-        <strong>FULL SANDBOX — Production systems untouched</strong>
-        Reads from articles-test.json only. Writes nothing to articles.json or live blog. X posts are real — X has no sandbox tier. Use unique tweet text each run to avoid duplicate rejection.
+        <strong>FULL SANDBOX - Production systems untouched</strong>
+        Reads/writes to articles-test.json only. X and LinkedIn will post real content - no sandbox tier exists on either platform. Delete test posts after confirming they worked.
       </div>
     </div>
 
     <div class="header">
-      <div class="header-kicker">FortitudeFX — Sandbox</div>
+      <div class="header-kicker">FortitudeFX - Sandbox</div>
       <h1>Test Environment</h1>
       <p>Two isolated test modes. Neither touches production data.</p>
     </div>
 
     <div class="form">
 
-      <!-- ── TEST 1: TWEET WORKER DIRECT ── -->
+      <!-- TEST 1: TWEET WORKER DIRECT -->
       <div class="section-header">
-        <h2>Test 1 — X Thread Only</h2>
-        <p>Calls /tweet directly. Reads from articles-test.json by slug. Posts thread to @_fortitudefx. Does not go through Make. Use slug: <strong>test-article-sandbox</strong></p>
+        <h2>Test 1 - X Thread Only</h2>
+        <p>Calls /tweet directly. Reads from articles-test.json. Posts thread to @_fortitudefx. Does not go through Make.</p>
       </div>
 
       <div class="field">
         <label>Slug</label>
-        <p class="hint">Must exist in articles-test.json — use test-article-sandbox</p>
+        <p class="hint">Use: test-article-sandbox</p>
         <input type="text" id="tweetSlug" value="test-article-sandbox" />
       </div>
 
@@ -126,15 +131,15 @@
       <div id="tweetResults" class="results"><h3>Results</h3><div id="tweetResultsList"></div></div>
 
       <div>
-        <button class="btn btn-tweet" id="tweetBtn" onclick="testTweet()">Test X Thread</button>
+        <button class="btn btn-tweet" id="tweetBtn" onclick="testTweet()">Test X Thread Only</button>
       </div>
 
       <hr class="divider" />
 
-      <!-- ── TEST 2: FULL PIPELINE THROUGH MAKE ── -->
+      <!-- TEST 2: FULL PIPELINE -->
       <div class="section-header">
-        <h2>Test 2 — Full Pipeline via Make</h2>
-        <p>Fires FFX TEST Make webhook. Make runs all modules — GitHub write goes to articles-test.json equivalent via test scenario, then calls /tweet with _sandbox:true. Verify in Make execution logs.</p>
+        <h2>Test 2 - Full Pipeline via Make</h2>
+        <p>Fires FFX TEST webhook. Runs all active modules. X will post and LinkedIn will post. Delete test content after confirming all green in Make logs.</p>
       </div>
 
       <div class="field">
@@ -142,13 +147,15 @@
         <input type="text" id="webhookUrl" placeholder="https://hook.eu1.make.com/jnjy3n7w2cy12mclu8uh9nr11ultt6br" />
       </div>
 
+      <!-- ARTICLE FIELDS -->
+      <p class="section-label">Article fields</p>
       <div class="field">
         <label>Slug</label>
         <input type="text" id="slug" value="test-article-sandbox" />
       </div>
       <div class="field">
         <label>Title</label>
-        <input type="text" id="title" value="TEST ARTICLE — Sandbox Only" />
+        <input type="text" id="title" value="TEST ARTICLE - Sandbox Only" />
       </div>
       <div class="field">
         <label>Excerpt</label>
@@ -176,13 +183,59 @@
       </div>
       <div class="field">
         <label>Body</label>
-        <textarea style="min-height:80px" id="body"><p>Sandbox test body.</p></textarea>
+        <textarea style="min-height:60px" id="body"><p>Sandbox test body.</p></textarea>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- LINKEDIN FIELD -->
+      <p class="section-label">LinkedIn post</p>
+      <p class="hint" style="margin-top:4px">This will post publicly to FortitudeFX LinkedIn Company Page. Delete after test.</p>
+      <div class="field">
+        <label>LinkedIn Content</label>
+        <textarea style="min-height:120px" id="linkedin">TEST POST - FortitudeFX sandbox test. Please ignore this post. It will be deleted shortly.
+
+Most traders fail not because their strategy is wrong - but because it was never theirs to begin with.
+
+Full article: fortitudefx.com/article?slug=why-your-trading-strategy-fails
+
+#ForexTrading #TradingEducation</textarea>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- X THREAD FIELDS -->
+      <p class="section-label">X thread tweets</p>
+      <p class="hint" style="margin-top:4px">Will post to @_fortitudefx. Delete after test.</p>
+      <div class="field">
+        <label>Tweet 1</label>
+        <textarea style="min-height:60px" id="tweet1">1/ SANDBOX TEST - Most traders fail not because their strategy is wrong - but because it was never theirs to begin with.</textarea>
+      </div>
+      <div class="field">
+        <label>Tweet 2</label>
+        <textarea style="min-height:60px" id="tweet2">2/ SANDBOX TEST - Put a sprinter in a marathon and they burn out by mile 3. Trading works the same way.</textarea>
+      </div>
+      <div class="field">
+        <label>Tweet 3</label>
+        <textarea style="min-height:60px" id="tweet3">3/ SANDBOX TEST - Strategy-personality alignment is not a preference. It is a requirement.</textarea>
+      </div>
+      <div class="field">
+        <label>Tweet 4</label>
+        <textarea style="min-height:60px" id="tweet4">4/ SANDBOX TEST - One momentum candle. One liquidity sweep. One stop order. Market tags you in.</textarea>
+      </div>
+      <div class="field">
+        <label>Tweet 5</label>
+        <textarea style="min-height:60px" id="tweet5">5/ SANDBOX TEST - The biggest trap in retail trading is complexity. One candle. One sweep. One entry.</textarea>
+      </div>
+      <div class="field">
+        <label>Tweet 6</label>
+        <textarea style="min-height:60px" id="tweet6">6/ SANDBOX TEST - Full breakdown: fortitudefx.com More: fortitudefx.com Community: discord.com/invite/fWAPJdR8TR</textarea>
       </div>
 
       <div id="pipelineStatus" class="status"></div>
       <div id="pipelineResults" class="results"><h3>Results</h3><div id="pipelineResultsList"></div></div>
 
-      <div style="display:flex;justify-content:flex-end">
+      <div class="submit-row">
         <button class="btn btn-full" id="pipelineBtn" onclick="testPipeline()">Test Full Pipeline</button>
       </div>
 
@@ -195,39 +248,31 @@
       if (saved) document.getElementById('webhookUrl').value = saved;
     });
 
-    // Test 1 — calls /tweet directly with sandbox flag
     async function testTweet() {
       const slug = document.getElementById('tweetSlug').value.trim();
       if (!slug) { showStatus('tweetStatus', 'error', 'Enter a slug.'); return; }
-
       const btn = document.getElementById('tweetBtn');
       btn.disabled = true;
-      showStatus('tweetStatus', 'loading', `Fetching tweet content for "${slug}" from articles-test.json and posting to @_fortitudefx...`);
+      showStatus('tweetStatus', 'loading', 'Posting X thread from articles-test.json...');
       hideResults('tweetResults');
-
       try {
         const res = await fetch('https://fortitudefx.com/tweet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ slug, _sandbox: true })
         });
-
         const data = await res.json().catch(() => ({}));
-
         if (res.ok && data.success) {
           showResults('tweetResults', 'tweetResultsList', [
-            { pass: true,  label: 'Worker',        value: 'Reached successfully' },
-            { pass: true,  label: 'Data source',   value: 'articles-test.json (sandbox)' },
-            { pass: true,  label: 'Article found', value: slug },
-            { pass: true,  label: 'Tweets posted', value: `${data.tweet_count} tweets` },
-            { pass: null,  label: 'Check X',       value: '@_fortitudefx — thread should be live now' }
+            { pass: true, label: 'Worker', value: 'OK' },
+            { pass: true, label: 'Data source', value: 'articles-test.json' },
+            { pass: true, label: 'Tweets posted', value: data.tweet_count + ' tweets' },
+            { pass: null, label: 'Check X', value: '@_fortitudefx - thread live now' }
           ]);
-          showStatus('tweetStatus', 'success', `✓ Thread posted. ${data.tweet_count} tweets live on @_fortitudefx.`);
+          showStatus('tweetStatus', 'success', 'Thread posted. ' + data.tweet_count + ' tweets on @_fortitudefx.');
         } else {
-          showResults('tweetResults', 'tweetResultsList', [
-            { pass: false, label: 'Error', value: data.message || `HTTP ${res.status}` }
-          ]);
-          showStatus('tweetStatus', 'error', `Failed: ${data.message || res.status}`);
+          showResults('tweetResults', 'tweetResultsList', [{ pass: false, label: 'Error', value: data.message || 'HTTP ' + res.status }]);
+          showStatus('tweetStatus', 'error', 'Failed: ' + (data.message || res.status));
         }
       } catch(e) {
         showStatus('tweetStatus', 'error', 'Network error: ' + e.message);
@@ -235,15 +280,13 @@
       btn.disabled = false;
     }
 
-    // Test 2 — fires Make webhook with _sandbox:true
     async function testPipeline() {
       const webhookUrl = document.getElementById('webhookUrl').value.trim();
       if (!webhookUrl) { showStatus('pipelineStatus', 'error', 'Enter webhook URL.'); return; }
       localStorage.setItem('ffx_test_webhook', webhookUrl);
-
       const btn = document.getElementById('pipelineBtn');
       btn.disabled = true;
-      showStatus('pipelineStatus', 'loading', 'Firing FFX TEST webhook — check Make.com logs after...');
+      showStatus('pipelineStatus', 'loading', 'Firing FFX TEST webhook...');
       hideResults('pipelineResults');
 
       const payload = {
@@ -255,12 +298,18 @@
         tags:     JSON.stringify(document.getElementById('tags').value.split(',').map(t=>t.trim()).filter(Boolean)),
         body:     document.getElementById('body').value.trim(),
         yt_url:   document.getElementById('yt_url').value.trim(),
+        linkedin: document.getElementById('linkedin').value.trim(),
+        tweet1:   document.getElementById('tweet1').value.trim(),
+        tweet2:   document.getElementById('tweet2').value.trim(),
+        tweet3:   document.getElementById('tweet3').value.trim(),
+        tweet4:   document.getElementById('tweet4').value.trim(),
+        tweet5:   document.getElementById('tweet5').value.trim(),
+        tweet6:   document.getElementById('tweet6').value.trim(),
         _sandbox: true
       };
 
       let success = false;
       let errorMsg = '';
-
       try {
         const res = await fetch(webhookUrl, {
           method: 'POST',
@@ -268,20 +317,19 @@
           body: JSON.stringify(payload)
         });
         success = res.ok || res.status === 200;
-        if (!success) errorMsg = `HTTP ${res.status}`;
+        if (!success) errorMsg = 'HTTP ' + res.status;
       } catch(e) {
         errorMsg = e.message;
       }
 
       showResults('pipelineResults', 'pipelineResultsList', [
         { pass: success, label: 'Webhook fired', value: success ? 'OK' : errorMsg },
-        { pass: null,    label: 'Next step',     value: 'Open Make.com → FFX TEST → execution log → verify all modules green' }
+        { pass: null, label: 'Next step', value: 'Check Make FFX TEST execution log - verify all modules green' }
       ]);
-
       if (success) {
-        showStatus('pipelineStatus', 'success', '✓ Webhook fired. Check Make.com FFX TEST execution log.');
+        showStatus('pipelineStatus', 'success', 'Webhook fired. Check Make FFX TEST logs. Delete test posts from LinkedIn and X after confirming.');
       } else {
-        showStatus('pipelineStatus', 'error', `Failed: ${errorMsg}`);
+        showStatus('pipelineStatus', 'error', 'Failed: ' + errorMsg);
       }
       btn.disabled = false;
     }
@@ -291,17 +339,15 @@
       el.className = 'status ' + type;
       el.textContent = msg;
     }
-
     function showResults(panelId, listId, items) {
       document.getElementById(panelId).classList.add('show');
       document.getElementById(listId).innerHTML = items.map(i => `
         <div class="result-row">
-          <span class="ri">${i.pass === null ? '→' : i.pass ? '✓' : '✗'}</span>
+          <span class="ri">${i.pass === null ? '->' : i.pass ? 'v' : 'x'}</span>
           <span class="rl">${i.label}</span>
           <span class="rv">${i.value}</span>
         </div>`).join('');
     }
-
     function hideResults(id) {
       document.getElementById(id).classList.remove('show');
     }
