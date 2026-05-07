@@ -56,6 +56,8 @@
     textarea.body-field { min-height: 320px; font-size: 0.88rem; font-family: 'Courier New', monospace; }
     textarea.tweet-field { min-height: 80px; font-size: 0.88rem; }
     textarea.linkedin-field { min-height: 200px; font-size: 0.88rem; }
+    textarea.discord-field { min-height: 200px; font-size: 0.88rem; }
+    textarea.tumblr-field { min-height: 160px; font-size: 0.88rem; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
     .section-label {
@@ -93,7 +95,7 @@
     <div class="header">
       <div class="header-kicker">FortitudeFX</div>
       <h1>Publish Article</h1>
-      <p>Review all pre-filled fields, then click Publish to push to blog, X, and LinkedIn simultaneously.</p>
+      <p>Review all pre-filled fields, then click Publish to push to blog, X, and Discord simultaneously.</p>
     </div>
 
     <div id="prefilledNotice" class="prefilled-notice">
@@ -159,7 +161,7 @@
       <hr class="divider" />
 
       <!-- LINKEDIN -->
-      <p class="section-label">LinkedIn — Company Page post</p>
+      <p class="section-label">LinkedIn — Personal Profile post</p>
       <p class="hint" style="margin-top:4px">800-1200w native longform. Pre-filled from Claude output.</p>
       <div class="field">
         <label>LinkedIn Content</label>
@@ -167,6 +169,26 @@
       </div>
 
       <hr class="divider" />
+
+      <!-- DISCORD -->
+      <p class="section-label">Discord — #blog-updates</p>
+      <p class="hint" style="margin-top:4px">3-part drop: value + tease + soft VIP bridge. Pre-filled from Claude output.</p>
+      <div class="field">
+        <label>Discord Content</label>
+        <textarea class="discord-field" id="discord" placeholder="Discord post content..."></textarea>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- TUMBLR — DISABLED UNTIL ACCOUNT READY
+      <p class="section-label">Tumblr</p>
+      <p class="hint" style="margin-top:4px">200-350w short essay. Pre-filled from Claude output.</p>
+      <div class="field">
+        <label>Tumblr Content</label>
+        <textarea class="tumblr-field" id="tumblr" placeholder="Tumblr post content..."></textarea>
+      </div>
+      <hr class="divider" />
+      -->
 
       <!-- X THREAD -->
       <p class="section-label">X Thread — 6 tweets</p>
@@ -200,7 +222,7 @@
       <div id="status" class="status"></div>
 
       <div class="submit-row">
-        <p class="submit-note">Publishes to blog, X thread, and LinkedIn<br>simultaneously on one click.</p>
+        <p class="submit-note">Publishes to blog, X thread, and Discord<br>simultaneously on one click.</p>
         <button class="btn-publish" id="publishBtn" onclick="publish()">
           <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
           Publish Everything
@@ -215,7 +237,12 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       const p = new URLSearchParams(window.location.search);
-      const fields = ['slug','title','excerpt','category','readTime','tags','body','yt_url','linkedin','tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'];
+      const fields = [
+        'slug','title','excerpt','category','readTime','tags','body','yt_url',
+        'linkedin','discord',
+        // 'tumblr', // disabled until Tumblr account ready
+        'tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'
+      ];
       let prefilled = false;
       fields.forEach(f => {
         const val = p.get(f);
@@ -247,6 +274,8 @@
       const body     = document.getElementById('body').value.trim();
       const yt_url   = document.getElementById('yt_url').value.trim();
       const linkedin = document.getElementById('linkedin').value.trim();
+      const discord  = document.getElementById('discord').value.trim();
+      // const tumblr = document.getElementById('tumblr').value.trim(); // disabled
       const tweet1   = document.getElementById('tweet1').value.trim();
       const tweet2   = document.getElementById('tweet2').value.trim();
       const tweet3   = document.getElementById('tweet3').value.trim();
@@ -270,7 +299,7 @@
       const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
       const btn = document.getElementById('publishBtn');
       btn.disabled = true;
-      showStatus('loading', 'Publishing - blog, X thread, and LinkedIn posting now...');
+      showStatus('loading', 'Publishing — blog, X thread, and Discord posting now...');
 
       try {
         const res = await fetch(WEBHOOK, {
@@ -279,11 +308,13 @@
           body: JSON.stringify({
             slug, title, excerpt, category, readTime,
             tags: JSON.stringify(tags), body, yt_url,
-            linkedin, tweet1, tweet2, tweet3, tweet4, tweet5, tweet6
+            linkedin, discord,
+            // tumblr, // disabled until Tumblr account ready
+            tweet1, tweet2, tweet3, tweet4, tweet5, tweet6
           })
         });
         if (res.ok || res.status === 200) {
-          showStatus('success', 'Published. Blog live in ~30 seconds. X thread and LinkedIn posted. Check fortitudefx.com/blog');
+          showStatus('success', 'Published. Blog live in ~30 seconds. X thread and Discord posted. Check fortitudefx.com/blog');
         } else {
           showStatus('error', 'Error ' + res.status + ' - check Make.com logs.');
         }
