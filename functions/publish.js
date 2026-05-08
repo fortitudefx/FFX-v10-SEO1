@@ -1,136 +1,177 @@
-// Cloudflare Pages Function — FortitudeFX article publisher
-// File location in your repo: /functions/publish.js
-//
-// Called by Make.com webhook scenario via POST to /publish
-// Saves ALL fields including tumblr and discord
-// Duplicate slug detection — updates existing entry instead of adding new
-// Requires GITHUB_TOKEN in Cloudflare Pages → Settings → Environment Variables
-
-const GITHUB_API = 'https://api.github.com/repos/fortitudefx/FFX-v10-SEO1/contents/articles.json';
+// FFX /publish Worker
+// - Saves article to articles.json
+// - Rewrites sitemap.xml to include all articles
 
 export async function onRequestPost(context) {
+  const { request, env } = context;
 
-  // 1. Parse incoming article data from Make
-  let article;
-  try {
-    article = await context.request.json();
-  } catch {
-    return json({ message: 'Invalid JSON' }, 400);
-  }
+  const GITHUB_TOKEN  = env.GITHUB_TOKEN;
+  const GITHUB_OWNER  = 'fortitudefx';
+  const GITHUB_REPO   = 'FFX-v10-SEO1';
+  const GITHUB_BRANCH = 'main';
 
-  // Validate required fields
-  if (!article.slug)  return json({ message: 'Missing required field: slug' }, 400);
-  if (!article.title) return json({ message: 'Missing required field: title' }, 400);
-  if (!article.body)  return json({ message: 'Missing required field: body' }, 400);
-
-  // Clean date field
-  if (article.date) article.date = article.date.replace(/"/g, '');
-
-  // Parse tags — handle JSON array string, plain comma-separated string, or already an array
-  if (typeof article.tags === 'string') {
-    const trimmed = article.tags.trim();
-    if (trimmed.startsWith('[')) {
-      // Try JSON parse first
-      try {
-        article.tags = JSON.parse(trimmed);
-      } catch {
-        // JSON parse failed — strip brackets and split as CSV
-        article.tags = trimmed
-          .replace(/^\[|\]$/g, '')
-          .split(',')
-          .map(t => t.trim().replace(/^["']|["']$/g, ''))
-          .filter(Boolean);
-      }
-    } else {
-      // Plain comma-separated string
-      article.tags = trimmed.split(',').map(t => t.trim()).filter(Boolean);
-    }
-  }
-  if (!Array.isArray(article.tags)) article.tags = [];
-
-  // Sanitise tweet fields — strip newlines
-  ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'].forEach(field => {
-    if (article[field]) article[field] = article[field].replace(/[\r\n\t]+/g, ' ').trim();
-  });
-
-  // Sanitise text fields
-  ['linkedin','tumblr','discord','yt_url'].forEach(field => {
-    if (article[field]) article[field] = article[field].trim();
-  });
-
-  const GITHUB_TOKEN = context.env.GITHUB_TOKEN;
-  if (!GITHUB_TOKEN) return json({ message: 'GITHUB_TOKEN not configured' }, 500);
-
-  const headers = {
-    'Authorization': `Bearer ${GITHUB_TOKEN}`,
-    'Accept': 'application/vnd.github+json',
-    'Content-Type': 'application/json',
-    'User-Agent': 'FortitudeFX-Publisher'
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
   };
 
-  // 2. GET current articles.json from GitHub
-  let getRes;
-  try {
-    getRes = await fetch(GITHUB_API, { headers });
-  } catch (err) {
-    return json({ message: 'GitHub GET failed: ' + err.message }, 500);
-  }
-  if (!getRes.ok) return json({ message: 'GitHub GET error: ' + getRes.status }, 500);
-
-  const fileData = await getRes.json();
-  const sha = fileData.sha;
-
-  // 3. Decode base64 → parse JSON array
-  const decoded = atob(fileData.content.replace(/\n/g, ''));
-  let articles;
-  try {
-    articles = JSON.parse(decoded);
-  } catch {
-    return json({ message: 'Failed to parse existing articles.json' }, 500);
-  }
-  if (!Array.isArray(articles)) return json({ message: 'articles.json is not an array' }, 500);
-
-  // 4. Duplicate slug check — update in place if exists, prepend if new
-  const existingIndex = articles.findIndex(a => a.slug === article.slug);
-  let action;
-  if (existingIndex !== -1) {
-    articles[existingIndex] = article;
-    action = 'updated';
-  } else {
-    articles.unshift(article);
-    action = 'created';
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
 
-  // 5. Encode updated array back to base64
-  const updated = btoa(unescape(encodeURIComponent(JSON.stringify(articles, null, 2))));
-
-  // 6. PUT back to GitHub
-  let putRes;
   try {
-    putRes = await fetch(GITHUB_API, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({
-        message: `${action === 'created' ? 'Add' : 'Update'} article: ${article.title}`,
-        content: updated,
-        sha
-      })
+    const body = await request.json();
+    const { slug, title, excerpt, category, tags, readTime, body: articleBody, date } = body;
+
+    if (!slug || !title || !articleBody) {
+      return new Response(JSON.stringify({ error: 'Missing required fields: slug, title, body' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const articleDate = date || new Date().toISOString().split('T')[0];
+
+    // ── 1. READ current articles.json ──────────────────────────────────────
+    const articlesUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/articles.json?ref=${GITHUB_BRANCH}`;
+    const articlesRes = await fetch(articlesUrl, {
+      headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker' }
     });
+
+    let articles = [];
+    let articlesSha = null;
+
+    if (articlesRes.ok) {
+      const articlesData = await articlesRes.json();
+      articlesSha = articlesData.sha;
+      articles = JSON.parse(atob(articlesData.content.replace(/\n/g, '')));
+    }
+
+    // Dedup by slug
+    const exists = articles.findIndex(a => a.slug === slug);
+    const newArticle = {
+      slug,
+      title,
+      excerpt: excerpt || '',
+      category: category || 'Trading',
+      tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : [],
+      readTime: readTime || '5 min read',
+      date: articleDate,
+      body: articleBody
+    };
+
+    if (exists >= 0) {
+      articles[exists] = newArticle;
+    } else {
+      articles.unshift(newArticle);
+    }
+
+    // ── 2. WRITE articles.json ─────────────────────────────────────────────
+    const articlesPayload = {
+      message: `publish: ${slug}`,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(articles, null, 2)))),
+      branch: GITHUB_BRANCH,
+      ...(articlesSha && { sha: articlesSha })
+    };
+
+    const writeArticles = await fetch(articlesUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        'User-Agent': 'FFX-Worker',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(articlesPayload)
+    });
+
+    if (!writeArticles.ok) {
+      const err = await writeArticles.text();
+      return new Response(JSON.stringify({ error: 'Failed to write articles.json', detail: err }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ── 3. REBUILD sitemap.xml ─────────────────────────────────────────────
+    const staticPages = [
+      { loc: 'https://fortitudefx.com/',            lastmod: '2026-04-26', changefreq: 'weekly',  priority: '1.0' },
+      { loc: 'https://fortitudefx.com/bootcamp',    lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
+      { loc: 'https://fortitudefx.com/vipdiscord',  lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
+      { loc: 'https://fortitudefx.com/waitlist',    lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.7' },
+      { loc: 'https://fortitudefx.com/blog',        lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.8' },
+      { loc: 'https://fortitudefx.com/privacy',     lastmod: '2026-04-26', changefreq: 'yearly',  priority: '0.3' },
+    ];
+
+    const today = articleDate;
+
+    const articleEntries = articles.map(a => ({
+      loc: `https://fortitudefx.com/article?slug=${a.slug}`,
+      lastmod: a.date || today,
+      changefreq: 'monthly',
+      priority: '0.7'
+    }));
+
+    const allUrls = [...staticPages, ...articleEntries];
+
+    const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${allUrls.map(u => `  <url>
+    <loc>${u.loc}</loc>
+    <lastmod>${u.lastmod}</lastmod>
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`).join('\n')}
+</urlset>`;
+
+    // Read current sitemap SHA
+    const sitemapUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/sitemap.xml?ref=${GITHUB_BRANCH}`;
+    const sitemapRes = await fetch(sitemapUrl, {
+      headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker' }
+    });
+
+    let sitemapSha = null;
+    if (sitemapRes.ok) {
+      const sitemapData = await sitemapRes.json();
+      sitemapSha = sitemapData.sha;
+    }
+
+    const sitemapPayload = {
+      message: `sitemap: add ${slug}`,
+      content: btoa(unescape(encodeURIComponent(sitemapXml))),
+      branch: GITHUB_BRANCH,
+      ...(sitemapSha && { sha: sitemapSha })
+    };
+
+    const writeSitemap = await fetch(sitemapUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        'User-Agent': 'FFX-Worker',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(sitemapPayload)
+    });
+
+    if (!writeSitemap.ok) {
+      const err = await writeSitemap.text();
+      // Non-fatal — article saved, sitemap failed
+      return new Response(JSON.stringify({
+        success: true,
+        warning: 'Article saved but sitemap update failed',
+        detail: err,
+        slug
+      }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ── 4. DONE ────────────────────────────────────────────────────────────
+    return new Response(JSON.stringify({ success: true, slug }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
   } catch (err) {
-    return json({ message: 'GitHub PUT failed: ' + err.message }, 500);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+    });
   }
-
-  if (!putRes.ok) {
-    const errData = await putRes.json().catch(() => ({}));
-    return json({ message: 'GitHub PUT error: ' + (errData.message ?? putRes.status) }, putRes.status);
-  }
-
-  return json({ success: true, action, slug: article.slug });
-}
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
-  });
 }
