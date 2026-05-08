@@ -26,10 +26,27 @@ export async function onRequestPost(context) {
   // Clean date field
   if (article.date) article.date = article.date.replace(/"/g, '');
 
-  // Parse tags
+  // Parse tags — handle JSON array string, plain comma-separated string, or already an array
   if (typeof article.tags === 'string') {
-    try { article.tags = JSON.parse(article.tags); } catch { article.tags = []; }
+    const trimmed = article.tags.trim();
+    if (trimmed.startsWith('[')) {
+      // Try JSON parse first
+      try {
+        article.tags = JSON.parse(trimmed);
+      } catch {
+        // JSON parse failed — strip brackets and split as CSV
+        article.tags = trimmed
+          .replace(/^\[|\]$/g, '')
+          .split(',')
+          .map(t => t.trim().replace(/^["']|["']$/g, ''))
+          .filter(Boolean);
+      }
+    } else {
+      // Plain comma-separated string
+      article.tags = trimmed.split(',').map(t => t.trim()).filter(Boolean);
+    }
   }
+  if (!Array.isArray(article.tags)) article.tags = [];
 
   // Sanitise tweet fields — strip newlines
   ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'].forEach(field => {
