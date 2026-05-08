@@ -15,7 +15,7 @@
   <title>FortitudeFX — Trading Insights</title>
   <meta name="description" content="FortitudeFX — forex trading strategy, price action, and trader mindset." />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://fortitudefx.com/blog" id="canonicalTag" />
+  <link rel="canonical" href="" id="canonicalTag" />
   <meta property="og:type"        content="article" />
   <meta property="og:image"       content="https://fortitudefx.com/og-fortitudefx.png" />
   <meta property="og:image:width"  content="1200" />
@@ -193,11 +193,10 @@
           return;
         }
 
-
         // Update canonical URL dynamically
         const canonicalEl = document.getElementById('canonicalTag');
         if (canonicalEl && a.slug) {
-          canonicalEl.setAttribute('href', 'https://fortitudefx.com/blog/' + a.slug);
+          canonicalEl.setAttribute('href', 'https://fortitudefx.com/article?slug=' + a.slug);
         }
 
         // Block indexing on draft/dummy articles
