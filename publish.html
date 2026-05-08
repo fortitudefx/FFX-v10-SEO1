@@ -296,7 +296,7 @@
         return;
       }
 
-      const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+      const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean).join(',');
       const btn = document.getElementById('publishBtn');
       btn.disabled = true;
       showStatus('loading', 'Publishing — blog, X thread, and Discord posting now...');
@@ -307,7 +307,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             slug, title, excerpt, category, readTime,
-            tags: JSON.stringify(tags), body, yt_url,
+            tags, body, yt_url,
             linkedin, discord,
             // tumblr, // disabled until Tumblr account ready
             tweet1, tweet2, tweet3, tweet4, tweet5, tweet6
