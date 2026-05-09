@@ -249,10 +249,25 @@ linkedin
 800-1200 word native LinkedIn longform post. No hashtags in the body. Add 3-5 relevant hashtags at the very end only. Direct voice, teach something genuinely useful.
 
 x_thread
-A JSON array of exactly 6 strings. Tweet 1: hook only, no link. Tweets 2-5: content value + fortitudefx.com. Tweet 6: "New article: [ARTICLE_URL]" + the YouTube URL + fortitudefx.com.
+A JSON array of exactly 6 strings. Tweet 1: hook only, no link, must stop the scroll — provocative statement or counterintuitive truth about trading. Tweets 2-4: one punchy insight each, max 2 sentences, ends with fortitudefx.com. Tweet 5: key takeaway, the one thing they must remember, ends with fortitudefx.com. Tweet 6: "New article: [ARTICLE_URL] | Watch: ${youtubeUrl} | fortitudefx.com"
 
 discord
-800-1000 word knowledge drop for the community. Genuine value, builds curiosity, soft push toward VIP at the end. Final lines: "Full breakdown: [ARTICLE_URL] | Video: ${youtubeUrl} | fortitudefx.com | VIP: fortitudefx.com/vipdiscord"
+500-600 word community knowledge drop. Use emojis naturally throughout — not every sentence, but enough to make it feel warm and alive (aim for 4-6 emojis total). Structure:
+
+Opening hook (2-3 sentences): Start with a bold, pattern-interrupt statement — something that challenges a common belief traders have. Make them stop scrolling. No generic intros.
+
+Knowledge drop (250-300 words): Teach something genuinely useful and specific from the video. Real mechanics, real logic. Not vague. Write as if explaining to a sharp friend in the community. Use short paragraphs. Reference specific concepts from the transcript.
+
+Curiosity bridge (2-3 sentences): Tease what the full article or video covers that you haven't revealed yet. Make them want more without being clickbait.
+
+Links section: Write naturally, not as a list dump. Example format:
+"Full breakdown here 👉 [ARTICLE_URL]
+Watch the video: ${youtubeUrl}
+More at fortitudefx.com"
+
+VIP bridge (2-3 sentences): Soft, natural close. Something like — if you want to see this applied live on real charts, that is what VIP is for. No hard sell. fortitudefx.com/vipdiscord
+
+Rules: No markdown headers. No bullet walls. Short paragraphs. Flowing and conversational. Maximum 1 exclamation mark. Links must appear exactly as written — do not alter the URL placeholders.
 
 tumblr
 200-350 word short essay, conversational tone.
@@ -261,7 +276,7 @@ mediumIntro
 150-200 word rewritten article opening. Final line: "Originally published at [ARTICLE_URL]"
 
 The YouTube URL for this video is: ${youtubeUrl}
-Leave [ARTICLE_URL] exactly as written — it will be replaced automatically.`;
+Write [ARTICLE_URL] exactly as shown — it will be replaced automatically with the real URL after generation.`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -312,7 +327,20 @@ Leave [ARTICLE_URL] exactly as written — it will be replaced automatically.`;
     });
   }
 
+  // Replace [ARTICLE_URL] placeholder with actual URL now that we have the slug
+  const articleUrl = `https://fortitudefx.com/article?slug=${parsed.slug}`;
+  const fieldsToReplace = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
+  fieldsToReplace.forEach(field => {
+    if (parsed[field] && typeof parsed[field] === 'string') {
+      parsed[field] = parsed[field].replace(/\[ARTICLE_URL\]/g, articleUrl);
+    }
+  });
+  if (Array.isArray(parsed.x_thread)) {
+    parsed.x_thread = parsed.x_thread.map(t => t.replace(/\[ARTICLE_URL\]/g, articleUrl));
+  }
+
   console.log('[FFX] Content parsed successfully, slug:', parsed.slug);
+  console.log('[FFX] [ARTICLE_URL] replaced with:', articleUrl);
 
   return parsed;
 }
