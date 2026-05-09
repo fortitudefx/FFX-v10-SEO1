@@ -26,8 +26,8 @@ export async function onRequestPost(context) {
 
   console.log('[FFX] publish-confirm slug:', slug);
 
-  // Read generated content from KV
-  const stored = await env.FFX_CONTENT.get(slug);
+  // Read generated content from KV using slug: prefix
+  const stored = await env.FFX_CONTENT.get(`slug:${slug}`);
   if (!stored) {
     return new Response(JSON.stringify({ error: 'Content not found or expired. Please generate again.' }), { status: 404, headers });
   }
@@ -58,8 +58,10 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: `Make webhook rejected the request: ${makeErr}` }), { status: 502, headers });
   }
 
-  // Clean up KV
-  await env.FFX_CONTENT.delete(slug);
+  // Clean up both KV keys
+  const videoId = extractVideoId(content.youtubeUrl || '');
+  if (videoId) await env.FFX_CONTENT.delete(`video:${videoId}`);
+  await env.FFX_CONTENT.delete(`slug:${slug}`);
   console.log('[FFX] publish-confirm: KV deleted, publish complete');
 
   return new Response(JSON.stringify({ success: true, slug }), { status: 200, headers });
@@ -74,4 +76,19 @@ export async function onRequestOptions() {
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
+}
+
+function extractVideoId(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return v;
+      const parts = u.pathname.split('/');
+      const si = parts.indexOf('shorts');
+      if (si !== -1) return parts[si + 1];
+    }
+  } catch {}
+  return null;
 }
