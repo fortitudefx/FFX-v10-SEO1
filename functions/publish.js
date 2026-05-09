@@ -1,5 +1,5 @@
 // FFX /publish Worker
-// 1. Saves article to articles.json
+// 1. Saves article + all platform content to articles.json
 // 2. Rebuilds sitemap.xml
 // 3. Pings Google Indexing API
 
@@ -26,7 +26,26 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json();
-    const { slug, title, excerpt, category, tags, readTime, body: articleBody, date } = body;
+
+    const {
+      slug,
+      title,
+      excerpt,
+      category,
+      tags,
+      readTime,
+      body: articleBody,
+      date,
+      // Platform content fields
+      linkedin,
+      discord,
+      tumblr,
+      mediumIntro,
+      tweet1, tweet2, tweet3, tweet4, tweet5, tweet6,
+      x_thread,
+      youtubeUrl,
+      yt_url,
+    } = body;
 
     if (!slug || !title || !articleBody) {
       return new Response(JSON.stringify({ error: 'Missing required fields: slug, title, body' }), {
@@ -34,7 +53,9 @@ export async function onRequestPost(context) {
       });
     }
 
-    const articleDate = date || new Date().toISOString().split('T')[0];
+    // Clean date — strip any extra quotes that may come through
+    const rawDate = date || new Date().toISOString().split('T')[0];
+    const articleDate = rawDate.replace(/['"]/g, '').trim();
 
     // ── 1. READ current articles.json ──────────────────────────────────────
     const articlesUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/articles.json?ref=${GITHUB_BRANCH}`;
@@ -51,19 +72,33 @@ export async function onRequestPost(context) {
       articles = JSON.parse(atob(articlesData.content.replace(/\n/g, '')));
     }
 
-    // Dedup by slug
-    const exists = articles.findIndex(a => a.slug === slug);
+    // Build full article object — all fields including platform content
     const newArticle = {
       slug,
       title,
       excerpt: excerpt || '',
-      category: category || 'Trading',
+      category: category || 'Strategy',
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : [],
       readTime: readTime || '5 min read',
       date: articleDate,
-      body: articleBody
+      yt_url: youtubeUrl || yt_url || '',
+      // Platform content — stored so Workers can fetch by slug
+      linkedin: linkedin || '',
+      discord: discord || '',
+      tumblr: tumblr || '',
+      mediumIntro: mediumIntro || '',
+      tweet1: tweet1 || (Array.isArray(x_thread) ? x_thread[0] : '') || '',
+      tweet2: tweet2 || (Array.isArray(x_thread) ? x_thread[1] : '') || '',
+      tweet3: tweet3 || (Array.isArray(x_thread) ? x_thread[2] : '') || '',
+      tweet4: tweet4 || (Array.isArray(x_thread) ? x_thread[3] : '') || '',
+      tweet5: tweet5 || (Array.isArray(x_thread) ? x_thread[4] : '') || '',
+      tweet6: tweet6 || (Array.isArray(x_thread) ? x_thread[5] : '') || '',
+      // Article body last
+      body: articleBody,
     };
 
+    // Dedup by slug — update if exists, prepend if new
+    const exists = articles.findIndex(a => a.slug === slug);
     if (exists >= 0) {
       articles[exists] = newArticle;
     } else {
@@ -165,7 +200,6 @@ ${allUrls.map(u => `  <url>
         body: JSON.stringify({ url: articleUrl, type: 'URL_UPDATED' })
       });
     } catch (indexErr) {
-      // Non-fatal — article and sitemap already saved
       console.error('Google Indexing API error:', indexErr.message);
     }
 
@@ -199,7 +233,6 @@ async function getGoogleAccessToken(serviceAccountEmail, privateKeyPem) {
 
   const unsignedToken = `${encode(header)}.${encode(payload)}`;
 
-  // Clean up PEM key
   const pemContents = privateKeyPem
     .replace(/-----BEGIN PRIVATE KEY-----/, '')
     .replace(/-----END PRIVATE KEY-----/, '')
