@@ -262,5 +262,12 @@ Leave [ARTICLE_URL] exactly as written — it will be replaced automatically.`;
     if (!parsed[key]) throw new Error(`Claude response missing required key: "${key}"`);
   }
 
+  // Map x_thread array to tweet1-tweet6 so Make + /tweet Worker can read them
+  if (Array.isArray(parsed.x_thread)) {
+    parsed.x_thread.forEach((t, i) => {
+      parsed[`tweet${i + 1}`] = t;
+    });
+  }
+
   return parsed;
 }
