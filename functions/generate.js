@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Generate Worker
 // Routes:
-//   POST /generate         → fetch transcript → call Claude → save to KV → return preview
+//   POST /generate         → fetch transcript via Supadata → call Claude → save to KV → return preview
 //   POST /publish-confirm  → read from KV → fire Make webhook → delete from KV
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -84,28 +84,20 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'youtubeUrl is required' }), { status: 400, headers });
   }
 
-  const videoId = extractVideoId(youtubeUrl);
-  console.log('[FFX] videoId extracted:', videoId);
-
-  if (!videoId) {
-    return new Response(JSON.stringify({ error: 'Could not parse YouTube video ID from URL' }), { status: 400, headers
-    });
-  }
-
-  // 1. Fetch transcript from YouTube
-  console.log('[FFX] Starting transcript fetch for videoId:', videoId);
+  // 1. Fetch transcript via Supadata
+  console.log('[FFX] Fetching transcript via Supadata');
   let transcript;
   try {
-    transcript = await fetchYouTubeTranscript(videoId);
+    transcript = await fetchTranscriptSupadata(youtubeUrl, env.SUPADATA_API_KEY);
     console.log('[FFX] Transcript fetched, length:', transcript ? transcript.length : 0);
   } catch (err) {
-    console.log('[FFX] Transcript fetch failed:', err.message);
+    console.log('[FFX] Supadata transcript fetch failed:', err.message);
     return new Response(JSON.stringify({ error: `Transcript fetch failed: ${err.message}` }), { status: 502, headers });
   }
 
   if (!transcript || transcript.trim().length < 100) {
     console.log('[FFX] Transcript too short or empty');
-    return new Response(JSON.stringify({ error: 'Transcript too short or empty. Ensure captions are enabled and wait a few minutes after publishing to YouTube.' }), { status: 422, headers });
+    return new Response(JSON.stringify({ error: 'Transcript too short or empty. Ensure captions are enabled on the video and try again.' }), { status: 422, headers });
   }
 
   // 2. Call Claude API
@@ -119,7 +111,7 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: `Claude API failed: ${err.message}` }), { status: 502, headers });
   }
 
-  // 3. Save to KV
+  // 3. Save to KV — expires after 24 hours
   console.log('[FFX] Saving to KV, slug:', content.slug);
   await env.FFX_CONTENT.put(content.slug, JSON.stringify(content), { expirationTtl: 86400 });
   console.log('[FFX] KV save complete');
@@ -142,76 +134,40 @@ export async function onRequestOptions() {
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-function extractVideoId(url) {
-  try {
-    const u = new URL(url);
-    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
-    if (u.hostname.includes('youtube.com')) {
-      const v = u.searchParams.get('v');
-      if (v) return v;
-      const parts = u.pathname.split('/');
-      const si = parts.indexOf('shorts');
-      if (si !== -1) return parts[si + 1];
-    }
-  } catch {}
-  return null;
-}
+async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
+  if (!apiKey) throw new Error('SUPADATA_API_KEY is not set in Cloudflare environment variables.');
 
-async function fetchYouTubeTranscript(videoId) {
-  console.log('[FFX] Fetching YouTube page for videoId:', videoId);
+  console.log('[FFX] Calling Supadata API for URL:', youtubeUrl);
 
-  const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+  const supadataUrl = `https://api.supadata.ai/v1/youtube/transcript?url=${encodeURIComponent(youtubeUrl)}&text=true`;
+
+  const res = await fetch(supadataUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept-Language': 'en-US,en;q=0.9',
+      'x-api-key': apiKey,
     },
   });
 
-  console.log('[FFX] YouTube page response status:', pageRes.status);
+  console.log('[FFX] Supadata response status:', res.status);
 
-  if (!pageRes.ok) throw new Error(`YouTube page returned ${pageRes.status}`);
-  const html = await pageRes.text();
-  console.log('[FFX] YouTube page HTML length:', html.length);
-
-  const match = html.match(/"captionTracks":\s*(\[.*?\])/s);
-  if (!match) throw new Error('No caption tracks found. Captions may not be ready yet — wait a few minutes after publishing and try again.');
-
-  let tracks;
-  try { tracks = JSON.parse(match[1]); } catch {
-    throw new Error('Failed to parse caption tracks from YouTube page.');
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Supadata API returned ${res.status}: ${err}`);
   }
 
-  console.log('[FFX] Caption tracks found:', tracks.length);
+  const data = await res.json();
+  console.log('[FFX] Supadata response keys:', Object.keys(data).join(', '));
 
-  if (!tracks || !tracks.length) throw new Error('No caption tracks available for this video.');
+  // Supadata returns { content: "full transcript text", lang: "en", ... } when text=true
+  if (data.content && typeof data.content === 'string') {
+    return data.content.trim();
+  }
 
-  const preferred =
-    tracks.find(t => t.languageCode === 'en' && !t.kind) ||
-    tracks.find(t => t.languageCode === 'en') ||
-    tracks[0];
+  // Fallback: if content is an array of segments, join them
+  if (Array.isArray(data.content)) {
+    return data.content.map(s => s.text || '').join(' ').trim();
+  }
 
-  console.log('[FFX] Using caption track language:', preferred.languageCode);
-
-  const captionRes = await fetch(preferred.baseUrl, {
-    headers: { 'User-Agent': 'Mozilla/5.0' },
-  });
-
-  console.log('[FFX] Caption fetch status:', captionRes.status);
-
-  if (!captionRes.ok) throw new Error(`Caption fetch returned ${captionRes.status}`);
-
-  const xml = await captionRes.text();
-  console.log('[FFX] Caption XML length:', xml.length);
-
-  return xml
-    .replace(/<\/?[^>]+(>|$)/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
+  throw new Error('Supadata returned unexpected response format: ' + JSON.stringify(data).slice(0, 200));
 }
 
 async function callClaude(transcript, youtubeUrl, apiKey) {
