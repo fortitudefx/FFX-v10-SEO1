@@ -46,7 +46,7 @@ export async function onRequestPost(context) {
 
     let makeRes;
     try {
-      makeRes = await fetch('https://hook.eu1.make.com/0iwx8y8ufy318mfml1jmgs1cjjeii388', {
+      makeRes = await fetch('https://hook.eu1.make.com/jnjy3n7w2cy12mclu8uh9nr11ultt6l', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(content),
