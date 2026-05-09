@@ -9,6 +9,8 @@ export async function onRequestPost(context) {
   const { request, env } = context;
   const url = new URL(request.url);
 
+  console.log('[FFX] Request received:', request.method, url.pathname);
+
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -16,6 +18,8 @@ export async function onRequestPost(context) {
 
   // ── Route: /publish-confirm ────────────────────────────────────────────────
   if (url.pathname === '/publish-confirm') {
+    console.log('[FFX] Route: /publish-confirm');
+
     let body;
     try { body = await request.json(); } catch {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
@@ -26,7 +30,8 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ error: 'slug is required' }), { status: 400, headers });
     }
 
-    // Read generated content from KV
+    console.log('[FFX] publish-confirm slug:', slug);
+
     const stored = await env.FFX_CONTENT.get(slug);
     if (!stored) {
       return new Response(JSON.stringify({ error: 'Content not found or expired. Please generate again.' }), { status: 404, headers });
@@ -37,7 +42,8 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ error: 'Stored content is corrupted. Please generate again.' }), { status: 500, headers });
     }
 
-    // Fire Make FFX LIVE webhook
+    console.log('[FFX] Firing Make webhook for slug:', slug);
+
     let makeRes;
     try {
       makeRes = await fetch('https://hook.eu1.make.com/0iwx8y8ufy318mfml1jmgs1cjjeii388', {
@@ -46,60 +52,78 @@ export async function onRequestPost(context) {
         body: JSON.stringify(content),
       });
     } catch (err) {
+      console.log('[FFX] Make webhook network error:', err.message);
       return new Response(JSON.stringify({ error: `Make webhook network error: ${err.message}` }), { status: 502, headers });
     }
 
     if (!makeRes.ok) {
       const makeErr = await makeRes.text();
+      console.log('[FFX] Make webhook rejected:', makeErr);
       return new Response(JSON.stringify({ error: `Make webhook rejected the request: ${makeErr}` }), { status: 502, headers });
     }
 
-    // Clean up KV
     await env.FFX_CONTENT.delete(slug);
+    console.log('[FFX] KV deleted, publish complete');
 
     return new Response(JSON.stringify({ success: true, slug: content.slug }), { status: 200, headers });
   }
 
   // ── Route: /generate ──────────────────────────────────────────────────────
+  console.log('[FFX] Route: /generate');
+
   let body;
   try { body = await request.json(); } catch {
+    console.log('[FFX] Failed to parse JSON body');
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
   const { youtubeUrl } = body;
+  console.log('[FFX] youtubeUrl received:', youtubeUrl);
+
   if (!youtubeUrl) {
     return new Response(JSON.stringify({ error: 'youtubeUrl is required' }), { status: 400, headers });
   }
 
   const videoId = extractVideoId(youtubeUrl);
+  console.log('[FFX] videoId extracted:', videoId);
+
   if (!videoId) {
-    return new Response(JSON.stringify({ error: 'Could not parse YouTube video ID from URL' }), { status: 400, headers });
+    return new Response(JSON.stringify({ error: 'Could not parse YouTube video ID from URL' }), { status: 400, headers
+    });
   }
 
   // 1. Fetch transcript from YouTube
+  console.log('[FFX] Starting transcript fetch for videoId:', videoId);
   let transcript;
   try {
     transcript = await fetchYouTubeTranscript(videoId);
+    console.log('[FFX] Transcript fetched, length:', transcript ? transcript.length : 0);
   } catch (err) {
+    console.log('[FFX] Transcript fetch failed:', err.message);
     return new Response(JSON.stringify({ error: `Transcript fetch failed: ${err.message}` }), { status: 502, headers });
   }
 
   if (!transcript || transcript.trim().length < 100) {
+    console.log('[FFX] Transcript too short or empty');
     return new Response(JSON.stringify({ error: 'Transcript too short or empty. Ensure captions are enabled and wait a few minutes after publishing to YouTube.' }), { status: 422, headers });
   }
 
   // 2. Call Claude API
+  console.log('[FFX] Starting Claude API call');
   let content;
   try {
     content = await callClaude(transcript, youtubeUrl, env.ANTHROPIC_API_KEY);
+    console.log('[FFX] Claude response received, slug:', content.slug);
   } catch (err) {
+    console.log('[FFX] Claude API failed:', err.message);
     return new Response(JSON.stringify({ error: `Claude API failed: ${err.message}` }), { status: 502, headers });
   }
 
-  // 3. Save to KV — expires after 24 hours
+  // 3. Save to KV
+  console.log('[FFX] Saving to KV, slug:', content.slug);
   await env.FFX_CONTENT.put(content.slug, JSON.stringify(content), { expirationTtl: 86400 });
+  console.log('[FFX] KV save complete');
 
-  // Return full content for preview — Make NOT called yet
   return new Response(JSON.stringify({ success: true, content }), { status: 200, headers });
 }
 
@@ -134,6 +158,8 @@ function extractVideoId(url) {
 }
 
 async function fetchYouTubeTranscript(videoId) {
+  console.log('[FFX] Fetching YouTube page for videoId:', videoId);
+
   const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -141,8 +167,11 @@ async function fetchYouTubeTranscript(videoId) {
     },
   });
 
+  console.log('[FFX] YouTube page response status:', pageRes.status);
+
   if (!pageRes.ok) throw new Error(`YouTube page returned ${pageRes.status}`);
   const html = await pageRes.text();
+  console.log('[FFX] YouTube page HTML length:', html.length);
 
   const match = html.match(/"captionTracks":\s*(\[.*?\])/s);
   if (!match) throw new Error('No caption tracks found. Captions may not be ready yet — wait a few minutes after publishing and try again.');
@@ -152,6 +181,8 @@ async function fetchYouTubeTranscript(videoId) {
     throw new Error('Failed to parse caption tracks from YouTube page.');
   }
 
+  console.log('[FFX] Caption tracks found:', tracks.length);
+
   if (!tracks || !tracks.length) throw new Error('No caption tracks available for this video.');
 
   const preferred =
@@ -159,12 +190,18 @@ async function fetchYouTubeTranscript(videoId) {
     tracks.find(t => t.languageCode === 'en') ||
     tracks[0];
 
+  console.log('[FFX] Using caption track language:', preferred.languageCode);
+
   const captionRes = await fetch(preferred.baseUrl, {
     headers: { 'User-Agent': 'Mozilla/5.0' },
   });
+
+  console.log('[FFX] Caption fetch status:', captionRes.status);
+
   if (!captionRes.ok) throw new Error(`Caption fetch returned ${captionRes.status}`);
 
   const xml = await captionRes.text();
+  console.log('[FFX] Caption XML length:', xml.length);
 
   return xml
     .replace(/<\/?[^>]+(>|$)/g, ' ')
@@ -179,6 +216,8 @@ async function fetchYouTubeTranscript(videoId) {
 
 async function callClaude(transcript, youtubeUrl, apiKey) {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY environment variable is not set in Cloudflare.');
+
+  console.log('[FFX] ANTHROPIC_API_KEY present:', !!apiKey);
 
   const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system (5 entry models, 2-candle philosophy). Voice: direct, authoritative, no fluff. Products: free Discord, VIP Discord, Bootcamp. Zero ad spend — content does the selling.
 
@@ -238,6 +277,8 @@ Leave [ARTICLE_URL] exactly as written — it will be replaced automatically.`;
     }),
   });
 
+  console.log('[FFX] Claude API response status:', res.status);
+
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Anthropic API returned ${res.status}: ${err}`);
@@ -245,6 +286,7 @@ Leave [ARTICLE_URL] exactly as written — it will be replaced automatically.`;
 
   const data = await res.json();
   const rawText = data.content[0].text.trim();
+  console.log('[FFX] Claude raw response length:', rawText.length);
 
   const cleaned = rawText
     .replace(/^```json\s*/i, '')
@@ -268,6 +310,8 @@ Leave [ARTICLE_URL] exactly as written — it will be replaced automatically.`;
       parsed[`tweet${i + 1}`] = t;
     });
   }
+
+  console.log('[FFX] Content parsed successfully, slug:', parsed.slug);
 
   return parsed;
 }
