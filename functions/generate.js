@@ -1,7 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Generate Worker
 // Routes:
-//   POST /generate         → fetch transcript via Supadata → call Claude → save to KV → return preview
+//   POST /generate         → check KV cache → if hit return instantly
+//                           → else fetch transcript via Supadata → call Claude
+//                           → save to KV → return preview
 //   POST /publish-confirm  → read from KV → fire Make webhook → delete from KV
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -32,7 +34,7 @@ export async function onRequestPost(context) {
 
     console.log('[FFX] publish-confirm slug:', slug);
 
-    const stored = await env.FFX_CONTENT.get(slug);
+    const stored = await env.FFX_CONTENT.get(`slug:${slug}`);
     if (!stored) {
       return new Response(JSON.stringify({ error: 'Content not found or expired. Please generate again.' }), { status: 404, headers });
     }
@@ -62,7 +64,10 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ error: `Make webhook rejected the request: ${makeErr}` }), { status: 502, headers });
     }
 
-    await env.FFX_CONTENT.delete(slug);
+    // Clean up both KV keys
+    const videoId = extractVideoId(content.youtubeUrl || '');
+    if (videoId) await env.FFX_CONTENT.delete(`video:${videoId}`);
+    await env.FFX_CONTENT.delete(`slug:${slug}`);
     console.log('[FFX] KV deleted, publish complete');
 
     return new Response(JSON.stringify({ success: true, slug: content.slug }), { status: 200, headers });
@@ -84,7 +89,30 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'youtubeUrl is required' }), { status: 400, headers });
   }
 
-  // 1. Fetch transcript via Supadata
+  const videoId = extractVideoId(youtubeUrl);
+  console.log('[FFX] videoId extracted:', videoId);
+
+  if (!videoId) {
+    return new Response(JSON.stringify({ error: 'Could not parse YouTube video ID from URL' }), { status: 400, headers });
+  }
+
+  // 1. Check KV cache first — return instantly if already generated
+  console.log('[FFX] Checking KV cache for videoId:', videoId);
+  const cached = await env.FFX_CONTENT.get(`video:${videoId}`);
+  if (cached) {
+    console.log('[FFX] KV cache hit — returning cached content');
+    let content;
+    try { content = JSON.parse(cached); } catch {
+      console.log('[FFX] Cached content corrupted — regenerating');
+    }
+    if (content) {
+      return new Response(JSON.stringify({ success: true, content, cached: true }), { status: 200, headers });
+    }
+  }
+
+  console.log('[FFX] KV cache miss — generating fresh content');
+
+  // 2. Fetch transcript via Supadata
   console.log('[FFX] Fetching transcript via Supadata');
   let transcript;
   try {
@@ -100,7 +128,7 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'Transcript too short or empty. Ensure captions are enabled on the video and try again.' }), { status: 422, headers });
   }
 
-  // 2. Call Claude API
+  // 3. Call Claude API
   console.log('[FFX] Starting Claude API call');
   let content;
   try {
@@ -111,9 +139,13 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: `Claude API failed: ${err.message}` }), { status: 502, headers });
   }
 
-  // 3. Save to KV — expires after 24 hours
-  console.log('[FFX] Saving to KV, slug:', content.slug);
-  await env.FFX_CONTENT.put(content.slug, JSON.stringify(content), { expirationTtl: 86400 });
+  // Store the youtubeUrl in content so publish-confirm can clean up both KV keys
+  content.youtubeUrl = youtubeUrl;
+
+  // 4. Save to KV with both keys — expires after 24 hours
+  console.log('[FFX] Saving to KV, slug:', content.slug, 'videoId:', videoId);
+  await env.FFX_CONTENT.put(`video:${videoId}`, JSON.stringify(content), { expirationTtl: 86400 });
+  await env.FFX_CONTENT.put(`slug:${content.slug}`, JSON.stringify(content), { expirationTtl: 86400 });
   console.log('[FFX] KV save complete');
 
   return new Response(JSON.stringify({ success: true, content }), { status: 200, headers });
@@ -133,6 +165,21 @@ export async function onRequestOptions() {
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
+
+function extractVideoId(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return v;
+      const parts = u.pathname.split('/');
+      const si = parts.indexOf('shorts');
+      if (si !== -1) return parts[si + 1];
+    }
+  } catch {}
+  return null;
+}
 
 async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
   if (!apiKey) throw new Error('SUPADATA_API_KEY is not set in Cloudflare environment variables.');
@@ -157,12 +204,10 @@ async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
   const data = await res.json();
   console.log('[FFX] Supadata response keys:', Object.keys(data).join(', '));
 
-  // Supadata returns { content: "full transcript text", lang: "en", ... } when text=true
   if (data.content && typeof data.content === 'string') {
     return data.content.trim();
   }
 
-  // Fallback: if content is an array of segments, join them
   if (Array.isArray(data.content)) {
     return data.content.map(s => s.text || '').join(' ').trim();
   }
