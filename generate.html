@@ -512,7 +512,9 @@
     document.getElementById('existingPanel').style.display = 'none';
     // Reset platform state — fresh generate means everything pending
     platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', discord: 'pending' };
-    await runGenerate(url);
+    // Pass existing slug so generate.js locks it — keeps article URL consistent
+    const slugToLock = existingData?.slug || null;
+    await runGenerate(url, slugToLock);
   }
 
   // ── CLEAR URL ─────────────────────────────────────────────────────────────
@@ -526,7 +528,7 @@
   }
 
   // ── RUN GENERATE ──────────────────────────────────────────────────────────
-  async function runGenerate(url) {
+  async function runGenerate(url, existingSlug) {
     const btn = document.getElementById('genBtn');
     btn.disabled = true;
     hideAlert('genAlert');
@@ -541,7 +543,7 @@
       const res = await fetch('/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ youtubeUrl: url }),
+        body: JSON.stringify({ youtubeUrl: url, existingSlug: existingSlug || null }),
       });
 
       clearTimeout(t1);
