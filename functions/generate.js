@@ -18,7 +18,7 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { youtubeUrl } = body;
+  const { youtubeUrl, existingSlug } = body;
   if (!youtubeUrl) {
     return new Response(JSON.stringify({ error: 'youtubeUrl is required' }), { status: 400, headers });
   }
@@ -28,7 +28,7 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'Could not parse YouTube video ID from URL' }), { status: 400, headers });
   }
 
-  console.log('[FFX] videoId:', videoId);
+  console.log('[FFX] videoId:', videoId, 'existingSlug:', existingSlug || 'none');
 
   // 1. Fetch transcript via Supadata
   console.log('[FFX] Fetching transcript via Supadata');
@@ -54,6 +54,24 @@ export async function onRequestPost(context) {
   } catch (err) {
     console.log('[FFX] Claude failed:', err.message);
     return new Response(JSON.stringify({ error: `Claude API failed: ${err.message}` }), { status: 502, headers });
+  }
+
+  // If an existing slug was passed (video already published), lock the slug
+  // This ensures Discord/X/LinkedIn Workers can find the article in articles.json
+  // Content quality is unaffected — only the slug/URL identifier is locked
+  if (existingSlug && existingSlug.trim()) {
+    console.log('[FFX] Locking slug to existing:', existingSlug);
+    const oldArticleUrl = `https://fortitudefx.com/article?slug=${content.slug}`;
+    const newArticleUrl = `https://fortitudefx.com/article?slug=${existingSlug}`;
+    content.slug = existingSlug;
+    // Update any article URLs already replaced in content fields
+    const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
+    fields.forEach(f => {
+      if (content[f]) content[f] = content[f].replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl);
+    });
+    if (Array.isArray(content.x_thread)) {
+      content.x_thread = content.x_thread.map(t => t.replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl));
+    }
   }
 
   content.youtubeUrl = youtubeUrl;
