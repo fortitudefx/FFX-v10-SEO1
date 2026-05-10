@@ -1,9 +1,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FFX Publish Confirm — Master Orchestrator — No KV
-// Receives full content from browser
-// Checks Excel for platform statuses
-// Runs only platforms that are checked and not already Yes/Skipped
-// Updates Excel after each platform
+// FFX Publish Confirm — Master Orchestrator — No KV, No Make
+//
+// CRITICAL SEQUENCE:
+// 1. Always call /publish first — writes all content to articles.json
+//    (with skipSitemapAndIndex:true if Blog not selected)
+// 2. Then call platform Workers — they fetch from articles.json by slug
+// 3. Update Excel
+//
+// This ensures platform Workers always find fresh content in articles.json
+// regardless of whether Blog was checked by the user.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SHEET_NAME = 'FFX Articles';
@@ -36,7 +41,6 @@ export async function onRequestPost(context) {
     return resp({ error: 'Invalid JSON body' }, 400, headers);
   }
 
-  // Browser sends full content object + platforms selection
   const { content, platforms } = body;
 
   if (!content || !content.slug) {
@@ -67,19 +71,94 @@ export async function onRequestPost(context) {
   const rowIndex = excelRows.findIndex((r, i) => i > 0 && r[COL.slug] === slug);
   const existingRow = rowIndex > 0 ? excelRows[rowIndex] : null;
 
-  // ── Determine what to run ──────────────────────────────────────────────────
+  // ── STEP 1: Always write content to articles.json first ───────────────────
+  // This ensures platform Workers can fetch fresh content by slug
+  // If Blog is selected: full publish (sitemap + Google index)
+  // If Blog is not selected: content-only write (no sitemap, no Google index)
+  const blogAlreadyDone = existingRow?.[COL.blog] === 'Yes';
+  const blogSelected = userSelected.blog;
+
+  console.log('[FFX] Writing to articles.json — blogSelected:', blogSelected, 'blogAlreadyDone:', blogAlreadyDone);
+
+  let blogStatus;
+
+  if (blogAlreadyDone && !blogSelected) {
+    // Blog already published and not selected — still write platform content updates
+    // but skip sitemap and Google index
+    try {
+      const res = await callWorker(
+        `${new URL(request.url).origin}/publish`,
+        { ...content, skipSitemapAndIndex: true }
+      );
+      if (res.ok) {
+        blogStatus = 'Yes'; // was already Yes, stays Yes
+        console.log('[FFX] articles.json updated (content only, blog skipped)');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.log('[FFX] articles.json update failed:', err.error || res.status);
+        // Non-fatal — continue with platform posting
+      }
+    } catch (err) {
+      console.log('[FFX] articles.json update error (non-fatal):', err.message);
+    }
+    blogStatus = 'Yes';
+  } else if (!blogAlreadyDone && !blogSelected) {
+    // Blog never published and not selected — write content to articles.json
+    // so platform Workers can fetch it, but skip sitemap + Google index
+    try {
+      const res = await callWorker(
+        `${new URL(request.url).origin}/publish`,
+        { ...content, skipSitemapAndIndex: true }
+      );
+      if (res.ok) {
+        console.log('[FFX] articles.json written (content only)');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.log('[FFX] articles.json write failed:', err.error || res.status);
+      }
+    } catch (err) {
+      console.log('[FFX] articles.json write error (non-fatal):', err.message);
+    }
+    blogStatus = 'Skipped';
+  } else if (blogSelected && !blogAlreadyDone) {
+    // Blog selected and not yet done — full publish
+    try {
+      const res = await callWorker(
+        `${new URL(request.url).origin}/publish`,
+        { ...content, skipSitemapAndIndex: false }
+      );
+      if (res.ok) {
+        blogStatus = 'Yes';
+        console.log('[FFX] Blog fully published');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        blogStatus = `Error: ${err.error || res.status}`;
+        console.log('[FFX] Blog failed:', blogStatus);
+      }
+    } catch (err) {
+      blogStatus = `Error: ${err.message}`;
+    }
+  } else {
+    // Blog already done and selected — re-publish (user wants to update)
+    try {
+      const res = await callWorker(
+        `${new URL(request.url).origin}/publish`,
+        { ...content, skipSitemapAndIndex: false }
+      );
+      blogStatus = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
+      console.log('[FFX] Blog re-published:', blogStatus);
+    } catch (err) {
+      blogStatus = `Error: ${err.message}`;
+    }
+  }
+
+  // ── STEP 2: Determine platform statuses ───────────────────────────────────
   const shouldRun = (platform, colIndex) => {
     if (!userSelected[platform]) return false;
     const val = existingRow?.[colIndex] || '';
     return val !== 'Yes' && val !== 'Skipped';
   };
 
-  const runBlog     = shouldRun('blog',     COL.blog);
-  const runX        = shouldRun('x',        COL.x);
-  const runLinkedIn = shouldRun('linkedin', COL.linkedin);
-  const runDiscord  = shouldRun('discord',  COL.discord);
-
-  // ── Build status ───────────────────────────────────────────────────────────
   const getInit = (platform, colIndex) => {
     if (!userSelected[platform]) return 'Skipped';
     const val = existingRow?.[colIndex] || '';
@@ -88,7 +167,7 @@ export async function onRequestPost(context) {
   };
 
   const status = {
-    blog:     getInit('blog',     COL.blog),
+    blog:     blogStatus || getInit('blog', COL.blog),
     x:        getInit('x',        COL.x),
     linkedin: getInit('linkedin', COL.linkedin),
     discord:  getInit('discord',  COL.discord),
@@ -96,19 +175,11 @@ export async function onRequestPost(context) {
 
   const baseUrl = new URL(request.url).origin;
 
-  // ── Run Blog ───────────────────────────────────────────────────────────────
-  if (runBlog) {
-    try {
-      const res = await callWorker(`${baseUrl}/publish`, content);
-      status.blog = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
-      console.log('[FFX] Blog:', status.blog);
-    } catch (err) {
-      status.blog = `Error: ${err.message}`;
-    }
-  }
+  // ── STEP 3: Run platform Workers ──────────────────────────────────────────
+  // articles.json is now up to date — Workers can safely fetch by slug
 
-  // ── Run X ──────────────────────────────────────────────────────────────────
-  if (runX) {
+  // X
+  if (shouldRun('x', COL.x)) {
     try {
       const res = await callWorker(`${baseUrl}/tweet`, { slug });
       status.x = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
@@ -118,8 +189,8 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── Run LinkedIn ───────────────────────────────────────────────────────────
-  if (runLinkedIn) {
+  // LinkedIn
+  if (shouldRun('linkedin', COL.linkedin)) {
     try {
       const res = await callWorker(`${baseUrl}/linkedin`, { slug });
       status.linkedin = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
@@ -129,8 +200,8 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── Run Discord ────────────────────────────────────────────────────────────
-  if (runDiscord) {
+  // Discord
+  if (shouldRun('discord', COL.discord)) {
     try {
       const res = await callWorker(`${baseUrl}/discord`, { slug });
       status.discord = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
@@ -140,7 +211,7 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── Write Excel ────────────────────────────────────────────────────────────
+  // ── STEP 4: Write Excel ────────────────────────────────────────────────────
   const today = new Date().toISOString().split('T')[0];
   const ytUrl = content.youtubeUrl || content.yt_url || '';
 
@@ -216,10 +287,10 @@ async function getExcelRows(token, env) {
 
 async function updateExcelRow(token, env, rowIndex, newStatus, existingRow, userSelected) {
   const row = [...existingRow];
-  if (userSelected.blog     && newStatus.blog     !== 'pending') row[COL.blog]     = newStatus.blog;
-  if (userSelected.x        && newStatus.x        !== 'pending') row[COL.x]        = newStatus.x;
-  if (userSelected.linkedin && newStatus.linkedin  !== 'pending') row[COL.linkedin]  = newStatus.linkedin;
-  if (userSelected.discord  && newStatus.discord   !== 'pending') row[COL.discord]   = newStatus.discord;
+  if (newStatus.blog     !== 'pending' && userSelected.blog)     row[COL.blog]    = newStatus.blog;
+  if (newStatus.x        !== 'pending' && userSelected.x)        row[COL.x]       = newStatus.x;
+  if (newStatus.linkedin !== 'pending' && userSelected.linkedin) row[COL.linkedin] = newStatus.linkedin;
+  if (newStatus.discord  !== 'pending' && userSelected.discord)  row[COL.discord]  = newStatus.discord;
   if (!userSelected.blog     && !existingRow[COL.blog])     row[COL.blog]     = 'Skipped';
   if (!userSelected.x        && !existingRow[COL.x])        row[COL.x]        = 'Skipped';
   if (!userSelected.linkedin && !existingRow[COL.linkedin])  row[COL.linkedin]  = 'Skipped';
