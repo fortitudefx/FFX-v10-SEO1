@@ -1,15 +1,16 @@
 // Cloudflare Pages Function — FortitudeFX X (Twitter) thread poster
 // File location in your repo: /functions/tweet.js
 //
-// Called by Make.com via POST to /tweet
-// Receives slug only — fetches tweet1-6 from articles.json
+// Called by publish-confirm.js via POST to /tweet
+// Receives slug + optional tweet1-6 content directly
+// If tweet content provided in request — uses it directly (no GitHub fetch)
+// If not provided — falls back to fetching from articles.json
 // Requires: GITHUB_TOKEN, X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET
 
 const GITHUB_RAW = 'https://raw.githubusercontent.com/fortitudefx/FFX-v10-SEO1/main/articles.json';
 
 export async function onRequestPost(context) {
 
-  // 1. Parse incoming slug from Make
   let body;
   try {
     body = await context.request.json();
@@ -17,29 +18,9 @@ export async function onRequestPost(context) {
     return json({ message: 'Invalid JSON' }, 400);
   }
 
-  const { slug } = body;
+  const { slug, tweet1, tweet2, tweet3, tweet4, tweet5, tweet6 } = body;
   if (!slug) return json({ message: 'Missing slug' }, 400);
 
-  // 2. Fetch articles.json and find article by slug
-  let article;
-  try {
-    const res = await fetch(GITHUB_RAW, {
-      headers: { 'User-Agent': 'FortitudeFX-Tweet' }
-    });
-    if (!res.ok) return json({ message: 'Failed to fetch articles.json: ' + res.status }, 500);
-    const articles = await res.json();
-    article = articles.find(a => a.slug === slug);
-  } catch (err) {
-    return json({ message: 'Error reading articles.json: ' + err.message }, 500);
-  }
-
-  if (!article) return json({ message: 'Article not found for slug: ' + slug }, 404);
-
-  // 3. Extract tweet fields
-  const { tweet1, tweet2, tweet3, tweet4, tweet5, tweet6 } = article;
-  if (!tweet1) return json({ message: 'No tweet content found for slug: ' + slug }, 400);
-
-  // 4. Get X credentials
   const API_KEY             = context.env.X_API_KEY;
   const API_SECRET          = context.env.X_API_SECRET;
   const ACCESS_TOKEN        = context.env.X_ACCESS_TOKEN;
@@ -49,13 +30,45 @@ export async function onRequestPost(context) {
     return json({ message: 'X credentials not configured' }, 500);
   }
 
-  // 5. Build tweets array — filter empty, sanitise
-  const rawTweets = [tweet1, tweet2, tweet3, tweet4, tweet5, tweet6];
-  const tweets = rawTweets
-    .filter(t => t && t.trim())
-    .map(t => t.replace(/[\r\n\t]+/g, ' ').trim());
+  // Use content passed directly if available — avoids GitHub race condition
+  let tweets = null;
 
-  // 6. Post thread to X
+  if (tweet1) {
+    // Content passed directly from publish-confirm
+    const rawTweets = [tweet1, tweet2, tweet3, tweet4, tweet5, tweet6];
+    tweets = rawTweets
+      .filter(t => t && t.trim())
+      .map(t => t.replace(/[\r\n\t]+/g, ' ').trim());
+  } else {
+    // Fall back to articles.json
+    let article;
+    try {
+      const res = await fetch(GITHUB_RAW, {
+        headers: { 'User-Agent': 'FortitudeFX-Tweet' }
+      });
+      if (!res.ok) return json({ message: 'Failed to fetch articles.json: ' + res.status }, 500);
+      const articles = await res.json();
+      article = articles.find(a => a.slug === slug);
+    } catch (err) {
+      return json({ message: 'Error reading articles.json: ' + err.message }, 500);
+    }
+
+    if (!article) return json({ message: 'Article not found for slug: ' + slug }, 404);
+
+    const { tweet1: t1, tweet2: t2, tweet3: t3, tweet4: t4, tweet5: t5, tweet6: t6 } = article;
+    if (!t1) return json({ message: 'No tweet content found for slug: ' + slug }, 400);
+
+    const rawTweets = [t1, t2, t3, t4, t5, t6];
+    tweets = rawTweets
+      .filter(t => t && t.trim())
+      .map(t => t.replace(/[\r\n\t]+/g, ' ').trim());
+  }
+
+  if (!tweets || tweets.length === 0) {
+    return json({ message: 'No tweet content found for slug: ' + slug }, 400);
+  }
+
+  // Post thread to X
   const results = [];
   let previousTweetId = null;
 

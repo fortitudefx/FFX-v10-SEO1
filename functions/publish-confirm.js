@@ -1,14 +1,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FFX Publish Confirm — Master Orchestrator — No KV, No Make
+// FFX Publish Confirm — Master Orchestrator
 //
-// CRITICAL SEQUENCE:
-// 1. Always call /publish first — writes all content to articles.json
-//    (with skipSitemapAndIndex:true if Blog not selected)
-// 2. Then call platform Workers — they fetch from articles.json by slug
+// Receives full content from browser.
+// Passes content fields DIRECTLY to platform Workers — no GitHub fetch needed.
+// Workers post immediately with the content they receive.
+// articles.json is written by /publish in parallel — platform Workers don't wait for it.
+//
+// Sequence:
+// 1. Write to articles.json via /publish (async)
+// 2. Call platform Workers with content directly
 // 3. Update Excel
-//
-// This ensures platform Workers always find fresh content in articles.json
-// regardless of whether Blog was checked by the user.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SHEET_NAME = 'FFX Articles';
@@ -71,88 +72,7 @@ export async function onRequestPost(context) {
   const rowIndex = excelRows.findIndex((r, i) => i > 0 && r[COL.slug] === slug);
   const existingRow = rowIndex > 0 ? excelRows[rowIndex] : null;
 
-  // ── STEP 1: Always write content to articles.json first ───────────────────
-  // This ensures platform Workers can fetch fresh content by slug
-  // If Blog is selected: full publish (sitemap + Google index)
-  // If Blog is not selected: content-only write (no sitemap, no Google index)
-  const blogAlreadyDone = existingRow?.[COL.blog] === 'Yes';
-  const blogSelected = userSelected.blog;
-
-  console.log('[FFX] Writing to articles.json — blogSelected:', blogSelected, 'blogAlreadyDone:', blogAlreadyDone);
-
-  let blogStatus;
-
-  if (blogAlreadyDone && !blogSelected) {
-    // Blog already published and not selected — still write platform content updates
-    // but skip sitemap and Google index
-    try {
-      const res = await callWorker(
-        `${new URL(request.url).origin}/publish`,
-        { ...content, skipSitemapAndIndex: true }
-      );
-      if (res.ok) {
-        blogStatus = 'Yes'; // was already Yes, stays Yes
-        console.log('[FFX] articles.json updated (content only, blog skipped)');
-      } else {
-        const err = await res.json().catch(() => ({}));
-        console.log('[FFX] articles.json update failed:', err.error || res.status);
-        // Non-fatal — continue with platform posting
-      }
-    } catch (err) {
-      console.log('[FFX] articles.json update error (non-fatal):', err.message);
-    }
-    blogStatus = 'Yes';
-  } else if (!blogAlreadyDone && !blogSelected) {
-    // Blog never published and not selected — write content to articles.json
-    // so platform Workers can fetch it, but skip sitemap + Google index
-    try {
-      const res = await callWorker(
-        `${new URL(request.url).origin}/publish`,
-        { ...content, skipSitemapAndIndex: true }
-      );
-      if (res.ok) {
-        console.log('[FFX] articles.json written (content only)');
-      } else {
-        const err = await res.json().catch(() => ({}));
-        console.log('[FFX] articles.json write failed:', err.error || res.status);
-      }
-    } catch (err) {
-      console.log('[FFX] articles.json write error (non-fatal):', err.message);
-    }
-    blogStatus = 'Skipped';
-  } else if (blogSelected && !blogAlreadyDone) {
-    // Blog selected and not yet done — full publish
-    try {
-      const res = await callWorker(
-        `${new URL(request.url).origin}/publish`,
-        { ...content, skipSitemapAndIndex: false }
-      );
-      if (res.ok) {
-        blogStatus = 'Yes';
-        console.log('[FFX] Blog fully published');
-      } else {
-        const err = await res.json().catch(() => ({}));
-        blogStatus = `Error: ${err.error || res.status}`;
-        console.log('[FFX] Blog failed:', blogStatus);
-      }
-    } catch (err) {
-      blogStatus = `Error: ${err.message}`;
-    }
-  } else {
-    // Blog already done and selected — re-publish (user wants to update)
-    try {
-      const res = await callWorker(
-        `${new URL(request.url).origin}/publish`,
-        { ...content, skipSitemapAndIndex: false }
-      );
-      blogStatus = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
-      console.log('[FFX] Blog re-published:', blogStatus);
-    } catch (err) {
-      blogStatus = `Error: ${err.message}`;
-    }
-  }
-
-  // ── STEP 2: Determine platform statuses ───────────────────────────────────
+  // ── Determine what to run ──────────────────────────────────────────────────
   const shouldRun = (platform, colIndex) => {
     if (!userSelected[platform]) return false;
     const val = existingRow?.[colIndex] || '';
@@ -167,7 +87,7 @@ export async function onRequestPost(context) {
   };
 
   const status = {
-    blog:     blogStatus || getInit('blog', COL.blog),
+    blog:     getInit('blog',     COL.blog),
     x:        getInit('x',        COL.x),
     linkedin: getInit('linkedin', COL.linkedin),
     discord:  getInit('discord',  COL.discord),
@@ -175,13 +95,29 @@ export async function onRequestPost(context) {
 
   const baseUrl = new URL(request.url).origin;
 
-  // ── STEP 3: Run platform Workers ──────────────────────────────────────────
-  // articles.json is now up to date — Workers can safely fetch by slug
+  // ── Blog — write to articles.json + sitemap + Google index ────────────────
+  if (shouldRun('blog', COL.blog)) {
+    try {
+      const res = await callWorker(`${baseUrl}/publish`, content);
+      status.blog = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
+      console.log('[FFX] Blog:', status.blog);
+    } catch (err) {
+      status.blog = `Error: ${err.message}`;
+    }
+  }
 
-  // X
+  // ── X — pass tweet content directly, no GitHub fetch ──────────────────────
   if (shouldRun('x', COL.x)) {
     try {
-      const res = await callWorker(`${baseUrl}/tweet`, { slug });
+      const res = await callWorker(`${baseUrl}/tweet`, {
+        slug,
+        tweet1: content.tweet1,
+        tweet2: content.tweet2,
+        tweet3: content.tweet3,
+        tweet4: content.tweet4,
+        tweet5: content.tweet5,
+        tweet6: content.tweet6,
+      });
       status.x = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] X:', status.x);
     } catch (err) {
@@ -189,10 +125,13 @@ export async function onRequestPost(context) {
     }
   }
 
-  // LinkedIn
+  // ── LinkedIn — pass linkedin content directly, no GitHub fetch ─────────────
   if (shouldRun('linkedin', COL.linkedin)) {
     try {
-      const res = await callWorker(`${baseUrl}/linkedin`, { slug });
+      const res = await callWorker(`${baseUrl}/linkedin`, {
+        slug,
+        linkedin: content.linkedin,
+      });
       status.linkedin = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] LinkedIn:', status.linkedin);
     } catch (err) {
@@ -200,10 +139,13 @@ export async function onRequestPost(context) {
     }
   }
 
-  // Discord
+  // ── Discord — pass discord content directly, no GitHub fetch ───────────────
   if (shouldRun('discord', COL.discord)) {
     try {
-      const res = await callWorker(`${baseUrl}/discord`, { slug });
+      const res = await callWorker(`${baseUrl}/discord`, {
+        slug,
+        discord: content.discord,
+      });
       status.discord = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] Discord:', status.discord);
     } catch (err) {
@@ -211,7 +153,7 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── STEP 4: Write Excel ────────────────────────────────────────────────────
+  // ── Update or add Excel row ────────────────────────────────────────────────
   const today = new Date().toISOString().split('T')[0];
   const ytUrl = content.youtubeUrl || content.yt_url || '';
 
@@ -287,10 +229,10 @@ async function getExcelRows(token, env) {
 
 async function updateExcelRow(token, env, rowIndex, newStatus, existingRow, userSelected) {
   const row = [...existingRow];
-  if (newStatus.blog     !== 'pending' && userSelected.blog)     row[COL.blog]    = newStatus.blog;
-  if (newStatus.x        !== 'pending' && userSelected.x)        row[COL.x]       = newStatus.x;
-  if (newStatus.linkedin !== 'pending' && userSelected.linkedin) row[COL.linkedin] = newStatus.linkedin;
-  if (newStatus.discord  !== 'pending' && userSelected.discord)  row[COL.discord]  = newStatus.discord;
+  if (userSelected.blog     && newStatus.blog     !== 'pending') row[COL.blog]     = newStatus.blog;
+  if (userSelected.x        && newStatus.x        !== 'pending') row[COL.x]        = newStatus.x;
+  if (userSelected.linkedin && newStatus.linkedin  !== 'pending') row[COL.linkedin]  = newStatus.linkedin;
+  if (userSelected.discord  && newStatus.discord   !== 'pending') row[COL.discord]   = newStatus.discord;
   if (!userSelected.blog     && !existingRow[COL.blog])     row[COL.blog]     = 'Skipped';
   if (!userSelected.x        && !existingRow[COL.x])        row[COL.x]        = 'Skipped';
   if (!userSelected.linkedin && !existingRow[COL.linkedin])  row[COL.linkedin]  = 'Skipped';
