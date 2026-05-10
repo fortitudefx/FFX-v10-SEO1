@@ -766,7 +766,11 @@
     document.getElementById('genBtn').textContent = 'Generate Content';
     document.getElementById('progressWrap').style.display = 'none';
     document.getElementById('existingPanel').style.display = 'none';
+    const pubBtn = document.getElementById('pubBtn');
+    pubBtn.disabled = false;
+    pubBtn.textContent = 'Publish';
     hideAlert('genAlert');
+    hideAlert('pubAlert');
     setHeaderStatus('Ready');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -782,7 +786,11 @@
     document.getElementById('genBtn').textContent = 'Generate Content';
     document.getElementById('progressWrap').style.display = 'none';
     document.getElementById('existingPanel').style.display = 'none';
+    const pubBtn = document.getElementById('pubBtn');
+    pubBtn.disabled = false;
+    pubBtn.textContent = 'Publish';
     hideAlert('genAlert');
+    hideAlert('pubAlert');
     setHeaderStatus('Ready');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
