@@ -27,6 +27,9 @@
       --red:      #cc5a5a;
       --red-bg:   #1a0a0a;
       --red-bd:   #401818;
+      --yellow:   #c9a84c;
+      --yellow-bg:#1a1500;
+      --yellow-bd:#3a2e00;
       --mono:     'IBM Plex Mono', monospace;
       --sans:     'IBM Plex Sans', sans-serif;
     }
@@ -41,7 +44,6 @@
       padding: 0;
     }
 
-    /* ── HEADER ── */
     header {
       border-bottom: 1px solid var(--border);
       padding: 18px 32px;
@@ -71,14 +73,13 @@
       letter-spacing: 0.05em;
     }
 
-    /* ── MAIN ── */
     main {
       max-width: 860px;
       margin: 0 auto;
       padding: 48px 32px 120px;
     }
 
-    /* ── GENERATE FORM ── */
+    /* ── GENERATE VIEW ── */
     #generateView h1 {
       font-size: 28px;
       font-weight: 700;
@@ -140,11 +141,7 @@
     .btn-primary:hover:not(:disabled) { background: #e0e0e0; }
     .btn-primary:disabled { opacity: 0.25; cursor: not-allowed; }
 
-    /* ── PROGRESS ── */
-    .progress-wrap {
-      margin-top: 32px;
-      display: none;
-    }
+    .progress-wrap { margin-top: 32px; display: none; }
 
     .progress-step {
       display: flex;
@@ -183,7 +180,6 @@
 
     @keyframes rot { to { transform: rotate(360deg); } }
 
-    /* ── ALERT BANNERS ── */
     .alert {
       padding: 13px 16px;
       border-radius: 6px;
@@ -217,10 +213,7 @@
       margin-bottom: 4px;
     }
 
-    .review-header p {
-      font-size: 13px;
-      color: var(--muted);
-    }
+    .review-header p { font-size: 13px; color: var(--muted); }
 
     .btn-back {
       background: transparent;
@@ -238,7 +231,6 @@
 
     .btn-back:hover { border-color: #444; color: var(--text); }
 
-    /* Meta strip */
     .meta-strip {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -276,7 +268,6 @@
       color: var(--blue);
     }
 
-    /* Content sections */
     .section {
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -324,20 +315,10 @@
     .badge-tumblr  { background: #2a1a1a; color: #aa6a44; }
     .badge-medium  { background: #1a2a1a; color: #5aaa6a; }
 
-    .chevron {
-      color: var(--dim);
-      font-size: 12px;
-      transition: transform 0.2s;
-    }
-
+    .chevron { color: var(--dim); font-size: 12px; transition: transform 0.2s; }
     .section.open .chevron { transform: rotate(180deg); }
 
-    .section-body {
-      display: none;
-      padding: 0 20px 20px;
-      background: var(--bg);
-    }
-
+    .section-body { display: none; padding: 0 20px 20px; background: var(--bg); }
     .section.open .section-body { display: block; }
 
     .content-block {
@@ -356,11 +337,6 @@
       margin-top: 14px;
     }
 
-    .content-block::-webkit-scrollbar { width: 4px; }
-    .content-block::-webkit-scrollbar-track { background: transparent; }
-    .content-block::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-    /* Tweet list */
     .tweet-list { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
 
     .tweet-item {
@@ -384,7 +360,6 @@
       padding-top: 2px;
     }
 
-    /* ── PUBLISH FOOTER ── */
     .publish-footer {
       position: fixed;
       bottom: 0;
@@ -403,18 +378,8 @@
 
     .publish-footer.visible { display: flex; }
 
-    .footer-info {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .footer-info strong {
-      display: block;
-      color: var(--text);
-      font-size: 14px;
-      margin-bottom: 2px;
-    }
+    .footer-info { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .footer-info strong { display: block; color: var(--text); font-size: 14px; margin-bottom: 2px; }
 
     .btn-publish {
       background: var(--green);
@@ -436,32 +401,26 @@
     .btn-publish:disabled { opacity: 0.3; cursor: not-allowed; }
 
     /* ── SUCCESS VIEW ── */
-    #successView {
-      display: none;
+    #successView { display: none; padding: 60px 0; }
+
+    .success-header {
       text-align: center;
-      padding: 80px 32px;
+      margin-bottom: 48px;
     }
 
-    #successView .tick {
-      font-size: 48px;
-      margin-bottom: 24px;
-    }
+    .success-header .tick { font-size: 48px; margin-bottom: 20px; }
 
-    #successView h2 {
+    .success-header h2 {
       font-size: 24px;
       font-weight: 700;
       color: #fff;
       letter-spacing: -0.02em;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
-    #successView p {
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 32px;
-    }
+    .success-header p { font-size: 14px; color: var(--muted); }
 
-    #successView .published-slug {
+    .published-slug {
       font-family: var(--mono);
       font-size: 13px;
       color: var(--blue);
@@ -470,7 +429,65 @@
       border-radius: 6px;
       padding: 10px 18px;
       display: inline-block;
-      margin-bottom: 32px;
+      margin-top: 16px;
+    }
+
+    /* Platform status grid */
+    .platform-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    .platform-card {
+      border-radius: 8px;
+      padding: 18px 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .platform-card .p-name {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .platform-card .p-status {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .p-status.ok      { color: var(--green); }
+    .p-status.skipped { color: var(--muted); }
+    .p-status.error   { color: var(--red); }
+    .p-status.pending { color: var(--yellow); }
+
+    .p-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .p-status.ok      .p-dot { background: var(--green); }
+    .p-status.skipped .p-dot { background: var(--muted); }
+    .p-status.error   .p-dot { background: var(--red); }
+    .p-status.pending .p-dot { background: var(--yellow); }
+
+    .p-detail {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4;
+      font-family: var(--mono);
     }
 
     .btn-again {
@@ -484,11 +501,12 @@
       padding: 13px 28px;
       cursor: pointer;
       transition: border-color 0.15s;
+      display: block;
+      margin: 0 auto;
     }
 
     .btn-again:hover { border-color: #444; }
 
-    /* scrollbar global */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
@@ -499,6 +517,7 @@
       .publish-footer { padding: 16px 20px; flex-direction: column; align-items: stretch; }
       .btn-publish { text-align: center; }
       .meta-strip { grid-template-columns: 1fr 1fr; }
+      .platform-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -539,7 +558,6 @@
       <button class="btn-back" onclick="backToGenerate()">← Start Over</button>
     </div>
 
-    <!-- Meta -->
     <div class="meta-strip">
       <div class="meta-cell">
         <div class="meta-label">Slug</div>
@@ -567,13 +585,9 @@
       </div>
     </div>
 
-    <!-- Article body -->
     <div class="section open" id="secArticle">
       <div class="section-head" onclick="toggleSection('secArticle')">
-        <div class="section-title">
-          <span class="platform-badge badge-article">ARTICLE</span>
-          Blog Post Body
-        </div>
+        <div class="section-title"><span class="platform-badge badge-article">ARTICLE</span>Blog Post Body</div>
         <span class="chevron">▼</span>
       </div>
       <div class="section-body">
@@ -581,13 +595,9 @@
       </div>
     </div>
 
-    <!-- X / Twitter -->
     <div class="section" id="secX">
       <div class="section-head" onclick="toggleSection('secX')">
-        <div class="section-title">
-          <span class="platform-badge badge-x">X</span>
-          Tweet Thread (6 tweets)
-        </div>
+        <div class="section-title"><span class="platform-badge badge-x">X</span>Tweet Thread (6 tweets)</div>
         <span class="chevron">▼</span>
       </div>
       <div class="section-body">
@@ -595,13 +605,9 @@
       </div>
     </div>
 
-    <!-- LinkedIn -->
     <div class="section" id="secLI">
       <div class="section-head" onclick="toggleSection('secLI')">
-        <div class="section-title">
-          <span class="platform-badge badge-li">LINKEDIN</span>
-          LinkedIn Post
-        </div>
+        <div class="section-title"><span class="platform-badge badge-li">LINKEDIN</span>LinkedIn Post</div>
         <span class="chevron">▼</span>
       </div>
       <div class="section-body">
@@ -609,13 +615,9 @@
       </div>
     </div>
 
-    <!-- Discord -->
     <div class="section" id="secDiscord">
       <div class="section-head" onclick="toggleSection('secDiscord')">
-        <div class="section-title">
-          <span class="platform-badge badge-discord">DISCORD</span>
-          Discord Knowledge Drop
-        </div>
+        <div class="section-title"><span class="platform-badge badge-discord">DISCORD</span>Discord Knowledge Drop</div>
         <span class="chevron">▼</span>
       </div>
       <div class="section-body">
@@ -623,13 +625,9 @@
       </div>
     </div>
 
-    <!-- Tumblr -->
     <div class="section" id="secTumblr">
       <div class="section-head" onclick="toggleSection('secTumblr')">
-        <div class="section-title">
-          <span class="platform-badge badge-tumblr">TUMBLR</span>
-          Tumblr Essay
-        </div>
+        <div class="section-title"><span class="platform-badge badge-tumblr">TUMBLR</span>Tumblr Essay</div>
         <span class="chevron">▼</span>
       </div>
       <div class="section-body">
@@ -637,13 +635,9 @@
       </div>
     </div>
 
-    <!-- Medium -->
     <div class="section" id="secMedium">
       <div class="section-head" onclick="toggleSection('secMedium')">
-        <div class="section-title">
-          <span class="platform-badge badge-medium">MEDIUM</span>
-          Medium Intro
-        </div>
+        <div class="section-title"><span class="platform-badge badge-medium">MEDIUM</span>Medium Intro</div>
         <span class="chevron">▼</span>
       </div>
       <div class="section-body">
@@ -656,10 +650,15 @@
 
   <!-- ── SUCCESS VIEW ── -->
   <div id="successView">
-    <div class="tick">✓</div>
-    <h2>Published</h2>
-    <p>Article saved and all platforms queued in Make.</p>
-    <div class="published-slug" id="successSlug"></div><br>
+    <div class="success-header">
+      <div class="tick">✓</div>
+      <h2>Published</h2>
+      <p>Content pushed to all platforms. See status below.</p>
+      <div class="published-slug" id="successSlug"></div>
+    </div>
+
+    <div class="platform-grid" id="platformGrid"></div>
+
     <button class="btn-again" onclick="reset()">Publish Another</button>
   </div>
 
@@ -680,7 +679,6 @@
   // ── GENERATE ──────────────────────────────────────────────────────────────
   async function generate() {
     const url = document.getElementById('ytUrl').value.trim();
-
     if (!url) { showAlert('genAlert', 'Paste a YouTube URL first.', 'error'); return; }
     if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
       showAlert('genAlert', 'That does not look like a YouTube URL.', 'error');
@@ -694,7 +692,6 @@
 
     document.getElementById('progressWrap').style.display = 'block';
     setPS(1, 'active'); setPS(2, 'idle'); setPS(3, 'idle');
-
     showAlert('genAlert', 'Working — fetching transcript then generating with Claude. Takes 25–45 seconds.', 'info');
 
     const t1 = setTimeout(() => { setPS(1, 'done'); setPS(2, 'active'); }, 4500);
@@ -718,15 +715,12 @@
       }
 
       setPS(1, 'done'); setPS(2, 'done'); setPS(3, 'active');
-
-      // Populate review
       populateReview(data.content);
       currentSlug = data.content.slug;
 
       setTimeout(() => {
         setPS(3, 'done');
         setHeaderStatus('Review ready');
-        // Switch views
         document.getElementById('generateView').style.display = 'none';
         document.getElementById('reviewView').style.display = 'block';
         document.getElementById('publishFooter').classList.add('visible');
@@ -769,11 +763,12 @@
         return;
       }
 
-      // Success
+      // Show success with platform status
       document.getElementById('reviewView').style.display = 'none';
       document.getElementById('publishFooter').classList.remove('visible');
       document.getElementById('successView').style.display = 'block';
       document.getElementById('successSlug').textContent = data.slug;
+      renderPlatformStatus(data.status);
       setHeaderStatus('Published');
 
     } catch (err) {
@@ -784,6 +779,48 @@
     }
   }
 
+  // ── PLATFORM STATUS RENDER ────────────────────────────────────────────────
+  function renderPlatformStatus(status) {
+    const grid = document.getElementById('platformGrid');
+    grid.innerHTML = '';
+
+    const platforms = [
+      { key: 'blog',     label: 'Blog' },
+      { key: 'x',        label: 'X / Twitter' },
+      { key: 'linkedin', label: 'LinkedIn' },
+      { key: 'discord',  label: 'Discord' },
+    ];
+
+    platforms.forEach(({ key, label }) => {
+      const val = status?.[key] || 'unknown';
+      let cls, icon, detail;
+
+      if (val === 'Yes') {
+        cls = 'ok'; icon = 'Posted'; detail = '';
+      } else if (val === 'skipped') {
+        cls = 'skipped'; icon = 'Skipped'; detail = 'Already posted';
+      } else if (val === 'pending') {
+        cls = 'pending'; icon = 'Pending'; detail = '';
+      } else if (val.startsWith('Error')) {
+        cls = 'error'; icon = 'Failed'; detail = val.replace('Error: ', '');
+      } else {
+        cls = 'skipped'; icon = val; detail = '';
+      }
+
+      const card = document.createElement('div');
+      card.className = 'platform-card';
+      card.innerHTML = `
+        <div class="p-name">${label}</div>
+        <div class="p-status ${cls}">
+          <div class="p-dot"></div>
+          ${icon}
+        </div>
+        ${detail ? `<div class="p-detail">${detail}</div>` : ''}
+      `;
+      grid.appendChild(card);
+    });
+  }
+
   // ── POPULATE REVIEW ───────────────────────────────────────────────────────
   function populateReview(c) {
     document.getElementById('rSlug').textContent     = c.slug;
@@ -792,11 +829,8 @@
     document.getElementById('rReadTime').textContent = c.readTime;
     document.getElementById('rExcerpt').textContent  = c.excerpt;
     document.getElementById('rTags').textContent     = c.tags;
+    document.getElementById('rBody').textContent     = c.body;
 
-    // Article body — show as raw HTML text so they can read the markup
-    document.getElementById('rBody').textContent = c.body;
-
-    // Tweets
     const tweetList = document.getElementById('rTweets');
     tweetList.innerHTML = '';
     const tweets = Array.isArray(c.x_thread) ? c.x_thread : [];
@@ -814,9 +848,7 @@
   }
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
-  function toggleSection(id) {
-    document.getElementById(id).classList.toggle('open');
-  }
+  function toggleSection(id) { document.getElementById(id).classList.toggle('open'); }
 
   function backToGenerate() {
     currentSlug = null;
@@ -845,9 +877,7 @@
   function setPS(n, state) {
     const step = document.getElementById('ps' + n);
     const pip  = document.getElementById('pp' + n);
-
     step.className = 'progress-step' + (state !== 'idle' ? ' ' + state : '');
-
     if (state === 'active') {
       pip.outerHTML = `<div class="spin" id="pp${n}"></div>`;
     } else {
@@ -858,9 +888,7 @@
     }
   }
 
-  function failAll() {
-    [1, 2, 3].forEach(n => setPS(n, 'fail'));
-  }
+  function failAll() { [1, 2, 3].forEach(n => setPS(n, 'fail')); }
 
   function showAlert(id, msg, type) {
     const el = document.getElementById(id);
@@ -869,14 +897,8 @@
     el.style.display = 'block';
   }
 
-  function hideAlert(id) {
-    document.getElementById(id).style.display = 'none';
-  }
-
-  function setHeaderStatus(msg) {
-    document.getElementById('headerStatus').textContent = msg;
-  }
-
+  function hideAlert(id) { document.getElementById(id).style.display = 'none'; }
+  function setHeaderStatus(msg) { document.getElementById('headerStatus').textContent = msg; }
   function escHtml(str) {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
