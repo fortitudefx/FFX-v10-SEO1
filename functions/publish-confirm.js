@@ -1,15 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Publish Confirm — Master Orchestrator
 //
-// Receives full content from browser.
-// Passes content fields DIRECTLY to platform Workers — no GitHub fetch needed.
-// Workers post immediately with the content they receive.
-// articles.json is written by /publish in parallel — platform Workers don't wait for it.
-//
-// Sequence:
-// 1. Write to articles.json via /publish (async)
-// 2. Call platform Workers with content directly
-// 3. Update Excel
+// 1. Read Excel to check platform statuses
+// 2. Call platform Workers with content directly (no GitHub race condition)
+// 3. Update Excel row using range address (not rows/itemAt which fails on SharePoint)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SHEET_NAME = 'FFX Articles';
@@ -69,8 +63,11 @@ export async function onRequestPost(context) {
     return resp({ error: `Excel read failed: ${err.message}` }, 500, headers);
   }
 
+  // rowIndex is 0-based in the array (row 0 = header)
   const rowIndex = excelRows.findIndex((r, i) => i > 0 && r[COL.slug] === slug);
   const existingRow = rowIndex > 0 ? excelRows[rowIndex] : null;
+
+  console.log('[FFX] Excel row found:', rowIndex > 0 ? `array index ${rowIndex} = Excel row ${rowIndex + 1}` : 'none');
 
   // ── Determine what to run ──────────────────────────────────────────────────
   const shouldRun = (platform, colIndex) => {
@@ -95,7 +92,7 @@ export async function onRequestPost(context) {
 
   const baseUrl = new URL(request.url).origin;
 
-  // ── Blog — write to articles.json + sitemap + Google index ────────────────
+  // ── Blog ───────────────────────────────────────────────────────────────────
   if (shouldRun('blog', COL.blog)) {
     try {
       const res = await callWorker(`${baseUrl}/publish`, content);
@@ -106,17 +103,14 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── X — pass tweet content directly, no GitHub fetch ──────────────────────
+  // ── X — content passed directly ────────────────────────────────────────────
   if (shouldRun('x', COL.x)) {
     try {
       const res = await callWorker(`${baseUrl}/tweet`, {
         slug,
-        tweet1: content.tweet1,
-        tweet2: content.tweet2,
-        tweet3: content.tweet3,
-        tweet4: content.tweet4,
-        tweet5: content.tweet5,
-        tweet6: content.tweet6,
+        tweet1: content.tweet1, tweet2: content.tweet2,
+        tweet3: content.tweet3, tweet4: content.tweet4,
+        tweet5: content.tweet5, tweet6: content.tweet6,
       });
       status.x = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] X:', status.x);
@@ -125,12 +119,11 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── LinkedIn — pass linkedin content directly, no GitHub fetch ─────────────
+  // ── LinkedIn — content passed directly ─────────────────────────────────────
   if (shouldRun('linkedin', COL.linkedin)) {
     try {
       const res = await callWorker(`${baseUrl}/linkedin`, {
-        slug,
-        linkedin: content.linkedin,
+        slug, linkedin: content.linkedin,
       });
       status.linkedin = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] LinkedIn:', status.linkedin);
@@ -139,12 +132,11 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── Discord — pass discord content directly, no GitHub fetch ───────────────
+  // ── Discord — content passed directly ──────────────────────────────────────
   if (shouldRun('discord', COL.discord)) {
     try {
       const res = await callWorker(`${baseUrl}/discord`, {
-        slug,
-        discord: content.discord,
+        slug, discord: content.discord,
       });
       status.discord = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] Discord:', status.discord);
@@ -159,7 +151,9 @@ export async function onRequestPost(context) {
 
   try {
     if (existingRow && rowIndex > 0) {
-      await updateExcelRow(graphToken, env, rowIndex, status, existingRow, userSelected);
+      // Update existing row — rowIndex is 0-based array index
+      // Excel row number = rowIndex + 1 (1-based, header is row 1)
+      await updateExcelRow(graphToken, env, rowIndex + 1, status, existingRow, userSelected, excelRows[0].length);
     } else {
       await appendExcelRow(graphToken, env, [
         slug,
@@ -227,32 +221,45 @@ async function getExcelRows(token, env) {
   return (await res.json()).values || [];
 }
 
-async function updateExcelRow(token, env, rowIndex, newStatus, existingRow, userSelected) {
+async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow, userSelected, numCols) {
+  // Build updated row — only touch cells for platforms that ran this session
   const row = [...existingRow];
-  if (userSelected.blog     && newStatus.blog     !== 'pending') row[COL.blog]     = newStatus.blog;
-  if (userSelected.x        && newStatus.x        !== 'pending') row[COL.x]        = newStatus.x;
-  if (userSelected.linkedin && newStatus.linkedin  !== 'pending') row[COL.linkedin]  = newStatus.linkedin;
-  if (userSelected.discord  && newStatus.discord   !== 'pending') row[COL.discord]   = newStatus.discord;
-  // Never overwrite empty cells for platforms not selected this session
-  // Leave them empty so future runs can post to them
 
-  const res = await fetch(workbookUrl(env, `/worksheets('${SHEET_NAME}')/rows/itemAt(index=${rowIndex})`), {
+  if (userSelected.blog     && newStatus.blog     !== 'pending' && newStatus.blog     !== 'not_selected') row[COL.blog]     = newStatus.blog;
+  if (userSelected.x        && newStatus.x        !== 'pending' && newStatus.x        !== 'not_selected') row[COL.x]        = newStatus.x;
+  if (userSelected.linkedin && newStatus.linkedin  !== 'pending' && newStatus.linkedin  !== 'not_selected') row[COL.linkedin]  = newStatus.linkedin;
+  if (userSelected.discord  && newStatus.discord   !== 'pending' && newStatus.discord   !== 'not_selected') row[COL.discord]   = newStatus.discord;
+
+  // Use range address — more reliable than rows/itemAt on SharePoint
+  // excelRowNumber is 1-based (header=1, first data row=2)
+  const colEnd = String.fromCharCode(64 + row.length);
+  const rangeAddr = `A${excelRowNumber}:${colEnd}${excelRowNumber}`;
+
+  console.log('[FFX] Updating Excel range:', rangeAddr);
+
+  const res = await fetch(workbookUrl(env, `/worksheets('${SHEET_NAME}')/range(address='${rangeAddr}')`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ values: [row] }),
   });
+
   if (!res.ok) throw new Error(`Excel update ${res.status}: ${await res.text()}`);
 }
 
 async function appendExcelRow(token, env, rowValues) {
   const rows = await getExcelRows(token, env);
-  const nextRow = rows.length + 1;
+  const nextRow = rows.length + 1; // 1-based, after all existing rows
   const colEnd = String.fromCharCode(64 + rowValues.length);
-  const res = await fetch(workbookUrl(env, `/worksheets('${SHEET_NAME}')/range(address='A${nextRow}:${colEnd}${nextRow}')`), {
+  const rangeAddr = `A${nextRow}:${colEnd}${nextRow}`;
+
+  console.log('[FFX] Appending Excel row at:', rangeAddr);
+
+  const res = await fetch(workbookUrl(env, `/worksheets('${SHEET_NAME}')/range(address='${rangeAddr}')`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ values: [rowValues] }),
   });
+
   if (!res.ok) throw new Error(`Excel append ${res.status}: ${await res.text()}`);
 }
 
