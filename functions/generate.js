@@ -300,7 +300,7 @@ CORE STRUCTURE:
 1. Hook (1–2 lines): Something psychologically relevant, market-relevant, or thought-provoking. Must create curiosity naturally. Avoid clickbait.
 2. Insight (4–8 lines): Deliver REAL educational value. Explain a trading behavior, liquidity concept, execution issue, psychology mistake, risk management insight, or market observation clearly. Should feel useful even if the reader never buys anything.
 3. Perspective Shift (2–4 lines): Introduce a deeper realization. Something most traders overlook. Something that changes how the reader thinks about markets, execution, patience, discipline, or emotional control.
-4. Soft Continuation CTA (1 line): Must feel natural and low-pressure. Never sound like an advertisement. Include the article link [ARTICLE_URL] and video link ${youtubeUrl} naturally. Example format: "I broke this down more deeply here if anyone wants the full context — [ARTICLE_URL]"
+4. Soft Continuation CTA: Must feel natural and low-pressure. Never sound like an advertisement. Always include all three links in this exact format:  Full breakdown 👉 [ARTICLE_URL] Watch the video: ${youtubeUrl} More at fortitudefx.com  Then end with a 1-2 line hook/question that invites engagement — something that makes the reader want to reply or think. Not a sales line. A genuine conversation starter related to the topic.
 
 CONTENT GOALS: Deliver genuine value. Encourage discussion and engagement. Build long-term trust. Subtly position FortitudeFX as more thoughtful and higher quality than typical retail trading communities.
 
