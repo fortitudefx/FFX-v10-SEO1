@@ -1,23 +1,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Publish Confirm — Master Orchestrator
-// Replaces Make.com entirely for publishing workflow
+// No Make.com. No KV deletion. Cloudflare only.
 //
 // Flow:
 // 1. Read content from KV by slug
-// 2. Get Microsoft Graph token (client credentials — no manual refresh ever)
+// 2. Get Microsoft Graph token (client credentials)
 // 3. Find Excel row by slug
-// 4. For each platform: skip if Yes, run if No/empty
-// 5. Update Excel cell after each success, mark Error on failure
-// 6. Add new Excel row if slug not found
-// 7. Return full status report to generate.html
+// 4. Run only platforms passed in request that are not Yes/Skipped in Excel
+// 5. Update Excel after each platform
+// 6. Return full status to generate.html
 //
-// Platforms: Blog, X, Discord, LinkedIn
-// Excel columns: A=Slug B=Title C=Date D=Blog E=X F=LinkedIn G=Medium H=Tumblr I=YT_URL J=Discord
+// Excel values: Yes / Skipped / Error: {detail} / empty
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SHEET_NAME = 'FFX Articles';
 
-// Column index map (0-based)
 const COL = {
   slug:     0,  // A
   title:    1,  // B
@@ -47,10 +44,14 @@ export async function onRequestPost(context) {
     return resp({ error: 'Invalid JSON body' }, 400, headers);
   }
 
-  const { slug } = body;
+  const { slug, platforms } = body;
   if (!slug) return resp({ error: 'slug is required' }, 400, headers);
 
-  console.log('[FFX] publish-confirm slug:', slug);
+  // platforms = { blog: true, x: true, linkedin: false, discord: true }
+  // true = user wants to post, false = user skipped by design
+  const userSelected = platforms || { blog: true, x: true, linkedin: true, discord: true };
+
+  console.log('[FFX] publish-confirm slug:', slug, 'platforms:', userSelected);
 
   // ── 2. Read content from KV ────────────────────────────────────────────────
   const stored = await env.FFX_CONTENT.get(`slug:${slug}`);
@@ -63,7 +64,7 @@ export async function onRequestPost(context) {
     return resp({ error: 'Stored content is corrupted. Please generate again.' }, 500, headers);
   }
 
-  // ── 3. Get Microsoft Graph access token ────────────────────────────────────
+  // ── 3. Get Microsoft Graph token ───────────────────────────────────────────
   let graphToken;
   try {
     graphToken = await getGraphToken(env);
@@ -83,32 +84,49 @@ export async function onRequestPost(context) {
     return resp({ error: `Excel read failed: ${err.message}` }, 500, headers);
   }
 
-  // Find matching row (skip header row index 0)
   const rowIndex = excelRows.findIndex((r, i) => i > 0 && r[COL.slug] === slug);
   const existingRow = rowIndex > 0 ? excelRows[rowIndex] : null;
 
   console.log('[FFX] Excel row found:', rowIndex > 0 ? `row ${rowIndex + 1}` : 'none');
 
-  // ── 5. Determine which platforms need posting ──────────────────────────────
-  const needsBlog     = !existingRow || existingRow[COL.blog]     !== 'Yes';
-  const needsX        = !existingRow || existingRow[COL.x]        !== 'Yes';
-  const needsLinkedIn = !existingRow || existingRow[COL.linkedin]  !== 'Yes';
-  const needsDiscord  = !existingRow || existingRow[COL.discord]   !== 'Yes';
+  // ── 5. Build platform run list ─────────────────────────────────────────────
+  // Run platform if: user selected it AND Excel does not show Yes or Skipped
+  const shouldRun = (platform, colIndex) => {
+    if (!userSelected[platform]) return false; // user unchecked = skip by design
+    const excelVal = existingRow?.[colIndex] || '';
+    if (excelVal === 'Yes' || excelVal === 'Skipped') return false;
+    return true;
+  };
 
-  console.log('[FFX] Platform needs:', { needsBlog, needsX, needsLinkedIn, needsDiscord });
+  const runBlog     = shouldRun('blog',     COL.blog);
+  const runX        = shouldRun('x',        COL.x);
+  const runLinkedIn = shouldRun('linkedin', COL.linkedin);
+  const runDiscord  = shouldRun('discord',  COL.discord);
 
-  // ── 6. Run platforms ───────────────────────────────────────────────────────
+  console.log('[FFX] Will run:', { runBlog, runX, runLinkedIn, runDiscord });
+
+  // ── 6. Build initial status ────────────────────────────────────────────────
+  const getInitialStatus = (platform, colIndex) => {
+    if (!userSelected[platform]) return 'Skipped';
+    const excelVal = existingRow?.[colIndex] || '';
+    if (excelVal === 'Yes') return 'Yes';
+    if (excelVal === 'Skipped') return 'Skipped';
+    return 'pending';
+  };
+
   const status = {
-    blog:     existingRow?.[COL.blog]     === 'Yes' ? 'skipped' : 'pending',
-    x:        existingRow?.[COL.x]        === 'Yes' ? 'skipped' : 'pending',
-    linkedin: existingRow?.[COL.linkedin]  === 'Yes' ? 'skipped' : 'pending',
-    discord:  existingRow?.[COL.discord]   === 'Yes' ? 'skipped' : 'pending',
+    blog:     getInitialStatus('blog',     COL.blog),
+    x:        getInitialStatus('x',        COL.x),
+    linkedin: getInitialStatus('linkedin', COL.linkedin),
+    discord:  getInitialStatus('discord',  COL.discord),
   };
 
   const baseUrl = new URL(request.url).origin;
 
+  // ── 7. Run platforms ───────────────────────────────────────────────────────
+
   // Blog
-  if (needsBlog) {
+  if (runBlog) {
     try {
       const res = await callWorker(`${baseUrl}/publish`, content);
       if (res.ok) {
@@ -121,12 +139,11 @@ export async function onRequestPost(context) {
       }
     } catch (err) {
       status.blog = `Error: ${err.message}`;
-      console.log('[FFX] Blog error:', err.message);
     }
   }
 
-  // X (Twitter)
-  if (needsX) {
+  // X
+  if (runX) {
     try {
       const res = await callWorker(`${baseUrl}/tweet`, { slug });
       if (res.ok) {
@@ -139,12 +156,11 @@ export async function onRequestPost(context) {
       }
     } catch (err) {
       status.x = `Error: ${err.message}`;
-      console.log('[FFX] X error:', err.message);
     }
   }
 
   // LinkedIn
-  if (needsLinkedIn) {
+  if (runLinkedIn) {
     try {
       const res = await callWorker(`${baseUrl}/linkedin`, { slug });
       if (res.ok) {
@@ -157,12 +173,11 @@ export async function onRequestPost(context) {
       }
     } catch (err) {
       status.linkedin = `Error: ${err.message}`;
-      console.log('[FFX] LinkedIn error:', err.message);
     }
   }
 
   // Discord
-  if (needsDiscord) {
+  if (runDiscord) {
     try {
       const res = await callWorker(`${baseUrl}/discord`, { slug });
       if (res.ok) {
@@ -175,42 +190,35 @@ export async function onRequestPost(context) {
       }
     } catch (err) {
       status.discord = `Error: ${err.message}`;
-      console.log('[FFX] Discord error:', err.message);
     }
   }
 
-  // ── 7. Update or add Excel row ─────────────────────────────────────────────
+  // ── 8. Update or add Excel row ─────────────────────────────────────────────
   const today = new Date().toISOString().split('T')[0];
   const ytUrl = content.youtubeUrl || content.yt_url || '';
 
   try {
     if (existingRow && rowIndex > 0) {
-      await updateExcelRow(graphToken, env, rowIndex, status, existingRow);
-      console.log('[FFX] Excel row updated at index', rowIndex);
+      await updateExcelRow(graphToken, env, rowIndex, status, existingRow, userSelected);
+      console.log('[FFX] Excel row updated');
     } else {
       await appendExcelRow(graphToken, env, [
         slug,
         content.title || '',
         today,
-        status.blog,
-        status.x,
-        status.linkedin,
+        userSelected.blog     ? status.blog     : 'Skipped',
+        userSelected.x        ? status.x        : 'Skipped',
+        userSelected.linkedin ? status.linkedin  : 'Skipped',
         'Manual',
         'No',
         ytUrl,
-        status.discord,
+        userSelected.discord  ? status.discord  : 'Skipped',
       ]);
       console.log('[FFX] Excel new row added');
     }
   } catch (err) {
     console.log('[FFX] Excel write failed (non-fatal):', err.message);
   }
-
-  // ── 8. Clean up KV ────────────────────────────────────────────────────────
-  const videoId = extractVideoId(content.youtubeUrl || '');
-  if (videoId) await env.FFX_CONTENT.delete(`video:${videoId}`);
-  await env.FFX_CONTENT.delete(`slug:${slug}`);
-  console.log('[FFX] KV cleaned up');
 
   // ── 9. Return full status ──────────────────────────────────────────────────
   return resp({ success: true, slug, status }, 200, headers);
@@ -255,14 +263,13 @@ async function getGraphToken(env) {
   return data.access_token;
 }
 
-function driveItemUrl(env, path) {
-  // Access via SharePoint personal site drive
-  const userPath = env.MS_USER_PATH; // personal/salmankhanfx_fortitudefx_com
-  return `https://graph.microsoft.com/v1.0/sites/${env.MS_SHAREPOINT_HOST}:/${userPath}:/drive/items/${env.MS_FILE_ID}/workbook${path}`;
+function workbookUrl(env, path) {
+  return `https://graph.microsoft.com/v1.0/sites/${env.MS_SHAREPOINT_HOST}/drive/items/${env.MS_FILE_ID}/workbook${path}`;
 }
 
 async function getExcelRows(token, env) {
-  const url = driveItemUrl(env, `/worksheets('${SHEET_NAME}')/usedRange`);
+  const url = workbookUrl(env, `/worksheets('${SHEET_NAME}')/usedRange`);
+  console.log('[FFX] Excel read URL:', url);
 
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
@@ -277,17 +284,22 @@ async function getExcelRows(token, env) {
   return data.values || [];
 }
 
-async function updateExcelRow(token, env, rowIndex, newStatus, existingRow) {
-  // rowIndex is 0-based array index — convert to 1-based Excel row (add 1 for header)
-  const excelRowNumber = rowIndex + 1; // +1 because row 0 in array = row 1 in Excel (header), so row 1 in array = row 2 in Excel
-
+async function updateExcelRow(token, env, rowIndex, newStatus, existingRow, userSelected) {
   const updatedRow = [...existingRow];
-  if (newStatus.blog     !== 'skipped') updatedRow[COL.blog]     = newStatus.blog;
-  if (newStatus.x        !== 'skipped') updatedRow[COL.x]        = newStatus.x;
-  if (newStatus.linkedin !== 'skipped') updatedRow[COL.linkedin]  = newStatus.linkedin;
-  if (newStatus.discord  !== 'skipped') updatedRow[COL.discord]   = newStatus.discord;
 
-  const url = driveItemUrl(env, `/worksheets('${SHEET_NAME}')/rows/itemAt(index=${excelRowNumber})`);
+  // Only update columns for platforms that actually ran this session
+  if (userSelected.blog     && newStatus.blog     !== 'pending') updatedRow[COL.blog]     = newStatus.blog     === 'Yes' ? 'Yes' : newStatus.blog;
+  if (userSelected.x        && newStatus.x        !== 'pending') updatedRow[COL.x]        = newStatus.x        === 'Yes' ? 'Yes' : newStatus.x;
+  if (userSelected.linkedin && newStatus.linkedin  !== 'pending') updatedRow[COL.linkedin]  = newStatus.linkedin  === 'Yes' ? 'Yes' : newStatus.linkedin;
+  if (userSelected.discord  && newStatus.discord   !== 'pending') updatedRow[COL.discord]   = newStatus.discord   === 'Yes' ? 'Yes' : newStatus.discord;
+
+  // Mark unselected platforms as Skipped only if they were empty before
+  if (!userSelected.blog     && !existingRow[COL.blog])     updatedRow[COL.blog]     = 'Skipped';
+  if (!userSelected.x        && !existingRow[COL.x])        updatedRow[COL.x]        = 'Skipped';
+  if (!userSelected.linkedin && !existingRow[COL.linkedin])  updatedRow[COL.linkedin]  = 'Skipped';
+  if (!userSelected.discord  && !existingRow[COL.discord])   updatedRow[COL.discord]   = 'Skipped';
+
+  const url = workbookUrl(env, `/worksheets('${SHEET_NAME}')/rows/itemAt(index=${rowIndex})`);
 
   const res = await fetch(url, {
     method: 'PATCH',
@@ -305,14 +317,12 @@ async function updateExcelRow(token, env, rowIndex, newStatus, existingRow) {
 }
 
 async function appendExcelRow(token, env, rowValues) {
-  // Get current used range to find next empty row
   const rows = await getExcelRows(token, env);
-  const nextRow = rows.length + 1; // 1-based, rows.length includes header
-
-  const colEnd = String.fromCharCode(64 + rowValues.length); // A=65, so 64+length gives correct col
+  const nextRow = rows.length + 1;
+  const colEnd = String.fromCharCode(64 + rowValues.length);
   const rangeAddr = `A${nextRow}:${colEnd}${nextRow}`;
 
-  const url = driveItemUrl(env, `/worksheets('${SHEET_NAME}')/range(address='${rangeAddr}')`);
+  const url = workbookUrl(env, `/worksheets('${SHEET_NAME}')/range(address='${rangeAddr}')`);
 
   const res = await fetch(url, {
     method: 'PATCH',
@@ -339,21 +349,6 @@ async function callWorker(url, payload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-}
-
-function extractVideoId(url) {
-  try {
-    const u = new URL(url);
-    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
-    if (u.hostname.includes('youtube.com')) {
-      const v = u.searchParams.get('v');
-      if (v) return v;
-      const parts = u.pathname.split('/');
-      const si = parts.indexOf('shorts');
-      if (si !== -1) return parts[si + 1];
-    }
-  } catch {}
-  return null;
 }
 
 function resp(data, status, headers) {
