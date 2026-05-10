@@ -402,6 +402,7 @@ CORE STRUCTURE:
    Full breakdown 👉 [ARTICLE_URL]
    Watch the video: ${youtubeUrl}
    More at fortitudefx.com
+   CRITICAL: Write [ARTICLE_URL] exactly as shown — do NOT invent or construct any URL. Do not write /blog/ paths. Do not guess the URL format. Write [ARTICLE_URL] and it will be replaced automatically.
    Then end with a 1-2 line engagement hook — a genuine question or thought-provoking statement that invites the community to reply or reflect. Not a sales line. A real conversation starter related to the topic covered.
 
 CONTENT GOALS: Deliver genuine value. Encourage discussion and engagement. Build long-term trust. Subtly position FortitudeFX as more thoughtful and higher quality than typical retail trading communities.
