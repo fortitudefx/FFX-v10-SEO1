@@ -295,7 +295,7 @@ POST 5 SPECIFICALLY:
 - Deliver the deeper realization or perspective shift
 - Reframe the topic intelligently
 - Make readers think differently
-- Website reference is allowed naturally if relevant
+- Must end with https://fortitudefx.com — no exceptions
 - Avoid turning the tweet into a sales CTA
 
 POST 6:
@@ -360,7 +360,7 @@ VERY IMPORTANT:
 - Avoid pressure tactics
 - Avoid spammy CTA language
 - Avoid sounding needy or sales-focused
-- Avoid emoji spam
+- Use emojis naturally and generously where they add energy, warmth, or emphasis — aim for 6-10 emojis throughout the post. Not on every line, but don't hold back when they fit.
 
 The writing should feel like an experienced trader sharing perspective naturally. High signal communication. Intelligent but accessible. Useful enough that people genuinely read it. Premium and thoughtful without trying too hard.
 
