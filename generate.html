@@ -12,14 +12,13 @@
     :root {
       --bg:         #0c0c0c;
       --surface:    #1a1a1a;
-      --surface2:   #202020;
+      --surface2:   #222;
       --border:     #2e2e2e;
       --border2:    #3a3a3a;
       --text:       #e8e8e8;
-      --text-mid:   #b0b0b0;
-      --muted:      #707070;
-      --dim:        #444;
-      --accent:     #f0f0f0;
+      --text-mid:   #b8b8b8;
+      --muted:      #787878;
+      --dim:        #484848;
       --green:      #4caf7d;
       --green-bg:   #0d2018;
       --green-bd:   #1e4830;
@@ -37,557 +36,216 @@
     }
 
     html { scroll-behavior: smooth; }
-
-    body {
-      font-family: var(--sans);
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      font-size: 15px;
-      line-height: 1.6;
-    }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.65; }
 
     header {
       border-bottom: 1px solid var(--border);
       padding: 18px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0;
       background: rgba(12,12,12,0.96);
       backdrop-filter: blur(8px);
       z-index: 100;
     }
 
-    .wordmark {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
+    .wordmark { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+    .header-status { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
-    .header-status {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: 0.05em;
-    }
+    main { max-width: 880px; margin: 0 auto; padding: 52px 32px 140px; }
 
-    main {
-      max-width: 880px;
-      margin: 0 auto;
-      padding: 52px 32px 140px;
-    }
+    /* ── INPUT VIEW ── */
+    #inputView h1 { font-size: 30px; font-weight: 700; color: #fff; letter-spacing: -0.03em; margin-bottom: 10px; }
+    #inputView .sub { font-size: 15px; color: var(--text-mid); margin-bottom: 44px; line-height: 1.7; }
 
-    /* ── GENERATE VIEW ── */
-    #generateView h1 {
-      font-size: 30px;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.03em;
-      margin-bottom: 10px;
-    }
-
-    #generateView .sub {
-      font-size: 15px;
-      color: var(--text-mid);
-      margin-bottom: 44px;
-      line-height: 1.7;
-    }
-
-    .field-label {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-mid);
-      margin-bottom: 10px;
-      display: block;
-    }
+    .field-label { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-mid); margin-bottom: 10px; display: block; }
 
     input[type="url"] {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      color: #fff;
-      font-family: var(--mono);
-      font-size: 14px;
-      padding: 15px 18px;
-      outline: none;
-      transition: border-color 0.15s;
+      width: 100%; background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 6px; color: #fff; font-family: var(--mono); font-size: 14px;
+      padding: 15px 18px; outline: none; transition: border-color 0.15s;
     }
-
     input[type="url"]:focus { border-color: var(--blue); }
     input[type="url"]::placeholder { color: var(--dim); }
 
     .btn-primary {
-      margin-top: 16px;
-      width: 100%;
-      background: #fff;
-      color: #000;
-      border: none;
-      border-radius: 6px;
-      font-family: var(--sans);
-      font-size: 15px;
-      font-weight: 700;
-      padding: 16px;
-      cursor: pointer;
-      letter-spacing: 0.02em;
-      transition: background 0.15s, opacity 0.15s;
+      margin-top: 16px; width: 100%; background: #fff; color: #000; border: none;
+      border-radius: 6px; font-family: var(--sans); font-size: 15px; font-weight: 700;
+      padding: 16px; cursor: pointer; transition: background 0.15s, opacity 0.15s;
     }
-
     .btn-primary:hover:not(:disabled) { background: #e8e8e8; }
     .btn-primary:disabled { opacity: 0.25; cursor: not-allowed; }
 
     .progress-wrap { margin-top: 32px; display: none; }
-
-    .progress-step {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 10px 0;
-      font-size: 14px;
-      color: var(--muted);
-      transition: color 0.2s;
-    }
-
+    .progress-step { display: flex; align-items: center; gap: 14px; padding: 10px 0; font-size: 14px; color: var(--muted); transition: color 0.2s; }
     .progress-step.active { color: var(--text); }
     .progress-step.done   { color: var(--green); }
     .progress-step.fail   { color: var(--red); }
-
-    .pip {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--border2);
-      flex-shrink: 0;
-    }
-
+    .pip { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
     .progress-step.active .pip { background: var(--blue); }
     .progress-step.done   .pip { background: var(--green); }
     .progress-step.fail   .pip { background: var(--red); }
-
-    .spin {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      border: 2px solid var(--blue);
-      border-top-color: transparent;
-      animation: rot 0.7s linear infinite;
-      flex-shrink: 0;
-    }
-
+    .spin { width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--blue); border-top-color: transparent; animation: rot 0.7s linear infinite; flex-shrink: 0; }
     @keyframes rot { to { transform: rotate(360deg); } }
 
-    .alert {
-      padding: 14px 18px;
-      border-radius: 6px;
-      font-size: 14px;
-      line-height: 1.6;
-      margin-top: 20px;
-      display: none;
-    }
-
+    .alert { padding: 14px 18px; border-radius: 6px; font-size: 14px; line-height: 1.6; margin-top: 20px; display: none; }
     .alert.info  { background: var(--blue-bg);  border: 1px solid var(--blue-bd);  color: #8bbfe8; }
     .alert.ok    { background: var(--green-bg); border: 1px solid var(--green-bd); color: #6dcf9a; }
     .alert.error { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: #e88080; }
 
+    /* ── EXISTING VIDEO PANEL ── */
+    #existingPanel {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--yellow-bd);
+      border-radius: 10px;
+      padding: 28px;
+      margin-top: 24px;
+    }
+
+    .existing-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+
+    .existing-icon { font-size: 22px; }
+
+    .existing-title { font-size: 16px; font-weight: 700; color: var(--yellow); margin-bottom: 3px; }
+    .existing-sub { font-size: 13px; color: var(--text-mid); }
+
+    .existing-slug {
+      font-family: var(--mono); font-size: 13px; color: var(--blue);
+      background: var(--blue-bg); border: 1px solid var(--blue-bd);
+      border-radius: 5px; padding: 8px 14px; display: inline-block; margin-bottom: 20px;
+    }
+
+    .existing-platforms {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;
+    }
+
+    .ep-badge {
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      padding: 4px 12px; border-radius: 4px; letter-spacing: 0.06em;
+    }
+    .ep-yes     { background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green); }
+    .ep-error   { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: var(--red); }
+    .ep-skipped { background: var(--surface2); border: 1px solid var(--border);   color: var(--muted); }
+    .ep-pending { background: var(--yellow-bg);border: 1px solid var(--yellow-bd);color: var(--yellow); }
+
+    .existing-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .btn-load {
+      background: var(--green); color: #fff; border: none; border-radius: 6px;
+      font-family: var(--sans); font-size: 14px; font-weight: 700;
+      padding: 13px 24px; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-load:hover { background: #3a9060; }
+
+    .btn-fresh {
+      background: transparent; color: var(--text-mid); border: 1px solid var(--border2);
+      border-radius: 6px; font-family: var(--sans); font-size: 14px; font-weight: 600;
+      padding: 13px 24px; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-fresh:hover { border-color: #555; color: var(--text); }
+
+    .btn-newurl {
+      background: transparent; color: var(--muted); border: 1px solid var(--border);
+      border-radius: 6px; font-family: var(--sans); font-size: 14px;
+      padding: 13px 24px; cursor: pointer; transition: color 0.15s;
+    }
+    .btn-newurl:hover { color: var(--text-mid); }
+
     /* ── REVIEW VIEW ── */
     #reviewView { display: none; }
 
-    .review-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 24px;
-      margin-bottom: 36px;
-      flex-wrap: wrap;
-    }
-
-    .review-header h2 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.02em;
-      margin-bottom: 6px;
-    }
-
+    .review-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 36px; flex-wrap: wrap; }
+    .review-header h2 { font-size: 24px; font-weight: 700; color: #fff; letter-spacing: -0.02em; margin-bottom: 6px; }
     .review-header p { font-size: 14px; color: var(--text-mid); }
 
-    .btn-back {
-      background: transparent;
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      color: var(--text-mid);
-      font-family: var(--sans);
-      font-size: 14px;
-      padding: 10px 20px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: border-color 0.15s, color 0.15s;
-      flex-shrink: 0;
-    }
-
+    .btn-back { background: transparent; border: 1px solid var(--border2); border-radius: 6px; color: var(--text-mid); font-family: var(--sans); font-size: 14px; padding: 10px 20px; cursor: pointer; transition: border-color 0.15s, color 0.15s; flex-shrink: 0; }
     .btn-back:hover { border-color: #555; color: var(--text); }
 
-    .meta-strip {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-      gap: 12px;
-      margin-bottom: 32px;
-    }
+    .meta-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 32px; }
+    .meta-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
+    .meta-cell .meta-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+    .meta-cell .meta-val { font-size: 14px; color: var(--text); word-break: break-word; line-height: 1.4; }
+    .meta-cell .meta-val.mono { font-family: var(--mono); font-size: 13px; color: var(--blue); }
 
-    .meta-cell {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 14px 16px;
-    }
-
-    .meta-cell .meta-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 7px;
-    }
-
-    .meta-cell .meta-val {
-      font-size: 14px;
-      color: var(--text);
-      word-break: break-word;
-      line-height: 1.4;
-    }
-
-    .meta-cell .meta-val.mono {
-      font-family: var(--mono);
-      font-size: 13px;
-      color: var(--blue);
-    }
-
-    .section {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-
-    .section-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-      cursor: pointer;
-      background: var(--surface);
-      user-select: none;
-      transition: background 0.1s;
-    }
-
+    .section { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; cursor: pointer; background: var(--surface); user-select: none; transition: background 0.1s; }
     .section-head:hover { background: var(--surface2); }
-
-    .section-title {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-mid);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .platform-badge {
-      font-size: 10px;
-      padding: 3px 9px;
-      border-radius: 3px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-    }
-
+    .section-title { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mid); display: flex; align-items: center; gap: 10px; }
+    .platform-badge { font-size: 10px; padding: 3px 9px; border-radius: 3px; font-weight: 600; letter-spacing: 0.06em; }
     .badge-article { background: #152515; color: #5aaa6a; }
     .badge-x       { background: #151525; color: #6a6add; }
     .badge-li      { background: #152030; color: #6a99cc; }
     .badge-discord { background: #151525; color: #8a7add; }
     .badge-tumblr  { background: #251515; color: #bb7a55; }
     .badge-medium  { background: #152515; color: #6abb7a; }
-
     .chevron { color: var(--muted); font-size: 12px; transition: transform 0.2s; }
     .section.open .chevron { transform: rotate(180deg); }
-
     .section-body { display: none; padding: 0 20px 20px; background: var(--bg); }
     .section.open .section-body { display: block; }
 
-    .content-block {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 18px 20px;
-      font-size: 14px;
-      line-height: 1.8;
-      color: var(--text);
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: var(--mono);
-      max-height: 440px;
-      overflow-y: auto;
-      margin-top: 14px;
-    }
-
+    .content-block { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 18px 20px; font-size: 14px; line-height: 1.8; color: var(--text); white-space: pre-wrap; word-break: break-word; font-family: var(--mono); max-height: 440px; overflow-y: auto; margin-top: 14px; }
     .tweet-list { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
-
-    .tweet-item {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 14px 18px;
-      font-size: 14px;
-      line-height: 1.65;
-      color: var(--text);
-      display: flex;
-      gap: 14px;
-    }
-
-    .tweet-num {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--muted);
-      min-width: 20px;
-      padding-top: 2px;
-    }
+    .tweet-item { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 18px; font-size: 14px; line-height: 1.65; color: var(--text); display: flex; gap: 14px; }
+    .tweet-num { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); min-width: 20px; padding-top: 2px; }
 
     /* ── PLATFORM CHECKLIST ── */
-    .platform-checklist {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 24px;
-      margin-bottom: 16px;
-    }
+    .platform-checklist { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 16px; }
+    .platform-checklist-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-mid); margin-bottom: 18px; }
+    .platform-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 
-    .platform-checklist-title {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-mid);
-      margin-bottom: 18px;
-    }
-
-    .platform-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 12px;
-    }
-
-    .platform-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-      user-select: none;
-    }
-
+    .platform-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
     .platform-item:hover:not(.locked) { border-color: var(--border2); background: var(--surface2); }
-
-    .platform-item.locked { cursor: default; opacity: 0.6; }
-
-    .platform-item.status-yes     { border-color: var(--green-bd); background: var(--green-bg); }
-    .platform-item.status-skipped { border-color: var(--border);   opacity: 0.5; }
+    .platform-item.locked { cursor: default; }
+    .platform-item.status-yes     { border-color: var(--green-bd); background: var(--green-bg); opacity: 0.7; }
+    .platform-item.status-skipped { border-color: var(--border);   opacity: 0.45; }
     .platform-item.status-error   { border-color: var(--red-bd);   background: var(--red-bg); }
+    .platform-item.checked:not(.status-yes):not(.status-error) { border-color: var(--blue-bd); background: var(--blue-bg); }
 
-    .platform-checkbox {
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
-      border: 2px solid var(--border2);
-      background: var(--surface);
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
-      font-size: 11px;
-    }
-
-    .platform-item.checked   .platform-checkbox { background: var(--blue);  border-color: var(--blue);  color: #fff; }
-    .platform-item.status-yes .platform-checkbox { background: var(--green); border-color: var(--green); color: #fff; }
-    .platform-item.status-error .platform-checkbox { background: var(--red); border-color: var(--red);   color: #fff; }
+    .platform-checkbox { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border2); background: var(--surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; font-size: 11px; color: #fff; }
+    .platform-item.checked:not(.status-yes):not(.status-error) .platform-checkbox { background: var(--blue); border-color: var(--blue); }
+    .platform-item.status-yes   .platform-checkbox { background: var(--green); border-color: var(--green); }
+    .platform-item.status-error .platform-checkbox { background: var(--red);   border-color: var(--red); }
 
     .platform-info { flex: 1; }
-
-    .platform-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 2px;
-    }
-
-    .platform-status-text {
-      font-size: 12px;
-      color: var(--muted);
-      font-family: var(--mono);
-    }
-
+    .platform-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .platform-status-text { font-size: 12px; color: var(--muted); font-family: var(--mono); }
     .platform-item.status-yes   .platform-status-text { color: var(--green); }
     .platform-item.status-error .platform-status-text { color: var(--red); }
+    .platform-item.checked:not(.status-yes):not(.status-error) .platform-status-text { color: var(--blue); }
 
     /* ── PUBLISH FOOTER ── */
-    .publish-footer {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: rgba(12,12,12,0.98);
-      border-top: 1px solid var(--border);
-      padding: 22px 32px;
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      backdrop-filter: blur(8px);
-      z-index: 100;
-    }
-
+    .publish-footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(12,12,12,0.98); border-top: 1px solid var(--border); padding: 22px 32px; display: none; align-items: center; justify-content: space-between; gap: 20px; backdrop-filter: blur(8px); z-index: 100; }
     .publish-footer.visible { display: flex; }
-
     .footer-info { font-size: 14px; color: var(--text-mid); line-height: 1.5; }
     .footer-info strong { display: block; color: var(--text); font-size: 15px; margin-bottom: 3px; }
-
-    .btn-publish {
-      background: var(--green);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-family: var(--sans);
-      font-size: 15px;
-      font-weight: 700;
-      padding: 15px 36px;
-      cursor: pointer;
-      white-space: nowrap;
-      letter-spacing: 0.02em;
-      transition: background 0.15s, opacity 0.15s;
-      flex-shrink: 0;
-    }
-
+    .btn-publish { background: var(--green); color: #fff; border: none; border-radius: 6px; font-family: var(--sans); font-size: 15px; font-weight: 700; padding: 15px 36px; cursor: pointer; transition: background 0.15s, opacity 0.15s; flex-shrink: 0; }
     .btn-publish:hover:not(:disabled) { background: #3a9060; }
     .btn-publish:disabled { opacity: 0.3; cursor: not-allowed; }
 
     /* ── SUCCESS VIEW ── */
     #successView { display: none; padding: 60px 0; }
-
     .success-header { text-align: center; margin-bottom: 48px; }
     .success-header .tick { font-size: 52px; margin-bottom: 20px; }
-
-    .success-header h2 {
-      font-size: 26px;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.02em;
-      margin-bottom: 8px;
-    }
-
+    .success-header h2 { font-size: 26px; font-weight: 700; color: #fff; letter-spacing: -0.02em; margin-bottom: 8px; }
     .success-header p { font-size: 15px; color: var(--text-mid); }
-
-    .published-slug {
-      font-family: var(--mono);
-      font-size: 13px;
-      color: var(--blue);
-      background: var(--blue-bg);
-      border: 1px solid var(--blue-bd);
-      border-radius: 6px;
-      padding: 10px 20px;
-      display: inline-block;
-      margin-top: 16px;
-    }
-
-    .platform-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-      gap: 14px;
-      margin-bottom: 44px;
-    }
-
-    .platform-card {
-      border-radius: 8px;
-      padding: 20px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-    }
-
-    .platform-card .p-name {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 10px;
-    }
-
-    .platform-card .p-status {
-      font-size: 15px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 9px;
-    }
-
+    .published-slug { font-family: var(--mono); font-size: 13px; color: var(--blue); background: var(--blue-bg); border: 1px solid var(--blue-bd); border-radius: 6px; padding: 10px 20px; display: inline-block; margin-top: 16px; }
+    .platform-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 44px; }
+    .platform-card { border-radius: 8px; padding: 20px; border: 1px solid var(--border); background: var(--surface); }
+    .platform-card .p-name { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .platform-card .p-status { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 9px; }
     .p-status.ok      { color: var(--green); }
     .p-status.skipped { color: var(--muted); }
     .p-status.error   { color: var(--red); }
-
     .p-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
     .p-status.ok      .p-dot { background: var(--green); }
     .p-status.skipped .p-dot { background: var(--muted); }
     .p-status.error   .p-dot { background: var(--red); }
-
-    .p-detail {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 5px;
-      line-height: 1.4;
-      font-family: var(--mono);
-    }
-
+    .p-detail { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.4; font-family: var(--mono); }
     .p-status.error + .p-detail { color: #e08080; }
-
-    .btn-again {
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 15px;
-      font-weight: 600;
-      padding: 14px 30px;
-      cursor: pointer;
-      transition: border-color 0.15s;
-      display: block;
-      margin: 0 auto;
-    }
-
+    .btn-again { background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-family: var(--sans); font-size: 15px; font-weight: 600; padding: 14px 30px; cursor: pointer; transition: border-color 0.15s; display: block; margin: 0 auto; }
     .btn-again:hover { border-color: #555; }
-
-    .alert-inline {
-      padding: 14px 18px;
-      border-radius: 6px;
-      font-size: 14px;
-      line-height: 1.6;
-      margin-bottom: 16px;
-    }
-
-    .alert-inline.error { background: var(--red-bg); border: 1px solid var(--red-bd); color: #e88080; }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -601,6 +259,7 @@
       .meta-strip { grid-template-columns: 1fr 1fr; }
       .platform-list { grid-template-columns: 1fr 1fr; }
       .platform-grid { grid-template-columns: 1fr 1fr; }
+      .existing-actions { flex-direction: column; }
     }
   </style>
 </head>
@@ -613,16 +272,34 @@
 
 <main>
 
-  <!-- ── GENERATE VIEW ── -->
-  <div id="generateView">
+  <!-- ── INPUT VIEW ── -->
+  <div id="inputView">
     <h1>Generate &amp; Publish</h1>
     <p class="sub">Paste a YouTube URL. Claude generates the full content package for your review before anything goes live.</p>
 
     <label class="field-label" for="ytUrl">YouTube URL</label>
     <input type="url" id="ytUrl" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" spellcheck="false" />
-    <button class="btn-primary" id="genBtn" onclick="generate()">Generate Content</button>
+    <button class="btn-primary" id="genBtn" onclick="checkUrl()">Generate Content</button>
 
     <div class="alert" id="genAlert"></div>
+
+    <!-- Existing video panel -->
+    <div id="existingPanel">
+      <div class="existing-header">
+        <div class="existing-icon">⚠️</div>
+        <div>
+          <div class="existing-title">This video was published before</div>
+          <div class="existing-sub" id="existingTitle"></div>
+        </div>
+      </div>
+      <div class="existing-slug" id="existingSlug"></div>
+      <div class="existing-platforms" id="existingPlatforms"></div>
+      <div class="existing-actions">
+        <button class="btn-load" onclick="loadExisting()">Load Existing Content</button>
+        <button class="btn-fresh" onclick="generateFresh()">Generate Fresh</button>
+        <button class="btn-newurl" onclick="clearUrl()">Enter New URL</button>
+      </div>
+    </div>
 
     <div class="progress-wrap" id="progressWrap">
       <div class="progress-step" id="ps1"><div class="pip" id="pp1"></div>Fetching transcript from YouTube</div>
@@ -636,36 +313,18 @@
     <div class="review-header">
       <div>
         <h2>Review Content</h2>
-        <p>Check all sections below. Nothing is published until you click Publish.</p>
+        <p>Check all sections. Nothing is published until you click Publish.</p>
       </div>
-      <button class="btn-back" onclick="backToGenerate()">← Start Over</button>
+      <button class="btn-back" onclick="backToInput()">← Start Over</button>
     </div>
 
     <div class="meta-strip">
-      <div class="meta-cell">
-        <div class="meta-label">Slug</div>
-        <div class="meta-val mono" id="rSlug">—</div>
-      </div>
-      <div class="meta-cell">
-        <div class="meta-label">Title</div>
-        <div class="meta-val" id="rTitle">—</div>
-      </div>
-      <div class="meta-cell">
-        <div class="meta-label">Category</div>
-        <div class="meta-val" id="rCategory">—</div>
-      </div>
-      <div class="meta-cell">
-        <div class="meta-label">Read Time</div>
-        <div class="meta-val" id="rReadTime">—</div>
-      </div>
-      <div class="meta-cell" style="grid-column: span 2;">
-        <div class="meta-label">Excerpt</div>
-        <div class="meta-val" id="rExcerpt">—</div>
-      </div>
-      <div class="meta-cell" style="grid-column: span 2;">
-        <div class="meta-label">Tags</div>
-        <div class="meta-val" id="rTags">—</div>
-      </div>
+      <div class="meta-cell"><div class="meta-label">Slug</div><div class="meta-val mono" id="rSlug">—</div></div>
+      <div class="meta-cell"><div class="meta-label">Title</div><div class="meta-val" id="rTitle">—</div></div>
+      <div class="meta-cell"><div class="meta-label">Category</div><div class="meta-val" id="rCategory">—</div></div>
+      <div class="meta-cell"><div class="meta-label">Read Time</div><div class="meta-val" id="rReadTime">—</div></div>
+      <div class="meta-cell" style="grid-column:span 2"><div class="meta-label">Excerpt</div><div class="meta-val" id="rExcerpt">—</div></div>
+      <div class="meta-cell" style="grid-column:span 2"><div class="meta-label">Tags</div><div class="meta-val" id="rTags">—</div></div>
     </div>
 
     <div class="section open" id="secArticle">
@@ -673,9 +332,7 @@
         <div class="section-title"><span class="platform-badge badge-article">ARTICLE</span>Blog Post Body</div>
         <span class="chevron">▼</span>
       </div>
-      <div class="section-body">
-        <div class="content-block" id="rBody">—</div>
-      </div>
+      <div class="section-body"><div class="content-block" id="rBody">—</div></div>
     </div>
 
     <div class="section" id="secX">
@@ -683,9 +340,7 @@
         <div class="section-title"><span class="platform-badge badge-x">X</span>Tweet Thread (6 tweets)</div>
         <span class="chevron">▼</span>
       </div>
-      <div class="section-body">
-        <div class="tweet-list" id="rTweets"></div>
-      </div>
+      <div class="section-body"><div class="tweet-list" id="rTweets"></div></div>
     </div>
 
     <div class="section" id="secLI">
@@ -693,9 +348,7 @@
         <div class="section-title"><span class="platform-badge badge-li">LINKEDIN</span>LinkedIn Post</div>
         <span class="chevron">▼</span>
       </div>
-      <div class="section-body">
-        <div class="content-block" id="rLinkedin">—</div>
-      </div>
+      <div class="section-body"><div class="content-block" id="rLinkedin">—</div></div>
     </div>
 
     <div class="section" id="secDiscord">
@@ -703,9 +356,7 @@
         <div class="section-title"><span class="platform-badge badge-discord">DISCORD</span>Discord Knowledge Drop</div>
         <span class="chevron">▼</span>
       </div>
-      <div class="section-body">
-        <div class="content-block" id="rDiscord">—</div>
-      </div>
+      <div class="section-body"><div class="content-block" id="rDiscord">—</div></div>
     </div>
 
     <div class="section" id="secTumblr">
@@ -713,9 +364,7 @@
         <div class="section-title"><span class="platform-badge badge-tumblr">TUMBLR</span>Tumblr Essay</div>
         <span class="chevron">▼</span>
       </div>
-      <div class="section-body">
-        <div class="content-block" id="rTumblr">—</div>
-      </div>
+      <div class="section-body"><div class="content-block" id="rTumblr">—</div></div>
     </div>
 
     <div class="section" id="secMedium">
@@ -723,14 +372,12 @@
         <div class="section-title"><span class="platform-badge badge-medium">MEDIUM</span>Medium Intro</div>
         <span class="chevron">▼</span>
       </div>
-      <div class="section-body">
-        <div class="content-block" id="rMedium">—</div>
-      </div>
+      <div class="section-body"><div class="content-block" id="rMedium">—</div></div>
     </div>
 
-    <!-- ── PLATFORM CHECKLIST ── -->
-    <div class="platform-checklist" id="platformChecklist">
-      <div class="platform-checklist-title">Publishing destinations — uncheck to skip</div>
+    <!-- Platform checklist -->
+    <div class="platform-checklist">
+      <div class="platform-checklist-title">Publishing destinations — uncheck to skip by design</div>
       <div class="platform-list" id="platformList"></div>
     </div>
 
@@ -742,7 +389,7 @@
     <div class="success-header">
       <div class="tick">✓</div>
       <h2>Published</h2>
-      <p>Content pushed. See platform status below.</p>
+      <p>Content pushed. Platform status below.</p>
       <div class="published-slug" id="successSlug"></div>
     </div>
     <div class="platform-grid" id="platformGrid"></div>
@@ -751,7 +398,7 @@
 
 </main>
 
-<!-- ── PUBLISH FOOTER ── -->
+<!-- Publish footer -->
 <div class="publish-footer" id="publishFooter">
   <div class="footer-info">
     <strong>Ready to publish?</strong>
@@ -761,9 +408,6 @@
 </div>
 
 <script>
-  let currentSlug = null;
-  let platformState = {}; // { blog: 'pending'|'Yes'|'Skipped'|'Error:...' }
-
   const PLATFORMS = [
     { key: 'blog',     label: 'Blog' },
     { key: 'x',        label: 'X / Twitter' },
@@ -771,8 +415,12 @@
     { key: 'discord',  label: 'Discord' },
   ];
 
-  // ── GENERATE ──────────────────────────────────────────────────────────────
-  async function generate() {
+  let currentContent = null;   // full content object held in JS memory
+  let platformState  = {};     // current Excel status per platform
+  let existingData   = null;   // data returned from /excel-status
+
+  // ── CHECK URL — first step ────────────────────────────────────────────────
+  async function checkUrl() {
     const url = document.getElementById('ytUrl').value.trim();
     if (!url) { showAlert('genAlert', 'Paste a YouTube URL first.', 'error'); return; }
     if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
@@ -780,6 +428,105 @@
       return;
     }
 
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+    hideAlert('genAlert');
+    document.getElementById('existingPanel').style.display = 'none';
+    setHeaderStatus('Checking…');
+
+    try {
+      const res = await fetch('/excel-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ youtubeUrl: url }),
+      });
+
+      const data = await res.json();
+
+      if (data.found) {
+        // Video was published before — show options
+        existingData = data;
+        platformState = data.status;
+        showExistingPanel(data);
+        btn.disabled = false;
+        btn.textContent = 'Generate Content';
+        setHeaderStatus('Video found in records');
+      } else {
+        // Not found — go straight to generate
+        existingData = null;
+        platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', discord: 'pending' };
+        btn.textContent = 'Generate Content';
+        await runGenerate(url);
+      }
+    } catch (err) {
+      // Excel check failed — proceed with generate anyway
+      existingData = null;
+      platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', discord: 'pending' };
+      btn.textContent = 'Generate Content';
+      await runGenerate(url);
+    }
+  }
+
+  function showExistingPanel(data) {
+    document.getElementById('existingTitle').textContent = data.title || '';
+    document.getElementById('existingSlug').textContent  = data.slug  || '';
+
+    const pfDiv = document.getElementById('existingPlatforms');
+    pfDiv.innerHTML = '';
+    PLATFORMS.forEach(({ key, label }) => {
+      const val = data.status?.[key] || 'pending';
+      let cls;
+      if (val === 'Yes')           cls = 'ep-yes';
+      else if (val === 'Skipped')  cls = 'ep-skipped';
+      else if (val.startsWith('Error')) cls = 'ep-error';
+      else                         cls = 'ep-pending';
+      const span = document.createElement('span');
+      span.className = `ep-badge ${cls}`;
+      span.textContent = label + ': ' + (val === 'Yes' ? '✓' : val === 'Skipped' ? '—' : val.startsWith('Error') ? '✕ Error' : 'Pending');
+      pfDiv.appendChild(span);
+    });
+
+    document.getElementById('existingPanel').style.display = 'block';
+  }
+
+  // ── LOAD EXISTING CONTENT ─────────────────────────────────────────────────
+  async function loadExisting() {
+    if (!existingData) return;
+
+    if (existingData.content) {
+      // articles.json has the full content
+      currentContent = existingData.content;
+      platformState = existingData.status;
+      showReview();
+    } else {
+      // articles.json didn't return content — regenerate
+      showAlert('genAlert', 'Existing content not found in articles.json — regenerating.', 'info');
+      await generateFresh();
+    }
+  }
+
+  // ── GENERATE FRESH ────────────────────────────────────────────────────────
+  async function generateFresh() {
+    const url = document.getElementById('ytUrl').value.trim();
+    document.getElementById('existingPanel').style.display = 'none';
+    // Reset platform state — fresh generate means everything pending
+    platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', discord: 'pending' };
+    await runGenerate(url);
+  }
+
+  // ── CLEAR URL ─────────────────────────────────────────────────────────────
+  function clearUrl() {
+    document.getElementById('ytUrl').value = '';
+    document.getElementById('existingPanel').style.display = 'none';
+    document.getElementById('genBtn').disabled = false;
+    document.getElementById('genBtn').textContent = 'Generate Content';
+    hideAlert('genAlert');
+    setHeaderStatus('Ready');
+  }
+
+  // ── RUN GENERATE ──────────────────────────────────────────────────────────
+  async function runGenerate(url) {
     const btn = document.getElementById('genBtn');
     btn.disabled = true;
     hideAlert('genAlert');
@@ -804,24 +551,18 @@
         failAll();
         showAlert('genAlert', data.error || 'Something went wrong.', 'error');
         btn.disabled = false;
+        btn.textContent = 'Generate Content';
         setHeaderStatus('Error');
         return;
       }
 
       setPS(1, 'done'); setPS(2, 'done'); setPS(3, 'active');
-      populateReview(data.content);
-      currentSlug = data.content.slug;
-
-      // Fetch Excel status for this slug
-      await loadPlatformStatus(currentSlug);
+      currentContent = data.content;
 
       setTimeout(() => {
         setPS(3, 'done');
         setHeaderStatus('Review ready');
-        document.getElementById('generateView').style.display = 'none';
-        document.getElementById('reviewView').style.display = 'block';
-        document.getElementById('publishFooter').classList.add('visible');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        showReview();
       }, 600);
 
     } catch (err) {
@@ -829,31 +570,22 @@
       failAll();
       showAlert('genAlert', 'Network error: ' + err.message, 'error');
       btn.disabled = false;
+      btn.textContent = 'Generate Content';
       setHeaderStatus('Error');
     }
   }
 
-  // ── LOAD PLATFORM STATUS FROM EXCEL ───────────────────────────────────────
-  async function loadPlatformStatus(slug) {
-    // Default all to pending (checked)
-    platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', discord: 'pending' };
-    try {
-      const res = await fetch('/excel-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status) platformState = { ...platformState, ...data.status };
-      }
-    } catch (err) {
-      console.log('Could not fetch Excel status:', err.message);
-    }
+  // ── SHOW REVIEW ───────────────────────────────────────────────────────────
+  function showReview() {
+    populateReview(currentContent);
     renderChecklist();
+    document.getElementById('inputView').style.display = 'none';
+    document.getElementById('reviewView').style.display = 'block';
+    document.getElementById('publishFooter').classList.add('visible');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ── RENDER PLATFORM CHECKLIST ─────────────────────────────────────────────
+  // ── RENDER CHECKLIST ──────────────────────────────────────────────────────
   function renderChecklist() {
     const list = document.getElementById('platformList');
     list.innerHTML = '';
@@ -863,9 +595,7 @@
       const isYes     = val === 'Yes';
       const isSkipped = val === 'Skipped';
       const isError   = val.startsWith('Error');
-      const isPending = val === 'pending';
 
-      // Determine item state
       let itemClass = '';
       let checkContent = '';
       let statusText = '';
@@ -873,30 +603,17 @@
       let locked = false;
 
       if (isYes) {
-        itemClass = 'status-yes locked';
-        checkContent = '✓';
-        statusText = 'Already posted';
-        checked = true;
-        locked = true;
+        itemClass = 'status-yes locked'; checkContent = '✓';
+        statusText = 'Already posted'; checked = true; locked = true;
       } else if (isSkipped) {
-        itemClass = 'status-skipped locked';
-        checkContent = '—';
-        statusText = 'Skipped by design';
-        checked = false;
-        locked = true;
+        itemClass = 'status-skipped locked'; checkContent = '—';
+        statusText = 'Skipped by design'; checked = false; locked = true;
       } else if (isError) {
-        itemClass = 'status-error checked';
-        checkContent = '✕';
-        statusText = val.replace('Error: ', '');
-        checked = true;
-        locked = false;
+        itemClass = 'status-error checked'; checkContent = '✕';
+        statusText = val.replace('Error: ', ''); checked = true; locked = false;
       } else {
-        // pending — checked by default
-        itemClass = 'checked';
-        checkContent = '✓';
-        statusText = 'Will post';
-        checked = true;
-        locked = false;
+        itemClass = 'checked'; checkContent = '✓';
+        statusText = 'Will post'; checked = true; locked = false;
       }
 
       const item = document.createElement('div');
@@ -908,13 +625,9 @@
         <div class="platform-info">
           <div class="platform-name">${label}</div>
           <div class="platform-status-text">${statusText}</div>
-        </div>
-      `;
+        </div>`;
 
-      if (!locked) {
-        item.addEventListener('click', () => togglePlatform(item, key));
-      }
-
+      if (!locked) item.addEventListener('click', () => togglePlatform(item, key));
       list.appendChild(item);
     });
   }
@@ -922,32 +635,30 @@
   function togglePlatform(item, key) {
     const isChecked = item.dataset.checked === 'true';
     item.dataset.checked = isChecked ? 'false' : 'true';
-    item.classList.toggle('checked', !isChecked);
-
     const checkbox = item.querySelector('.platform-checkbox');
     const statusText = item.querySelector('.platform-status-text');
 
     if (!isChecked) {
+      item.classList.add('checked');
+      item.classList.remove('status-error');
       checkbox.textContent = '✓';
-      statusText.textContent = platformState[key]?.startsWith('Error') ? platformState[key].replace('Error: ', '') : 'Will post';
+      statusText.textContent = 'Will post';
     } else {
+      item.classList.remove('checked', 'status-error');
       checkbox.textContent = '';
       statusText.textContent = 'Skipped';
-      item.classList.remove('status-error');
     }
   }
 
   // ── PUBLISH ───────────────────────────────────────────────────────────────
   async function publish() {
-    if (!currentSlug) return;
+    if (!currentContent) return;
 
-    // Build platforms object from checklist
     const platforms = {};
     document.querySelectorAll('.platform-item').forEach(item => {
       platforms[item.dataset.key] = item.dataset.checked === 'true';
     });
 
-    // Check at least one platform selected
     if (!Object.values(platforms).some(v => v)) {
       showAlert('pubAlert', 'Select at least one platform to publish to.', 'error');
       return;
@@ -963,7 +674,7 @@
       const res = await fetch('/publish-confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug: currentSlug, platforms }),
+        body: JSON.stringify({ content: currentContent, platforms }),
       });
 
       const data = await res.json();
@@ -991,51 +702,39 @@
     }
   }
 
-  // ── RENDER SUCCESS STATUS ─────────────────────────────────────────────────
+  // ── SUCCESS STATUS ────────────────────────────────────────────────────────
   function renderPlatformStatus(status, platforms) {
     const grid = document.getElementById('platformGrid');
     grid.innerHTML = '';
-
     PLATFORMS.forEach(({ key, label }) => {
       const val = status?.[key] || 'unknown';
-      const userSelected = platforms?.[key];
+      const selected = platforms?.[key];
       let cls, icon, detail;
-
-      if (!userSelected) {
-        cls = 'skipped'; icon = 'Skipped'; detail = 'Not selected';
-      } else if (val === 'Yes') {
-        cls = 'ok'; icon = 'Posted'; detail = '';
-      } else if (val === 'skipped' || val === 'Skipped') {
-        cls = 'skipped'; icon = 'Skipped'; detail = 'Already posted';
-      } else if (val.startsWith('Error')) {
-        cls = 'error'; icon = 'Failed'; detail = val.replace('Error: ', '');
-      } else {
-        cls = 'skipped'; icon = val; detail = '';
-      }
+      if (!selected)                        { cls = 'skipped'; icon = 'Skipped'; detail = 'Not selected'; }
+      else if (val === 'Yes')               { cls = 'ok';      icon = 'Posted';  detail = ''; }
+      else if (val === 'Skipped' || val === 'skipped') { cls = 'skipped'; icon = 'Skipped'; detail = 'Already posted'; }
+      else if (val.startsWith('Error'))     { cls = 'error';   icon = 'Failed';  detail = val.replace('Error: ', ''); }
+      else                                  { cls = 'skipped'; icon = val;       detail = ''; }
 
       const card = document.createElement('div');
       card.className = 'platform-card';
       card.innerHTML = `
         <div class="p-name">${label}</div>
-        <div class="p-status ${cls}">
-          <div class="p-dot"></div>
-          ${icon}
-        </div>
-        ${detail ? `<div class="p-detail">${detail}</div>` : ''}
-      `;
+        <div class="p-status ${cls}"><div class="p-dot"></div>${icon}</div>
+        ${detail ? `<div class="p-detail">${detail}</div>` : ''}`;
       grid.appendChild(card);
     });
   }
 
   // ── POPULATE REVIEW ───────────────────────────────────────────────────────
   function populateReview(c) {
-    document.getElementById('rSlug').textContent     = c.slug;
-    document.getElementById('rTitle').textContent    = c.title;
-    document.getElementById('rCategory').textContent = c.category;
-    document.getElementById('rReadTime').textContent = c.readTime;
-    document.getElementById('rExcerpt').textContent  = c.excerpt;
-    document.getElementById('rTags').textContent     = c.tags;
-    document.getElementById('rBody').textContent     = c.body;
+    document.getElementById('rSlug').textContent     = c.slug      || '';
+    document.getElementById('rTitle').textContent    = c.title     || '';
+    document.getElementById('rCategory').textContent = c.category  || '';
+    document.getElementById('rReadTime').textContent = c.readTime  || '';
+    document.getElementById('rExcerpt').textContent  = c.excerpt   || '';
+    document.getElementById('rTags').textContent     = c.tags      || '';
+    document.getElementById('rBody').textContent     = c.body      || '';
 
     const tweetList = document.getElementById('rTweets');
     tweetList.innerHTML = '';
@@ -1047,35 +746,40 @@
       tweetList.appendChild(div);
     });
 
-    document.getElementById('rLinkedin').textContent = c.linkedin;
-    document.getElementById('rDiscord').textContent  = c.discord;
-    document.getElementById('rTumblr').textContent   = c.tumblr;
-    document.getElementById('rMedium').textContent   = c.mediumIntro;
+    document.getElementById('rLinkedin').textContent = c.linkedin   || '';
+    document.getElementById('rDiscord').textContent  = c.discord    || '';
+    document.getElementById('rTumblr').textContent   = c.tumblr     || '';
+    document.getElementById('rMedium').textContent   = c.mediumIntro || '';
   }
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
   function toggleSection(id) { document.getElementById(id).classList.toggle('open'); }
 
-  function backToGenerate() {
-    currentSlug = null;
+  function backToInput() {
+    currentContent = null;
     document.getElementById('reviewView').style.display = 'none';
     document.getElementById('publishFooter').classList.remove('visible');
-    document.getElementById('generateView').style.display = 'block';
+    document.getElementById('inputView').style.display = 'block';
     document.getElementById('genBtn').disabled = false;
+    document.getElementById('genBtn').textContent = 'Generate Content';
     document.getElementById('progressWrap').style.display = 'none';
+    document.getElementById('existingPanel').style.display = 'none';
     hideAlert('genAlert');
     setHeaderStatus('Ready');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function reset() {
-    currentSlug = null;
-    platformState = {};
+    currentContent = null;
+    platformState  = {};
+    existingData   = null;
     document.getElementById('successView').style.display = 'none';
-    document.getElementById('generateView').style.display = 'block';
+    document.getElementById('inputView').style.display = 'block';
     document.getElementById('ytUrl').value = '';
     document.getElementById('genBtn').disabled = false;
+    document.getElementById('genBtn').textContent = 'Generate Content';
     document.getElementById('progressWrap').style.display = 'none';
+    document.getElementById('existingPanel').style.display = 'none';
     hideAlert('genAlert');
     setHeaderStatus('Ready');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1097,20 +801,16 @@
 
   function showAlert(id, msg, type) {
     const el = document.getElementById(id);
-    el.textContent = msg;
-    el.className = 'alert ' + type;
-    el.style.display = 'block';
+    el.textContent = msg; el.className = 'alert ' + type; el.style.display = 'block';
   }
 
   function hideAlert(id) { document.getElementById(id).style.display = 'none'; }
   function setHeaderStatus(msg) { document.getElementById('headerStatus').textContent = msg; }
-  function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
+  function escHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('ytUrl').addEventListener('keydown', e => {
-      if (e.key === 'Enter') generate();
+      if (e.key === 'Enter') checkUrl();
     });
   });
 </script>
