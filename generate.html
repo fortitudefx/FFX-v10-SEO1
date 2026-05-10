@@ -431,7 +431,12 @@
     const btn = document.getElementById('genBtn');
     btn.disabled = true;
     btn.textContent = 'Checking…';
+    // Always reset publish button at the start of a new generate cycle
+    const pubBtn = document.getElementById('pubBtn');
+    pubBtn.disabled = false;
+    pubBtn.textContent = 'Publish';
     hideAlert('genAlert');
+    hideAlert('pubAlert');
     document.getElementById('existingPanel').style.display = 'none';
     setHeaderStatus('Checking…');
 
@@ -510,6 +515,11 @@
   async function generateFresh() {
     const url = document.getElementById('ytUrl').value.trim();
     document.getElementById('existingPanel').style.display = 'none';
+    // Reset publish button state from any previous session
+    const pubBtn = document.getElementById('pubBtn');
+    pubBtn.disabled = false;
+    pubBtn.textContent = 'Publish';
+    hideAlert('pubAlert');
     // Reset platform state — fresh generate means everything pending
     platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', discord: 'pending' };
     // Pass existing slug so generate.js locks it — keeps article URL consistent
