@@ -80,7 +80,7 @@ export async function onRequestPost(context) {
   };
 
   const getInit = (platform, colIndex) => {
-    if (!userSelected[platform]) return 'Skipped';
+    if (!userSelected[platform]) return 'not_selected';
     const val = existingRow?.[colIndex] || '';
     if (val === 'Yes' || val === 'Skipped') return val;
     return 'pending';
@@ -165,13 +165,13 @@ export async function onRequestPost(context) {
         slug,
         content.title || '',
         today,
-        userSelected.blog     ? status.blog     : 'Skipped',
-        userSelected.x        ? status.x        : 'Skipped',
-        userSelected.linkedin ? status.linkedin  : 'Skipped',
+        userSelected.blog     ? status.blog     : '',
+        userSelected.x        ? status.x        : '',
+        userSelected.linkedin ? status.linkedin  : '',
         'Manual',
         'No',
         ytUrl,
-        userSelected.discord  ? status.discord  : 'Skipped',
+        userSelected.discord  ? status.discord  : '',
       ]);
     }
     console.log('[FFX] Excel updated');
@@ -233,10 +233,8 @@ async function updateExcelRow(token, env, rowIndex, newStatus, existingRow, user
   if (userSelected.x        && newStatus.x        !== 'pending') row[COL.x]        = newStatus.x;
   if (userSelected.linkedin && newStatus.linkedin  !== 'pending') row[COL.linkedin]  = newStatus.linkedin;
   if (userSelected.discord  && newStatus.discord   !== 'pending') row[COL.discord]   = newStatus.discord;
-  if (!userSelected.blog     && !existingRow[COL.blog])     row[COL.blog]     = 'Skipped';
-  if (!userSelected.x        && !existingRow[COL.x])        row[COL.x]        = 'Skipped';
-  if (!userSelected.linkedin && !existingRow[COL.linkedin])  row[COL.linkedin]  = 'Skipped';
-  if (!userSelected.discord  && !existingRow[COL.discord])   row[COL.discord]   = 'Skipped';
+  // Never overwrite empty cells for platforms not selected this session
+  // Leave them empty so future runs can post to them
 
   const res = await fetch(workbookUrl(env, `/worksheets('${SHEET_NAME}')/rows/itemAt(index=${rowIndex})`), {
     method: 'PATCH',
