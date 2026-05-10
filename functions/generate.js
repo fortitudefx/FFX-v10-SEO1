@@ -1,153 +1,66 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FFX Generate Worker
-// Routes:
-//   POST /generate         → check KV cache → if hit return instantly
-//                           → else fetch transcript via Supadata → call Claude
-//                           → save to KV → return preview
-//   POST /publish-confirm  → read from KV → fire Make webhook → delete from KV
+// FFX Generate Worker — No KV
+// POST /generate → Supadata transcript → Claude → return content to browser
+// Browser holds content in JS memory during review session
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestPost(context) {
   const { request, env } = context;
-  const url = new URL(request.url);
-
-  console.log('[FFX] Request received:', request.method, url.pathname);
 
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
   };
 
-  // ── Route: /publish-confirm ────────────────────────────────────────────────
-  if (url.pathname === '/publish-confirm') {
-    console.log('[FFX] Route: /publish-confirm');
-
-    let body;
-    try { body = await request.json(); } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
-    }
-
-    const { slug } = body;
-    if (!slug) {
-      return new Response(JSON.stringify({ error: 'slug is required' }), { status: 400, headers });
-    }
-
-    console.log('[FFX] publish-confirm slug:', slug);
-
-    const stored = await env.FFX_CONTENT.get(`slug:${slug}`);
-    if (!stored) {
-      return new Response(JSON.stringify({ error: 'Content not found or expired. Please generate again.' }), { status: 404, headers });
-    }
-
-    let content;
-    try { content = JSON.parse(stored); } catch {
-      return new Response(JSON.stringify({ error: 'Stored content is corrupted. Please generate again.' }), { status: 500, headers });
-    }
-
-    console.log('[FFX] Firing Make webhook for slug:', slug);
-
-    let makeRes;
-    try {
-      makeRes = await fetch('https://hook.eu1.make.com/jnjy3n7w2cy12mclu8uh9nr11ultt6br', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(content),
-      });
-    } catch (err) {
-      console.log('[FFX] Make webhook network error:', err.message);
-      return new Response(JSON.stringify({ error: `Make webhook network error: ${err.message}` }), { status: 502, headers });
-    }
-
-    if (!makeRes.ok) {
-      const makeErr = await makeRes.text();
-      console.log('[FFX] Make webhook rejected:', makeErr);
-      return new Response(JSON.stringify({ error: `Make webhook rejected the request: ${makeErr}` }), { status: 502, headers });
-    }
-
-    // Clean up both KV keys
-    const videoId = extractVideoId(content.youtubeUrl || '');
-    if (videoId) await env.FFX_CONTENT.delete(`video:${videoId}`);
-    await env.FFX_CONTENT.delete(`slug:${slug}`);
-    console.log('[FFX] KV deleted, publish complete');
-
-    return new Response(JSON.stringify({ success: true, slug: content.slug }), { status: 200, headers });
-  }
-
-  // ── Route: /generate ──────────────────────────────────────────────────────
-  console.log('[FFX] Route: /generate');
+  console.log('[FFX] /generate request received');
 
   let body;
   try { body = await request.json(); } catch {
-    console.log('[FFX] Failed to parse JSON body');
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
   const { youtubeUrl } = body;
-  console.log('[FFX] youtubeUrl received:', youtubeUrl);
-
   if (!youtubeUrl) {
     return new Response(JSON.stringify({ error: 'youtubeUrl is required' }), { status: 400, headers });
   }
 
   const videoId = extractVideoId(youtubeUrl);
-  console.log('[FFX] videoId extracted:', videoId);
-
   if (!videoId) {
     return new Response(JSON.stringify({ error: 'Could not parse YouTube video ID from URL' }), { status: 400, headers });
   }
 
-  // 1. Check KV cache first — return instantly if already generated
-  console.log('[FFX] Checking KV cache for videoId:', videoId);
-  const cached = await env.FFX_CONTENT.get(`video:${videoId}`);
-  if (cached) {
-    console.log('[FFX] KV cache hit — returning cached content');
-    let content;
-    try { content = JSON.parse(cached); } catch {
-      console.log('[FFX] Cached content corrupted — regenerating');
-    }
-    if (content) {
-      return new Response(JSON.stringify({ success: true, content, cached: true }), { status: 200, headers });
-    }
-  }
+  console.log('[FFX] videoId:', videoId);
 
-  console.log('[FFX] KV cache miss — generating fresh content');
-
-  // 2. Fetch transcript via Supadata
+  // 1. Fetch transcript via Supadata
   console.log('[FFX] Fetching transcript via Supadata');
   let transcript;
   try {
     transcript = await fetchTranscriptSupadata(youtubeUrl, env.SUPADATA_API_KEY);
-    console.log('[FFX] Transcript fetched, length:', transcript ? transcript.length : 0);
+    console.log('[FFX] Transcript fetched, length:', transcript?.length);
   } catch (err) {
-    console.log('[FFX] Supadata transcript fetch failed:', err.message);
+    console.log('[FFX] Supadata failed:', err.message);
     return new Response(JSON.stringify({ error: `Transcript fetch failed: ${err.message}` }), { status: 502, headers });
   }
 
   if (!transcript || transcript.trim().length < 100) {
-    console.log('[FFX] Transcript too short or empty');
-    return new Response(JSON.stringify({ error: 'Transcript too short or empty. Ensure captions are enabled on the video and try again.' }), { status: 422, headers });
+    return new Response(JSON.stringify({ error: 'Transcript too short or empty. Ensure captions are enabled and try again.' }), { status: 422, headers });
   }
 
-  // 3. Call Claude API
-  console.log('[FFX] Starting Claude API call');
+  // 2. Call Claude
+  console.log('[FFX] Calling Claude');
   let content;
   try {
     content = await callClaude(transcript, youtubeUrl, env.ANTHROPIC_API_KEY);
-    console.log('[FFX] Claude response received, slug:', content.slug);
+    console.log('[FFX] Claude done, slug:', content.slug);
   } catch (err) {
-    console.log('[FFX] Claude API failed:', err.message);
+    console.log('[FFX] Claude failed:', err.message);
     return new Response(JSON.stringify({ error: `Claude API failed: ${err.message}` }), { status: 502, headers });
   }
 
-  // Store the youtubeUrl in content so publish-confirm can clean up both KV keys
+  // Store youtubeUrl on content for Excel logging
   content.youtubeUrl = youtubeUrl;
 
-  // 4. Save to KV with both keys — expires after 24 hours
-  console.log('[FFX] Saving to KV, slug:', content.slug, 'videoId:', videoId);
-  await env.FFX_CONTENT.put(`video:${videoId}`, JSON.stringify(content), { expirationTtl: 86400 });
-  await env.FFX_CONTENT.put(`slug:${content.slug}`, JSON.stringify(content), { expirationTtl: 86400 });
-  console.log('[FFX] KV save complete');
-
+  // Return content directly to browser — no KV
   return new Response(JSON.stringify({ success: true, content }), { status: 200, headers });
 }
 
@@ -182,43 +95,28 @@ function extractVideoId(url) {
 }
 
 async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
-  if (!apiKey) throw new Error('SUPADATA_API_KEY is not set in Cloudflare environment variables.');
+  if (!apiKey) throw new Error('SUPADATA_API_KEY not set');
 
-  console.log('[FFX] Calling Supadata API for URL:', youtubeUrl);
+  const url = `https://api.supadata.ai/v1/youtube/transcript?url=${encodeURIComponent(youtubeUrl)}&text=true`;
+  const res = await fetch(url, { headers: { 'x-api-key': apiKey } });
 
-  const supadataUrl = `https://api.supadata.ai/v1/youtube/transcript?url=${encodeURIComponent(youtubeUrl)}&text=true`;
-
-  const res = await fetch(supadataUrl, {
-    headers: {
-      'x-api-key': apiKey,
-    },
-  });
-
-  console.log('[FFX] Supadata response status:', res.status);
+  console.log('[FFX] Supadata status:', res.status);
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Supadata API returned ${res.status}: ${err}`);
+    throw new Error(`Supadata ${res.status}: ${err}`);
   }
 
   const data = await res.json();
-  console.log('[FFX] Supadata response keys:', Object.keys(data).join(', '));
 
-  if (data.content && typeof data.content === 'string') {
-    return data.content.trim();
-  }
+  if (data.content && typeof data.content === 'string') return data.content.trim();
+  if (Array.isArray(data.content)) return data.content.map(s => s.text || '').join(' ').trim();
 
-  if (Array.isArray(data.content)) {
-    return data.content.map(s => s.text || '').join(' ').trim();
-  }
-
-  throw new Error('Supadata returned unexpected response format: ' + JSON.stringify(data).slice(0, 200));
+  throw new Error('Unexpected Supadata response: ' + JSON.stringify(data).slice(0, 200));
 }
 
 async function callClaude(transcript, youtubeUrl, apiKey) {
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY environment variable is not set in Cloudflare.');
-
-  console.log('[FFX] ANTHROPIC_API_KEY present:', !!apiKey);
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
 
   const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system (5 entry models, 2-candle philosophy). Voice: direct, authoritative, no fluff. Products: free Discord, VIP Discord, Bootcamp. Zero ad spend — content does the selling.
 
@@ -252,22 +150,22 @@ x_thread
 A JSON array of exactly 6 strings. Tweet 1: hook only, no link, must stop the scroll — provocative statement or counterintuitive truth about trading. Tweets 2-4: one punchy insight each, max 2 sentences, ends with fortitudefx.com. Tweet 5: key takeaway, the one thing they must remember, ends with fortitudefx.com. Tweet 6: "New article: [ARTICLE_URL] | Watch: ${youtubeUrl} | fortitudefx.com"
 
 discord
-500-600 word community knowledge drop. Use emojis naturally throughout — not every sentence, but enough to make it feel warm and alive (aim for 4-6 emojis total). Structure:
+STRICT 400-500 word community knowledge drop. Count words carefully — do not exceed 500 words under any circumstances. Use 4-6 emojis naturally throughout. Structure:
 
-Opening hook (2-3 sentences): Start with a bold, pattern-interrupt statement — something that challenges a common belief traders have. Make them stop scrolling. No generic intros.
+Opening hook (2-3 sentences max): Bold pattern-interrupt statement that challenges a common trader belief. Make them stop scrolling.
 
-Knowledge drop (250-300 words): Teach something genuinely useful and specific from the video. Real mechanics, real logic. Not vague. Write as if explaining to a sharp friend in the community. Use short paragraphs. Reference specific concepts from the transcript.
+Knowledge drop (200-250 words): Teach something specific and real from the video. Short paragraphs. No bullet walls.
 
-Curiosity bridge (2-3 sentences): Tease what the full article or video covers that you haven't revealed yet. Make them want more without being clickbait.
+Curiosity bridge (2-3 sentences): Tease what the full article covers without giving it away.
 
-Links section: Write naturally, not as a list dump. Example format:
-"Full breakdown here 👉 [ARTICLE_URL]
-Watch the video: ${youtubeUrl}
-More at fortitudefx.com"
+Links (keep concise):
+Full breakdown 👉 [ARTICLE_URL]
+Watch: ${youtubeUrl}
+fortitudefx.com
 
-VIP bridge (2-3 sentences): Soft, natural close. Something like — if you want to see this applied live on real charts, that is what VIP is for. No hard sell. fortitudefx.com/vipdiscord
+VIP close (2-3 sentences max): Soft natural close. No hard sell. fortitudefx.com/vipdiscord
 
-Rules: No markdown headers. No bullet walls. Short paragraphs. Flowing and conversational. Maximum 1 exclamation mark. Links must appear exactly as written — do not alter the URL placeholders.
+Rules: No markdown headers. No bullets. Short paragraphs. Max 1 exclamation mark. TOTAL WORD COUNT MUST BE 400-500 WORDS.
 
 tumblr
 200-350 word short essay, conversational tone.
@@ -276,7 +174,7 @@ mediumIntro
 150-200 word rewritten article opening. Final line: "Originally published at [ARTICLE_URL]"
 
 The YouTube URL for this video is: ${youtubeUrl}
-Write [ARTICLE_URL] exactly as shown — it will be replaced automatically with the real URL after generation.`;
+Write [ARTICLE_URL] exactly as shown — it will be replaced automatically after generation.`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -293,16 +191,15 @@ Write [ARTICLE_URL] exactly as shown — it will be replaced automatically with 
     }),
   });
 
-  console.log('[FFX] Claude API response status:', res.status);
+  console.log('[FFX] Claude status:', res.status);
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Anthropic API returned ${res.status}: ${err}`);
+    throw new Error(`Anthropic ${res.status}: ${err}`);
   }
 
   const data = await res.json();
   const rawText = data.content[0].text.trim();
-  console.log('[FFX] Claude raw response length:', rawText.length);
 
   const cleaned = rawText
     .replace(/^```json\s*/i, '')
@@ -317,30 +214,24 @@ Write [ARTICLE_URL] exactly as shown — it will be replaced automatically with 
 
   const required = ['slug', 'title', 'excerpt', 'category', 'tags', 'readTime', 'body', 'linkedin', 'x_thread', 'discord', 'tumblr', 'mediumIntro'];
   for (const key of required) {
-    if (!parsed[key]) throw new Error(`Claude response missing required key: "${key}"`);
+    if (!parsed[key]) throw new Error(`Missing key: "${key}"`);
   }
 
-  // Map x_thread array to tweet1-tweet6 so Make + /tweet Worker can read them
+  // Map x_thread to tweet1-tweet6
   if (Array.isArray(parsed.x_thread)) {
-    parsed.x_thread.forEach((t, i) => {
-      parsed[`tweet${i + 1}`] = t;
-    });
+    parsed.x_thread.forEach((t, i) => { parsed[`tweet${i + 1}`] = t; });
   }
 
-  // Replace [ARTICLE_URL] placeholder with actual URL now that we have the slug
+  // Replace [ARTICLE_URL] with actual URL
   const articleUrl = `https://fortitudefx.com/article?slug=${parsed.slug}`;
-  const fieldsToReplace = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
-  fieldsToReplace.forEach(field => {
-    if (parsed[field] && typeof parsed[field] === 'string') {
-      parsed[field] = parsed[field].replace(/\[ARTICLE_URL\]/g, articleUrl);
-    }
+  const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
+  fields.forEach(f => {
+    if (parsed[f]) parsed[f] = parsed[f].replace(/\[ARTICLE_URL\]/g, articleUrl);
   });
   if (Array.isArray(parsed.x_thread)) {
     parsed.x_thread = parsed.x_thread.map(t => t.replace(/\[ARTICLE_URL\]/g, articleUrl));
   }
 
-  console.log('[FFX] Content parsed successfully, slug:', parsed.slug);
-  console.log('[FFX] [ARTICLE_URL] replaced with:', articleUrl);
-
+  console.log('[FFX] Content ready, slug:', parsed.slug);
   return parsed;
 }
