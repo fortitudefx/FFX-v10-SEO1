@@ -115,6 +115,23 @@ async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
   throw new Error('Unexpected Supadata response: ' + JSON.stringify(data).slice(0, 200));
 }
 
+// Hard truncate to maxWords — always cuts at last complete sentence
+function truncateToWordLimit(text, maxWords) {
+  if (!text) return text;
+  const words = text.trim().split(/\s+/);
+  if (words.length <= maxWords) return text.trim();
+
+  // Take first maxWords words
+  const truncated = words.slice(0, maxWords).join(' ');
+
+  // Find last sentence boundary (., !, ?)
+  const match = truncated.match(/^([\s\S]*[.!?])\s*/);
+  if (match && match[1]) return match[1].trim();
+
+  // No sentence boundary found — return truncated as-is
+  return truncated.trim();
+}
+
 async function callClaude(transcript, youtubeUrl, apiKey) {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
 
@@ -150,22 +167,22 @@ x_thread
 A JSON array of exactly 6 strings. Tweet 1: hook only, no link, must stop the scroll — provocative statement or counterintuitive truth about trading. Tweets 2-4: one punchy insight each, max 2 sentences, ends with fortitudefx.com. Tweet 5: key takeaway, the one thing they must remember, ends with fortitudefx.com. Tweet 6: "New article: [ARTICLE_URL] | Watch: ${youtubeUrl} | fortitudefx.com"
 
 discord
-STRICT 400-500 word community knowledge drop. Count words carefully — do not exceed 500 words under any circumstances. Use 4-6 emojis naturally throughout. Structure:
+MAXIMUM 350 WORDS. This is a hard limit — do not exceed it under any circumstances. Community knowledge drop with emojis. Structure:
 
-Opening hook (2-3 sentences max): Bold pattern-interrupt statement that challenges a common trader belief. Make them stop scrolling.
+Opening hook (2 sentences): Bold pattern-interrupt that challenges a common trader belief.
 
-Knowledge drop (200-250 words): Teach something specific and real from the video. Short paragraphs. No bullet walls.
+Knowledge drop (150-180 words): Teach something specific from the video. Short paragraphs. No bullets.
 
-Curiosity bridge (2-3 sentences): Tease what the full article covers without giving it away.
+Curiosity bridge (1-2 sentences): Tease the full article without giving everything away.
 
-Links (keep concise):
+Links:
 Full breakdown 👉 [ARTICLE_URL]
 Watch: ${youtubeUrl}
 fortitudefx.com
 
-VIP close (2-3 sentences max): Soft natural close. No hard sell. fortitudefx.com/vipdiscord
+VIP close (1-2 sentences): Soft close. fortitudefx.com/vipdiscord
 
-Rules: No markdown headers. No bullets. Short paragraphs. Max 1 exclamation mark. TOTAL WORD COUNT MUST BE 400-500 WORDS.
+Rules: No markdown headers. No bullets. Max 1 exclamation mark. Use 3-5 emojis naturally. HARD LIMIT: 350 WORDS MAXIMUM.
 
 tumblr
 200-350 word short essay, conversational tone.
@@ -221,6 +238,9 @@ Write [ARTICLE_URL] exactly as shown — it will be replaced automatically after
   if (Array.isArray(parsed.x_thread)) {
     parsed.x_thread.forEach((t, i) => { parsed[`tweet${i + 1}`] = t; });
   }
+
+  // Hard enforce 400 word max on discord — cuts at last complete sentence
+  parsed.discord = truncateToWordLimit(parsed.discord, 400);
 
   // Replace [ARTICLE_URL] with actual URL
   const articleUrl = `https://fortitudefx.com/article?slug=${parsed.slug}`;
