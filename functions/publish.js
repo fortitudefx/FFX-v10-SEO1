@@ -1,7 +1,7 @@
 // FFX /publish Worker
-// 1. Saves article + all platform content to articles.json
-// 2. Rebuilds sitemap.xml
-// 3. Pings Google Indexing API
+// Always writes article + all platform content to articles.json
+// skipSitemapAndIndex: true = skip sitemap rebuild + Google ping (used when Blog not selected)
+// skipSitemapAndIndex: false/missing = full publish including sitemap + Google index
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -36,7 +36,6 @@ export async function onRequestPost(context) {
       readTime,
       body: articleBody,
       date,
-      // Platform content fields
       linkedin,
       discord,
       tumblr,
@@ -45,6 +44,7 @@ export async function onRequestPost(context) {
       x_thread,
       youtubeUrl,
       yt_url,
+      skipSitemapAndIndex,
     } = body;
 
     if (!slug || !title || !articleBody) {
@@ -53,7 +53,6 @@ export async function onRequestPost(context) {
       });
     }
 
-    // Clean date — strip any extra quotes that may come through
     const rawDate = date || new Date().toISOString().split('T')[0];
     const articleDate = rawDate.replace(/['"]/g, '').trim();
 
@@ -82,7 +81,6 @@ export async function onRequestPost(context) {
       readTime: readTime || '5 min read',
       date: articleDate,
       yt_url: youtubeUrl || yt_url || '',
-      // Platform content — stored so Workers can fetch by slug
       linkedin: linkedin || '',
       discord: discord || '',
       tumblr: tumblr || '',
@@ -93,11 +91,10 @@ export async function onRequestPost(context) {
       tweet4: tweet4 || (Array.isArray(x_thread) ? x_thread[3] : '') || '',
       tweet5: tweet5 || (Array.isArray(x_thread) ? x_thread[4] : '') || '',
       tweet6: tweet6 || (Array.isArray(x_thread) ? x_thread[5] : '') || '',
-      // Article body last
       body: articleBody,
     };
 
-    // Dedup by slug — update if exists, prepend if new
+    // Dedup by slug
     const exists = articles.findIndex(a => a.slug === slug);
     if (exists >= 0) {
       articles[exists] = newArticle;
@@ -105,7 +102,7 @@ export async function onRequestPost(context) {
       articles.unshift(newArticle);
     }
 
-    // ── 2. WRITE articles.json ─────────────────────────────────────────────
+    // ── 2. WRITE articles.json — always ───────────────────────────────────
     const articlesPayload = {
       message: `publish: ${slug}`,
       content: btoa(unescape(encodeURIComponent(JSON.stringify(articles, null, 2)))),
@@ -130,26 +127,29 @@ export async function onRequestPost(context) {
       });
     }
 
-    // ── 3. REBUILD sitemap.xml ─────────────────────────────────────────────
-    const staticPages = [
-      { loc: 'https://fortitudefx.com/',           lastmod: '2026-04-26', changefreq: 'weekly',  priority: '1.0' },
-      { loc: 'https://fortitudefx.com/bootcamp',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
-      { loc: 'https://fortitudefx.com/vipdiscord', lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
-      { loc: 'https://fortitudefx.com/waitlist',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.7' },
-      { loc: 'https://fortitudefx.com/blog',       lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.8' },
-      { loc: 'https://fortitudefx.com/privacy',    lastmod: '2026-04-26', changefreq: 'yearly',  priority: '0.3' },
-    ];
+    // ── 3. SITEMAP + GOOGLE INDEX — only when Blog is selected ─────────────
+    if (!skipSitemapAndIndex) {
 
-    const articleEntries = articles.map(a => ({
-      loc: `https://fortitudefx.com/article?slug=${a.slug}`,
-      lastmod: a.date || articleDate,
-      changefreq: 'monthly',
-      priority: '0.7'
-    }));
+      // Rebuild sitemap.xml
+      const staticPages = [
+        { loc: 'https://fortitudefx.com/',           lastmod: '2026-04-26', changefreq: 'weekly',  priority: '1.0' },
+        { loc: 'https://fortitudefx.com/bootcamp',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
+        { loc: 'https://fortitudefx.com/vipdiscord', lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
+        { loc: 'https://fortitudefx.com/waitlist',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.7' },
+        { loc: 'https://fortitudefx.com/blog',       lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.8' },
+        { loc: 'https://fortitudefx.com/privacy',    lastmod: '2026-04-26', changefreq: 'yearly',  priority: '0.3' },
+      ];
 
-    const allUrls = [...staticPages, ...articleEntries];
+      const articleEntries = articles.map(a => ({
+        loc: `https://fortitudefx.com/article?slug=${a.slug}`,
+        lastmod: a.date || articleDate,
+        changefreq: 'monthly',
+        priority: '0.7'
+      }));
 
-    const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+      const allUrls = [...staticPages, ...articleEntries];
+
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${allUrls.map(u => `  <url>
     <loc>${u.loc}</loc>
@@ -159,51 +159,46 @@ ${allUrls.map(u => `  <url>
   </url>`).join('\n')}
 </urlset>`;
 
-    const sitemapUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/sitemap.xml?ref=${GITHUB_BRANCH}`;
-    const sitemapRes = await fetch(sitemapUrl, {
-      headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker' }
-    });
+      const sitemapUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/sitemap.xml?ref=${GITHUB_BRANCH}`;
+      const sitemapRes = await fetch(sitemapUrl, {
+        headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker' }
+      });
 
-    let sitemapSha = null;
-    if (sitemapRes.ok) {
-      const sitemapData = await sitemapRes.json();
-      sitemapSha = sitemapData.sha;
-    }
+      let sitemapSha = null;
+      if (sitemapRes.ok) {
+        const sitemapData = await sitemapRes.json();
+        sitemapSha = sitemapData.sha;
+      }
 
-    const sitemapPayload = {
-      message: `sitemap: add ${slug}`,
-      content: btoa(unescape(encodeURIComponent(sitemapXml))),
-      branch: GITHUB_BRANCH,
-      ...(sitemapSha && { sha: sitemapSha })
-    };
-
-    await fetch(sitemapUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        'User-Agent': 'FFX-Worker',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(sitemapPayload)
-    });
-
-    // ── 4. PING Google Indexing API ────────────────────────────────────────
-    try {
-      const articleUrl = `https://fortitudefx.com/article?slug=${slug}`;
-      const token = await getGoogleAccessToken(GOOGLE_SA_EMAIL, GOOGLE_SA_KEY);
-      await fetch('https://indexing.googleapis.com/v3/urlNotifications:publish', {
-        method: 'POST',
+      await fetch(sitemapUrl, {
+        method: 'PUT',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          'User-Agent': 'FFX-Worker',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ url: articleUrl, type: 'URL_UPDATED' })
+        body: JSON.stringify({
+          message: `sitemap: add ${slug}`,
+          content: btoa(unescape(encodeURIComponent(sitemapXml))),
+          branch: GITHUB_BRANCH,
+          ...(sitemapSha && { sha: sitemapSha })
+        })
       });
-    } catch (indexErr) {
-      console.error('Google Indexing API error:', indexErr.message);
+
+      // Ping Google Indexing API
+      try {
+        const articleUrl = `https://fortitudefx.com/article?slug=${slug}`;
+        const token = await getGoogleAccessToken(GOOGLE_SA_EMAIL, GOOGLE_SA_KEY);
+        await fetch('https://indexing.googleapis.com/v3/urlNotifications:publish', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: articleUrl, type: 'URL_UPDATED' })
+        });
+      } catch (indexErr) {
+        console.error('Google Indexing API error:', indexErr.message);
+      }
     }
 
-    // ── 5. DONE ────────────────────────────────────────────────────────────
     return new Response(JSON.stringify({ success: true, slug }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -218,7 +213,6 @@ ${allUrls.map(u => `  <url>
 // ── JWT helper for Google Service Account auth ─────────────────────────────
 async function getGoogleAccessToken(serviceAccountEmail, privateKeyPem) {
   const now = Math.floor(Date.now() / 1000);
-
   const header = { alg: 'RS256', typ: 'JWT' };
   const payload = {
     iss: serviceAccountEmail,
@@ -241,27 +235,17 @@ async function getGoogleAccessToken(serviceAccountEmail, privateKeyPem) {
     .trim();
 
   const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-
   const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    binaryKey.buffer,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign']
+    'pkcs8', binaryKey.buffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
   );
 
   const encoder = new TextEncoder();
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    cryptoKey,
-    encoder.encode(unsignedToken)
-  );
-
+  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, encoder.encode(unsignedToken));
   const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
     .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 
   const jwt = `${unsignedToken}.${signatureB64}`;
-
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
