@@ -287,9 +287,9 @@ POSTS 2–5:
 - Expand intelligently on the topic
 - Deliver real educational value
 - Explain: liquidity behavior, trader psychology, execution, discipline, emotional control, institutional behavior, risk management, misconceptions, process thinking
-- Include FortitudeFX website references naturally when appropriate: https://fortitudefx.com
-- Links should feel contextual and educational, NOT promotional
-- Avoid repeating the exact same CTA wording repeatedly
+- Posts 2, 3, and 4 MUST each end with https://fortitudefx.com — no exceptions, every single one
+- Vary the sentence or phrasing leading into the link each time — never repeat the exact same wording
+- The link should feel contextual and educational, NOT promotional
 
 POST 5 SPECIFICALLY:
 - Deliver the deeper realization or perspective shift
