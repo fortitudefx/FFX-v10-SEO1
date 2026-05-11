@@ -6,9 +6,7 @@
 // If linkedin content provided in request — uses it directly (no GitHub fetch)
 // If not provided — falls back to fetching from articles.json
 // Requires: LINKEDIN_ACCESS_TOKEN, LINKEDIN_PERSON_URN
-
 const GITHUB_RAW = 'https://raw.githubusercontent.com/fortitudefx/FFX-v10-SEO1/main/articles.json';
-
 export async function onRequestPost(context) {
   let body;
   try {
@@ -16,20 +14,17 @@ export async function onRequestPost(context) {
   } catch {
     return json({ message: 'Invalid JSON' }, 400);
   }
-
   const { slug, linkedin: linkedinContent } = body;
   if (!slug) return json({ message: 'Missing slug' }, 400);
-
   const ACCESS_TOKEN = context.env.LINKEDIN_ACCESS_TOKEN;
   const PERSON_URN   = context.env.LINKEDIN_PERSON_URN;
-
   if (!ACCESS_TOKEN || !PERSON_URN) {
     return json({ message: 'LinkedIn credentials not configured' }, 500);
   }
-
+  console.log('[FFX] LinkedIn slug:', slug);
+  console.log('[FFX] LinkedIn URN:', PERSON_URN);
   // Use content passed directly if available — avoids GitHub race condition
   let content = linkedinContent || null;
-
   if (!content) {
     // Fall back to articles.json
     let article;
@@ -46,11 +41,10 @@ export async function onRequestPost(context) {
     if (!article) return json({ message: 'Article not found for slug: ' + slug }, 404);
     content = article.linkedin;
   }
-
   if (!content || !content.trim()) {
     return json({ message: 'No linkedin content found for slug: ' + slug }, 400);
   }
-
+  console.log('[FFX] LinkedIn content length:', content.trim().length);
   const payload = {
     author: `urn:li:person:${PERSON_URN}`,
     lifecycleState: 'PUBLISHED',
@@ -64,7 +58,7 @@ export async function onRequestPost(context) {
       'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
     }
   };
-
+  console.log('[FFX] LinkedIn payload author:', payload.author);
   let liRes;
   try {
     liRes = await fetch('https://api.linkedin.com/v2/ugcPosts', {
@@ -78,18 +72,20 @@ export async function onRequestPost(context) {
       body: JSON.stringify(payload)
     });
   } catch (err) {
+    console.log('[FFX] LinkedIn fetch error:', err.message);
     return json({ message: 'LinkedIn API request failed: ' + err.message }, 500);
   }
-
-  if (!liRes.ok) {
-    const errData = await liRes.json().catch(() => ({}));
-    return json({ message: 'LinkedIn API error', detail: errData }, liRes.status);
-  }
-
+  const liStatus = liRes.status;
+  const liBody = await liRes.json().catch(() => ({}));
   const postId = liRes.headers.get('x-restli-id') || liRes.headers.get('X-RestLi-Id') || 'unknown';
-  return json({ success: true, slug, post_id: postId });
+  console.log('[FFX] LinkedIn status:', liStatus);
+  console.log('[FFX] LinkedIn body:', JSON.stringify(liBody));
+  console.log('[FFX] LinkedIn post_id:', postId);
+  if (liStatus !== 200 && liStatus !== 201) {
+    return json({ message: 'LinkedIn API error', status: liStatus, detail: liBody }, liStatus);
+  }
+  return json({ success: true, slug, post_id: postId, li_status: liStatus });
 }
-
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
