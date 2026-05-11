@@ -57,14 +57,11 @@ export async function onRequestPost(context) {
   }
 
   // If an existing slug was passed (video already published), lock the slug
-  // This ensures Discord/X/LinkedIn Workers can find the article in articles.json
-  // Content quality is unaffected — only the slug/URL identifier is locked
   if (existingSlug && existingSlug.trim()) {
     console.log('[FFX] Locking slug to existing:', existingSlug);
     const oldArticleUrl = `https://fortitudefx.com/article?slug=${content.slug}`;
     const newArticleUrl = `https://fortitudefx.com/article?slug=${existingSlug}`;
     content.slug = existingSlug;
-    // Update any article URLs already replaced in content fields
     const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
     fields.forEach(f => {
       if (content[f]) content[f] = content[f].replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl);
@@ -219,7 +216,7 @@ CORE STRUCTURE:
 1. Hook (1–3 lines): A thoughtful observation, market insight, psychological truth, contrarian realization, or something that creates curiosity naturally without clickbait.
 2. Insight / Main Body: Deliver real educational or strategic value. Discuss trader psychology, execution, discipline, liquidity behavior, risk management, emotional control, business building, consistency, lessons from experience, or misconceptions in trading culture. Should feel useful even if the reader never buys anything.
 3. Perspective Shift: Introduce a deeper realization. Something most traders misunderstand. Reframe how readers think about trading, patience, execution, consistency, or learning.
-4. Soft Continuation CTA: Must feel natural and low-pressure. Never sound like an advertisement. Examples: "I broke this down more deeply in a recent video." / "There's a full breakdown on the site for anyone interested." / "One of the more overlooked concepts in trading." / "Covered this in more detail recently."
+4. Soft Continuation CTA: Must feel natural and low-pressure. Never sound like an advertisement.
 
 CONTENT GOALS:
 - Build credibility
@@ -232,7 +229,10 @@ SOFT POSITIONING RULES:
 You may naturally reference YouTube videos, FortitudeFX articles, lessons from the community, mention FortitudeFX subtly, imply deeper educational resources exist.
 But NEVER hard sell, use pressure tactics, overuse CTAs, sound like a sales funnel, or push VIP aggressively.
 
-INCLUDE WHEN RELEVANT: https://fortitudefx.com, relevant YouTube links, relevant article links.
+ALWAYS INCLUDE AT THE END — these three links, every single post, no exceptions:
+📖 Full breakdown: [ARTICLE_URL]
+▶️ Watch the video: ${youtubeUrl}
+🌐 https://fortitudefx.com
 
 OUTPUT: Generate the main LinkedIn post only. No hashtags in the body. Add 3-5 relevant hashtags at the very end only.
 
