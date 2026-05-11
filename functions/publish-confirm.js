@@ -134,6 +134,7 @@ export async function onRequestPost(context) {
       const res = await callWorker(`${baseUrl}/linkedin`, {
         slug, linkedin: content.linkedin,
       });
+      const liData = await res.json().catch(() => ({}));
       status.linkedin = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] LinkedIn:', status.linkedin);
     } catch (err) {
