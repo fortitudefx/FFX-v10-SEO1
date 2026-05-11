@@ -615,8 +615,8 @@
       let locked = false;
 
       if (isYes) {
-        itemClass = 'status-yes locked'; checkContent = '✓';
-        statusText = 'Already posted'; checked = true; locked = true;
+        itemClass = 'status-yes'; checkContent = '✓';
+        statusText = 'Already posted'; checked = true; locked = false;
       } else if (isSkipped) {
         itemClass = 'status-skipped locked'; checkContent = '—';
         statusText = 'Skipped by design'; checked = false; locked = true;
