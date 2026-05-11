@@ -73,6 +73,7 @@ export async function onRequestPost(context) {
         'Authorization': `Bearer ${ACCESS_TOKEN}`,
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507'
       },
       body: JSON.stringify(payload)
     });
