@@ -1,8 +1,14 @@
 // FFX /publish Worker
-// 1. Writes article + all platform content to articles.json
-// 2. Rebuilds sitemap.xml
-// 3. Pings Google Indexing API
-// Called by publish-confirm.js when Blog platform is selected
+//
+// ALWAYS: writes article + all platform content to articles.json
+// CONDITIONALLY: rebuilds sitemap + pings Google index
+//
+// Called by publish-confirm.js:
+//   - Always first with skipSitemapAndIndex: true (keeps articles.json current)
+//   - When Blog selected: called with skipSitemapAndIndex: false (full publish)
+//
+// This ensures "Load Existing Content" always returns fresh content
+// and platform Workers always have current data in articles.json
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -34,6 +40,7 @@ export async function onRequestPost(context) {
       linkedin, discord, tumblr, mediumIntro,
       tweet1, tweet2, tweet3, tweet4, tweet5, tweet6,
       x_thread, youtubeUrl, yt_url,
+      skipSitemapAndIndex,
     } = body;
 
     if (!slug || !title || !articleBody) {
@@ -91,7 +98,7 @@ export async function onRequestPost(context) {
       articles.unshift(newArticle);
     }
 
-    // ── 2. WRITE articles.json ─────────────────────────────────────────────
+    // ── 2. ALWAYS write articles.json ──────────────────────────────────────
     const articlesPayload = {
       message: `publish: ${slug}`,
       content: btoa(unescape(encodeURIComponent(JSON.stringify(articles, null, 2)))),
@@ -116,28 +123,31 @@ export async function onRequestPost(context) {
       });
     }
 
-    // ── 3. REBUILD sitemap.xml ─────────────────────────────────────────────
-    const staticPages = [
-      { loc: 'https://fortitudefx.com/',           lastmod: '2026-04-26', changefreq: 'weekly',  priority: '1.0' },
-      { loc: 'https://fortitudefx.com/bootcamp',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
-      { loc: 'https://fortitudefx.com/vipdiscord', lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
-      { loc: 'https://fortitudefx.com/waitlist',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.7' },
-      { loc: 'https://fortitudefx.com/blog',       lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.8' },
-      { loc: 'https://fortitudefx.com/privacy',    lastmod: '2026-04-26', changefreq: 'yearly',  priority: '0.3' },
-    ];
+    console.log('[FFX] articles.json written for slug:', slug);
 
-    const articleEntries = articles.map(a => ({
-      loc: `https://fortitudefx.com/article?slug=${a.slug}`,
-      lastmod: a.date || articleDate,
-      changefreq: 'monthly',
-      priority: '0.7'
-    }));
+    // ── 3. CONDITIONALLY: sitemap + Google index ───────────────────────────
+    if (!skipSitemapAndIndex) {
 
-    const allUrls = [...staticPages, ...articleEntries];
+      // Rebuild sitemap.xml
+      const staticPages = [
+        { loc: 'https://fortitudefx.com/',           lastmod: '2026-04-26', changefreq: 'weekly',  priority: '1.0' },
+        { loc: 'https://fortitudefx.com/bootcamp',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
+        { loc: 'https://fortitudefx.com/vipdiscord', lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
+        { loc: 'https://fortitudefx.com/waitlist',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.7' },
+        { loc: 'https://fortitudefx.com/blog',       lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.8' },
+        { loc: 'https://fortitudefx.com/privacy',    lastmod: '2026-04-26', changefreq: 'yearly',  priority: '0.3' },
+      ];
 
-    const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+      const articleEntries = articles.map(a => ({
+        loc: `https://fortitudefx.com/article?slug=${a.slug}`,
+        lastmod: a.date || articleDate,
+        changefreq: 'monthly',
+        priority: '0.7'
+      }));
+
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${allUrls.map(u => `  <url>
+${[...staticPages, ...articleEntries].map(u => `  <url>
     <loc>${u.loc}</loc>
     <lastmod>${u.lastmod}</lastmod>
     <changefreq>${u.changefreq}</changefreq>
@@ -145,43 +155,36 @@ ${allUrls.map(u => `  <url>
   </url>`).join('\n')}
 </urlset>`;
 
-    const sitemapUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/sitemap.xml?ref=${GITHUB_BRANCH}`;
-    const sitemapRes = await fetch(sitemapUrl, {
-      headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker' }
-    });
-
-    let sitemapSha = null;
-    if (sitemapRes.ok) {
-      const sitemapData = await sitemapRes.json();
-      sitemapSha = sitemapData.sha;
-    }
-
-    await fetch(sitemapUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        'User-Agent': 'FFX-Worker',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: `sitemap: add ${slug}`,
-        content: btoa(unescape(encodeURIComponent(sitemapXml))),
-        branch: GITHUB_BRANCH,
-        ...(sitemapSha && { sha: sitemapSha })
-      })
-    });
-
-    // ── 4. PING Google Indexing API ────────────────────────────────────────
-    try {
-      const articleUrl = `https://fortitudefx.com/article?slug=${slug}`;
-      const token = await getGoogleAccessToken(GOOGLE_SA_EMAIL, GOOGLE_SA_KEY);
-      await fetch('https://indexing.googleapis.com/v3/urlNotifications:publish', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: articleUrl, type: 'URL_UPDATED' })
+      const sitemapUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/sitemap.xml?ref=${GITHUB_BRANCH}`;
+      const sitemapRes = await fetch(sitemapUrl, {
+        headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker' }
       });
-    } catch (indexErr) {
-      console.error('Google Indexing API error:', indexErr.message);
+
+      let sitemapSha = null;
+      if (sitemapRes.ok) {
+        const sd = await sitemapRes.json();
+        sitemapSha = sd.sha;
+      }
+
+      await fetch(sitemapUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          'User-Agent': 'FFX-Worker',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `sitemap: add ${slug}`,
+          content: btoa(unescape(encodeURIComponent(sitemapXml))),
+          branch: GITHUB_BRANCH,
+          ...(sitemapSha && { sha: sitemapSha })
+        })
+      });
+
+      console.log('[FFX] sitemap.xml updated');
+
+      // NOTE: Google Indexing API removed — only valid for JobPosting/BroadcastEvent
+      // Sitemap submission is the correct mechanism for blog articles
     }
 
     return new Response(JSON.stringify({ success: true, slug }), {
@@ -215,9 +218,7 @@ async function getGoogleAccessToken(serviceAccountEmail, privateKeyPem) {
   const pemContents = privateKeyPem
     .replace(/-----BEGIN PRIVATE KEY-----/, '')
     .replace(/-----END PRIVATE KEY-----/, '')
-    .replace(/\\n/g, '')
-    .replace(/\n/g, '')
-    .trim();
+    .replace(/\\n/g, '').replace(/\n/g, '').trim();
 
   const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
   const cryptoKey = await crypto.subtle.importKey(
@@ -225,7 +226,7 @@ async function getGoogleAccessToken(serviceAccountEmail, privateKeyPem) {
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
   );
 
-  const encoder  = new TextEncoder();
+  const encoder = new TextEncoder();
   const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, encoder.encode(unsignedToken));
   const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
     .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -237,6 +238,5 @@ async function getGoogleAccessToken(serviceAccountEmail, privateKeyPem) {
     body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`
   });
 
-  const tokenData = await tokenRes.json();
-  return tokenData.access_token;
+  return (await tokenRes.json()).access_token;
 }
