@@ -92,15 +92,24 @@ export async function onRequestPost(context) {
 
   const baseUrl = new URL(request.url).origin;
 
-  // ── Blog ───────────────────────────────────────────────────────────────────
-  if (shouldRun('blog', COL.blog)) {
-    try {
-      const res = await callWorker(`${baseUrl}/publish`, content);
+  // ── ALWAYS write articles.json first ─────────────────────────────────────
+  // Ensures Load Existing Content returns fresh data
+  // and platform Workers always have current articles.json
+  const blogNeedsRun = userSelected.blog && shouldRun('blog', COL.blog);
+  try {
+    const res = await callWorker(`${baseUrl}/publish`, {
+      ...content,
+      skipSitemapAndIndex: !blogNeedsRun,
+    });
+    if (blogNeedsRun) {
       status.blog = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
       console.log('[FFX] Blog:', status.blog);
-    } catch (err) {
-      status.blog = `Error: ${err.message}`;
+    } else {
+      console.log('[FFX] articles.json written (content only, blog not selected)');
     }
+  } catch (err) {
+    if (blogNeedsRun) status.blog = `Error: ${err.message}`;
+    console.log('[FFX] publish error:', err.message);
   }
 
   // ── X — content passed directly ────────────────────────────────────────────
