@@ -184,6 +184,12 @@
       return;
     }
 
+    // Set canonical immediately from URL params so Googlebot gets it on first render
+    const canonicalEl = document.getElementById('canonicalTag');
+    if (canonicalEl && slug) {
+      canonicalEl.setAttribute('href', 'https://fortitudefx.com/article?slug=' + slug);
+    }
+
     fetch('articles.json')
       .then(r => r.json())
       .then(articles => {
