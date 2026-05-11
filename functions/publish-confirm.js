@@ -72,8 +72,7 @@ export async function onRequestPost(context) {
   // ── Determine what to run ──────────────────────────────────────────────────
   const shouldRun = (platform, colIndex) => {
     if (!userSelected[platform]) return false;
-    const val = existingRow?.[colIndex] || '';
-    return val !== 'Yes' && val !== 'Skipped';
+    return true;
   };
 
   const getInit = (platform, colIndex) => {
