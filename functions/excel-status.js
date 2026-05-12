@@ -80,7 +80,7 @@ export async function onRequestPost(context) {
   if (!row) {
     return new Response(JSON.stringify({
       found: false,
-      status: { blog: 'pending', x: 'pending', linkedin: 'pending', discord: 'pending' }
+      status: { blog: 'pending', x: 'pending', linkedin: 'pending', tumblr: 'pending', discord: 'pending' }
     }), { status: 200, headers });
   }
 
@@ -107,6 +107,7 @@ export async function onRequestPost(context) {
       blog:     row[COL.blog]     || 'pending',
       x:        row[COL.x]        || 'pending',
       linkedin: row[COL.linkedin]  || 'pending',
+      tumblr:   row[COL.tumblr]    || 'pending',
       discord:  row[COL.discord]   || 'pending',
     },
     // Full content if available from articles.json
