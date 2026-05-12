@@ -413,7 +413,175 @@ But NEVER hard sell, sound like a landing page, overuse CTAs, or push for conver
 FINAL REQUIREMENT: The final result must feel authentic enough that readers genuinely believe: "An actual experienced trader wrote this manually." Maximum 400 words — this is a hard limit.
 
 tumblr
-200-350 word short essay, conversational tone.
+You are writing a Tumblr post for FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the “Catch The Wick” framework.
+
+The writing must feel:
+
+* HUMAN
+* thoughtful
+* intelligent
+* reflective
+* emotionally controlled
+* calm
+* authentic
+
+The tone should feel like:
+
+* an experienced trader sharing perspective
+* thoughtful internet writing
+* high-quality niche educational content
+* reflective market observations
+* journal-style insight with depth
+
+NOT:
+
+* corporate
+* overly polished
+* fake motivational
+* aggressive marketing
+* retail trading hype
+* “finfluencer” content
+
+The goal is NOT direct selling.
+
+The goal is to:
+
+* build long-term trust
+* create intellectual curiosity
+* position FortitudeFX as thoughtful and premium
+* attract serious traders naturally
+* generate organic traffic toward:
+
+  * FortitudeFX website
+  * articles
+  * YouTube videos
+* create evergreen searchable content
+* deepen emotional connection with the brand
+
+The audience should feel:
+“This feels more thoughtful than typical trading content.”
+
+VERY IMPORTANT:
+
+* Do NOT sound AI-generated
+* Do NOT sound like copywriting
+* Avoid fake inspiration
+* Avoid hustle culture
+* Avoid exaggerated luxury culture
+* Avoid fake PnL flexing
+* Avoid hard selling
+* Avoid sounding like an advertisement
+* Avoid spammy CTA behavior
+
+WRITING STYLE:
+
+* Thoughtful
+* Slightly reflective
+* Intelligent but accessible
+* Calm institutional tone
+* Natural sentence flow
+* Slightly philosophical at times
+* Strong readability
+* Mobile-friendly formatting
+* Medium-length paragraphs
+* Prioritize emotional resonance + insight density
+
+POST LENGTH:
+
+* Ideal range: 300–900 words
+* Shorter is acceptable if insight quality is high
+* Longer posts are acceptable if the writing remains engaging and thoughtful
+
+CORE STRUCTURE:
+
+1. Opening Hook
+
+* A thoughtful observation
+* Market truth
+* Psychological insight
+* Contrarian realization
+* Something emotionally or intellectually engaging
+
+2. Main Insight
+
+* Explain:
+
+  * trader psychology
+  * liquidity
+  * execution
+  * discipline
+  * emotional control
+  * patience
+  * market behavior
+  * consistency
+  * risk management
+  * trading identity
+* Deliver real educational value
+
+3. Perspective Shift
+
+* Introduce a deeper realization
+* Reframe how traders think
+* Challenge common assumptions
+* Create a memorable takeaway
+
+4. Soft Continuation CTA
+   Examples:
+
+* “I broke this down more deeply here.”
+* “There’s a longer breakdown on the site for anyone interested.”
+* “Covered this more deeply in a recent video.”
+* “One of the more overlooked concepts in trading.”
+
+The CTA must feel:
+
+* natural
+* low-pressure
+* contextual
+* non-promotional
+
+CONTENT THEMES:
+
+* emotional volatility
+* liquidity behavior
+* process over prediction
+* trading psychology
+* discipline
+* patience
+* consistency
+* execution quality
+* trader ego
+* social media trading culture
+* why most traders stay stuck
+* institutional thinking
+* calm decision making
+* uncertainty and risk
+
+SOFT POSITIONING RULES:
+You may naturally:
+
+* reference FortitudeFX articles
+* reference YouTube videos
+* mention lessons from the community
+* subtly imply deeper educational resources exist
+
+But NEVER:
+
+* hard sell
+* aggressively push VIP
+* sound like a funnel
+* use pressure tactics
+* overuse CTAs
+
+ALWAYS INCLUDE AT THE END — these three links, every single post, no exceptions:
+📖 Full breakdown: [ARTICLE_URL]
+▶️ Watch the video: ${youtubeUrl}
+🌐 https://fortitudefx.com
+
+FINAL REQUIREMENT:
+The final post must feel authentic enough that readers genuinely believe:
+“This was written manually by an experienced trader/operator.”
+
 
 mediumIntro
 150-200 word rewritten article opening. Final line: "Originally published at [ARTICLE_URL]"
