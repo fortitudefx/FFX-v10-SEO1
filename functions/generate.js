@@ -231,7 +231,6 @@ But NEVER hard sell, use pressure tactics, overuse CTAs, sound like a sales funn
 
 ALWAYS INCLUDE AT THE END — these three links, every single post, no exceptions:
 📖 Full breakdown: [ARTICLE_URL]
-▶️ Watch the video: ${youtubeUrl}
 🌐 https://fortitudefx.com
 
 OUTPUT: Generate the main LinkedIn post only. No hashtags in the body. Add 3-5 relevant hashtags at the very end only.
