@@ -412,6 +412,7 @@
     { key: 'blog',     label: 'Blog' },
     { key: 'x',        label: 'X / Twitter' },
     { key: 'linkedin', label: 'LinkedIn' },
+    { key: 'tumblr',   label: 'Tumblr' },
     { key: 'discord',  label: 'Discord' },
   ];
 
@@ -460,14 +461,14 @@
       } else {
         // Not found — go straight to generate
         existingData = null;
-        platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', discord: 'pending' };
+        platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', tumblr: 'pending', discord: 'pending' };
         btn.textContent = 'Generate Content';
         await runGenerate(url);
       }
     } catch (err) {
       // Excel check failed — proceed with generate anyway
       existingData = null;
-      platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', discord: 'pending' };
+      platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', tumblr: 'pending', discord: 'pending' };
       btn.textContent = 'Generate Content';
       await runGenerate(url);
     }
@@ -521,7 +522,7 @@
     pubBtn.textContent = 'Publish';
     hideAlert('pubAlert');
     // Reset platform state — fresh generate means everything pending
-    platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', discord: 'pending' };
+    platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', tumblr: 'pending', discord: 'pending' };
     // Pass existing slug so generate.js locks it — keeps article URL consistent
     const slugToLock = existingData?.slug || null;
     await runGenerate(url, slugToLock);
