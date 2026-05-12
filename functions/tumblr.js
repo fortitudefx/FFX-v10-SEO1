@@ -86,6 +86,7 @@ export async function onRequestPost(context) {
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
+        'User-Agent': 'FortitudeFX/1.0',
       },
       body: JSON.stringify(npfPayload),
     });
