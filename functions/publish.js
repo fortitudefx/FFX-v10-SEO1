@@ -64,7 +64,11 @@ export async function onRequestPost(context) {
     if (articlesRes.ok) {
       const articlesData = await articlesRes.json();
       articlesSha = articlesData.sha;
-      articles = JSON.parse(atob(articlesData.content.replace(/\n/g, '')));
+      const base64 = articlesData.content.replace(/\n/g, '');
+      const binaryStr = atob(base64);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+      articles = JSON.parse(new TextDecoder().decode(bytes));
     }
 
     // Build full article object — all fields including all platform content
@@ -175,7 +179,7 @@ ${[...staticPages, ...articleEntries].map(u => `  <url>
         },
         body: JSON.stringify({
           message: `sitemap: add ${slug}`,
-          content: btoa(unescape(encodeURIComponent(sitemapXml))),
+          content: (() => { const bytes = new TextEncoder().encode(sitemapXml); let binary = ''; for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]); return btoa(binary); })(),
           branch: GITHUB_BRANCH,
           ...(sitemapSha && { sha: sitemapSha })
         })
