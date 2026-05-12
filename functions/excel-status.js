@@ -9,16 +9,17 @@
 const SHEET_NAME = 'FFX Articles';
 
 const COL = {
-  slug:     0,
-  title:    1,
-  date:     2,
-  blog:     3,
-  x:        4,
-  linkedin: 5,
-  medium:   6,
-  tumblr:   7,
-  yt_url:   8,
-  discord:  9,
+  lastUpdated: 0,  // A
+  slug:        1,  // B
+  title:       2,  // C
+  date:        3,  // D
+  blog:        4,  // E
+  x:           5,  // F
+  linkedin:    6,  // G
+  medium:      7,  // H
+  tumblr:      8,  // I
+  yt_url:      9,  // J
+  discord:     10, // K
 };
 
 const GITHUB_RAW = 'https://raw.githubusercontent.com/fortitudefx/FFX-v10-SEO1/main/articles.json';
