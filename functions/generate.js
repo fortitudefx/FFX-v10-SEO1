@@ -578,6 +578,8 @@ ALWAYS INCLUDE AT THE END — these three links, every single post, no exception
 ▶️ Watch the video: ${youtubeUrl}
 🌐 https://fortitudefx.com
 
+FORMAT: Plain text only. No HTML tags. No markdown. No asterisks. No angle brackets. Write as you would in a text editor — paragraphs separated by blank lines only.
+
 FINAL REQUIREMENT:
 The final post must feel authentic enough that readers genuinely believe:
 “This was written manually by an experienced trader/operator.”
