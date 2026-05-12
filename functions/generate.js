@@ -300,19 +300,26 @@ POST 1:
 - NO CTA
 - Pure attention + intrigue
 
-POSTS 2–5:
+POSTS 2-3:
 - Expand intelligently on the topic
 - Deliver real educational value
 - Explain: liquidity behavior, trader psychology, execution, discipline, emotional control, institutional behavior, risk management, misconceptions, process thinking
-- Posts 2, 3, and 4 MUST each end with https://fortitudefx.com — no exceptions, every single one
+- Posts 2 and 3 MUST each end with https://fortitudefx.com — no exceptions
 - Vary the sentence or phrasing leading into the link each time — never repeat the exact same wording
 - The link should feel contextual and educational, NOT promotional
+
+POST 4 SPECIFICALLY:
+- Continue expanding on the topic with real educational value
+- Must end with https://fortitudefx.com/vipdiscord — no exceptions
+- Reference it naturally — e.g. "We break this down inside the community." / "This is one of the core concepts we cover." / "Worth exploring if this resonates."
+- Never sound like a hard sell
 
 POST 5 SPECIFICALLY:
 - Deliver the deeper realization or perspective shift
 - Reframe the topic intelligently
 - Make readers think differently
-- Must end with https://fortitudefx.com — no exceptions
+- Must end with https://fortitudefx.com/bootcamp — no exceptions
+- Reference it naturally — e.g. "This is the foundation of what we teach." / "Covered in depth in our framework." / "The bootcamp builds this into a complete system."
 - Avoid turning the tweet into a sales CTA
 
 POST 6:
