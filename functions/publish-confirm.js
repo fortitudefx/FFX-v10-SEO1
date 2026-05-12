@@ -70,7 +70,7 @@ export async function onRequestPost(context) {
   console.log('[FFX] Excel row found:', rowIndex > 0 ? `array index ${rowIndex} = Excel row ${rowIndex + 1}` : 'none');
 
   // ── Determine what to run ──────────────────────────────────────────────────
-  const shouldRun = (platform) => {
+  const shouldRun = (platform, colIndex) => {
     if (!userSelected[platform]) return false;
     return true;
   };
@@ -86,14 +86,15 @@ export async function onRequestPost(context) {
     blog:     getInit('blog',     COL.blog),
     x:        getInit('x',        COL.x),
     linkedin: getInit('linkedin', COL.linkedin),
-    tumblr:   getInit('tumblr',   COL.tumblr),
     discord:  getInit('discord',  COL.discord),
   };
 
   const baseUrl = new URL(request.url).origin;
 
   // ── ALWAYS write articles.json first ─────────────────────────────────────
-  const blogNeedsRun = userSelected.blog && shouldRun('blog');
+  // Ensures Load Existing Content returns fresh data
+  // and platform Workers always have current articles.json
+  const blogNeedsRun = userSelected.blog && shouldRun('blog', COL.blog);
   try {
     const res = await callWorker(`${baseUrl}/publish`, {
       ...content,
@@ -111,7 +112,7 @@ export async function onRequestPost(context) {
   }
 
   // ── X — content passed directly ────────────────────────────────────────────
-  if (shouldRun('x')) {
+  if (shouldRun('x', COL.x)) {
     try {
       const res = await callWorker(`${baseUrl}/tweet`, {
         slug,
@@ -127,34 +128,21 @@ export async function onRequestPost(context) {
   }
 
   // ── LinkedIn — content passed directly ─────────────────────────────────────
-  if (shouldRun('linkedin')) {
+  if (shouldRun('linkedin', COL.linkedin)) {
     try {
       const res = await callWorker(`${baseUrl}/linkedin`, {
         slug, linkedin: content.linkedin,
       });
       const liData = await res.json().catch(() => ({}));
-      status.linkedin = res.ok ? 'Yes' : `Error: ${liData.message || res.status}`;
+      status.linkedin = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] LinkedIn:', status.linkedin);
     } catch (err) {
       status.linkedin = `Error: ${err.message}`;
     }
   }
 
-  // ── Tumblr — content passed directly ───────────────────────────────────────
-  if (shouldRun('tumblr')) {
-    try {
-      const res = await callWorker(`${baseUrl}/tumblr`, {
-        slug, tumblr: content.tumblr,
-      });
-      status.tumblr = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
-      console.log('[FFX] Tumblr:', status.tumblr);
-    } catch (err) {
-      status.tumblr = `Error: ${err.message}`;
-    }
-  }
-
   // ── Discord — content passed directly ──────────────────────────────────────
-  if (shouldRun('discord')) {
+  if (shouldRun('discord', COL.discord)) {
     try {
       const res = await callWorker(`${baseUrl}/discord`, {
         slug, discord: content.discord,
@@ -172,6 +160,8 @@ export async function onRequestPost(context) {
 
   try {
     if (existingRow && rowIndex > 0) {
+      // Update existing row — rowIndex is 0-based array index
+      // Excel row number = rowIndex + 1 (1-based, header is row 1)
       await updateExcelRow(graphToken, env, rowIndex + 1, status, existingRow, userSelected, excelRows[0].length);
     } else {
       await appendExcelRow(graphToken, env, [
@@ -182,7 +172,7 @@ export async function onRequestPost(context) {
         userSelected.x        ? status.x        : '',
         userSelected.linkedin ? status.linkedin  : '',
         'Manual',
-        userSelected.tumblr   ? status.tumblr   : 'No',
+        'No',
         ytUrl,
         userSelected.discord  ? status.discord  : '',
       ]);
@@ -241,14 +231,16 @@ async function getExcelRows(token, env) {
 }
 
 async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow, userSelected, numCols) {
+  // Build updated row — only touch cells for platforms that ran this session
   const row = [...existingRow];
 
   if (userSelected.blog     && newStatus.blog     !== 'pending' && newStatus.blog     !== 'not_selected') row[COL.blog]     = newStatus.blog;
   if (userSelected.x        && newStatus.x        !== 'pending' && newStatus.x        !== 'not_selected') row[COL.x]        = newStatus.x;
   if (userSelected.linkedin && newStatus.linkedin  !== 'pending' && newStatus.linkedin  !== 'not_selected') row[COL.linkedin]  = newStatus.linkedin;
-  if (userSelected.tumblr   && newStatus.tumblr    !== 'pending' && newStatus.tumblr    !== 'not_selected') row[COL.tumblr]    = newStatus.tumblr;
   if (userSelected.discord  && newStatus.discord   !== 'pending' && newStatus.discord   !== 'not_selected') row[COL.discord]   = newStatus.discord;
 
+  // Use range address — more reliable than rows/itemAt on SharePoint
+  // excelRowNumber is 1-based (header=1, first data row=2)
   const colEnd = String.fromCharCode(64 + row.length);
   const rangeAddr = `A${excelRowNumber}:${colEnd}${excelRowNumber}`;
 
@@ -265,7 +257,7 @@ async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow
 
 async function appendExcelRow(token, env, rowValues) {
   const rows = await getExcelRows(token, env);
-  const nextRow = rows.length + 1;
+  const nextRow = rows.length + 1; // 1-based, after all existing rows
   const colEnd = String.fromCharCode(64 + rowValues.length);
   const rangeAddr = `A${nextRow}:${colEnd}${nextRow}`;
 
