@@ -101,7 +101,7 @@ export async function onRequestPost(context) {
     // ── 2. ALWAYS write articles.json ──────────────────────────────────────
     const articlesPayload = {
       message: `publish: ${slug}`,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(articles, null, 2)))),
+      content: btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(articles, null, 2)))),
       branch: GITHUB_BRANCH,
       ...(articlesSha && { sha: articlesSha })
     };
