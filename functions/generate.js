@@ -636,7 +636,7 @@ Write [ARTICLE_URL] exactly as shown — it will be replaced automatically after
   }
 
   // Hard enforce 400 word max on discord
-  parsed.discord = truncateToWordLimit(parsed.discord, 250);
+  //parsed.discord = truncateToWordLimit(parsed.discord, 250);
 
   // Replace [ARTICLE_URL] with actual URL
   const articleUrl = `https://fortitudefx.com/article?slug=${parsed.slug}`;
