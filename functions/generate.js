@@ -399,12 +399,12 @@ POST LENGTH: 150-250 words of body content excluding the links section. Do not e
 CORE STRUCTURE:
 1. Hook (1-2 lines): Something psychologically relevant, market-relevant, or thought-provoking. Must create curiosity naturally. Avoid clickbait.
 2. Insight + Perspective Shift (4-6 lines across 2-3 short paragraphs): Deliver REAL educational value. Explain a trading behavior, liquidity concept, execution issue, psychology mistake, risk management insight, or market observation clearly. Fold in a deeper realization or reframe naturally — something most traders overlook. Should feel useful even if the reader never buys anything. Each paragraph separated by a blank line.
-3. Links and CTA: Always include all three of the following links naturally — do not skip any:
+3. Links and CTA: Always include the following in this exact order — do not skip any:
    Full breakdown 👉 [ARTICLE_URL]
    Watch the video: ${youtubeUrl}
-   https://fortitudefx.com
-   CRITICAL: Write [ARTICLE_URL] exactly as shown — do NOT invent or construct any URL. Do not write /blog/ paths. Do not guess the URL format. Write [ARTICLE_URL] and it will be replaced automatically. The website link must be https://fortitudefx.com with https:// prefix so Discord renders it as a clickable link.
-   Then end with a 1-2 line engagement hook — a genuine question or thought-provoking statement that invites the community to reply or reflect. Not a sales line. A real conversation starter related to the topic covered.
+   Then a 1-2 line engagement hook — a genuine question or thought-provoking statement that invites the community to reply or reflect. Not a sales line. A real conversation starter related to the topic covered.
+   Final line: https://fortitudefx.com
+   CRITICAL: Write [ARTICLE_URL] exactly as shown — do NOT invent or construct any URL. Do not write /blog/ paths. Do not guess the URL format. Write [ARTICLE_URL] and it will be replaced automatically. The website link https://fortitudefx.com must always be the very last line with https:// prefix so Discord renders it as a clickable link.
 
 CONTENT GOALS: Deliver genuine value. Encourage discussion and engagement. Build long-term trust. Subtly position FortitudeFX as more thoughtful and higher quality than typical retail trading communities.
 SOFT POSITIONING RULES:
