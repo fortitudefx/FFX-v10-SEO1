@@ -635,9 +635,6 @@ Write [ARTICLE_URL] exactly as shown — it will be replaced automatically after
     parsed.x_thread.forEach((t, i) => { parsed[`tweet${i + 1}`] = t; });
   }
 
-  // Hard enforce 400 word max on discord
-  //parsed.discord = truncateToWordLimit(parsed.discord, 250);
-
   // Replace [ARTICLE_URL] with actual URL
   const articleUrl = `https://fortitudefx.com/article?slug=${parsed.slug}`;
   const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
