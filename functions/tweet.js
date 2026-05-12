@@ -5,7 +5,7 @@
 // Receives slug + optional tweet1-6 content directly
 // If tweet content provided in request — uses it directly (no GitHub fetch)
 // If not provided — falls back to fetching from articles.json
-// Requires: GITHUB_TOKEN, X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET
+// Requires: X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET
 
 const GITHUB_RAW = 'https://raw.githubusercontent.com/fortitudefx/FFX-v10-SEO1/main/articles.json';
 
@@ -34,13 +34,11 @@ export async function onRequestPost(context) {
   let tweets = null;
 
   if (tweet1) {
-    // Content passed directly from publish-confirm
     const rawTweets = [tweet1, tweet2, tweet3, tweet4, tweet5, tweet6];
     tweets = rawTweets
       .filter(t => t && t.trim())
       .map(t => t.replace(/[\r\n\t]+/g, ' ').trim());
   } else {
-    // Fall back to articles.json
     let article;
     try {
       const res = await fetch(GITHUB_RAW, {
@@ -68,18 +66,30 @@ export async function onRequestPost(context) {
     return json({ message: 'No tweet content found for slug: ' + slug }, 400);
   }
 
-  // Post thread to X
+  console.log('[FFX] X thread slug:', slug, 'tweets:', tweets.length);
+
+  // Post thread to X — continue on failure, log all errors
   const results = [];
   let previousTweetId = null;
+  let firstError = null;
 
-  for (const text of tweets) {
+  for (let i = 0; i < tweets.length; i++) {
+    const text = tweets[i];
     const tweetPayload = { text };
     if (previousTweetId) {
       tweetPayload.reply = { in_reply_to_tweet_id: previousTweetId };
     }
 
     const url = 'https://api.x.com/2/tweets';
-    const oauthHeader = await buildOAuthHeader('POST', url, API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET);
+    let oauthHeader;
+    try {
+      oauthHeader = await buildOAuthHeader('POST', url, API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET);
+    } catch (err) {
+      console.log('[FFX] X OAuth error on tweet', i + 1, ':', err.message);
+      results.push({ tweet_num: i + 1, success: false, error: err.message });
+      if (!firstError) firstError = err.message;
+      continue;
+    }
 
     let xRes;
     try {
@@ -89,17 +99,43 @@ export async function onRequestPost(context) {
         body: JSON.stringify(tweetPayload)
       });
     } catch (err) {
-      return json({ message: 'X API request failed: ' + err.message, results }, 500);
+      console.log('[FFX] X fetch error on tweet', i + 1, ':', err.message);
+      results.push({ tweet_num: i + 1, success: false, error: err.message });
+      if (!firstError) firstError = err.message;
+      continue;
     }
 
     const xData = await xRes.json().catch(() => ({}));
-    if (!xRes.ok) return json({ message: 'X API error', detail: xData, results }, xRes.status);
+    console.log('[FFX] X tweet', i + 1, 'status:', xRes.status);
+    console.log('[FFX] X tweet', i + 1, 'response:', JSON.stringify(xData));
+
+    if (!xRes.ok) {
+      const errDetail = xData?.detail || xData?.title || xData?.errors?.[0]?.message || JSON.stringify(xData);
+      console.log('[FFX] X tweet', i + 1, 'failed:', errDetail);
+      results.push({ tweet_num: i + 1, success: false, error: errDetail });
+      if (!firstError) firstError = errDetail;
+      // Do not break — continue posting remaining tweets
+      continue;
+    }
 
     previousTweetId = xData?.data?.id;
-    results.push({ tweet_id: previousTweetId, text });
+    console.log('[FFX] X tweet', i + 1, 'posted, id:', previousTweetId);
+    results.push({ tweet_num: i + 1, success: true, tweet_id: previousTweetId });
   }
 
-  return json({ success: true, slug, tweet_count: results.length, results });
+  const successCount = results.filter(r => r.success).length;
+  const failCount = results.filter(r => !r.success).length;
+
+  console.log('[FFX] X thread complete — success:', successCount, 'failed:', failCount);
+
+  // If all failed return error so publish-confirm marks as Error
+  if (successCount === 0) {
+    return json({ message: 'X API error — all tweets failed', first_error: firstError, results }, 500);
+  }
+
+  // If some failed return partial success — publish-confirm will mark as Yes
+  // Individual tweet failures are visible in logs
+  return json({ success: true, slug, tweet_count: successCount, failed_count: failCount, results });
 }
 
 // ─── OAuth 1.0a signature builder ────────────────────────────────────────────
