@@ -9,16 +9,17 @@
 const SHEET_NAME = 'FFX Articles';
 
 const COL = {
-  slug:     0,  // A
-  title:    1,  // B
-  date:     2,  // C
-  blog:     3,  // D
-  x:        4,  // E
-  linkedin: 5,  // F
-  medium:   6,  // G
-  tumblr:   7,  // H
-  yt_url:   8,  // I
-  discord:  9,  // J
+  lastUpdated: 0,  // A
+  slug:        1,  // B
+  title:       2,  // C
+  date:        3,  // D
+  blog:        4,  // E
+  x:           5,  // F
+  linkedin:    6,  // G
+  medium:      7,  // H
+  tumblr:      8,  // I
+  yt_url:      9,  // J
+  discord:     10, // K
 };
 
 export async function onRequestPost(context) {
@@ -92,8 +93,6 @@ export async function onRequestPost(context) {
   const baseUrl = new URL(request.url).origin;
 
   // ── ALWAYS write articles.json first ─────────────────────────────────────
-  // Ensures Load Existing Content returns fresh data
-  // and platform Workers always have current articles.json
   const blogNeedsRun = userSelected.blog && shouldRun('blog', COL.blog);
   try {
     const res = await callWorker(`${baseUrl}/publish`, {
@@ -134,7 +133,7 @@ export async function onRequestPost(context) {
         slug, linkedin: content.linkedin,
       });
       const liData = await res.json().catch(() => ({}));
-      status.linkedin = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      status.linkedin = res.ok ? 'Yes' : `Error: ${liData.message || res.status}`;
       console.log('[FFX] LinkedIn:', status.linkedin);
     } catch (err) {
       status.linkedin = `Error: ${err.message}`;
@@ -156,15 +155,15 @@ export async function onRequestPost(context) {
 
   // ── Update or add Excel row ────────────────────────────────────────────────
   const today = new Date().toISOString().split('T')[0];
+  const now = new Date(); const dubaiTime = new Date(now.getTime() + (4 * 60 * 60 * 1000)); const timestamp = dubaiTime.toISOString().replace('T', ' ').substring(0, 19);
   const ytUrl = content.youtubeUrl || content.yt_url || '';
 
   try {
     if (existingRow && rowIndex > 0) {
-      // Update existing row — rowIndex is 0-based array index
-      // Excel row number = rowIndex + 1 (1-based, header is row 1)
-      await updateExcelRow(graphToken, env, rowIndex + 1, status, existingRow, userSelected, excelRows[0].length);
+      await updateExcelRow(graphToken, env, rowIndex + 1, status, existingRow, userSelected, excelRows[0].length, timestamp);
     } else {
       await appendExcelRow(graphToken, env, [
+        timestamp,
         slug,
         content.title || '',
         today,
@@ -230,7 +229,7 @@ async function getExcelRows(token, env) {
   return (await res.json()).values || [];
 }
 
-async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow, userSelected, numCols) {
+async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow, userSelected, numCols, timestamp) {
   // Build updated row — only touch cells for platforms that ran this session
   const row = [...existingRow];
 
@@ -238,9 +237,9 @@ async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow
   if (userSelected.x        && newStatus.x        !== 'pending' && newStatus.x        !== 'not_selected') row[COL.x]        = newStatus.x;
   if (userSelected.linkedin && newStatus.linkedin  !== 'pending' && newStatus.linkedin  !== 'not_selected') row[COL.linkedin]  = newStatus.linkedin;
   if (userSelected.discord  && newStatus.discord   !== 'pending' && newStatus.discord   !== 'not_selected') row[COL.discord]   = newStatus.discord;
+  row[COL.lastUpdated] = timestamp;
 
   // Use range address — more reliable than rows/itemAt on SharePoint
-  // excelRowNumber is 1-based (header=1, first data row=2)
   const colEnd = String.fromCharCode(64 + row.length);
   const rangeAddr = `A${excelRowNumber}:${colEnd}${excelRowNumber}`;
 
@@ -257,7 +256,7 @@ async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow
 
 async function appendExcelRow(token, env, rowValues) {
   const rows = await getExcelRows(token, env);
-  const nextRow = rows.length + 1; // 1-based, after all existing rows
+  const nextRow = rows.length + 1;
   const colEnd = String.fromCharCode(64 + rowValues.length);
   const rangeAddr = `A${nextRow}:${colEnd}${nextRow}`;
 
