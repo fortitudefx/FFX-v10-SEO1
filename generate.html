@@ -750,7 +750,9 @@
 
     const tweetList = document.getElementById('rTweets');
     tweetList.innerHTML = '';
-    const tweets = Array.isArray(c.x_thread) ? c.x_thread : [];
+    const tweets = Array.isArray(c.x_thread) && c.x_thread.length > 0
+  ? c.x_thread
+  : [c.tweet1, c.tweet2, c.tweet3, c.tweet4, c.tweet5, c.tweet6].filter(Boolean);
     tweets.forEach((t, i) => {
       const div = document.createElement('div');
       div.className = 'tweet-item';
