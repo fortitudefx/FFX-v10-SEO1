@@ -87,6 +87,7 @@ export async function onRequestPost(context) {
     blog:     getInit('blog',     COL.blog),
     x:        getInit('x',        COL.x),
     linkedin: getInit('linkedin', COL.linkedin),
+    tumblr:   getInit('tumblr',   COL.tumblr),
     discord:  getInit('discord',  COL.discord),
   };
 
@@ -140,6 +141,19 @@ export async function onRequestPost(context) {
     }
   }
 
+  // ── Tumblr — content passed directly ───────────────────────────────────────
+  if (shouldRun('tumblr', COL.tumblr)) {
+    try {
+      const res = await callWorker(`${baseUrl}/tumblr`, {
+        slug, tumblr: content.tumblr,
+      });
+      status.tumblr = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      console.log('[FFX] Tumblr:', status.tumblr);
+    } catch (err) {
+      status.tumblr = `Error: ${err.message}`;
+    }
+  }
+
   // ── Discord — content passed directly ──────────────────────────────────────
   if (shouldRun('discord', COL.discord)) {
     try {
@@ -171,7 +185,7 @@ export async function onRequestPost(context) {
         userSelected.x        ? status.x        : '',
         userSelected.linkedin ? status.linkedin  : '',
         'Manual',
-        'No',
+        userSelected.tumblr   ? status.tumblr   : '',
         ytUrl,
         userSelected.discord  ? status.discord  : '',
       ]);
@@ -236,6 +250,7 @@ async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow
   if (userSelected.blog     && newStatus.blog     !== 'pending' && newStatus.blog     !== 'not_selected') row[COL.blog]     = newStatus.blog;
   if (userSelected.x        && newStatus.x        !== 'pending' && newStatus.x        !== 'not_selected') row[COL.x]        = newStatus.x;
   if (userSelected.linkedin && newStatus.linkedin  !== 'pending' && newStatus.linkedin  !== 'not_selected') row[COL.linkedin]  = newStatus.linkedin;
+  if (userSelected.tumblr   && newStatus.tumblr    !== 'pending' && newStatus.tumblr    !== 'not_selected') row[COL.tumblr]    = newStatus.tumblr;
   if (userSelected.discord  && newStatus.discord   !== 'pending' && newStatus.discord   !== 'not_selected') row[COL.discord]   = newStatus.discord;
   row[COL.lastUpdated] = timestamp;
 
