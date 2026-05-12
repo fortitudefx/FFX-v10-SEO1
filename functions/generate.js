@@ -398,18 +398,17 @@ STYLE:
 - Occasional incomplete sentences are acceptable
 - Prioritize clarity and perceived value per second
 
-POST LENGTH: Maximum 400 words. Do not exceed 400 words under any circumstances.
+POST LENGTH: 150-250 words. Do not exceed 250 words under any circumstances.
 
 CORE STRUCTURE:
-1. Hook (1–2 lines): Something psychologically relevant, market-relevant, or thought-provoking. Must create curiosity naturally. Avoid clickbait.
-2. Insight (4–8 lines): Deliver REAL educational value. Explain a trading behavior, liquidity concept, execution issue, psychology mistake, risk management insight, or market observation clearly. Should feel useful even if the reader never buys anything.
-3. Perspective Shift (2–4 lines): Introduce a deeper realization. Something most traders overlook. Something that changes how the reader thinks about markets, execution, patience, discipline, or emotional control.
-4. Links and CTA: Always include all three of the following links naturally — do not skip any:
-   Full breakdown 👉 [ARTICLE_URL]
-   Watch the video: ${youtubeUrl}
-   https://fortitudefx.com
-   CRITICAL: Write [ARTICLE_URL] exactly as shown — do NOT invent or construct any URL. Do not write /blog/ paths. Do not guess the URL format. Write [ARTICLE_URL] and it will be replaced automatically. The website link must be https://fortitudefx.com with https:// prefix so Discord renders it as a clickable link.
-   Then end with a 1-2 line engagement hook — a genuine question or thought-provoking statement that invites the community to reply or reflect. Not a sales line. A real conversation starter related to the topic covered.
+1. Hook (1-2 lines): Something psychologically relevant, market-relevant, or thought-provoking. Must create curiosity naturally. Avoid clickbait.
+2. Insight + Perspective Shift (4-6 lines): Deliver REAL educational value. Explain a trading behavior, liquidity concept, execution issue, psychology mistake, risk management insight, or market observation clearly. Fold in a deeper realization or reframe naturally — something most traders overlook. Should feel useful even if the reader never buys anything.
+3. Links and CTA: Always include all three of the following links naturally — do not skip any:
+Full breakdown 👉 [ARTICLE_URL]
+Watch the video: ${youtubeUrl}
+https://fortitudefx.com
+CRITICAL: Write [ARTICLE_URL] exactly as shown — do NOT invent or construct any URL. Do not write /blog/ paths. Do not guess the URL format. Write [ARTICLE_URL] and it will be replaced automatically. The website link must be https://fortitudefx.com with https:// prefix so Discord renders it as a clickable link.
+Then end with a 1-2 line engagement hook — a genuine question or thought-provoking statement that invites the community to reply or reflect. Not a sales line. A real conversation starter related to the topic covered.
 
 CONTENT GOALS: Deliver genuine value. Encourage discussion and engagement. Build long-term trust. Subtly position FortitudeFX as more thoughtful and higher quality than typical retail trading communities.
 
@@ -643,7 +642,7 @@ Write [ARTICLE_URL] exactly as shown — it will be replaced automatically after
   }
 
   // Hard enforce 400 word max on discord
-  parsed.discord = truncateToWordLimit(parsed.discord, 400);
+  parsed.discord = truncateToWordLimit(parsed.discord, 250);
 
   // Replace [ARTICLE_URL] with actual URL
   const articleUrl = `https://fortitudefx.com/article?slug=${parsed.slug}`;
