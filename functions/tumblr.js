@@ -59,13 +59,9 @@ export async function onRequestPost(context) {
 
   // Build post params
   const apiUrl = `https://api.tumblr.com/v2/blog/${BLOG_NAME}/post`;
-  const postParams = {
-    type:  'text',
-    body:  content.trim(),
-    format: 'markdown',
-  };
+  const postParams = {};
 
-  // Build OAuth 1.0a Authorization header
+  // Build OAuth 1.0a Authorization header — only OAuth params, no body params
   let authHeader;
   try {
     authHeader = await buildOAuthHeader(
@@ -78,17 +74,20 @@ export async function onRequestPost(context) {
     return json({ message: 'OAuth signing failed: ' + err.message }, 500);
   }
 
-  // Make the API call
-  const formBody = new URLSearchParams(postParams).toString();
+  // Make the API call using NPF format with JSON body
+  const npfPayload = {
+    content: [{ type: 'text', text: content.trim() }],
+    state: 'published',
+  };
   let tumblrRes;
   try {
     tumblrRes = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: formBody,
+      body: JSON.stringify(npfPayload),
     });
   } catch (err) {
     console.log('[FFX] Tumblr fetch error:', err.message);
