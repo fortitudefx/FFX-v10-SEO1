@@ -69,13 +69,13 @@
     }
     .wl-benefit-item strong {
       display: block;
-      font-size: 0.9rem;
+      font-size: 1.04rem;
       font-weight: 700;
       color: var(--text-primary);
       margin-bottom: 0.3rem;
     }
     .wl-benefit-item span {
-      font-size: 0.85rem;
+      font-size: 0.98rem;
       color: var(--text-muted);
       line-height: 1.6;
     }
@@ -113,7 +113,7 @@
     .wl-field { margin-bottom: 1rem; }
     .wl-field label {
       display: block;
-      font-size: 0.8rem;
+      font-size: 0.92rem;
       font-weight: 700;
       color: var(--text-secondary);
       margin-bottom: 0.35rem;
@@ -129,7 +129,7 @@
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 0.75rem 1rem;
-      font-size: 1rem;
+      font-size: 1.15rem;
       color: var(--accent-orange);
       outline: none;
       transition: border-color 0.2s;
@@ -142,6 +142,14 @@
     .wl-field input::placeholder,
     .wl-field select::placeholder,
     .wl-field textarea::placeholder { color: var(--text-muted); }
+    /* Force orange on browser autofill */
+    .wl-field input:-webkit-autofill,
+    .wl-field input:-webkit-autofill:hover,
+    .wl-field input:-webkit-autofill:focus {
+      -webkit-text-fill-color: var(--accent-orange) !important;
+      -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.04) inset !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
     .wl-field select { color: var(--text-muted); }
     .wl-field select:valid { color: var(--accent-orange); }
     .wl-field select option { background: #1a1a2e; color: var(--text-primary); }
@@ -161,7 +169,7 @@
       padding: 0.65rem 1rem;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-subtle);
-      font-size: 0.88rem;
+      font-size: 1.01rem;
       font-weight: 600;
       color: var(--text-secondary);
       background: rgba(255,255,255,0.03);
@@ -208,11 +216,11 @@
       border-color: var(--accent-orange);
       background: var(--accent-orange);
     }
-    .wl-plan-name { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
-    .wl-plan-price { font-size: 0.82rem; color: var(--text-muted); }
+    .wl-plan-name { font-size: 1.04rem; font-weight: 700; color: var(--text-primary); }
+    .wl-plan-price { font-size: 0.94rem; color: var(--text-muted); }
     .wl-plan-save {
       margin-left: auto;
-      font-size: 0.72rem;
+      font-size: 0.94rem;
       font-weight: 700;
       color: var(--accent-gold);
       background: rgba(212,175,55,0.1);
@@ -221,7 +229,7 @@
       padding: 0.15rem 0.5rem;
     }
     .wl-plan-promo {
-      font-size: 0.76rem;
+      font-size: 0.87rem;
       color: var(--accent-orange);
       font-weight: 600;
       margin-left: auto;
@@ -230,7 +238,7 @@
     /* VIP plan selection output */
     .wl-selection-output {
       margin-top: 0.75rem;
-      font-size: 0.82rem;
+      font-size: 0.94rem;
       color: var(--text-muted);
       padding: 0.6rem 0.9rem;
       background: rgba(255,255,255,0.03);
@@ -247,34 +255,34 @@
       padding: 1.25rem 1.25rem;
     }
     .wl-bootcamp-card .tiny {
-      font-size: 0.72rem;
+      font-size: 0.94rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--text-muted);
       margin-bottom: 0.4rem;
     }
-    .wl-bootcamp-card h3 { font-size: 1rem; font-weight: 700; margin: 0 0 0.4rem; }
+    .wl-bootcamp-card h3 { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.4rem; }
     .wl-bootcamp-price {
       display: flex;
       align-items: baseline;
       gap: 0.6rem;
       margin-bottom: 0.75rem;
     }
-    .wl-bootcamp-price strong { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); }
-    .wl-bootcamp-price s { font-size: 0.95rem; color: var(--text-muted); }
+    .wl-bootcamp-price strong { font-size: 1.84rem; font-weight: 800; color: var(--text-primary); }
+    .wl-bootcamp-price s { font-size: 1.09rem; color: var(--text-muted); }
     .wl-bootcamp-bonus {
       background: rgba(212,175,55,0.08);
       border: 1px solid rgba(212,175,55,0.2);
       border-radius: var(--radius-md);
       padding: 0.6rem 0.85rem;
-      font-size: 0.82rem;
+      font-size: 0.94rem;
       color: var(--accent-gold);
       font-weight: 600;
       margin-bottom: 0.75rem;
     }
     .wl-bootcamp-list { list-style: none; padding: 0; margin: 0; }
     .wl-bootcamp-list li {
-      font-size: 0.84rem;
+      font-size: 0.97rem;
       color: var(--text-muted);
       padding: 0.2rem 0;
       padding-left: 1.1rem;
@@ -301,15 +309,15 @@
     }
     .wl-trust-icon { width: 1.3rem; height: 1.3rem; flex-shrink: 0; margin-top: 0.1rem; }
     .wl-trust-body { display: flex; flex-direction: column; gap: 0.2rem; }
-    .wl-trust-body strong { font-size: 0.88rem; color: var(--accent-orange); font-weight: 700; }
-    .wl-trust-body span { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+    .wl-trust-body strong { font-size: 1.01rem; color: var(--accent-orange); font-weight: 700; }
+    .wl-trust-body span { font-size: 1.06rem; color: var(--text-muted); line-height: 1.5; }
 
     /* GDPR badge */
     .wl-gdpr-badge {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      font-size: 0.72rem;
+      font-size: 0.94rem;
       color: var(--text-muted);
       font-weight: 600;
       letter-spacing: 0.04em;
@@ -325,7 +333,7 @@
       border: none;
       border-radius: var(--radius-pill);
       padding: 0.9rem 1.5rem;
-      font-size: 1rem;
+      font-size: 1.15rem;
       font-weight: 700;
       cursor: pointer;
       margin-top: 0.25rem;
@@ -342,12 +350,12 @@
       color: #f87171;
       border-radius: var(--radius-md);
       padding: 0.7rem 1rem;
-      font-size: 0.85rem;
+      font-size: 0.98rem;
       margin-bottom: 0.9rem;
       display: none;
     }
     .wl-form-note {
-      font-size: 0.74rem;
+      font-size: 0.98rem;
       color: var(--text-muted);
       text-align: center;
       margin-top: 0.65rem;
@@ -358,7 +366,7 @@
       display: flex;
       align-items: flex-start;
       gap: 0.6rem;
-      font-size: 0.82rem;
+      font-size: 0.94rem;
       color: var(--text-muted);
       cursor: pointer;
       margin-bottom: 0.5rem;
@@ -373,8 +381,8 @@
     }
     .wl-thankyou.show { display: block; }
     .wl-thankyou-icon { font-size: 2.5rem; margin-bottom: 1rem; }
-    .wl-thankyou h2 { font-size: 1.4rem; font-weight: 700; margin: 0 0 0.75rem; }
-    .wl-thankyou p { font-size: 0.92rem; color: var(--text-muted); line-height: 1.7; margin: 0 0 1.5rem; }
+    .wl-thankyou h2 { font-size: 1.84rem; font-weight: 700; margin: 0 0 0.75rem; }
+    .wl-thankyou p { font-size: 1.06rem; color: var(--text-muted); line-height: 1.7; margin: 0 0 1.5rem; }
     .wl-thankyou-card {
       background: var(--surface-card);
       border: 1px solid var(--border-subtle);
@@ -383,8 +391,8 @@
       padding: 1.25rem 1.5rem;
       text-align: left;
     }
-    .wl-thankyou-card h3 { font-size: 0.95rem; font-weight: 700; margin: 0 0 0.5rem; }
-    .wl-thankyou-card p { font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.6; }
+    .wl-thankyou-card h3 { font-size: 1.09rem; font-weight: 700; margin: 0 0 0.5rem; }
+    .wl-thankyou-card p { font-size: 0.98rem; color: var(--text-muted); margin: 0; line-height: 1.6; }
 
     /* VIP Discord icon in form header */
     .wl-form-header {
@@ -393,12 +401,12 @@
       gap: 0.75rem;
       margin-bottom: 0.4rem;
     }
-    .wl-form-title { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 0; font-family: inherit; }
-    .wl-form-sub { font-size: 0.92rem; color: var(--text-muted); margin: 0 0 1.25rem; line-height: 1.6; font-family: inherit; }
+    .wl-form-title { font-size: 1.38rem; font-weight: 700; color: var(--text-primary); margin: 0; font-family: inherit; }
+    .wl-form-sub { font-size: 1.06rem; color: var(--text-muted); margin: 0 0 1.25rem; line-height: 1.6; font-family: inherit; }
 
     /* Section divider label */
     .wl-panel-label {
-      font-size: 0.72rem;
+      font-size: 0.94rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
