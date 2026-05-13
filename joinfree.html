@@ -37,6 +37,17 @@
   <style>
     /* ── JOIN FREE PAGE STYLES ── */
 
+    /* Hero two-column layout */
+    .jf-hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: center;
+    }
+    @media (max-width: 860px) {
+      .jf-hero-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+    }
+
     /* Stats strip */
     .jf-stats {
       display: flex;
@@ -44,11 +55,7 @@
       flex-wrap: wrap;
       margin-top: 2rem;
     }
-    .jf-stat {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-    }
+    .jf-stat { display: flex; flex-direction: column; gap: 0.2rem; }
     .jf-stat-num {
       font-size: 1.6rem;
       font-weight: 700;
@@ -62,7 +69,126 @@
       letter-spacing: 0.08em;
     }
 
-    /* Philosophy cards grid */
+    /* Form card */
+    .jf-form-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 2.25rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .jf-form-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(224,107,26,0.08) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .jf-form-inner { position: relative; z-index: 1; }
+    .jf-form-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 0.4rem;
+    }
+    .jf-form-sub {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      margin: 0 0 1.5rem;
+      line-height: 1.6;
+    }
+    .jf-field { margin-bottom: 0.9rem; }
+    .jf-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .jf-field input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+      font-size: 0.92rem;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .jf-field input:focus { border-color: var(--accent-orange); }
+    .jf-field input::placeholder { color: var(--text-muted); }
+    .jf-submit-btn {
+      width: 100%;
+      background: var(--accent-orange);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 0.85rem 1.5rem;
+      font-size: 0.97rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 0.25rem;
+      transition: opacity 0.2s, transform 0.15s;
+      font-family: inherit;
+      letter-spacing: 0.01em;
+    }
+    .jf-submit-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+    .jf-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .jf-form-note {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 0.65rem;
+    }
+    .jf-form-error {
+      background: rgba(220,53,69,0.1);
+      border: 1px solid rgba(220,53,69,0.3);
+      color: #f87171;
+      border-radius: var(--radius-md);
+      padding: 0.7rem 1rem;
+      font-size: 0.84rem;
+      margin-bottom: 0.9rem;
+      display: none;
+    }
+
+    /* Success state */
+    .jf-success { display: none; text-align: center; }
+    .jf-success-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .jf-success-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 0.5rem;
+    }
+    .jf-success-sub {
+      font-size: 0.87rem;
+      color: var(--text-muted);
+      margin: 0 0 1.5rem;
+      line-height: 1.6;
+    }
+    .jf-discord-reveal {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: #5865F2;
+      color: #fff;
+      border-radius: var(--radius-pill);
+      padding: 0.8rem 1.5rem;
+      font-size: 0.92rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .jf-discord-reveal:hover { opacity: 0.88; transform: translateY(-1px); }
+    .jf-discord-reveal svg { width: 1rem; height: 1rem; fill: currentColor; }
+
+    /* Philosophy cards */
     .jf-philosophy-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -76,32 +202,13 @@
       padding: 1.6rem 1.5rem;
       transition: border-color 0.2s;
     }
-    .jf-phil-card:hover {
-      border-color: var(--accent-gold);
-    }
-    .jf-phil-icon {
-      font-size: 1.4rem;
-      margin-bottom: 0.75rem;
-      display: block;
-    }
-    .jf-phil-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 0.4rem;
-    }
-    .jf-phil-desc {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-      margin: 0;
-    }
+    .jf-phil-card:hover { border-color: var(--accent-gold); }
+    .jf-phil-icon { font-size: 1.4rem; margin-bottom: 0.75rem; display: block; }
+    .jf-phil-title { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.4rem; }
+    .jf-phil-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
 
-    /* CTW section */
-    .jf-ctw-wrap {
-      max-width: 720px;
-      margin: 0 auto;
-    }
+    /* CTW steps */
+    .jf-ctw-wrap { max-width: 720px; margin: 0 auto; }
     .jf-ctw-steps {
       display: flex;
       flex-direction: column;
@@ -119,40 +226,18 @@
       background: linear-gradient(to bottom, var(--accent-gold), var(--accent-orange), transparent);
       opacity: 0.4;
     }
-    .jf-ctw-step {
-      display: flex;
-      gap: 1.5rem;
-      align-items: flex-start;
-      padding: 1.5rem 0;
-    }
+    .jf-ctw-step { display: flex; gap: 1.5rem; align-items: flex-start; padding: 1.5rem 0; }
     .jf-ctw-num {
-      width: 3rem;
-      height: 3rem;
-      min-width: 3rem;
+      width: 3rem; height: 3rem; min-width: 3rem;
       border-radius: 50%;
       background: var(--surface-card);
       border: 1px solid var(--accent-gold);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--accent-gold);
-      position: relative;
-      z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 700; color: var(--accent-gold);
+      position: relative; z-index: 1;
     }
-    .jf-ctw-content h4 {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0 0 0.3rem;
-    }
-    .jf-ctw-content p {
-      font-size: 0.88rem;
-      color: var(--text-muted);
-      margin: 0;
-      line-height: 1.6;
-    }
+    .jf-ctw-content h4 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.3rem; }
+    .jf-ctw-content p { font-size: 0.88rem; color: var(--text-muted); margin: 0; line-height: 1.6; }
     .jf-ctw-quote {
       background: var(--surface-card);
       border: 1px solid var(--border-subtle);
@@ -161,281 +246,25 @@
       padding: 1.25rem 1.5rem;
       margin-top: 1rem;
     }
-    .jf-ctw-quote p {
-      font-size: 0.92rem;
-      color: var(--text-secondary);
-      line-height: 1.7;
-      margin: 0;
-      font-style: italic;
-    }
-
-    /* What you get */
-    .jf-get-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1.25rem;
-      margin-top: 2.5rem;
-    }
-    .jf-get-card {
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .jf-get-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      background: rgba(var(--accent-gold-rgb, 212,175,55), 0.1);
-      border: 1px solid rgba(var(--accent-gold-rgb, 212,175,55), 0.25);
-      color: var(--accent-gold);
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 0.25rem 0.6rem;
-      border-radius: 999px;
-      width: fit-content;
-      margin-bottom: 0.25rem;
-    }
-    .jf-get-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-    .jf-get-desc {
-      font-size: 0.84rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-      margin: 0;
-    }
-
-    /* Form section */
-    .jf-form-section {
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      padding: 3rem 2.5rem;
-      max-width: 560px;
-      margin: 0 auto;
-      position: relative;
-      overflow: hidden;
-    }
-    .jf-form-section::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse at 50% 0%, rgba(var(--accent-orange-rgb, 224,107,26), 0.08) 0%, transparent 65%);
-      pointer-events: none;
-    }
-    .jf-form-wrap {
-      position: relative;
-      z-index: 1;
-    }
-    .jf-form-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0 0 0.5rem;
-      text-align: center;
-    }
-    .jf-form-sub {
-      font-size: 0.88rem;
-      color: var(--text-muted);
-      text-align: center;
-      margin: 0 0 2rem;
-      line-height: 1.6;
-    }
-    .jf-field {
-      margin-bottom: 1rem;
-    }
-    .jf-field label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      margin-bottom: 0.4rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .jf-field input {
-      width: 100%;
-      background: var(--surface-input, rgba(255,255,255,0.05));
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 0.8rem 1rem;
-      font-size: 0.95rem;
-      color: var(--text-primary);
-      outline: none;
-      transition: border-color 0.2s;
-      box-sizing: border-box;
-      font-family: inherit;
-    }
-    .jf-field input:focus {
-      border-color: var(--accent-orange);
-    }
-    .jf-field input::placeholder {
-      color: var(--text-muted);
-    }
-    .jf-submit-btn {
-      width: 100%;
-      background: var(--accent-orange);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-pill);
-      padding: 0.9rem 1.5rem;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 0.5rem;
-      transition: opacity 0.2s, transform 0.15s;
-      font-family: inherit;
-      letter-spacing: 0.01em;
-    }
-    .jf-submit-btn:hover:not(:disabled) {
-      opacity: 0.88;
-      transform: translateY(-1px);
-    }
-    .jf-submit-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    .jf-form-note {
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: 0.75rem;
-    }
-    .jf-form-error {
-      background: rgba(220, 53, 69, 0.1);
-      border: 1px solid rgba(220, 53, 69, 0.3);
-      color: #f87171;
-      border-radius: var(--radius-md);
-      padding: 0.75rem 1rem;
-      font-size: 0.85rem;
-      margin-bottom: 1rem;
-      display: none;
-    }
-
-    /* Success state */
-    .jf-success {
-      display: none;
-      text-align: center;
-    }
-    .jf-success-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-    .jf-success-title {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0 0 0.5rem;
-    }
-    .jf-success-sub {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      margin: 0 0 1.75rem;
-      line-height: 1.6;
-    }
-    .jf-discord-reveal {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.6rem;
-      background: #5865F2;
-      color: #fff;
-      border-radius: var(--radius-pill);
-      padding: 0.85rem 1.75rem;
-      font-size: 0.95rem;
-      font-weight: 700;
-      text-decoration: none;
-      transition: opacity 0.2s, transform 0.15s;
-    }
-    .jf-discord-reveal:hover {
-      opacity: 0.88;
-      transform: translateY(-1px);
-    }
-    .jf-discord-reveal svg {
-      width: 1.1rem;
-      height: 1.1rem;
-      fill: currentColor;
-    }
-
-    /* Testimonials — reuse carousel from site */
-    .jf-carousel-section {
-      overflow: hidden;
-    }
-    .jf-carousel-track-wrap {
-      overflow: hidden;
-      mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
-    }
-    .jf-carousel-track {
-      display: flex;
-      gap: 1.25rem;
-      animation: jfScroll 40s linear infinite;
-      width: max-content;
-    }
-    .jf-carousel-track:hover { animation-play-state: paused; }
-    @keyframes jfScroll {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
-    .jf-carousel-card {
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 1.5rem 1.75rem;
-      min-width: 300px;
-      max-width: 340px;
-      flex-shrink: 0;
-    }
-    .jf-carousel-quote {
-      font-size: 2rem;
-      color: var(--accent-gold);
-      line-height: 1;
-      display: block;
-      margin-bottom: 0.5rem;
-      font-family: Georgia, serif;
-    }
-    .jf-carousel-text {
-      font-size: 0.88rem;
-      color: var(--text-secondary);
-      line-height: 1.65;
-      margin: 0 0 1rem;
-    }
-    .jf-carousel-attr {
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 600;
-    }
+    .jf-ctw-quote p { font-size: 0.92rem; color: var(--text-secondary); line-height: 1.7; margin: 0; font-style: italic; }
 
     /* Mobile */
     @media (max-width: 640px) {
       .jf-stats { gap: 1.5rem; }
-      .jf-form-section { padding: 2rem 1.25rem; }
+      .jf-form-card { padding: 1.75rem 1.25rem; }
       .jf-philosophy-grid { grid-template-columns: 1fr; }
-      .jf-get-grid { grid-template-columns: 1fr; }
       .jf-ctw-steps::before { left: 1.25rem; }
     }
   </style>
 </head>
 <body class="page-home">
 
-  <!-- Ambient background glows -->
   <div class="ffx-bg" aria-hidden="true">
     <div class="ffx-glow ffx-glow-violet" style="width:900px;height:900px;top:-200px;right:-300px;opacity:0.60;"></div>
     <div class="ffx-glow ffx-glow-deep"   style="width:800px;height:800px;top:-100px;left:-350px;opacity:0.50;"></div>
     <div class="ffx-glow ffx-glow-mid"    style="width:1000px;height:600px;top:1800px;left:50%;transform:translateX(-50%);opacity:0.40;"></div>
-    <div class="ffx-glow ffx-glow-mid"    style="width:900px;height:700px;top:3600px;left:50%;transform:translateX(-50%);opacity:0.35;"></div>
   </div>
 
-  <!-- NAV -->
   <nav class="nav">
     <div class="nav-wrap">
       <div class="nav-brand"><a href="index.html">FORTITUDEFX</a></div>
@@ -467,81 +296,117 @@
 
   <div class="page-container">
 
-    <!-- ═══ HERO ═══ -->
+    <!-- ═══ HERO — text left, form right ═══ -->
     <section class="section hero ffx-reveal" id="top">
       <div class="hero-glow"></div>
-      <div class="section-wrap hero-grid">
-        <div style="position:relative;z-index:1;">
-          <div class="ffx-tagline-pill">
-            <span class="ffx-tagline-dot"></span>
-            FREE COMMUNITY ACCESS
-          </div>
-          <h1>2 Candles.<br><span class="gold">1 Story.</span></h1>
-          <p class="hero-sub">FortitudeFX is a structured forex trading ecosystem built around liquidity, market behaviour, and mechanical execution. No signals. No hype. No Lambo culture. Just a framework you can apply for the next 20 to 30 years.</p>
+      <div class="section-wrap">
+        <div class="jf-hero-grid">
 
-          <div class="jf-stats">
-            <div class="jf-stat">
-              <span class="jf-stat-num">7,570+</span>
-              <span class="jf-stat-label">YouTube Subscribers</span>
+          <!-- Left: text + stats -->
+          <div style="position:relative;z-index:1;">
+            <div class="ffx-tagline-pill">
+              <span class="ffx-tagline-dot"></span>
+              FREE COMMUNITY ACCESS
             </div>
-            <div class="jf-stat">
-              <span class="jf-stat-num">200+</span>
-              <span class="jf-stat-label">Community Members</span>
-            </div>
-            <div class="jf-stat">
-              <span class="jf-stat-num">Free</span>
-              <span class="jf-stat-label">Always</span>
+            <h1>2 Candles.<br><span class="gold">1 Story.</span></h1>
+            <p class="hero-sub">FortitudeFX is a structured forex trading ecosystem built around liquidity, market behaviour, and mechanical execution. No signals. No hype. No Lambo culture. Just a framework you can apply for the next 20 to 30 years.</p>
+            <div class="jf-stats">
+              <div class="jf-stat">
+                <span class="jf-stat-num">7,570+</span>
+                <span class="jf-stat-label">YouTube Subscribers</span>
+              </div>
+              <div class="jf-stat">
+                <span class="jf-stat-num">200+</span>
+                <span class="jf-stat-label">Community Members</span>
+              </div>
+              <div class="jf-stat">
+                <span class="jf-stat-num">Free</span>
+                <span class="jf-stat-label">Always</span>
+              </div>
             </div>
           </div>
 
-          <div class="hero-actions" style="margin-top:2rem;">
-            <a href="#access" class="btn btn-joinfree">Request Free Access</a>
-            <a href="#what-you-get" class="btn btn-secondary">See What&#8217;s Inside</a>
+          <!-- Right: form -->
+          <div style="position:relative;z-index:1;">
+            <div class="jf-form-card" id="access">
+              <div class="jf-form-inner">
+
+                <!-- Form state -->
+                <div id="jfFormState">
+                  <h3 class="jf-form-title">Request Free Access</h3>
+                  <p class="jf-form-sub">One form. One submit. Discord invite revealed immediately.</p>
+                  <div class="jf-form-error" id="jfError"></div>
+                  <div class="jf-field">
+                    <label for="jfName">Your Name</label>
+                    <input type="text" id="jfName" placeholder="First name" autocomplete="given-name" />
+                  </div>
+                  <div class="jf-field">
+                    <label for="jfEmail">Email Address</label>
+                    <input type="email" id="jfEmail" placeholder="you@email.com" autocomplete="email" />
+                  </div>
+                  <button class="jf-submit-btn" id="jfSubmit" type="button">Get Free Access &rarr;</button>
+                  <p class="jf-form-note">No spam. No sales pressure. Unsubscribe any time.</p>
+                </div>
+
+                <!-- Success state -->
+                <div class="jf-success" id="jfSuccess">
+                  <div class="jf-success-icon">&#x2705;</div>
+                  <h3 class="jf-success-title">You&#8217;re in.</h3>
+                  <p class="jf-success-sub">Welcome to FortitudeFX. A confirmation has been sent to your inbox. Click below to join the Discord &#8212; your access is active immediately.</p>
+                  <a href="https://discord.com/invite/fWAPJdR8TR" class="jf-discord-reveal" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                    Join the Discord
+                  </a>
+                </div>
+
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
     </section>
 
     <div class="section-break"></div>
 
-    <!-- ═══ WHAT MAKES FFX DIFFERENT ═══ -->
+    <!-- ═══ PHILOSOPHY ═══ -->
     <section class="section ffx-reveal" id="philosophy">
       <div class="section-wrap">
         <div class="section-head">
           <span class="kicker">The Philosophy</span>
           <h2>Built different. <span class="gold">On purpose.</span></h2>
-          <p class="section-sub">Most trading communities sell confidence they can&#8217;t back up. FortitudeFX was built as a direct rejection of that. Every element — the framework, the content, the community — reflects one belief: understand the market or don&#8217;t trade it.</p>
+          <p class="section-sub">Most trading communities sell confidence they can&#8217;t back up. FortitudeFX was built as a direct rejection of that. Every element &#8212; the framework, the content, the community &#8212; reflects one belief: understand the market or don&#8217;t trade it.</p>
         </div>
         <div class="jf-philosophy-grid">
           <div class="jf-phil-card">
-            <span class="jf-phil-icon">🏦</span>
+            <span class="jf-phil-icon">&#x1F3E6;</span>
             <div class="jf-phil-title">Institutional Mindset</div>
-            <p class="jf-phil-desc">Not gambling. Not indicators. Not hype. Markets are driven by institutions hunting liquidity — and that&#8217;s the only story worth learning to read.</p>
+            <p class="jf-phil-desc">Not gambling. Not indicators. Not hype. Markets are driven by institutions hunting liquidity &#8212; and that&#8217;s the only story worth learning to read.</p>
           </div>
           <div class="jf-phil-card">
-            <span class="jf-phil-icon">💧</span>
+            <span class="jf-phil-icon">&#x1F4A7;</span>
             <div class="jf-phil-title">Liquidity-Based Trading</div>
-            <p class="jf-phil-desc">Price moves toward liquidity first. Before entry, before stop, before target — liquidity is the question. Every trade starts and ends there.</p>
+            <p class="jf-phil-desc">Price moves toward liquidity first. Before entry, before stop, before target &#8212; liquidity is the question. Every trade starts and ends there.</p>
           </div>
           <div class="jf-phil-card">
-            <span class="jf-phil-icon">⚙️</span>
+            <span class="jf-phil-icon">&#x2699;&#xFE0F;</span>
             <div class="jf-phil-title">Mechanical Framework</div>
-            <p class="jf-phil-desc">Clear execution rules. Repeatable structure. Five defined models — so your edge isn&#8217;t a feeling, it&#8217;s a process you can test, review, and refine.</p>
+            <p class="jf-phil-desc">Clear execution rules. Repeatable structure. Five defined models &#8212; so your edge isn&#8217;t a feeling, it&#8217;s a process you can test, review, and refine.</p>
           </div>
           <div class="jf-phil-card">
-            <span class="jf-phil-icon">📖</span>
+            <span class="jf-phil-icon">&#x1F4D6;</span>
             <div class="jf-phil-title">Education First</div>
             <p class="jf-phil-desc">Understand why trades work before you take them. If you can&#8217;t narrate the setup from structure to execution, you&#8217;re not ready to trade it.</p>
           </div>
           <div class="jf-phil-card">
-            <span class="jf-phil-icon">🤝</span>
+            <span class="jf-phil-icon">&#x1F91D;</span>
             <div class="jf-phil-title">Calm Community</div>
-            <p class="jf-phil-desc">No spam. No fake flexing. No toxic signal culture. Members arrive to learn, discuss, and grow. The environment reflects the framework — structured and deliberate.</p>
+            <p class="jf-phil-desc">No spam. No fake flexing. No toxic signal culture. Members arrive to learn, discuss, and grow. The environment reflects the framework &#8212; structured and deliberate.</p>
           </div>
           <div class="jf-phil-card">
-            <span class="jf-phil-icon">🌐</span>
+            <span class="jf-phil-icon">&#x1F310;</span>
             <div class="jf-phil-title">Multi-Platform Ecosystem</div>
-            <p class="jf-phil-desc">Discord. YouTube. Articles. Future tools and apps. The free community is the entry point — the ecosystem keeps expanding around you.</p>
+            <p class="jf-phil-desc">Discord. YouTube. Articles. Future tools and apps. The free community is the entry point &#8212; the ecosystem keeps expanding around you.</p>
           </div>
         </div>
       </div>
@@ -555,23 +420,22 @@
         <div class="jf-ctw-wrap">
           <div class="section-head">
             <span class="kicker">The Framework</span>
-            <h2>Catch The Wick — <span class="gold">explained simply.</span></h2>
+            <h2>Catch The Wick &#8212; <span class="gold">explained simply.</span></h2>
             <p class="section-sub">You don&#8217;t need the full strategy to understand the concept. Two candles tell a complete story. Here&#8217;s what you&#8217;re actually learning to read.</p>
           </div>
-
           <div class="jf-ctw-steps">
             <div class="jf-ctw-step">
               <div class="jf-ctw-num">1</div>
               <div class="jf-ctw-content">
                 <h4>Candle 1 establishes direction</h4>
-                <p>The first candle creates a reference point — a high, a low, a liquidity pool sitting above or below price. The market has told you where it needs to go.</p>
+                <p>The first candle creates a reference point &#8212; a high, a low, a liquidity pool sitting above or below price. The market has told you where it needs to go.</p>
               </div>
             </div>
             <div class="jf-ctw-step">
               <div class="jf-ctw-num">2</div>
               <div class="jf-ctw-content">
                 <h4>Candle 2 sweeps liquidity</h4>
-                <p>Price extends beyond that reference point — sweeping the liquidity sitting at the highs or lows. The wick is the footprint. That sweep is the trigger.</p>
+                <p>Price extends beyond that reference point &#8212; sweeping the liquidity sitting at the highs or lows. The wick is the footprint. That sweep is the trigger.</p>
               </div>
             </div>
             <div class="jf-ctw-step">
@@ -582,209 +446,8 @@
               </div>
             </div>
           </div>
-
           <div class="jf-ctw-quote">
-            <p>The goal is not prediction. The goal is structured participation — after liquidity is taken, after the market has shown its hand, after the story is confirmed. That is Catch The Wick.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <div class="section-break"></div>
-
-    <!-- ═══ WHAT YOU GET FREE ═══ -->
-    <section class="section ffx-reveal" id="what-you-get">
-      <div class="section-wrap">
-        <div class="section-head">
-          <span class="kicker">Free Access</span>
-          <h2>Not just a Discord link. <span class="gold">A whole ecosystem.</span></h2>
-          <p class="section-sub">Free members get real access. Not a watered-down preview — a genuine entry point into how FortitudeFX thinks, trades, and teaches.</p>
-        </div>
-        <div class="jf-get-grid">
-          <div class="jf-get-card">
-            <span class="jf-get-badge">✓ Included</span>
-            <div class="jf-get-title">Free Discord Access</div>
-            <p class="jf-get-desc">Live discussions, market structure conversations, and a community that actually talks about trading — not results.</p>
-          </div>
-          <div class="jf-get-card">
-            <span class="jf-get-badge">✓ Included</span>
-            <div class="jf-get-title">Educational Breakdowns</div>
-            <p class="jf-get-desc">Learn liquidity, sweeps, and mechanical execution from the ground up. Understand why trades work before you ever take one.</p>
-          </div>
-          <div class="jf-get-card">
-            <span class="jf-get-badge">✓ Included</span>
-            <div class="jf-get-title">YouTube Content Library</div>
-            <p class="jf-get-desc">Every video. Every breakdown. The full CTW methodology explained session by session — 7,570 traders already watching.</p>
-          </div>
-          <div class="jf-get-card">
-            <span class="jf-get-badge">✓ Included</span>
-            <div class="jf-get-title">Weekly Market Insights</div>
-            <p class="jf-get-desc">Trading psychology, market behaviour analysis, and execution notes — delivered consistently, not when it suits us.</p>
-          </div>
-          <div class="jf-get-card">
-            <span class="jf-get-badge">✓ Included</span>
-            <div class="jf-get-title">Community Challenges</div>
-            <p class="jf-get-desc">Interactive chart exercises and learning games designed to sharpen your read on structure, liquidity, and execution.</p>
-          </div>
-          <div class="jf-get-card">
-            <span class="jf-get-badge">Coming Soon</span>
-            <div class="jf-get-title">Early Platform Access</div>
-            <p class="jf-get-desc">Free members get first access to the chart tools, daily market games, and learning systems being built inside the ecosystem.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <div class="section-break"></div>
-
-    <!-- ═══ SOCIAL PROOF ═══ -->
-    <section class="section jf-carousel-section ffx-reveal" id="proof">
-      <div class="section-wrap">
-        <div class="section-head">
-          <span class="kicker">The Community</span>
-          <h2>Real traders. <span class="gold">Unprompted.</span></h2>
-          <p class="section-sub">The framework either clicks or it doesn&#8217;t. For these members, it clicked.</p>
-        </div>
-      </div>
-      <div class="jf-carousel-track-wrap" style="margin-top:2rem;">
-        <div class="jf-carousel-track">
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">I followed Fortitude way of trading of doing trade for 2 hours each session — it gives me right energy at the right time. Otherwise I was all in for the trades, trying to trade every market. Thanks for the guidance.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">I&#8217;ve purchased about 80 mentorship courses — you name the mentor, I was there. Your words have given me so much hope to stick to this one strategy and this one only. Thank you, and I look forward to seeing more.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">If it&#8217;s a loss then a rule followed loss — and if it&#8217;s a WIN, a rule followed win. This challenge is teaching me to follow your rules no matter what.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">I didn&#8217;t see any of my previous mentors coming live and helping their students. They just give videos and don&#8217;t bother to respond. You are helping people to get success — a pure soul.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">Thank you for helping me narrate the markets with liquidity concepts. You are doing it easily but it was tough to understand at first. Watching your videos again and again helps a lot.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">This strategy works well with all Forex pairs, commodities, and indices. I myself trade NAS and Gold due to sharp movements. Really appreciate the clarity.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">The video you shared has provided so much insight — I&#8217;ve watched it over and over and can&#8217;t get enough. Having traded for four years and just breaking even, your words have given me real hope.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">Thank you for taking the time to make the trade recap video. I found it very helpful in seeing your whole thought process for choosing and entering the trades.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">Today&#8217;s session was one of the best ones — it clears many things and will help me be more efficient and effective with my selection of zones.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">Thank you very much for your patience and tolerance — these are indeed signs of a good mentor. More wins to you.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">Built by real traders, not marketers. That&#8217;s what separates FortitudeFX. You can feel the difference the moment you start watching.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <!-- Duplicate set for seamless loop -->
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">I followed Fortitude way of trading of doing trade for 2 hours each session — it gives me right energy at the right time. Otherwise I was all in for the trades, trying to trade every market. Thanks for the guidance.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">I&#8217;ve purchased about 80 mentorship courses — you name the mentor, I was there. Your words have given me so much hope to stick to this one strategy and this one only. Thank you, and I look forward to seeing more.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">If it&#8217;s a loss then a rule followed loss — and if it&#8217;s a WIN, a rule followed win. This challenge is teaching me to follow your rules no matter what.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">I didn&#8217;t see any of my previous mentors coming live and helping their students. They just give videos and don&#8217;t bother to respond. You are helping people to get success — a pure soul.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">Thank you for helping me narrate the markets with liquidity concepts. You are doing it easily but it was tough to understand at first. Watching your videos again and again helps a lot.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">The video you shared has provided so much insight — I&#8217;ve watched it over and over and can&#8217;t get enough. Having traded for four years and just breaking even, your words have given me real hope.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-          <div class="jf-carousel-card">
-            <span class="jf-carousel-quote">&ldquo;</span>
-            <p class="jf-carousel-text">Thank you very much for your patience and tolerance — these are indeed signs of a good mentor. More wins to you.</p>
-            <div class="jf-carousel-attr">FortitudeFX Member</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <div class="section-break"></div>
-
-    <!-- ═══ ACCESS FORM ═══ -->
-    <section class="section ffx-reveal" id="access">
-      <div class="section-wrap">
-        <div class="section-head">
-          <span class="kicker">Join Free</span>
-          <h2>200+ traders already inside. <span class="gold">Don&#8217;t miss the next session.</span></h2>
-          <p class="section-sub">Enter your details below to get free access. Your Discord invite is revealed instantly on submit.</p>
-        </div>
-
-        <div class="jf-form-section">
-          <div class="jf-form-wrap">
-
-            <!-- Form state -->
-            <div id="jfFormState">
-              <h3 class="jf-form-title">Request Free Access</h3>
-              <p class="jf-form-sub">One form. One submit. Discord invite revealed immediately — no waiting, no approval needed.</p>
-              <div class="jf-form-error" id="jfError"></div>
-              <div class="jf-field">
-                <label for="jfName">Your Name</label>
-                <input type="text" id="jfName" placeholder="First name" autocomplete="given-name" />
-              </div>
-              <div class="jf-field">
-                <label for="jfEmail">Email Address</label>
-                <input type="email" id="jfEmail" placeholder="you@email.com" autocomplete="email" />
-              </div>
-              <button class="jf-submit-btn" id="jfSubmit" type="button">Get Free Access &rarr;</button>
-              <p class="jf-form-note">No spam. No sales pressure. Unsubscribe any time.</p>
-            </div>
-
-            <!-- Success state -->
-            <div class="jf-success" id="jfSuccess">
-              <div class="jf-success-icon">✅</div>
-              <h3 class="jf-success-title">You&#8217;re in.</h3>
-              <p class="jf-success-sub">Welcome to the FortitudeFX community. A confirmation has been sent to your inbox. Click below to join the Discord — your access is active immediately.</p>
-              <a href="https://discord.com/invite/fWAPJdR8TR" class="jf-discord-reveal" target="_blank" rel="noopener noreferrer">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-                Join the Discord
-              </a>
-            </div>
-
+            <p>The goal is not prediction. The goal is structured participation &#8212; after liquidity is taken, after the market has shown its hand, after the story is confirmed. That is Catch The Wick.</p>
           </div>
         </div>
       </div>
@@ -800,10 +463,10 @@
             <div>
               <span class="kicker">FORTITUDEFX</span>
               <h2>The framework is free. <span class="gold">The discipline is yours.</span></h2>
-              <p>Join a community of traders learning to read markets the right way — through liquidity, structure, and mechanical execution. Free access. No pressure. No expiry.</p>
+              <p>Ready to go deeper? The Bootcamp takes the CTW framework into a full 5-week structured program &#8212; five mechanical models, live execution, and 3 months VIP Discord included.</p>
             </div>
             <div class="cta-actions">
-              <a class="btn btn-joinfree" href="#access">Get Free Access</a>
+              <a class="btn btn-primary" href="bootcamp.html">Explore Bootcamp</a>
               <a class="btn btn-secondary" href="vipdiscord.html">Explore VIP Discord</a>
             </div>
           </div>
@@ -811,9 +474,8 @@
       </div>
     </section>
 
-  </div><!-- /.page-container -->
+  </div>
 
-  <!-- FOOTER -->
   <footer>
     <div class="footer-wrap">
       <div class="footer-left">
@@ -870,7 +532,6 @@
 
   <script>
   (() => {
-    // Nav toggle
     const toggle = document.getElementById('navToggle');
     const mobile = document.getElementById('navMobile');
     if (toggle && mobile) {
@@ -886,7 +547,6 @@
       });
     }
 
-    // Back to top
     const btt = document.getElementById('backToTop');
     if (btt) {
       window.addEventListener('scroll', () => {
@@ -895,7 +555,6 @@
       btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 
-    // Scroll reveals
     const reveals = document.querySelectorAll('.ffx-reveal');
     if (reveals.length) {
       const io = new IntersectionObserver((entries) => {
@@ -906,43 +565,32 @@
       reveals.forEach(el => io.observe(el));
     }
 
-    // Form submission
-    const submitBtn  = document.getElementById('jfSubmit');
-    const nameInput  = document.getElementById('jfName');
-    const emailInput = document.getElementById('jfEmail');
-    const errorBox   = document.getElementById('jfError');
-    const formState  = document.getElementById('jfFormState');
+    const submitBtn    = document.getElementById('jfSubmit');
+    const nameInput    = document.getElementById('jfName');
+    const emailInput   = document.getElementById('jfEmail');
+    const errorBox     = document.getElementById('jfError');
+    const formState    = document.getElementById('jfFormState');
     const successState = document.getElementById('jfSuccess');
 
-    function showError(msg) {
-      errorBox.textContent = msg;
-      errorBox.style.display = 'block';
-    }
-    function hideError() {
-      errorBox.style.display = 'none';
-    }
+    function showError(msg) { errorBox.textContent = msg; errorBox.style.display = 'block'; }
+    function hideError()    { errorBox.style.display = 'none'; }
 
     submitBtn.addEventListener('click', async () => {
       hideError();
       const name  = nameInput.value.trim();
       const email = emailInput.value.trim();
-
-      if (!name) { showError('Please enter your first name.'); return; }
+      if (!name)  { showError('Please enter your first name.'); return; }
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showError('Please enter a valid email address.');
-        return;
+        showError('Please enter a valid email address.'); return;
       }
-
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting…';
-
+      submitBtn.textContent = 'Submitting\u2026';
       try {
         const res = await fetch('/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ firstName: name, email, path: 'Free' })
         });
-
         if (res.ok) {
           formState.style.display = 'none';
           successState.style.display = 'block';
@@ -950,20 +598,17 @@
           const data = await res.json().catch(() => ({}));
           showError(data.error || 'Something went wrong. Please try again.');
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Get Free Access →';
+          submitBtn.textContent = 'Get Free Access \u2192';
         }
       } catch (err) {
-        showError('Network error — please check your connection and try again.');
+        showError('Network error \u2014 please check your connection and try again.');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Get Free Access →';
+        submitBtn.textContent = 'Get Free Access \u2192';
       }
     });
 
-    // Allow Enter key to submit
     [nameInput, emailInput].forEach(input => {
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') submitBtn.click();
-      });
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') submitBtn.click(); });
     });
   })();
   </script>
