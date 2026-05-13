@@ -72,18 +72,31 @@
     /* Form card */
     .jf-form-card {
       background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
+      border: 1px solid rgba(224,107,26,0.25);
       border-radius: var(--radius-xl);
       padding: 2.25rem 2rem;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      box-shadow: 0 0 40px rgba(224,107,26,0.10), 0 0 80px rgba(224,107,26,0.05);
+    }
+    .jf-form-card:hover,
+    .jf-form-card:focus-within {
+      border-color: rgba(224,107,26,0.55);
+      box-shadow: 0 0 60px rgba(224,107,26,0.22), 0 0 120px rgba(224,107,26,0.10);
     }
     .jf-form-card::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at 50% 0%, rgba(224,107,26,0.08) 0%, transparent 65%);
+      border-radius: var(--radius-xl);
+      background: radial-gradient(ellipse at 50% 0%, rgba(224,107,26,0.10) 0%, transparent 65%);
       pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .jf-form-card:hover::before,
+    .jf-form-card:focus-within::before {
+      opacity: 1.6;
     }
     .jf-form-inner { position: relative; z-index: 1; }
     .jf-form-title {
@@ -188,32 +201,23 @@
     .jf-discord-reveal:hover { opacity: 0.88; transform: translateY(-1px); }
     .jf-discord-reveal svg { width: 1rem; height: 1rem; fill: currentColor; }
 
-    /* Philosophy cards */
-    .jf-philosophy-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.25rem;
-      margin-top: 2.5rem;
-    }
-    .jf-phil-card {
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 1.6rem 1.5rem;
-      transition: border-color 0.2s;
-    }
-    .jf-phil-card:hover { border-color: var(--accent-gold); }
-    .jf-phil-icon { font-size: 1.4rem; margin-bottom: 0.75rem; display: block; }
-    .jf-phil-title { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.4rem; }
-    .jf-phil-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
 
-    /* CTW steps */
-    .jf-ctw-wrap { max-width: 720px; margin: 0 auto; }
+
+    /* CTW 2-column */
+    .jf-ctw-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3.5rem;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .jf-ctw-grid { grid-template-columns: 1fr; gap: 2rem; }
+    }
+    .jf-ctw-left .section-sub { margin-bottom: 1.5rem; }
     .jf-ctw-steps {
       display: flex;
       flex-direction: column;
       gap: 0;
-      margin: 2.5rem 0;
       position: relative;
     }
     .jf-ctw-steps::before {
@@ -226,7 +230,7 @@
       background: linear-gradient(to bottom, var(--accent-gold), var(--accent-orange), transparent);
       opacity: 0.4;
     }
-    .jf-ctw-step { display: flex; gap: 1.5rem; align-items: flex-start; padding: 1.5rem 0; }
+    .jf-ctw-step { display: flex; gap: 1.25rem; align-items: flex-start; padding: 1.25rem 0; }
     .jf-ctw-num {
       width: 3rem; height: 3rem; min-width: 3rem;
       border-radius: 50%;
@@ -236,23 +240,21 @@
       font-size: 0.9rem; font-weight: 700; color: var(--accent-gold);
       position: relative; z-index: 1;
     }
-    .jf-ctw-content h4 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.3rem; }
-    .jf-ctw-content p { font-size: 0.88rem; color: var(--text-muted); margin: 0; line-height: 1.6; }
+    .jf-ctw-content h4 { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0.15rem 0 0.3rem; }
+    .jf-ctw-content p { font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.6; }
     .jf-ctw-quote {
       background: var(--surface-card);
       border: 1px solid var(--border-subtle);
       border-left: 3px solid var(--accent-gold);
       border-radius: var(--radius-md);
       padding: 1.25rem 1.5rem;
-      margin-top: 1rem;
     }
-    .jf-ctw-quote p { font-size: 0.92rem; color: var(--text-secondary); line-height: 1.7; margin: 0; font-style: italic; }
+    .jf-ctw-quote p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7; margin: 0; font-style: italic; }
 
     /* Mobile */
     @media (max-width: 640px) {
       .jf-stats { gap: 1.5rem; }
       .jf-form-card { padding: 1.75rem 1.25rem; }
-      .jf-philosophy-grid { grid-template-columns: 1fr; }
       .jf-ctw-steps::before { left: 1.25rem; }
     }
   </style>
@@ -336,10 +338,17 @@
                   <h3 class="jf-form-title">Request Free Access</h3>
                   <p class="jf-form-sub">One form. One submit. Discord invite revealed immediately.</p>
                   <div class="jf-form-error" id="jfError"></div>
-                  <div class="jf-field">
-                    <label for="jfName">Your Name</label>
-                    <input type="text" id="jfName" placeholder="First name" autocomplete="given-name" />
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                    <div class="jf-field" style="margin-bottom:0;">
+                      <label for="jfFirstName">First Name</label>
+                      <input type="text" id="jfFirstName" placeholder="First name" autocomplete="given-name" />
+                    </div>
+                    <div class="jf-field" style="margin-bottom:0;">
+                      <label for="jfLastName">Last Name</label>
+                      <input type="text" id="jfLastName" placeholder="Last name" autocomplete="family-name" />
+                    </div>
                   </div>
+                  <div style="height:0.9rem;"></div>
                   <div class="jf-field">
                     <label for="jfEmail">Email Address</label>
                     <input type="email" id="jfEmail" placeholder="you@email.com" autocomplete="email" />
@@ -369,86 +378,48 @@
 
     <div class="section-break"></div>
 
-    <!-- ═══ PHILOSOPHY ═══ -->
-    <section class="section ffx-reveal" id="philosophy">
-      <div class="section-wrap">
-        <div class="section-head">
-          <span class="kicker">The Philosophy</span>
-          <h2>Built different. <span class="gold">On purpose.</span></h2>
-          <p class="section-sub">Most trading communities sell confidence they can&#8217;t back up. FortitudeFX was built as a direct rejection of that. Every element &#8212; the framework, the content, the community &#8212; reflects one belief: understand the market or don&#8217;t trade it.</p>
-        </div>
-        <div class="jf-philosophy-grid">
-          <div class="jf-phil-card">
-            <span class="jf-phil-icon">&#x1F3E6;</span>
-            <div class="jf-phil-title">Institutional Mindset</div>
-            <p class="jf-phil-desc">Not gambling. Not indicators. Not hype. Markets are driven by institutions hunting liquidity &#8212; and that&#8217;s the only story worth learning to read.</p>
-          </div>
-          <div class="jf-phil-card">
-            <span class="jf-phil-icon">&#x1F4A7;</span>
-            <div class="jf-phil-title">Liquidity-Based Trading</div>
-            <p class="jf-phil-desc">Price moves toward liquidity first. Before entry, before stop, before target &#8212; liquidity is the question. Every trade starts and ends there.</p>
-          </div>
-          <div class="jf-phil-card">
-            <span class="jf-phil-icon">&#x2699;&#xFE0F;</span>
-            <div class="jf-phil-title">Mechanical Framework</div>
-            <p class="jf-phil-desc">Clear execution rules. Repeatable structure. Five defined models &#8212; so your edge isn&#8217;t a feeling, it&#8217;s a process you can test, review, and refine.</p>
-          </div>
-          <div class="jf-phil-card">
-            <span class="jf-phil-icon">&#x1F4D6;</span>
-            <div class="jf-phil-title">Education First</div>
-            <p class="jf-phil-desc">Understand why trades work before you take them. If you can&#8217;t narrate the setup from structure to execution, you&#8217;re not ready to trade it.</p>
-          </div>
-          <div class="jf-phil-card">
-            <span class="jf-phil-icon">&#x1F91D;</span>
-            <div class="jf-phil-title">Calm Community</div>
-            <p class="jf-phil-desc">No spam. No fake flexing. No toxic signal culture. Members arrive to learn, discuss, and grow. The environment reflects the framework &#8212; structured and deliberate.</p>
-          </div>
-          <div class="jf-phil-card">
-            <span class="jf-phil-icon">&#x1F310;</span>
-            <div class="jf-phil-title">Multi-Platform Ecosystem</div>
-            <p class="jf-phil-desc">Discord. YouTube. Articles. Future tools and apps. The free community is the entry point &#8212; the ecosystem keeps expanding around you.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <div class="section-break"></div>
-
     <!-- ═══ CATCH THE WICK ═══ -->
     <section class="section ffx-reveal" id="ctw">
       <div class="section-wrap">
-        <div class="jf-ctw-wrap">
-          <div class="section-head">
+        <div class="jf-ctw-grid">
+
+          <!-- Left: heading + quote -->
+          <div class="jf-ctw-left">
             <span class="kicker">The Framework</span>
             <h2>Catch The Wick &#8212; <span class="gold">explained simply.</span></h2>
-            <p class="section-sub">You don&#8217;t need the full strategy to understand the concept. Two candles tell a complete story. Here&#8217;s what you&#8217;re actually learning to read.</p>
-          </div>
-          <div class="jf-ctw-steps">
-            <div class="jf-ctw-step">
-              <div class="jf-ctw-num">1</div>
-              <div class="jf-ctw-content">
-                <h4>Candle 1 establishes direction</h4>
-                <p>The first candle creates a reference point &#8212; a high, a low, a liquidity pool sitting above or below price. The market has told you where it needs to go.</p>
-              </div>
-            </div>
-            <div class="jf-ctw-step">
-              <div class="jf-ctw-num">2</div>
-              <div class="jf-ctw-content">
-                <h4>Candle 2 sweeps liquidity</h4>
-                <p>Price extends beyond that reference point &#8212; sweeping the liquidity sitting at the highs or lows. The wick is the footprint. That sweep is the trigger.</p>
-              </div>
-            </div>
-            <div class="jf-ctw-step">
-              <div class="jf-ctw-num">3</div>
-              <div class="jf-ctw-content">
-                <h4>Lower timeframe confirms execution</h4>
-                <p>Drop to the lower timeframe. Wait for the structural confirmation. Enter with defined risk. The framework handles the rest.</p>
-              </div>
+            <p class="section-sub">Two candles tell a complete story. Here&#8217;s what you&#8217;re actually learning to read.</p>
+            <div class="jf-ctw-quote">
+              <p>The goal is not prediction. The goal is structured participation &#8212; after liquidity is taken, after the market has shown its hand, after the story is confirmed. That is Catch The Wick.</p>
             </div>
           </div>
-          <div class="jf-ctw-quote">
-            <p>The goal is not prediction. The goal is structured participation &#8212; after liquidity is taken, after the market has shown its hand, after the story is confirmed. That is Catch The Wick.</p>
+
+          <!-- Right: 3 steps -->
+          <div class="jf-ctw-right">
+            <div class="jf-ctw-steps">
+              <div class="jf-ctw-step">
+                <div class="jf-ctw-num">1</div>
+                <div class="jf-ctw-content">
+                  <h4>Candle 1 establishes direction</h4>
+                  <p>The first candle creates a reference point &#8212; a high, a low, a liquidity pool sitting above or below price.</p>
+                </div>
+              </div>
+              <div class="jf-ctw-step">
+                <div class="jf-ctw-num">2</div>
+                <div class="jf-ctw-content">
+                  <h4>Candle 2 sweeps liquidity</h4>
+                  <p>Price extends beyond that reference point &#8212; sweeping the liquidity at the highs or lows. The wick is the footprint.</p>
+                </div>
+              </div>
+              <div class="jf-ctw-step">
+                <div class="jf-ctw-num">3</div>
+                <div class="jf-ctw-content">
+                  <h4>Lower timeframe confirms</h4>
+                  <p>Drop to the lower timeframe. Wait for structural confirmation. Enter with defined risk.</p>
+                </div>
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
     </section>
@@ -565,21 +536,24 @@
       reveals.forEach(el => io.observe(el));
     }
 
-    const submitBtn    = document.getElementById('jfSubmit');
-    const nameInput    = document.getElementById('jfName');
-    const emailInput   = document.getElementById('jfEmail');
-    const errorBox     = document.getElementById('jfError');
-    const formState    = document.getElementById('jfFormState');
-    const successState = document.getElementById('jfSuccess');
+    const submitBtn      = document.getElementById('jfSubmit');
+    const firstNameInput = document.getElementById('jfFirstName');
+    const lastNameInput  = document.getElementById('jfLastName');
+    const emailInput     = document.getElementById('jfEmail');
+    const errorBox       = document.getElementById('jfError');
+    const formState      = document.getElementById('jfFormState');
+    const successState   = document.getElementById('jfSuccess');
 
     function showError(msg) { errorBox.textContent = msg; errorBox.style.display = 'block'; }
     function hideError()    { errorBox.style.display = 'none'; }
 
     submitBtn.addEventListener('click', async () => {
       hideError();
-      const name  = nameInput.value.trim();
-      const email = emailInput.value.trim();
-      if (!name)  { showError('Please enter your first name.'); return; }
+      const firstName = firstNameInput.value.trim();
+      const lastName  = lastNameInput.value.trim();
+      const email     = emailInput.value.trim();
+      if (!firstName) { showError('Please enter your first name.'); return; }
+      if (!lastName)  { showError('Please enter your last name.'); return; }
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         showError('Please enter a valid email address.'); return;
       }
@@ -589,7 +563,7 @@
         const res = await fetch('/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ firstName: name, email, path: 'Free' })
+          body: JSON.stringify({ firstName, lastName, email, path: 'Free' })
         });
         if (res.ok) {
           formState.style.display = 'none';
@@ -607,7 +581,7 @@
       }
     });
 
-    [nameInput, emailInput].forEach(input => {
+    [firstNameInput, lastNameInput, emailInput].forEach(input => {
       input.addEventListener('keydown', e => { if (e.key === 'Enter') submitBtn.click(); });
     });
   })();
