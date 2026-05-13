@@ -1,6 +1,7 @@
 // Cloudflare Pages Function - FortitudeFX Brevo integration
 // File: /functions/submit.js
 // Handles: Turnstile verification + Brevo contact creation (list 4)
+// Used by: joinfree.html (path=Free) and waitlist.html (path=VIP|Bootcamp)
 
 export async function onRequestPost(context) {
 
@@ -12,7 +13,19 @@ export async function onRequestPost(context) {
     return json({ error: 'Invalid request.' }, 400);
   }
 
-  const { firstName, lastName, email, path, turnstileToken } = payload;
+  const {
+    firstName,
+    lastName,
+    email,
+    path,
+    turnstileToken,
+    // Waitlist-specific fields
+    VIP_PLAN,
+    VIP_PRICE,
+    TRADING_STAGE,
+    NOTE,
+    PROMO_CODE
+  } = payload;
 
   // 2. Basic field validation
   if (!firstName || !email || !path) {
@@ -20,7 +33,7 @@ export async function onRequestPost(context) {
   }
 
   // 3. Turnstile verification
-  // IMPORTANT: Cloudflare siteverify requires application/x-www-form-urlencoded not JSON
+  // Cloudflare siteverify requires application/x-www-form-urlencoded
   const TURNSTILE_SECRET_KEY = context.env.TURNSTILE_SECRET_KEY;
   if (!TURNSTILE_SECRET_KEY) {
     return json({ error: 'Server configuration error.' }, 500);
@@ -47,23 +60,33 @@ export async function onRequestPost(context) {
     return json({ error: 'Security check failed. Please try again.' }, 400);
   }
 
-  // 4. Brevo contact creation
+  // 4. Build Brevo attributes
   const BREVO_API_KEY = context.env.BREVO_API_KEY;
   if (!BREVO_API_KEY) {
     return json({ error: 'Server configuration error.' }, 500);
   }
 
+  const attributes = {
+    FIRSTNAME: firstName,
+    LASTNAME:  lastName || '',
+    FFX_PATH:  path
+  };
+
+  // Waitlist extra fields - only add if present
+  if (VIP_PLAN)      attributes.VIP_PLAN      = VIP_PLAN;
+  if (VIP_PRICE)     attributes.VIP_PRICE     = VIP_PRICE;
+  if (TRADING_STAGE) attributes.TRADING_STAGE = TRADING_STAGE;
+  if (NOTE)          attributes.NOTE          = NOTE;
+  if (PROMO_CODE)    attributes.PROMO_CODE    = PROMO_CODE;
+
   const brevoBody = {
     email,
-    attributes: {
-      FIRSTNAME: firstName,
-      LASTNAME:  lastName || '',
-      FFX_PATH:  path
-    },
+    attributes,
     listIds:       [4],
     updateEnabled: true
   };
 
+  // 5. Post to Brevo
   try {
     const brevoRes = await fetch('https://api.brevo.com/v3/contacts', {
       method:  'POST',
