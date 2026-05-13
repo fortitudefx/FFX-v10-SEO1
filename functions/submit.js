@@ -20,6 +20,7 @@ export async function onRequestPost(context) {
   }
 
   // 3. Turnstile verification
+  // IMPORTANT: Cloudflare siteverify requires application/x-www-form-urlencoded not JSON
   const TURNSTILE_SECRET_KEY = context.env.TURNSTILE_SECRET_KEY;
   if (!TURNSTILE_SECRET_KEY) {
     return json({ error: 'Server configuration error.' }, 500);
@@ -29,14 +30,16 @@ export async function onRequestPost(context) {
     return json({ error: 'Security check required. Please complete the verification.' }, 400);
   }
 
+  const formData = new URLSearchParams();
+  formData.append('secret', TURNSTILE_SECRET_KEY);
+  formData.append('response', turnstileToken);
+  const ip = context.request.headers.get('CF-Connecting-IP');
+  if (ip) formData.append('remoteip', ip);
+
   const tsRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      secret:   TURNSTILE_SECRET_KEY,
-      response: turnstileToken,
-      remoteip: context.request.headers.get('CF-Connecting-IP') || undefined
-    })
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formData.toString()
   });
 
   const tsData = await tsRes.json().catch(() => ({}));
