@@ -2387,6 +2387,7 @@ footer {
   transition: color 0.24s ease;
   padding: 4px 14px;
   position: relative;
+  white-space: nowrap;
 }
 
 .footer-nav a + a::before {
