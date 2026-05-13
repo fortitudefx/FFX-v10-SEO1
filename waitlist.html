@@ -130,7 +130,7 @@
       border-radius: var(--radius-md);
       padding: 0.75rem 1rem;
       font-size: 1rem;
-      color: var(--text-primary);
+      color: var(--accent-orange);
       outline: none;
       transition: border-color 0.2s;
       box-sizing: border-box;
@@ -140,7 +140,10 @@
     .wl-field select:focus,
     .wl-field textarea:focus { border-color: var(--accent-orange); }
     .wl-field input::placeholder,
+    .wl-field select::placeholder,
     .wl-field textarea::placeholder { color: var(--text-muted); }
+    .wl-field select { color: var(--text-muted); }
+    .wl-field select:valid { color: var(--accent-orange); }
     .wl-field select option { background: #1a1a2e; color: var(--text-primary); }
     .wl-field textarea { resize: vertical; min-height: 80px; }
 
@@ -176,7 +179,9 @@
     .wl-panel.is-active { display: block; }
 
     /* VIP plan cards */
-    .wl-plan-grid { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.75rem; }
+    .wl-plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.75rem; }
+    @media (max-width: 560px) { .wl-plan-grid { grid-template-columns: 1fr; } }
+    .wl-plan-lifetime { grid-column: 1 / -1; }
     .wl-plan-input { display: none; }
     .wl-plan-card {
       display: flex;
@@ -296,7 +301,7 @@
     }
     .wl-trust-icon { width: 1.3rem; height: 1.3rem; flex-shrink: 0; margin-top: 0.1rem; }
     .wl-trust-body { display: flex; flex-direction: column; gap: 0.2rem; }
-    .wl-trust-body strong { font-size: 0.88rem; color: var(--accent-orange-text, #e06b1a); font-weight: 700; }
+    .wl-trust-body strong { font-size: 0.88rem; color: var(--accent-orange); font-weight: 700; }
     .wl-trust-body span { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
 
     /* GDPR badge */
@@ -447,47 +452,7 @@
 
   <div class="page-container">
 
-    <!-- - HERO &#8212; heading left, benefit boxes right - -->
-    <section class="section hero ffx-reveal" id="top">
-      <div class="hero-glow"></div>
-      <div class="section-wrap">
-        <div class="wl-hero-grid">
-
-          <!-- Left: heading -->
-          <div style="position:relative;z-index:1;">
-            <div class="ffx-tagline-pill">
-              <span class="ffx-tagline-dot"></span>
-              WAITLIST
-            </div>
-            <h1>Before you step in,<br><span class="gold">know what matters.</span></h1>
-            <p class="hero-sub">FortitudeFX is designed to reduce confusion, elevate discipline, and create a cleaner path forward. This is not about more information. It is about better understanding, stronger structure, and sharper execution.</p>
-          </div>
-
-          <!-- Right: benefit boxes -->
-          <div style="position:relative;z-index:1;">
-            <div class="wl-benefit-list">
-              <div class="wl-benefit-item">
-                <strong>Who this is for</strong>
-                <span>Traders who want less noise, more structure, and a more disciplined decision-making process.</span>
-              </div>
-              <div class="wl-benefit-item">
-                <strong>What makes FFX different</strong>
-                <span>Direction, liquidity, timing, and execution &#8212; without forcing complexity just to sound advanced.</span>
-              </div>
-              <div class="wl-benefit-item">
-                <strong>Where to start</strong>
-                <span>Choose Bootcamp for foundation. Choose VIP for the live ecosystem. Or join the free community first.</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <div class="section-break"></div>
-
-    <!-- - FORM &#8212; full width - -->
+    <!-- - FORM - -->
     <section class="section ffx-reveal" id="form">
       <div class="section-wrap">
 
@@ -498,7 +463,7 @@
         </div>
 
         <!-- Form card -->
-        <div class="wl-form-card" style="max-width:720px;margin:0 auto;" id="formCardShell">
+        <div class="wl-form-card" id="formCardShell">
           <div class="wl-form-inner">
 
             <!-- Form state -->
@@ -595,7 +560,7 @@
                     </label>
 
                     <input class="wl-plan-input" type="radio" name="wlVipPlan" id="wl-plan-lifetime" value="lifetime" />
-                    <label class="wl-plan-card" for="wl-plan-lifetime">
+                    <label class="wl-plan-card wl-plan-lifetime" for="wl-plan-lifetime">
                       <div class="wl-plan-dot"></div>
                       <div>
                         <div class="wl-plan-name">Lifetime</div>
@@ -670,20 +635,38 @@
                 We use your information to send FortitudeFX updates and relevant offers based on your selected path. By submitting you agree to our <a href="/privacy" target="_blank" style="color:var(--text-secondary);">Privacy Policy</a>. Your data is stored securely and never sold.
               </p>
 
-              <!-- Turnstile -->
-              <div class="cf-turnstile" data-sitekey="0x4AAAAAADOXuZfCyZAZ8FBj" data-theme="dark" data-appearance="always" style="margin:0.75rem 0;min-height:65px;"></div>
+              <!-- Turnstile + GDPR -->
+              <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;margin:0.75rem 0;">
+                <div class="cf-turnstile" data-sitekey="0x4AAAAAADOXuZfCyZAZ8FBj" data-theme="dark" data-appearance="always" style="min-height:65px;"></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;opacity:0.85;">
+                  <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg" aria-label="GDPR Compliant">
+                    <circle cx="22" cy="22" r="22" fill="#003399"/>
+                    <!-- EU stars -->
+                    <g fill="#FFCC00" font-size="4">
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(0,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(30,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(60,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(90,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(120,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(150,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(180,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(210,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(240,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(270,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(300,22,22)"/>
+                      <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(330,22,22)"/>
+                    </g>
+                    <text x="22" y="26" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="8.5" fill="#FFFFFF" letter-spacing="0.5">GDPR</text>
+                  </svg>
+                  <span style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Protected</span>
+                </div>
+              </div>
 
               <!-- Submit -->
               <button class="wl-submit-btn" id="wlSubmit" type="button">Secure My Spot &rarr;</button>
 
-              <!-- GDPR + note -->
-              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem;">
-                <p class="wl-form-note" style="margin:0;">Your information is handled with care and never shared.</p>
-                <span class="wl-gdpr-badge">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7l-9-5z"/><polyline points="9 12 11 14 15 10"/></svg>
-                  GDPR Compliant
-                </span>
-              </div>
+              <!-- Note -->
+              <p class="wl-form-note" style="margin-top:0.5rem;">Your information is handled with care and never shared.</p>
 
             </div><!-- /#wlFormState -->
 
@@ -692,10 +675,11 @@
               <div class="wl-thankyou-icon">&#x2705;</div>
               <h2 id="wlTyTitle">You&#8217;re in.</h2>
               <p id="wlTyCopy">Thank you for joining the FortitudeFX waitlist. Your selected path has been recorded.</p>
-              <div class="wl-thankyou-card">
+              <div class="wl-thankyou-card" style="margin-bottom:1.5rem;">
                 <h3>What happens next</h3>
                 <p id="wlTyNext">We&#8217;ll be in touch as soon as your selected path is ready. In the meantime, reach out at <a href="mailto:salmankhanfx@fortitudefx.com" style="color:var(--accent-orange);">salmankhanfx@fortitudefx.com</a></p>
               </div>
+              <a id="wlWhopBtn" href="#" class="wl-submit-btn" target="_blank" rel="noopener noreferrer" style="display:inline-block;text-align:center;text-decoration:none;">Complete Registration &#8594;</a>
             </div>
 
           </div>
@@ -907,13 +891,16 @@
           const ty = THANK_YOU[path];
           document.getElementById('wlTyTitle').textContent = firstName + ' \u2014 ' + ty.title;
           document.getElementById('wlTyCopy').textContent  = ty.copy;
+          // Set Whop URL on button without auto-redirect
+          const whopUrl = path === 'VIP' ? WHOP_URLS.VIP[vipPlan] : WHOP_URLS[path];
+          const whopBtn = document.getElementById('wlWhopBtn');
+          if (whopUrl) { whopBtn.href = whopUrl; whopBtn.style.display = 'inline-block'; }
+          else { whopBtn.style.display = 'none'; }
           formState.style.display = 'none';
           thankyou.classList.add('show');
           thankyou.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-          // Whop redirect
-          const url = path === 'VIP' ? WHOP_URLS.VIP[vipPlan] : WHOP_URLS[path];
-          if (url) setTimeout(() => { window.location.href = url; }, 1800);
+
 
         } else {
           const data = await res.json().catch(() => ({}));
