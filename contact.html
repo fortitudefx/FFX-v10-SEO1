@@ -11,67 +11,59 @@
 </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Join Free | FortitudeFX &#8212; Catch The Wick Community</title>
-  <meta name="description" content="Join the free FortitudeFX community. Liquidity-based trading, mechanical execution, and the Catch The Wick framework &#8212; no hype, no signals, no noise." />
+  <title>Contact | FortitudeFX</title>
+  <meta name="description" content="Get in touch with FortitudeFX. Questions about VIP Discord, Bootcamp, partnerships, or general enquiries — we read every message." />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://fortitudefx.com/joinfree" />
+  <link rel="canonical" href="https://fortitudefx.com/contact" />
 
   <meta property="og:type"        content="website" />
-  <meta property="og:url"         content="https://fortitudefx.com/joinfree" />
-  <meta property="og:title"       content="Join Free | FortitudeFX &#8212; Catch The Wick" />
-  <meta property="og:description" content="Join the free FortitudeFX community. Liquidity-based trading, mechanical execution, no hype." />
+  <meta property="og:url"         content="https://fortitudefx.com/contact" />
+  <meta property="og:title"       content="Contact | FortitudeFX" />
+  <meta property="og:description" content="Get in touch with FortitudeFX." />
   <meta property="og:image"       content="https://fortitudefx.com/og-fortitudefx.png" />
-  <meta property="og:image:width"  content="1200" />
-  <meta property="og:image:height" content="630" />
   <meta property="og:site_name"   content="FortitudeFX" />
 
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:site"        content="@_fortitudefx" />
-  <meta name="twitter:title"       content="Join Free | FortitudeFX" />
-  <meta name="twitter:description" content="Join the free FortitudeFX community. Liquidity-based trading, mechanical execution, no hype." />
+  <meta name="twitter:title"       content="Contact | FortitudeFX" />
+  <meta name="twitter:description" content="Get in touch with FortitudeFX." />
   <meta name="twitter:image"       content="https://fortitudefx.com/og-fortitudefx.png" />
 
   <meta name="theme-color" content="#06060a" />
-  <link rel="stylesheet" href="styles-base.css" />
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <link rel="stylesheet" href="styles-base.css" />
 
   <style>
-    /* -- JOIN FREE PAGE STYLES -- */
-
-    /* Hero two-column layout */
-    .jf-hero-grid {
+    /* Contact page styles */
+    .ct-hero-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 3rem;
-      align-items: center;
+      align-items: start;
     }
     @media (max-width: 860px) {
-      .jf-hero-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+      .ct-hero-grid { grid-template-columns: 1fr; gap: 2rem; }
     }
 
-    /* Stats strip */
-    .jf-stats {
+    /* Contact cards */
+    .ct-contact-cards { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
+    .ct-contact-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
       display: flex;
-      gap: 2.5rem;
-      flex-wrap: wrap;
-      margin-top: 2rem;
+      align-items: flex-start;
+      gap: 1rem;
     }
-    .jf-stat { display: flex; flex-direction: column; gap: 0.2rem; }
-    .jf-stat-num {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: var(--accent-gold);
-      line-height: 1;
-    }
-    .jf-stat-label {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
+    .ct-contact-icon { font-size: 1.25rem; margin-top: 0.1rem; }
+    .ct-contact-label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.2rem; }
+    .ct-contact-value { font-size: 0.95rem; color: var(--text-primary); font-weight: 600; }
+    .ct-contact-value a { color: var(--accent-orange); text-decoration: none; }
+    .ct-contact-desc { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.5; }
 
     /* Form card */
-    .jf-form-card {
+    .ct-form-card {
       background: var(--surface-card);
       border: 1px solid rgba(224,107,26,0.25);
       border-radius: var(--radius-xl);
@@ -81,41 +73,27 @@
       transition: border-color 0.3s, box-shadow 0.3s;
       box-shadow: 0 0 80px rgba(224,107,26,0.30), 0 0 160px rgba(224,107,26,0.15);
     }
-    .jf-form-card:hover,
-    .jf-form-card:focus-within {
+    .ct-form-card:hover,
+    .ct-form-card:focus-within {
       border-color: rgba(224,107,26,0.75);
       box-shadow: 0 0 80px rgba(224,107,26,0.40), 0 0 160px rgba(224,107,26,0.18);
     }
-    .jf-form-card::before {
+    .ct-form-card::before {
       content: '';
       position: absolute;
       inset: 0;
       border-radius: var(--radius-xl);
-      background: radial-gradient(ellipse at 50% 0%, rgba(224,107,26,0.14) 0%, transparent 65%);
+      background: radial-gradient(ellipse at 50% 0%, rgba(224,107,26,0.12) 0%, transparent 65%);
       pointer-events: none;
       transition: opacity 0.3s;
     }
-    .jf-form-card:hover::before,
-    .jf-form-card:focus-within::before {
-      opacity: 2.5;
-    }
-    .jf-form-inner { position: relative; z-index: 1; }
-    .jf-form-title {
-      font-size: 1.55rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0 0 0.4rem;
-      font-family: inherit;
-    }
-    .jf-form-sub {
-      font-size: 1.06rem;
-      color: var(--text-muted);
-      margin: 0 0 1.5rem;
-      line-height: 1.6;
-      font-family: inherit;
-    }
-    .jf-field { margin-bottom: 0.9rem; }
-    .jf-field label {
+    .ct-form-card:hover::before,
+    .ct-form-card:focus-within::before { opacity: 2; }
+    .ct-form-inner { position: relative; z-index: 1; }
+
+    /* Fields */
+    .ct-field { margin-bottom: 1rem; }
+    .ct-field label {
       display: block;
       font-size: 0.92rem;
       font-weight: 700;
@@ -125,7 +103,9 @@
       letter-spacing: 0.07em;
       font-family: inherit;
     }
-    .jf-field input {
+    .ct-field input,
+    .ct-field select,
+    .ct-field textarea {
       width: 100%;
       background: rgba(255,255,255,0.04);
       border: 1px solid var(--border-subtle);
@@ -138,93 +118,64 @@
       box-sizing: border-box;
       font-family: inherit;
     }
-    .jf-field input:focus { border-color: var(--accent-orange); }
-    .jf-field input::placeholder { color: var(--text-muted); }
-    /* Force orange on browser autofill */
-    .jf-field input:-webkit-autofill,
-    .jf-field input:-webkit-autofill:hover,
-    .jf-field input:-webkit-autofill:focus {
+    .ct-field input:focus,
+    .ct-field select:focus,
+    .ct-field textarea:focus { border-color: var(--accent-orange); }
+    .ct-field input::placeholder,
+    .ct-field textarea::placeholder { color: var(--text-muted); }
+    .ct-field select { color: var(--text-muted); }
+    .ct-field select:valid,
+    .ct-field select.has-value { color: var(--accent-orange); }
+    .ct-field select option { background: #1a1a2e; color: var(--text-primary); }
+    .ct-field textarea { resize: vertical; min-height: 120px; }
+    /* Autofill orange */
+    .ct-field input:-webkit-autofill,
+    .ct-field input:-webkit-autofill:hover,
+    .ct-field input:-webkit-autofill:focus {
       -webkit-text-fill-color: var(--accent-orange) !important;
       -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.04) inset !important;
       transition: background-color 5000s ease-in-out 0s;
     }
-    .jf-submit-btn {
+
+    /* Submit */
+    .ct-submit-btn {
       width: 100%;
       background: var(--accent-orange);
       color: #fff;
       border: none;
       border-radius: var(--radius-pill);
-      padding: 0.85rem 1.5rem;
-      font-size: 1.12rem;
+      padding: 0.9rem 1.5rem;
+      font-size: 1.15rem;
       font-weight: 700;
       cursor: pointer;
       margin-top: 0.25rem;
       transition: opacity 0.2s, transform 0.15s;
       font-family: inherit;
-      letter-spacing: 0.01em;
     }
-    .jf-submit-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
-    .jf-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .jf-form-note {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: 0.65rem;
-    }
-    .jf-form-error {
+    .ct-submit-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+    .ct-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Error */
+    .ct-form-error {
       background: rgba(220,53,69,0.1);
       border: 1px solid rgba(220,53,69,0.3);
       color: #f87171;
       border-radius: var(--radius-md);
       padding: 0.7rem 1rem;
-      font-size: 1.12rem;
+      font-size: 0.97rem;
       margin-bottom: 0.9rem;
       display: none;
     }
+    .ct-form-note { font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-top: 0.65rem; }
 
-    /* Success state */
-    .jf-success { display: none; text-align: center; }
-    .jf-success-icon { font-size: 2.5rem; margin-bottom: 1rem; }
-    .jf-success-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0 0 0.5rem;
-    }
-    .jf-success-sub {
-      font-size: 1.15rem;
-      color: var(--text-muted);
-      margin: 0 0 1.5rem;
-      line-height: 1.6;
-    }
-    .jf-discord-reveal {
-      display: flex;
-      width: 100%;
-      box-sizing: border-box;
-      align-items: center;
-      justify-content: center;
-      gap: 0.6rem;
-      background: #5865F2;
-      color: #fff;
-      border-radius: var(--radius-pill);
-      padding: 0.85rem 1.5rem;
-      font-size: 1.12rem;
-      font-weight: 700;
-      text-decoration: none;
-      transition: opacity 0.2s, transform 0.15s;
-    }
-    .jf-discord-reveal:hover { opacity: 0.88; transform: translateY(-1px); }
-    .jf-discord-reveal svg { width: 1.25rem; height: 1.25rem; fill: currentColor; }
+    /* Success */
+    .ct-success { display: none; text-align: center; padding: 1rem 0; }
+    .ct-success-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .ct-success-title { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.5rem; }
+    .ct-success-sub { font-size: 1rem; color: var(--text-muted); margin: 0; line-height: 1.7; }
 
-
-
-
-
-    /* Mobile */
     @media (max-width: 640px) {
-      .jf-stats { gap: 1.5rem; }
-      .jf-form-card { padding: 1.75rem 1.25rem; }
-      .jf-ctw-steps::before { left: 1.25rem; }
+      .ct-form-card { padding: 1.75rem 1.25rem; }
     }
   </style>
 </head>
@@ -233,9 +184,10 @@
   <div class="ffx-bg" aria-hidden="true">
     <div class="ffx-glow ffx-glow-violet" style="width:900px;height:900px;top:-200px;right:-300px;opacity:0.60;"></div>
     <div class="ffx-glow ffx-glow-deep"   style="width:800px;height:800px;top:-100px;left:-350px;opacity:0.50;"></div>
-    <div class="ffx-glow ffx-glow-mid"    style="width:1000px;height:600px;top:1800px;left:50%;transform:translateX(-50%);opacity:0.40;"></div>
+    <div class="ffx-glow ffx-glow-mid"    style="width:1000px;height:600px;top:1600px;left:50%;transform:translateX(-50%);opacity:0.35;"></div>
   </div>
 
+  <!-- NAV -->
   <nav class="nav">
     <div class="nav-wrap">
       <div class="nav-brand"><a href="index.html">FORTITUDEFX</a></div>
@@ -267,66 +219,105 @@
 
   <div class="page-container">
 
-    <!-- --- HERO &#8212; text left, form right --- -->
     <section class="section hero ffx-reveal" id="top">
       <div class="hero-glow"></div>
       <div class="section-wrap">
-        <div class="jf-hero-grid">
+        <div class="ct-hero-grid">
 
-          <!-- Left: text + stats -->
+          <!-- Left: heading + contact info -->
           <div style="position:relative;z-index:1;">
             <div class="ffx-tagline-pill">
               <span class="ffx-tagline-dot"></span>
-              FREE COMMUNITY ACCESS
+              GET IN TOUCH
             </div>
-            <h1>2 Candles.<br><span class="gold">1 Story.</span></h1>
-            <p class="hero-sub">FortitudeFX is a structured forex trading ecosystem built around liquidity, market behaviour, and mechanical execution. No signals. No hype. No Lambo culture. Just a framework you can apply for the next 20 to 30 years.</p>
-            <div class="jf-stats">
-              <div class="jf-stat">
-                <span class="jf-stat-num">7,570+</span>
-                <span class="jf-stat-label">YouTube Subscribers</span>
+            <h1>We read<br><span class="gold">every message.</span></h1>
+            <p class="hero-sub">Whether you have a question about VIP Discord, the Bootcamp, a partnership idea, or anything else &#8212; reach out. We aim to respond within 24 hours.</p>
+
+            <div class="ct-contact-cards">
+              <div class="ct-contact-card">
+                <span class="ct-contact-icon">&#9993;</span>
+                <div>
+                  <div class="ct-contact-label">Email</div>
+                  <div class="ct-contact-value"><a href="mailto:contact@fortitudefx.com">contact@fortitudefx.com</a></div>
+                  <div class="ct-contact-desc">For all enquiries. We respond within 24 hours.</div>
+                </div>
               </div>
-              <div class="jf-stat">
-                <span class="jf-stat-num">200+</span>
-                <span class="jf-stat-label">Community Members</span>
+              <div class="ct-contact-card">
+                <span class="ct-contact-icon">&#128172;</span>
+                <div>
+                  <div class="ct-contact-label">Discord Community</div>
+                  <div class="ct-contact-value"><a href="joinfree.html">Join the Free Community</a></div>
+                  <div class="ct-contact-desc">Ask questions directly inside the community.</div>
+                </div>
               </div>
-              <div class="jf-stat">
-                <span class="jf-stat-num">Free</span>
-                <span class="jf-stat-label">Always</span>
+              <div class="ct-contact-card">
+                <span class="ct-contact-icon">&#128250;</span>
+                <div>
+                  <div class="ct-contact-label">YouTube</div>
+                  <div class="ct-contact-value"><a href="https://www.youtube.com/@FortitudeFX" target="_blank" rel="noopener noreferrer">@FortitudeFX</a></div>
+                  <div class="ct-contact-desc">7,570+ subscribers. New content every week.</div>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Right: form -->
           <div style="position:relative;z-index:1;">
-            <div class="jf-form-card" id="access">
-              <div class="jf-form-inner">
+            <div class="ct-form-card">
+              <div class="ct-form-inner">
 
                 <!-- Form state -->
-                <div id="jfFormState">
-                  <!-- Discord logo + title -->
-                  <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.4rem;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="#5865F2" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-                    <h3 class="jf-form-title" style="margin:0;">Join the Free Discord</h3>
-                  </div>
-                  <p class="jf-form-sub">Register below for instant free access to the FortitudeFX Discord community &#8212; no payment, no approval, access revealed immediately on submit.</p>
-                  <div class="jf-form-error" id="jfError"></div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
-                    <div class="jf-field" style="margin-bottom:0;">
-                      <label for="jfFirstName">First Name</label>
-                      <input type="text" id="jfFirstName" placeholder="First name" autocomplete="given-name" />
+                <div id="ctFormState">
+                  <h3 style="font-size:1.38rem;font-weight:700;color:var(--text-primary);margin:0 0 0.4rem;font-family:inherit;">Send a Message</h3>
+                  <p style="font-size:1.06rem;color:var(--text-muted);margin:0 0 1.5rem;line-height:1.6;font-family:inherit;">Fill in the form and we&#8217;ll get back to you within 24 hours.</p>
+
+                  <div class="ct-form-error" id="ctError"></div>
+
+                  <!-- Name -->
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+                    <div class="ct-field" style="margin-bottom:0;">
+                      <label for="ctFirstName">First Name</label>
+                      <input type="text" id="ctFirstName" placeholder="First name" autocomplete="given-name" />
                     </div>
-                    <div class="jf-field" style="margin-bottom:0;">
-                      <label for="jfLastName">Last Name</label>
-                      <input type="text" id="jfLastName" placeholder="Last name" autocomplete="family-name" />
+                    <div class="ct-field" style="margin-bottom:0;">
+                      <label for="ctLastName">Last Name</label>
+                      <input type="text" id="ctLastName" placeholder="Last name" autocomplete="family-name" />
                     </div>
                   </div>
-                  <div style="height:0.9rem;"></div>
-                  <div class="jf-field">
-                    <label for="jfEmail">Email Address</label>
-                    <input type="email" id="jfEmail" placeholder="you@email.com" autocomplete="email" />
+
+                  <!-- Email -->
+                  <div class="ct-field">
+                    <label for="ctEmail">Email Address</label>
+                    <input type="email" id="ctEmail" placeholder="you@email.com" autocomplete="email" />
                   </div>
-                  <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+
+                  <!-- Category -->
+                  <div class="ct-field">
+                    <label for="ctCategory">Enquiry Type</label>
+                    <select id="ctCategory">
+                      <option value="" disabled selected>Select enquiry type</option>
+                      <option value="VIP Discord">VIP Discord</option>
+                      <option value="Bootcamp">Bootcamp</option>
+                      <option value="Support">Support</option>
+                      <option value="Partnership">Partnership</option>
+                      <option value="General Inquiry">General Inquiry</option>
+                      <option value="Media / Press">Media / Press</option>
+                    </select>
+                  </div>
+
+                  <!-- Message -->
+                  <div class="ct-field">
+                    <label for="ctMessage">Your Message</label>
+                    <textarea id="ctMessage" placeholder="Tell us what you&#8217;re looking for or how we can help..."></textarea>
+                  </div>
+
+                  <!-- Privacy note -->
+                  <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.55;margin:0 0 0.75rem;">
+                    By submitting you agree to our <a href="privacy.html" target="_blank" style="color:var(--text-secondary);">Privacy Policy</a>. Your data is stored securely and never sold.
+                  </p>
+
+                  <!-- Turnstile + GDPR -->
+                  <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;margin:0.75rem 0;">
                     <div class="cf-turnstile" data-sitekey="0x4AAAAAADOXuZfCyZAZ8FBj" data-theme="dark" data-appearance="always" style="min-height:65px;"></div>
                     <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;opacity:0.85;">
                       <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg" aria-label="GDPR Compliant">
@@ -350,19 +341,16 @@
                       <span style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Protected</span>
                     </div>
                   </div>
-                  <button class="jf-submit-btn" id="jfSubmit" type="button">Get Free Access &rarr;</button>
-                  <p class="jf-form-note">No spam. No sales pressure. Unsubscribe any time.</p>
+
+                  <button class="ct-submit-btn" id="ctSubmit" type="button">Send Message &rarr;</button>
+                  <p class="ct-form-note">We read and respond to every message personally.</p>
                 </div>
 
                 <!-- Success state -->
-                <div class="jf-success" id="jfSuccess">
-                  <div class="jf-success-icon">&#x2705;</div>
-                  <h3 class="jf-success-title">You&#8217;re in.</h3>
-                  <p class="jf-success-sub">Welcome to FortitudeFX. A confirmation has been sent to your inbox. Click below to join the Discord &#8212; your access is active immediately.</p>
-                  <a href="https://discord.com/invite/fWAPJdR8TR" class="jf-discord-reveal" target="_blank" rel="noopener noreferrer">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-                    Join the FortitudeFX Discord
-                  </a>
+                <div class="ct-success" id="ctSuccess">
+                  <div class="ct-success-icon">&#x2705;</div>
+                  <h3 class="ct-success-title">Message received.</h3>
+                  <p class="ct-success-sub">Thank you for reaching out. We&#8217;ll get back to you at your email address within 24 hours.</p>
                 </div>
 
               </div>
@@ -373,30 +361,9 @@
       </div>
     </section>
 
-
-    <div class="section-break"></div>
-
-    <!-- --- FINAL CTA --- -->
-    <section class="section section-last ffx-reveal">
-      <div class="section-wrap">
-        <div class="cta-shell">
-          <div class="cta-grid">
-            <div>
-              <span class="kicker">FORTITUDEFX</span>
-              <h2>The framework is free. <span class="gold">The discipline is yours.</span></h2>
-              <p>Ready to go deeper? The Bootcamp takes the CTW framework into a full 5-week structured program &#8212; five mechanical models, live execution, and 3 months VIP Discord included.</p>
-            </div>
-            <div class="cta-actions">
-              <a class="btn btn-primary" href="bootcamp.html">Explore Bootcamp</a>
-              <a class="btn btn-secondary" href="vipdiscord.html">Explore VIP Discord</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
   </div>
 
+  <!-- FOOTER -->
   <footer>
     <div class="footer-wrap">
       <div class="footer-left">
@@ -454,6 +421,7 @@
 
   <script>
   (() => {
+    // Nav toggle
     const toggle = document.getElementById('navToggle');
     const mobile = document.getElementById('navMobile');
     if (toggle && mobile) {
@@ -469,6 +437,7 @@
       });
     }
 
+    // Back to top
     const btt = document.getElementById('backToTop');
     if (btt) {
       window.addEventListener('scroll', () => {
@@ -477,6 +446,7 @@
       btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 
+    // Scroll reveals
     const reveals = document.querySelectorAll('.ffx-reveal');
     if (reveals.length) {
       const io = new IntersectionObserver((entries) => {
@@ -487,57 +457,80 @@
       reveals.forEach(el => io.observe(el));
     }
 
-    const submitBtn      = document.getElementById('jfSubmit');
-    const firstNameInput = document.getElementById('jfFirstName');
-    const lastNameInput  = document.getElementById('jfLastName');
-    const emailInput     = document.getElementById('jfEmail');
-    const errorBox       = document.getElementById('jfError');
-    const formState      = document.getElementById('jfFormState');
-    const successState   = document.getElementById('jfSuccess');
+    // Select orange on change
+    const categorySelect = document.getElementById('ctCategory');
+    categorySelect.addEventListener('change', () => {
+      categorySelect.classList.add('has-value');
+    });
+
+    // Form submit
+    const submitBtn  = document.getElementById('ctSubmit');
+    const errorBox   = document.getElementById('ctError');
+    const formState  = document.getElementById('ctFormState');
+    const successState = document.getElementById('ctSuccess');
 
     function showError(msg) { errorBox.textContent = msg; errorBox.style.display = 'block'; }
     function hideError()    { errorBox.style.display = 'none'; }
 
     submitBtn.addEventListener('click', async () => {
       hideError();
-      const firstName = firstNameInput.value.trim();
-      const lastName  = lastNameInput.value.trim();
-      const email     = emailInput.value.trim();
+      const firstName = document.getElementById('ctFirstName').value.trim();
+      const lastName  = document.getElementById('ctLastName').value.trim();
+      const email     = document.getElementById('ctEmail').value.trim();
+      const category  = document.getElementById('ctCategory').value;
+      const message   = document.getElementById('ctMessage').value.trim();
       const token     = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
-      if (!firstName) { showError('Please enter your first name.'); return; }
-      if (!lastName)  { showError('Please enter your last name.'); return; }
+
+      if (!firstName)  { showError('Please enter your first name.'); return; }
+      if (!lastName)   { showError('Please enter your last name.'); return; }
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         showError('Please enter a valid email address.'); return;
       }
-      if (!token) { showError('Please complete the security check.'); return; }
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting\u2026';
+      if (!category)   { showError('Please select an enquiry type.'); return; }
+      if (!message)    { showError('Please enter your message.'); return; }
+      if (!token)      { showError('Please complete the security check.'); return; }
+
+      submitBtn.disabled    = true;
+      submitBtn.textContent = 'Sending\u2026';
+
       try {
         const res = await fetch('/submit', {
-          method: 'POST',
+          method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ firstName, lastName, email, path: 'Free', turnstileToken: token })
+          body:    JSON.stringify({
+            firstName,
+            lastName,
+            email,
+            path:             'Contact',
+            turnstileToken:   token,
+            CONTACT_CATEGORY: category,
+            NOTE:             message
+          })
         });
+
         if (res.ok) {
           formState.style.display = 'none';
           successState.style.display = 'block';
         } else {
           const data = await res.json().catch(() => ({}));
           showError(data.error || 'Something went wrong. Please try again.');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Get Free Access \u2192';
+          submitBtn.disabled    = false;
+          submitBtn.textContent = 'Send Message \u2192';
           if (window.turnstile) window.turnstile.reset();
         }
       } catch (err) {
         showError('Network error \u2014 please check your connection and try again.');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Get Free Access \u2192';
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Send Message \u2192';
         if (window.turnstile) window.turnstile.reset();
       }
     });
 
-    [firstNameInput, lastNameInput, emailInput].forEach(input => {
-      input.addEventListener('keydown', e => { if (e.key === 'Enter') submitBtn.click(); });
+    // Enter key
+    ['ctFirstName','ctLastName','ctEmail'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') submitBtn.click();
+      });
     });
   })();
   </script>
