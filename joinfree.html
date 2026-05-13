@@ -33,6 +33,7 @@
 
   <meta name="theme-color" content="#06060a" />
   <link rel="stylesheet" href="styles-base.css" />
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
   <style>
     /* ── JOIN FREE PAGE STYLES ── */
@@ -310,6 +311,7 @@
                     <label for="jfEmail">Email Address</label>
                     <input type="email" id="jfEmail" placeholder="you@email.com" autocomplete="email" />
                   </div>
+                  <div class="cf-turnstile" data-sitekey="0x4AAAAAD0XuZfCyZAZ8FBj" data-theme="dark" style="margin-bottom:0.75rem;"></div>
                   <button class="jf-submit-btn" id="jfSubmit" type="button">Get Free Access &rarr;</button>
                   <p class="jf-form-note">No spam. No sales pressure. Unsubscribe any time.</p>
                 </div>
@@ -462,18 +464,20 @@
       const firstName = firstNameInput.value.trim();
       const lastName  = lastNameInput.value.trim();
       const email     = emailInput.value.trim();
+      const token     = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
       if (!firstName) { showError('Please enter your first name.'); return; }
       if (!lastName)  { showError('Please enter your last name.'); return; }
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         showError('Please enter a valid email address.'); return;
       }
+      if (!token) { showError('Please complete the security check.'); return; }
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitting\u2026';
       try {
         const res = await fetch('/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ firstName, lastName, email, path: 'Free' })
+          body: JSON.stringify({ firstName, lastName, email, path: 'Free', turnstileToken: token })
         });
         if (res.ok) {
           formState.style.display = 'none';
@@ -483,11 +487,13 @@
           showError(data.error || 'Something went wrong. Please try again.');
           submitBtn.disabled = false;
           submitBtn.textContent = 'Get Free Access \u2192';
+          if (window.turnstile) window.turnstile.reset();
         }
       } catch (err) {
         showError('Network error \u2014 please check your connection and try again.');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Get Free Access \u2192';
+        if (window.turnstile) window.turnstile.reset();
       }
     });
 
