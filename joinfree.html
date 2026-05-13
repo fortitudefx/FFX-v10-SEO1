@@ -79,25 +79,25 @@
       position: relative;
       overflow: visible;
       transition: border-color 0.3s, box-shadow 0.3s;
-      box-shadow: 0 0 40px rgba(224,107,26,0.10), 0 0 80px rgba(224,107,26,0.05);
+      box-shadow: 0 0 55px rgba(224,107,26,0.18), 0 0 110px rgba(224,107,26,0.09);
     }
     .jf-form-card:hover,
     .jf-form-card:focus-within {
-      border-color: rgba(224,107,26,0.55);
-      box-shadow: 0 0 60px rgba(224,107,26,0.22), 0 0 120px rgba(224,107,26,0.10);
+      border-color: rgba(224,107,26,0.75);
+      box-shadow: 0 0 80px rgba(224,107,26,0.40), 0 0 160px rgba(224,107,26,0.18);
     }
     .jf-form-card::before {
       content: '';
       position: absolute;
       inset: 0;
       border-radius: var(--radius-xl);
-      background: radial-gradient(ellipse at 50% 0%, rgba(224,107,26,0.10) 0%, transparent 65%);
+      background: radial-gradient(ellipse at 50% 0%, rgba(224,107,26,0.14) 0%, transparent 65%);
       pointer-events: none;
       transition: opacity 0.3s;
     }
     .jf-form-card:hover::before,
     .jf-form-card:focus-within::before {
-      opacity: 1.6;
+      opacity: 2.5;
     }
     .jf-form-inner { position: relative; z-index: 1; }
     .jf-form-title {
