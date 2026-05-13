@@ -100,26 +100,29 @@
     }
     .jf-form-inner { position: relative; z-index: 1; }
     .jf-form-title {
-      font-size: 1.2rem;
+      font-size: 1.35rem;
       font-weight: 700;
       color: var(--text-primary);
       margin: 0 0 0.4rem;
+      font-family: inherit;
     }
     .jf-form-sub {
-      font-size: 0.84rem;
+      font-size: 0.92rem;
       color: var(--text-muted);
       margin: 0 0 1.5rem;
       line-height: 1.6;
+      font-family: inherit;
     }
     .jf-field { margin-bottom: 0.9rem; }
     .jf-field label {
       display: block;
-      font-size: 0.78rem;
-      font-weight: 600;
+      font-size: 0.8rem;
+      font-weight: 700;
       color: var(--text-secondary);
       margin-bottom: 0.35rem;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.07em;
+      font-family: inherit;
     }
     .jf-field input {
       width: 100%;
@@ -127,7 +130,7 @@
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 0.75rem 1rem;
-      font-size: 0.92rem;
+      font-size: 1rem;
       color: var(--text-primary);
       outline: none;
       transition: border-color 0.2s;
@@ -240,8 +243,8 @@
       font-size: 0.9rem; font-weight: 700; color: var(--accent-gold);
       position: relative; z-index: 1;
     }
-    .jf-ctw-content h4 { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0.15rem 0 0.3rem; }
-    .jf-ctw-content p { font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.6; }
+    .jf-ctw-content h4 { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 0.1rem 0 0.35rem; }
+    .jf-ctw-content p { font-size: 0.95rem; color: var(--text-muted); margin: 0; line-height: 1.65; }
     .jf-ctw-quote {
       background: var(--surface-card);
       border: 1px solid var(--border-subtle);
@@ -249,7 +252,7 @@
       border-radius: var(--radius-md);
       padding: 1.25rem 1.5rem;
     }
-    .jf-ctw-quote p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7; margin: 0; font-style: italic; }
+    .jf-ctw-quote p { font-size: 0.97rem; color: var(--text-secondary); line-height: 1.7; margin: 0; font-style: italic; }
 
     /* Mobile */
     @media (max-width: 640px) {
@@ -385,9 +388,14 @@
 
           <!-- Left: heading + quote -->
           <div class="jf-ctw-left">
-            <span class="kicker">The Framework</span>
-            <h2>Catch The Wick &#8212; <span class="gold">explained simply.</span></h2>
-            <p class="section-sub">Two candles tell a complete story. Here&#8217;s what you&#8217;re actually learning to read.</p>
+            <div class="ffx-tagline-pill" style="margin-bottom:1.5rem;">
+              <span class="ffx-tagline-dot"></span>
+              THE FRAMEWORK
+            </div>
+            <h2 style="font-size:clamp(2.2rem,5vw,3.5rem);line-height:1.1;margin:0 0 0.15em;">Catch<br>The Wick</h2>
+            <div style="width:2.5rem;height:3px;background:var(--text-primary);margin:0.75rem 0 1rem;"></div>
+            <p class="gold" style="font-size:clamp(1.6rem,4vw,2.8rem);font-weight:800;line-height:1.15;margin:0 0 1.25rem;">explained<br>simply.</p>
+            <p style="font-size:1rem;color:var(--text-secondary);line-height:1.7;margin:0 0 1.5rem;">Two candles tell a complete story. Here&#8217;s what you&#8217;re actually learning to read.</p>
             <div class="jf-ctw-quote">
               <p>The goal is not prediction. The goal is structured participation &#8212; after liquidity is taken, after the market has shown its hand, after the story is confirmed. That is Catch The Wick.</p>
             </div>
