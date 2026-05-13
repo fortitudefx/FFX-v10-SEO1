@@ -11,14 +11,14 @@
 </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Join Free | FortitudeFX — Catch The Wick Community</title>
-  <meta name="description" content="Join the free FortitudeFX community. Liquidity-based trading, mechanical execution, and the Catch The Wick framework — no hype, no signals, no noise." />
+  <title>Join Free | FortitudeFX &#8212; Catch The Wick Community</title>
+  <meta name="description" content="Join the free FortitudeFX community. Liquidity-based trading, mechanical execution, and the Catch The Wick framework &#8212; no hype, no signals, no noise." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://fortitudefx.com/joinfree" />
 
   <meta property="og:type"        content="website" />
   <meta property="og:url"         content="https://fortitudefx.com/joinfree" />
-  <meta property="og:title"       content="Join Free | FortitudeFX — Catch The Wick" />
+  <meta property="og:title"       content="Join Free | FortitudeFX &#8212; Catch The Wick" />
   <meta property="og:description" content="Join the free FortitudeFX community. Liquidity-based trading, mechanical execution, no hype." />
   <meta property="og:image"       content="https://fortitudefx.com/og-fortitudefx.png" />
   <meta property="og:image:width"  content="1200" />
@@ -36,7 +36,7 @@
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
   <style>
-    /* ── JOIN FREE PAGE STYLES ── */
+    /* -- JOIN FREE PAGE STYLES -- */
 
     /* Hero two-column layout */
     .jf-hero-grid {
@@ -64,7 +64,7 @@
       line-height: 1;
     }
     .jf-stat-label {
-      font-size: 0.78rem;
+      font-size: 0.9rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -101,14 +101,14 @@
     }
     .jf-form-inner { position: relative; z-index: 1; }
     .jf-form-title {
-      font-size: 1.35rem;
+      font-size: 1.55rem;
       font-weight: 700;
       color: var(--text-primary);
       margin: 0 0 0.4rem;
       font-family: inherit;
     }
     .jf-form-sub {
-      font-size: 0.92rem;
+      font-size: 1.06rem;
       color: var(--text-muted);
       margin: 0 0 1.5rem;
       line-height: 1.6;
@@ -117,7 +117,7 @@
     .jf-field { margin-bottom: 0.9rem; }
     .jf-field label {
       display: block;
-      font-size: 0.8rem;
+      font-size: 0.92rem;
       font-weight: 700;
       color: var(--text-secondary);
       margin-bottom: 0.35rem;
@@ -131,8 +131,8 @@
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 0.75rem 1rem;
-      font-size: 1rem;
-      color: var(--text-primary);
+      font-size: 1.15rem;
+      color: var(--accent-orange);
       outline: none;
       transition: border-color 0.2s;
       box-sizing: border-box;
@@ -140,6 +140,14 @@
     }
     .jf-field input:focus { border-color: var(--accent-orange); }
     .jf-field input::placeholder { color: var(--text-muted); }
+    /* Force orange on browser autofill */
+    .jf-field input:-webkit-autofill,
+    .jf-field input:-webkit-autofill:hover,
+    .jf-field input:-webkit-autofill:focus {
+      -webkit-text-fill-color: var(--accent-orange) !important;
+      -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.04) inset !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
     .jf-submit-btn {
       width: 100%;
       background: var(--accent-orange);
@@ -147,7 +155,7 @@
       border: none;
       border-radius: var(--radius-pill);
       padding: 0.85rem 1.5rem;
-      font-size: 0.97rem;
+      font-size: 1.12rem;
       font-weight: 700;
       cursor: pointer;
       margin-top: 0.25rem;
@@ -158,7 +166,7 @@
     .jf-submit-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
     .jf-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .jf-form-note {
-      font-size: 0.74rem;
+      font-size: 0.85rem;
       color: var(--text-muted);
       text-align: center;
       margin-top: 0.65rem;
@@ -169,7 +177,7 @@
       color: #f87171;
       border-radius: var(--radius-md);
       padding: 0.7rem 1rem;
-      font-size: 0.84rem;
+      font-size: 1.12rem;
       margin-bottom: 0.9rem;
       display: none;
     }
@@ -178,13 +186,13 @@
     .jf-success { display: none; text-align: center; }
     .jf-success-icon { font-size: 2.5rem; margin-bottom: 1rem; }
     .jf-success-title {
-      font-size: 1.3rem;
+      font-size: 1.5rem;
       font-weight: 700;
       color: var(--text-primary);
       margin: 0 0 0.5rem;
     }
     .jf-success-sub {
-      font-size: 0.87rem;
+      font-size: 1.15rem;
       color: var(--text-muted);
       margin: 0 0 1.5rem;
       line-height: 1.6;
@@ -200,7 +208,7 @@
       color: #fff;
       border-radius: var(--radius-pill);
       padding: 0.85rem 1.5rem;
-      font-size: 0.97rem;
+      font-size: 1.12rem;
       font-weight: 700;
       text-decoration: none;
       transition: opacity 0.2s, transform 0.15s;
@@ -259,7 +267,7 @@
 
   <div class="page-container">
 
-    <!-- ═══ HERO — text left, form right ═══ -->
+    <!-- --- HERO &#8212; text left, form right --- -->
     <section class="section hero ffx-reveal" id="top">
       <div class="hero-glow"></div>
       <div class="section-wrap">
@@ -345,7 +353,7 @@
 
     <div class="section-break"></div>
 
-    <!-- ═══ FINAL CTA ═══ -->
+    <!-- --- FINAL CTA --- -->
     <section class="section section-last ffx-reveal">
       <div class="section-wrap">
         <div class="cta-shell">
