@@ -206,53 +206,7 @@
 
 
 
-    /* CTW 2-column */
-    .jf-ctw-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3.5rem;
-      align-items: start;
-    }
-    @media (max-width: 860px) {
-      .jf-ctw-grid { grid-template-columns: 1fr; gap: 2rem; }
-    }
-    .jf-ctw-left .section-sub { margin-bottom: 1.5rem; }
-    .jf-ctw-steps {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      position: relative;
-    }
-    .jf-ctw-steps::before {
-      content: '';
-      position: absolute;
-      left: 1.5rem;
-      top: 2.5rem;
-      bottom: 2.5rem;
-      width: 2px;
-      background: linear-gradient(to bottom, var(--accent-gold), var(--accent-orange), transparent);
-      opacity: 0.4;
-    }
-    .jf-ctw-step { display: flex; gap: 1.25rem; align-items: flex-start; padding: 1.25rem 0; }
-    .jf-ctw-num {
-      width: 3rem; height: 3rem; min-width: 3rem;
-      border-radius: 50%;
-      background: var(--surface-card);
-      border: 1px solid var(--accent-gold);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.9rem; font-weight: 700; color: var(--accent-gold);
-      position: relative; z-index: 1;
-    }
-    .jf-ctw-content h4 { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 0.1rem 0 0.35rem; }
-    .jf-ctw-content p { font-size: 0.95rem; color: var(--text-muted); margin: 0; line-height: 1.65; }
-    .jf-ctw-quote {
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      border-left: 3px solid var(--accent-gold);
-      border-radius: var(--radius-md);
-      padding: 1.25rem 1.5rem;
-    }
-    .jf-ctw-quote p { font-size: 0.97rem; color: var(--text-secondary); line-height: 1.7; margin: 0; font-style: italic; }
+
 
     /* Mobile */
     @media (max-width: 640px) {
@@ -379,69 +333,6 @@
       </div>
     </section>
 
-    <div class="section-break"></div>
-
-    <!-- ═══ CATCH THE WICK ═══ -->
-    <section class="section ffx-reveal" id="ctw">
-      <div class="section-wrap">
-        <div class="jf-ctw-grid">
-
-          <!-- Left: tagline + big heading + dash + explained/subtext row + quote -->
-          <div class="jf-ctw-left">
-
-            <!-- Big heading block -->
-            <h2 style="font-size:clamp(2.4rem,5vw,3.8rem);line-height:1.08;font-weight:800;margin:0 0 0.15em;">Catch<br>The Wick</h2>
-            <div style="width:2.5rem;height:3px;background:var(--text-primary);margin:0.75rem 0 1rem;opacity:0.9;"></div>
-
-            <!-- "explained simply." left + subtext right — side by side -->
-            <div style="display:grid;grid-template-columns:auto 1fr;gap:2rem;align-items:start;margin-bottom:1.75rem;">
-              <p class="gold" style="font-size:clamp(1.5rem,3.5vw,2.6rem);font-weight:800;line-height:1.15;margin:0;white-space:nowrap;">explained<br>simply.</p>
-              <p style="font-size:0.97rem;color:var(--text-secondary);line-height:1.7;margin:0;padding-top:0.25rem;">Two candles tell a complete story. Here&#8217;s what you&#8217;re actually learning to read.</p>
-            </div>
-
-            <!-- Tagline pill sits bottom-left under the heading area -->
-            <div class="ffx-tagline-pill" style="margin-bottom:1.5rem;">
-              <span class="ffx-tagline-dot"></span>
-              THE FRAMEWORK
-            </div>
-
-            <!-- Quote -->
-            <div class="jf-ctw-quote">
-              <p>The goal is not prediction. The goal is structured participation &#8212; after liquidity is taken, after the market has shown its hand, after the story is confirmed. That is Catch The Wick.</p>
-            </div>
-
-          </div>
-
-          <!-- Right: 3 steps -->
-          <div class="jf-ctw-right">
-            <div class="jf-ctw-steps">
-              <div class="jf-ctw-step">
-                <div class="jf-ctw-num">1</div>
-                <div class="jf-ctw-content">
-                  <h4>Candle 1 establishes direction</h4>
-                  <p>The first candle creates a reference point &#8212; a high, a low, a liquidity pool sitting above or below price. The market has told you where it needs to go.</p>
-                </div>
-              </div>
-              <div class="jf-ctw-step">
-                <div class="jf-ctw-num">2</div>
-                <div class="jf-ctw-content">
-                  <h4>Candle 2 sweeps liquidity</h4>
-                  <p>Price extends beyond that reference point &#8212; sweeping the liquidity sitting at the highs or lows. The wick is the footprint. That sweep is the trigger.</p>
-                </div>
-              </div>
-              <div class="jf-ctw-step">
-                <div class="jf-ctw-num">3</div>
-                <div class="jf-ctw-content">
-                  <h4>Lower timeframe confirms execution</h4>
-                  <p>Drop to the lower timeframe. Wait for the structural confirmation. Enter with defined risk. The framework handles the rest.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </section>
 
     <div class="section-break"></div>
 
