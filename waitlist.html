@@ -361,18 +361,6 @@
       margin-top: 0.65rem;
     }
 
-    /* Consent checkbox */
-    .wl-consent {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.6rem;
-      font-size: 0.94rem;
-      color: var(--text-muted);
-      cursor: pointer;
-      margin-bottom: 0.5rem;
-    }
-    .wl-consent input { margin-top: 0.2rem; accent-color: var(--accent-orange); }
-
     /* Thank you state */
     .wl-thankyou {
       display: none;
@@ -620,11 +608,6 @@
                 <textarea id="wlNote" placeholder="Tell us what you want to improve, where you are struggling, or what you are looking for from FortitudeFX."></textarea>
               </div>
 
-              <!-- Consent -->
-              <label class="wl-consent">
-                <input type="checkbox" id="wlConsent" required />
-                <span>I agree to receive updates and understand I can unsubscribe at any time.</span>
-              </label>
 
               <!-- Trust banner &#8212; orange -->
               <div class="wl-trust-banner">
@@ -858,7 +841,6 @@
       const vipPlan      = getVipPlan();
       const tradingStage = document.getElementById('wlTradingStage').value;
       const note         = document.getElementById('wlNote').value.trim();
-      const consent      = document.getElementById('wlConsent').checked;
       const token        = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
 
       if (!firstName)  { showError('Please enter your first name.'); return; }
@@ -869,7 +851,6 @@
       if (path === 'VIP' && !vipPlan) {
         showError('Please select a VIP plan before continuing.'); return;
       }
-      if (!consent) { showError('Please confirm you agree to receive updates.'); return; }
       if (!token)   { showError('Please complete the security check.'); return; }
 
       submitBtn.disabled    = true;
