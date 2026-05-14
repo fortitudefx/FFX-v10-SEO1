@@ -99,7 +99,7 @@ export async function onRequestPost(context) {
     return json({ error: 'Network error. Please try again.' }, 500);
   }
 
-  // 5. Send emails via Brevo SMTP - non-blocking
+  // 5. Email sending via Brevo SMTP - non-blocking
   async function sendEmail(to, toName, subject, htmlContent, replyToEmail, replyToName) {
     try {
       await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -118,8 +118,18 @@ export async function onRequestPost(context) {
     }
   }
 
-  // Shared email wrapper - white background, FFX branding
-  function emailWrapper(bodyContent, footerNote) {
+  // Master email template - FFX hero style
+  // Dark hero header (glow + kicker pill) + white body
+  function ffxEmail({ kickerText, heroTitle, heroSubtitle, bodyHtml, footerNote, ctaUrl, ctaLabel }) {
+    const cta = ctaUrl ? `
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+        <tr>
+          <td style="border-radius:999px;background-color:#e06b1a;">
+            <a href="${ctaUrl}" target="_blank" style="display:inline-block;padding:13px 28px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.02em;">${ctaLabel} &rarr;</a>
+          </td>
+        </tr>
+      </table>` : '';
+
     return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -130,95 +140,140 @@ export async function onRequestPost(context) {
   <meta name="supported-color-schemes" content="light" />
   <title>FortitudeFX</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f4f4f6;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f6;">
-    <tr>
-      <td align="center" style="padding:40px 16px;">
+<body style="margin:0;padding:0;background-color:#f0f0f4;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0f0f4;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;border:1px solid rgba(122,92,255,0.30);">
 
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+        <!-- HERO HEADER - dark with glows -->
+        <tr>
+          <td style="background-color:#0a0a12;padding:32px 40px 28px;border-bottom:1px solid rgba(122,92,255,0.25);">
 
-          <!-- Top accent stripe - purple to orange -->
-          <tr>
-            <td style="height:4px;background:linear-gradient(90deg,#7a5cff 0%,#e06b1a 100%);font-size:0;line-height:0;">&nbsp;</td>
-          </tr>
+            <!-- Logo row -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;">
+              <tr>
+                <td>
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="vertical-align:middle;padding-right:10px;">
+                        <img src="https://fortitudefx.com/favicon-192x192.png" alt="FFX" width="36" height="36" style="display:block;border-radius:9px;border:1px solid rgba(122,92,255,0.50);" />
+                      </td>
+                      <td style="vertical-align:middle;">
+                        <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.14em;color:#ffffff;">FORTITUDEFX</p>
+                        <p style="margin:3px 0 0;font-family:Arial,sans-serif;font-size:9px;color:rgba(255,255,255,0.40);letter-spacing:0.07em;">CATCH THE WICK</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
 
-          <!-- Logo header -->
-          <tr>
-            <td align="center" style="padding:32px 48px 28px;border-bottom:1px solid #f0f0f4;">
-              <img src="https://fortitudefx.com/favicon-192x192.png" alt="FortitudeFX" width="48" height="48" style="display:block;margin:0 auto 12px;border-radius:10px;" />
-              <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#1a1a2e;">FORTITUDEFX</p>
-              <p style="margin:4px 0 0;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.08em;color:#9999aa;text-transform:uppercase;">Catch The Wick</p>
-            </td>
-          </tr>
+            <!-- Kicker pill -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">
+              <tr>
+                <td style="background:rgba(122,92,255,0.14);border:1px solid rgba(122,92,255,0.32);border-radius:999px;padding:4px 14px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="vertical-align:middle;padding-right:7px;">
+                        <div style="width:6px;height:6px;border-radius:50%;background:#7a5cff;"></div>
+                      </td>
+                      <td style="vertical-align:middle;">
+                        <p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(255,255,255,0.70);">${kickerText}</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
 
-          <!-- Body content -->
-          <tr>
-            <td style="padding:40px 48px;">
-              ${bodyContent}
-            </td>
-          </tr>
+            <!-- Hero text -->
+            <p style="margin:0 0 5px;font-family:Arial,sans-serif;font-size:26px;font-weight:700;color:#ffffff;line-height:1.15;">${heroTitle}</p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;">${heroSubtitle}</p>
 
-          <!-- Sign off -->
-          <tr>
-            <td style="padding:0 48px 40px;">
-              <p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:15px;color:#1a1a2e;font-weight:600;">&#8212; Salman</p>
-              <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;">FortitudeFX</p>
-            </td>
-          </tr>
+          </td>
+        </tr>
 
-          <!-- Footer -->
-          <tr>
-            <td style="padding:20px 48px 28px;border-top:1px solid #f0f0f4;background-color:#fafafa;">
-              <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;line-height:1.6;">${footerNote}</p>
-              <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">&copy; 2026 FortitudeFX. Dubai, UAE. &nbsp;&middot;&nbsp; <a href="https://fortitudefx.com/privacy" style="color:#7a5cff;text-decoration:none;">Privacy Policy</a></p>
-            </td>
-          </tr>
+        <!-- WHITE BODY -->
+        <tr>
+          <td style="background-color:#ffffff;padding:32px 40px 8px;">
+            ${bodyHtml}
+            ${cta}
+          </td>
+        </tr>
 
-        </table>
-      </td>
-    </tr>
-  </table>
+        <!-- SIGN OFF -->
+        <tr>
+          <td style="background-color:#ffffff;padding:0 40px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+              <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
+            </table>
+            <p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:15px;color:#1a1a2e;font-weight:600;">&#8212; Salman</p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;">FortitudeFX</p>
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="background-color:#f8f8fb;padding:18px 40px;border-top:1px solid #f0f0f4;">
+            <p style="margin:0 0 5px;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;line-height:1.6;">${footerNote}</p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">&copy; 2026 FortitudeFX. Dubai, UAE. &nbsp;&middot;&nbsp; <a href="https://fortitudefx.com/privacy" style="color:#7a5cff;text-decoration:none;">Privacy Policy</a></p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
 </body>
 </html>`;
   }
 
   // 5a. Join Free - welcome email
   if (path === 'Free') {
-    const body = `
-      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.3;">Hi ${firstName},</p>
+    const bodyHtml = `
+      <p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">Hi ${firstName},</p>
 
-      <p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">You just joined a community built around one idea &mdash; that trading should be mechanical, not emotional. Structure over instinct. Execution over hope.</p>
+      <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">You just joined a community built around one idea &mdash; that trading should be mechanical, not emotional. Structure over instinct. Execution over hope.</p>
 
-      <p style="margin:0 0 32px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">The FortitudeFX Discord is where that idea lives daily. Real markets. Real markups. The Catch The Wick framework applied session by session, in real time.</p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">The FortitudeFX Discord is where that idea lives daily. Real markets. Real markups. The Catch The Wick framework applied session by session, in real time.</p>
 
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
         <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
       </table>
 
-      <p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">Your access is active. Click below to join.</p>
+      <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;">Your access is active. Click below to join.</p>`;
 
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:36px;">
-        <tr>
-          <td style="border-radius:999px;background-color:#e06b1a;">
-            <a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" style="display:inline-block;padding:13px 32px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.03em;">Join the Discord &rarr;</a>
-          </td>
-        </tr>
-      </table>
+    const footerNote = `You are receiving this because you joined the FortitudeFX free community at <a href="https://fortitudefx.com/joinfree" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/joinfree</a>. Reply to this email anytime.`;
 
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+    const html = ffxEmail({
+      kickerText:   'FREE COMMUNITY ACCESS',
+      heroTitle:    "You're in.",
+      heroSubtitle: 'Welcome to FortitudeFX.',
+      bodyHtml,
+      footerNote,
+      ctaUrl:       'https://discord.com/invite/fWAPJdR8TR',
+      ctaLabel:     'Join Discord'
+    });
+
+    // Body text after CTA
+    const afterCta = `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
         <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
       </table>
+      <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;line-height:1.7;">If you ever have a question, reply to this email directly. We read everything.</p>`;
 
-      <p style="margin:0 0 40px;font-family:Arial,sans-serif;font-size:14px;color:#9999aa;line-height:1.7;">If you ever have a question, reply to this email directly. We read everything.</p>
-    `;
-
-    const footer = `You are receiving this email because you joined the FortitudeFX free community at <a href="https://fortitudefx.com/joinfree" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/joinfree</a>.`;
+    // Insert afterCta before sign-off by appending to bodyHtml
+    const finalHtml = html.replace(
+      '<!-- SIGN OFF -->',
+      `<tr><td style="background-color:#ffffff;padding:0 40px 8px;">${afterCta}</td></tr><!-- SIGN OFF -->`
+    );
 
     await sendEmail(
       email,
       firstName,
       "You're in. Welcome to FortitudeFX.",
-      emailWrapper(body, footer),
+      finalHtml,
       'support@fortitudefx.com',
       'Salman | FortitudeFX'
     );
@@ -227,27 +282,36 @@ export async function onRequestPost(context) {
   // 5b. Contact - ack to user + internal notification
   if (path === 'Contact') {
 
-    const body = `
-      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.3;">Hi ${firstName},</p>
+    const bodyHtml = `
+      <p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">Hi ${firstName},</p>
 
-      <p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">Your message has been received.</p>
+      <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">Your message has been received.</p>
 
-      <p style="margin:0 0 32px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">We will get back to you within 24 hours.</p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">We will get back to you within 24 hours.</p>
 
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
         <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
       </table>
 
-      <p style="margin:0 0 40px;font-family:Arial,sans-serif;font-size:14px;color:#9999aa;line-height:1.7;">If it is urgent, reply directly to this email.</p>
-    `;
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;line-height:1.7;">If it is urgent, reply directly to this email.</p>`;
 
-    const footer = `You are receiving this email because you contacted FortitudeFX at <a href="https://fortitudefx.com/contact" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/contact</a>.`;
+    const footerNote = `You are receiving this because you contacted FortitudeFX at <a href="https://fortitudefx.com/contact" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/contact</a>. Reply to this email anytime.`;
+
+    const html = ffxEmail({
+      kickerText:   'MESSAGE RECEIVED',
+      heroTitle:    'Got your message.',
+      heroSubtitle: 'We read everything.',
+      bodyHtml,
+      footerNote,
+      ctaUrl:       null,
+      ctaLabel:     null
+    });
 
     await sendEmail(
       email,
       firstName,
       'Got your message.',
-      emailWrapper(body, footer),
+      html,
       'support@fortitudefx.com',
       'Salman | FortitudeFX'
     );
