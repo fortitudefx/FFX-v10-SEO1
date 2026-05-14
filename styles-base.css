@@ -3254,16 +3254,15 @@ footer {
   .section { padding-left: 16px; padding-right: 16px; }
   .section-wrap { padding-left: 0; padding-right: 0; }
 
-  /* All 2-col and multi-col grids stack to 1 col */
+  /* All remaining 2-col section grids */
+  .section-split,
   .hero-grid,
   .split-section,
-  .section-head,
-  .section-split,
   .two-grid,
   .cta-grid,
   .ffx-diff-grid {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 20px;
   }
 
   /* Footer stacks */
@@ -3303,9 +3302,31 @@ footer {
     overflow-wrap: break-word;
   }
 
-  /* Section head alignment */
-  .section-head { align-items: flex-start; }
+  /* Section head — flex row must become flex column */
+  .section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .section-head h2 { max-width: 100%; }
+  .section-head p   { max-width: 100%; }
   .sticky-left { position: relative; top: auto; }
+
+  /* Section wrap — prevent overflow */
+  .section-wrap {
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  /* Forms — prevent card overflow */
+  .wl-form-card,
+  .jf-form-card,
+  .ct-form-card {
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
 
   /* Hero actions stack */
   .hero-actions {
