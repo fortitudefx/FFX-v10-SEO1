@@ -3242,3 +3242,87 @@ footer {
   border-color: rgba(167,139,250,0.55);
   background: linear-gradient(180deg, rgba(122,92,255,0.22), rgba(45,20,114,0.32));
 }
+
+/* ============================================================
+   MOBILE — iPhone (max-width: 430px)
+   ONLY stacks multi-column grids to single column.
+   No other styles changed.
+   ============================================================ */
+@media (max-width: 430px) {
+
+  /* Section padding tighter on small screens */
+  .section { padding-left: 16px; padding-right: 16px; }
+  .section-wrap { padding-left: 0; padding-right: 0; }
+
+  /* All 2-col and multi-col grids stack to 1 col */
+  .hero-grid,
+  .split-section,
+  .section-head,
+  .section-split,
+  .two-grid,
+  .cta-grid,
+  .ffx-diff-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  /* Footer stacks */
+  .footer-wrap {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  /* 3-col grids to 1 col */
+  .mini-grid,
+  .ffx-tf-grid,
+  .bootcamp-grid,
+  .vip-grid.vip-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  /* 4-col VIP grid to 1 col */
+  .vip-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* 5-col models strip to 2+3 grid */
+  .ffx-models-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Two candles story block */
+  .ffx-two-candles {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .ffx-two-candles > [style*="font-size"] { display: none; }
+
+  /* Prevent text overflow on all elements */
+  * {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Section head alignment */
+  .section-head { align-items: flex-start; }
+  .sticky-left { position: relative; top: auto; }
+
+  /* Hero actions stack */
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hero-actions .btn { justify-content: center; text-align: center; }
+
+  /* CTA actions stack */
+  .cta-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cta-actions .btn { justify-content: center; }
+
+  /* FAQ grid single col */
+  .faq-grid { grid-template-columns: 1fr; }
+  .faq-card { grid-template-columns: 1fr; gap: 10px; }
+
+}
