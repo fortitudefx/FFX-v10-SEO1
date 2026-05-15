@@ -40,7 +40,6 @@ export async function onRequestPost(context) {
       linkedin, discord, tumblr, mediumIntro,
       tweet1, tweet2, tweet3, tweet4, tweet5, tweet6,
       x_thread, youtubeUrl, yt_url,
-      region,
       skipSitemapAndIndex,
     } = body;
 
@@ -93,7 +92,6 @@ export async function onRequestPost(context) {
       tweet5: tweet5 || (Array.isArray(x_thread) ? x_thread[4] : '') || '',
       tweet6: tweet6 || (Array.isArray(x_thread) ? x_thread[5] : '') || '',
       body: articleBody,
-      region: region || 'Global',
     };
 
     // Dedup by slug — update if exists, prepend if new
@@ -131,62 +129,7 @@ export async function onRequestPost(context) {
 
     console.log('[FFX] articles.json written for slug:', slug);
 
-    // ── 3. INCREMENT region cycle in ffx-config.json (only for blog publish or content write)
-    // Only increment when this is the Global article (region === 'Global' or not set)
-    // Regional article publish does not increment — same run, cycle already counted
-    if (!region || region === 'Global') {
-      try {
-        const REGIONS_CYCLE = ['GCC', 'US/Canada', 'EU/UK/Germany', 'SEA/Asia'];
-        const configPath = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/ffx-config.json?ref=${GITHUB_BRANCH}`;
-
-        // Read current config
-        const cfgReadRes = await fetch(configPath, {
-          headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker' }
-        });
-
-        let currentIndex = 0;
-        let cfgSha = null;
-
-        if (cfgReadRes.ok) {
-          const cfgData = await cfgReadRes.json();
-          cfgSha = cfgData.sha;
-          const cfgBase64 = cfgData.content.replace(/\n/g, '');
-          const cfgBinaryStr = atob(cfgBase64);
-          const cfgBytes = new Uint8Array(cfgBinaryStr.length);
-          for (let i = 0; i < cfgBinaryStr.length; i++) cfgBytes[i] = cfgBinaryStr.charCodeAt(i);
-          const cfgParsed = JSON.parse(new TextDecoder().decode(cfgBytes));
-          currentIndex = typeof cfgParsed.regionCycleIndex === 'number' ? cfgParsed.regionCycleIndex : 0;
-        }
-
-        // Increment and wrap
-        const nextIndex = (currentIndex + 1) % REGIONS_CYCLE.length;
-        const newConfig = { regionCycleIndex: nextIndex, regions: REGIONS_CYCLE };
-        const cfgEncoded = (() => { const b = new TextEncoder().encode(JSON.stringify(newConfig, null, 2)); let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); })();
-
-        const cfgWritePayload = {
-          message: `config: region cycle ${currentIndex} → ${nextIndex} (${REGIONS_CYCLE[nextIndex]})`,
-          content: cfgEncoded,
-          branch: GITHUB_BRANCH,
-          ...(cfgSha && { sha: cfgSha })
-        };
-
-        const cfgWriteRes = await fetch(configPath, {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker', 'Content-Type': 'application/json' },
-          body: JSON.stringify(cfgWritePayload)
-        });
-
-        if (cfgWriteRes.ok) {
-          console.log(`[FFX] ffx-config.json updated: index ${currentIndex} → ${nextIndex} (${REGIONS_CYCLE[nextIndex]})`);
-        } else {
-          console.log('[FFX] ffx-config.json write failed (non-fatal):', await cfgWriteRes.text());
-        }
-      } catch (cfgErr) {
-        console.log('[FFX] ffx-config.json update failed (non-fatal):', cfgErr.message);
-      }
-    }
-
-    // ── 4. CONDITIONALLY: sitemap + Google index ───────────────────────────
+    // ── 3. CONDITIONALLY: sitemap + Google index ───────────────────────────
     if (!skipSitemapAndIndex) {
 
       // Rebuild sitemap.xml
