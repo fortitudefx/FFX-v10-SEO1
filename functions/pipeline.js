@@ -1,11 +1,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FFX Pipeline Worker
-// POST /pipeline → fetch transcript → Claude x2 → send approval email
-// Triggered by: Cron (automatic) or trigger.html (manual testing)
-// No storage — full content payload encoded in email approval form
+// FFX Pipeline Worker v2
+// POST /pipeline → fetch transcript → Claude → store pending → send review email
+// Triggered by: trigger.html (manual) or Cron (automatic)
+// Storage: GitHub pending/{jobId}.json — no KV needed
 // ─────────────────────────────────────────────────────────────────────────────
 
 const REGIONS = ['GCC', 'US/Canada', 'EU/UK/Germany', 'SEA/Asia'];
+const GITHUB_OWNER  = 'fortitudefx';
+const GITHUB_REPO   = 'FFX-v10-SEO1';
+const GITHUB_BRANCH = 'main';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -23,7 +26,6 @@ export async function onRequestPost(context) {
   }
 
   const { youtubeUrl } = body;
-
   if (!youtubeUrl) {
     return new Response(JSON.stringify({ error: 'youtubeUrl is required' }), { status: 400, headers });
   }
@@ -73,7 +75,7 @@ export async function onRequestPost(context) {
   const currentRegion = REGIONS[regionCycleIndex % REGIONS.length];
   console.log('[FFX Pipeline] Current region:', currentRegion);
 
-  // 4. Call Claude — Article 1: Global
+  // 4. Call Claude — Global article only
   console.log('[FFX Pipeline] Calling Claude — Global');
   let globalArticle;
   try {
@@ -81,18 +83,41 @@ export async function onRequestPost(context) {
     console.log('[FFX Pipeline] Global article done, slug:', globalArticle.slug);
   } catch (err) {
     console.log('[FFX Pipeline] Claude failed (Global):', err.message);
-    return new Response(JSON.stringify({ error: `Claude failed (Global): ${err.message}` }), { status: 502, headers });
+    return new Response(JSON.stringify({ error: `Claude failed: ${err.message}` }), { status: 502, headers });
   }
 
-  // 5. Attach metadata
+  // Attach metadata
   globalArticle.youtubeUrl = youtubeUrl;
   globalArticle.regionCycleIndex = regionCycleIndex;
+  globalArticle.currentRegion = currentRegion;
 
-  // 6. Send approval email — Global article only for now
-  console.log('[FFX Pipeline] Sending approval email');
+  // 5. Generate job ID and store pending file in GitHub
+  const jobId = `${Date.now()}-${videoId}`;
+  console.log('[FFX Pipeline] Storing pending job:', jobId);
+
+  const pendingData = {
+    jobId,
+    createdAt: new Date().toISOString(),
+    youtubeUrl,
+    currentRegion,
+    regionCycleIndex,
+    articles: [globalArticle],
+  };
+
   try {
-    await sendApprovalEmail(env, globalArticle, null, currentRegion, youtubeUrl);
-    console.log('[FFX Pipeline] Approval email sent');
+    await storePendingJob(env, jobId, pendingData);
+    console.log('[FFX Pipeline] Pending job stored');
+  } catch (err) {
+    console.log('[FFX Pipeline] Failed to store pending job:', err.message);
+    return new Response(JSON.stringify({ error: `Storage failed: ${err.message}` }), { status: 502, headers });
+  }
+
+  // 6. Send review email
+  const reviewUrl = `https://fortitudefx.com/review?job=${jobId}`;
+  console.log('[FFX Pipeline] Sending review email, reviewUrl:', reviewUrl);
+  try {
+    await sendReviewEmail(env, globalArticle, currentRegion, youtubeUrl, reviewUrl);
+    console.log('[FFX Pipeline] Review email sent');
   } catch (err) {
     console.log('[FFX Pipeline] Email failed:', err.message);
     return new Response(JSON.stringify({ error: `Email failed: ${err.message}` }), { status: 502, headers });
@@ -100,7 +125,8 @@ export async function onRequestPost(context) {
 
   return new Response(JSON.stringify({
     success: true,
-    message: 'Pipeline complete. Approval email sent.',
+    message: 'Pipeline complete. Review email sent.',
+    jobId,
     globalSlug: globalArticle.slug,
     region: currentRegion,
   }), { status: 200, headers });
@@ -118,46 +144,45 @@ export async function onRequestOptions() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// APPROVAL EMAIL
+// GITHUB STORAGE
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function sendApprovalEmail(env, globalArticle, regionalArticle, currentRegion, youtubeUrl) {
-  // regionalArticle may be null when only generating Global
-  const approveBaseUrl = 'https://fortitudefx.com/approve';
+async function storePendingJob(env, jobId, data) {
+  const path = `pending/${jobId}.json`;
+  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`;
 
-  // Encode each article payload as base64 for form hidden fields
-  const globalPayload = btoa(unescape(encodeURIComponent(JSON.stringify(globalArticle))));
-  const regionalPayload = regionalArticle ? btoa(unescape(encodeURIComponent(JSON.stringify(regionalArticle)))) : '';
+  const encoded = (() => {
+    const b = new TextEncoder().encode(JSON.stringify(data, null, 2));
+    let s = '';
+    for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return btoa(s);
+  })();
 
-  const platforms = ['blog', 'x', 'linkedin', 'discord', 'tumblr'];
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      'User-Agent': 'FFX-Worker',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: `pipeline: pending job ${jobId}`,
+      content: encoded,
+      branch: GITHUB_BRANCH,
+    }),
+  });
 
-  // Build approve/deny buttons per platform per article
-  function buildPlatformRows(article, payload, label) {
-    return platforms.map(platform => {
-      const platformLabel = platform === 'x' ? 'X / Twitter' : platform.charAt(0).toUpperCase() + platform.slice(1);
-      // Discord only for global
-      if (platform === 'discord' && label !== 'Global') return '';
-      return `
-      <tr>
-        <td style="padding:8px 0; font-family:'Helvetica Neue',Arial,sans-serif; font-size:14px; color:#444; width:120px;">${platformLabel}</td>
-        <td style="padding:8px 0;">
-          <form method="POST" action="${approveBaseUrl}" style="display:inline;">
-            <input type="hidden" name="payload" value="${payload}">
-            <input type="hidden" name="platform" value="${platform}">
-            <input type="hidden" name="decision" value="approve">
-            <button type="submit" style="background:#4caf7d;color:#fff;border:none;border-radius:4px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-right:8px;">✅ Approve</button>
-          </form>
-          <form method="POST" action="${approveBaseUrl}" style="display:inline;">
-            <input type="hidden" name="payload" value="${payload}">
-            <input type="hidden" name="platform" value="${platform}">
-            <input type="hidden" name="decision" value="deny">
-            <button type="submit" style="background:#e06060;color:#fff;border:none;border-radius:4px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;">❌ Deny</button>
-          </form>
-        </td>
-      </tr>`;
-    }).join('');
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`GitHub write failed: ${res.status} ${err}`);
   }
+}
 
+// ─────────────────────────────────────────────────────────────────────────────
+// REVIEW EMAIL — FFX Master Template
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function sendReviewEmail(env, globalArticle, currentRegion, youtubeUrl, reviewUrl) {
   const emailHtml = `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -167,52 +192,54 @@ async function sendApprovalEmail(env, globalArticle, regionalArticle, currentReg
     <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.08);overflow:hidden;max-width:600px;width:100%;">
 
       <!-- Gradient stripe -->
-      <tr><td style="height:7px;background:linear-gradient(90deg,#7c3aed,#f97316);"></td></tr>
+      <tr><td style="height:7px;background:linear-gradient(90deg,#7c3aed,#f97316);font-size:0;line-height:0;">&nbsp;</td></tr>
 
       <!-- Hero header -->
-      <tr><td style="background:#0a0a12;padding:32px 40px;position:relative;">
-        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 20% 50%,rgba(124,58,237,0.15),transparent 60%),radial-gradient(ellipse at 80% 50%,rgba(249,115,22,0.1),transparent 60%);pointer-events:none;"></div>
+      <tr><td style="background:#0a0a12;padding:32px 40px;">
         <!-- Logo row -->
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td>
-              <a href="https://fortitudefx.com" style="text-decoration:none;">
-                <img src="https://fortitudefx.com/favicon-192x192.png" width="36" height="36" style="border-radius:6px;vertical-align:middle;margin-right:10px;">
-                <span style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:15px;font-weight:700;color:#ffffff;letter-spacing:0.08em;vertical-align:middle;">FORTITUDEFX</span>
-                <span style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#9ca3af;letter-spacing:0.12em;vertical-align:middle;margin-left:8px;">CATCH THE WICK</span>
+            <td style="vertical-align:middle;">
+              <a href="https://fortitudefx.com" style="text-decoration:none;display:inline-block;vertical-align:middle;">
+                <img src="https://fortitudefx.com/favicon-192x192.png" width="36" height="36" alt="FFX" style="border-radius:6px;vertical-align:middle;display:inline-block;border:0;">
+                <span style="font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;letter-spacing:0.1em;vertical-align:middle;margin-left:10px;">FORTITUDEFX</span>
+                <span style="font-family:Arial,sans-serif;font-size:11px;color:#9ca3af;letter-spacing:0.12em;vertical-align:middle;margin-left:8px;">CATCH THE WICK</span>
               </a>
             </td>
           </tr>
         </table>
+
         <!-- Kicker pill -->
         <div style="margin-top:20px;">
-          <span style="display:inline-flex;align-items:center;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);border-radius:20px;padding:4px 12px;">
-            <span style="width:6px;height:6px;background:#7c3aed;border-radius:50%;display:inline-block;margin-right:8px;"></span>
-            <span style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:#a78bfa;letter-spacing:0.1em;">CONTENT APPROVAL</span>
+          <span style="display:inline-block;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.4);border-radius:20px;padding:5px 14px;">
+            <span style="display:inline-block;width:6px;height:6px;background:#7c3aed;border-radius:50%;vertical-align:middle;margin-right:8px;"></span>
+            <span style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#a78bfa;letter-spacing:0.1em;vertical-align:middle;">CONTENT APPROVAL</span>
           </span>
         </div>
-        <!-- Hero title row -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
+
+        <!-- Hero title + 2 Candles -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
           <tr>
-            <td style="vertical-align:top;padding-right:16px;">
-              <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:22px;font-weight:700;color:#ffffff;line-height:1.3;">New content ready for review</div>
-              <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;color:#9ca3af;margin-top:6px;">Approve or deny each platform below</div>
+            <td style="vertical-align:top;">
+              <div style="font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#ffffff;line-height:1.3;">New content ready<br>for review</div>
+              <div style="font-family:Arial,sans-serif;font-size:13px;color:#9ca3af;margin-top:8px;">Tap below to review and publish</div>
             </td>
-            <td style="vertical-align:middle;text-align:right;white-space:nowrap;">
+            <td style="vertical-align:middle;text-align:right;width:140px;">
               <a href="https://fortitudefx.com" style="text-decoration:none;">
-                <div style="font-family:Georgia,serif;font-size:20px;color:#ffffff;line-height:1.2;">2 Candles.</div>
-                <div style="font-family:Georgia,serif;font-size:20px;color:#f97316;line-height:1.2;">1 Story.</div>
+                <div style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;color:#ffffff;line-height:1.2;">2 Candles.</div>
+                <div style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;color:#f97316;line-height:1.2;">1 Story.</div>
               </a>
             </td>
           </tr>
         </table>
+
         <!-- Social icons -->
-        <table cellpadding="0" cellspacing="0" style="margin-top:20px;">
+        <table cellpadding="0" cellspacing="0" style="margin-top:24px;">
           <tr>
-            <td style="padding-right:8px;"><a href="https://youtube.com/@fortitudefx" style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;"><img src="https://fortitudefx.com/email-icon-youtube.png" width="18" height="18" style="display:block;"></a></td>
-            <td style="padding-right:8px;"><a href="https://instagram.com/fortitudefx" style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;"><img src="https://fortitudefx.com/email-icon-instagram.png" width="18" height="18" style="display:block;"></a></td>
-            <td style="padding-right:8px;"><a href="https://tiktok.com/@fortitudefx" style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;"><img src="https://fortitudefx.com/email-icon-tiktok.png" width="18" height="18" style="display:block;"></a></td>
-            <td><a href="https://x.com/fortitudefx" style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;"><img src="https://fortitudefx.com/email-icon-x.png" width="18" height="18" style="display:block;"></a></td>
+            <td style="padding-right:8px;"><a href="https://youtube.com/@fortitudefx" style="text-decoration:none;display:inline-block;background:rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;line-height:0;"><img src="https://fortitudefx.com/email-icon-youtube.png" width="18" height="18" alt="YouTube" style="display:block;border:0;"></a></td>
+            <td style="padding-right:8px;"><a href="https://instagram.com/fortitudefx" style="text-decoration:none;display:inline-block;background:rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;line-height:0;"><img src="https://fortitudefx.com/email-icon-instagram.png" width="18" height="18" alt="Instagram" style="display:block;border:0;"></a></td>
+            <td style="padding-right:8px;"><a href="https://tiktok.com/@fortitudefx" style="text-decoration:none;display:inline-block;background:rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;line-height:0;"><img src="https://fortitudefx.com/email-icon-tiktok.png" width="18" height="18" alt="TikTok" style="display:block;border:0;"></a></td>
+            <td><a href="https://x.com/fortitudefx" style="text-decoration:none;display:inline-block;background:rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;line-height:0;"><img src="https://fortitudefx.com/email-icon-x.png" width="18" height="18" alt="X" style="display:block;border:0;"></a></td>
           </tr>
         </table>
       </td></tr>
@@ -220,44 +247,42 @@ async function sendApprovalEmail(env, globalArticle, regionalArticle, currentReg
       <!-- Body -->
       <tr><td style="padding:36px 40px;">
 
-        <!-- Video info -->
-        <div style="background:#f8f8f8;border-radius:8px;padding:16px 20px;margin-bottom:28px;">
-          <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Source Video</div>
-          <a href="${youtubeUrl}" style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;color:#7c3aed;text-decoration:none;">${youtubeUrl}</a>
+        <!-- Article preview -->
+        <div style="background:#f8f9fa;border-radius:8px;padding:20px 24px;margin-bottom:28px;border-left:4px solid #7c3aed;">
+          <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#7c3aed;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">🌍 Global Article</div>
+          <div style="font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#111111;margin-bottom:6px;line-height:1.3;">${globalArticle.title}</div>
+          <div style="font-family:Arial,sans-serif;font-size:12px;color:#7c3aed;margin-bottom:8px;">/${globalArticle.slug}</div>
+          <div style="font-family:Arial,sans-serif;font-size:13px;color:#555555;line-height:1.6;">${globalArticle.excerpt}</div>
         </div>
 
-        <!-- GLOBAL ARTICLE -->
-        <div style="border:1px solid #e5e7eb;border-radius:8px;padding:24px;margin-bottom:24px;">
-          <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:#4caf7d;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">🌍 Global Article</div>
-          <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:16px;font-weight:700;color:#111;margin-bottom:4px;">${globalArticle.title}</div>
-          <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#6b7280;margin-bottom:4px;">/${globalArticle.slug}</div>
-          <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#444;margin-bottom:16px;">${globalArticle.excerpt}</div>
-          <table width="100%" cellpadding="0" cellspacing="0">
-            ${buildPlatformRows(globalArticle, globalPayload, 'Global')}
-          </table>
+        <!-- Source video -->
+        <div style="margin-bottom:28px;">
+          <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Source Video</div>
+          <a href="${youtubeUrl}" style="font-family:Arial,sans-serif;font-size:13px;color:#7c3aed;text-decoration:none;">${youtubeUrl}</a>
         </div>
 
-        ${regionalArticle ? `
-        <!-- REGIONAL ARTICLE -->
-        <div style="border:1px solid #e5e7eb;border-radius:8px;padding:24px;margin-bottom:28px;">
-          <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:#f97316;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">📍 ${currentRegion} Regional Article</div>
-          <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:16px;font-weight:700;color:#111;margin-bottom:4px;">${regionalArticle.title}</div>
-          <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#6b7280;margin-bottom:4px;">/${regionalArticle.slug}</div>
-          <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#444;margin-bottom:16px;">${regionalArticle.excerpt}</div>
-          <table width="100%" cellpadding="0" cellspacing="0">
-            ${buildPlatformRows(regionalArticle, regionalPayload, currentRegion)}
-          </table>
-        </div>` : ''}
+        <!-- CTA Button -->
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td align="center">
+              <a href="${reviewUrl}" style="display:inline-block;background:#7c3aed;color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:700;text-decoration:none;padding:16px 48px;border-radius:8px;letter-spacing:0.02em;">Review &amp; Publish →</a>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin-top:12px;text-align:center;">
+          <a href="${reviewUrl}" style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;text-decoration:none;">${reviewUrl}</a>
+        </div>
 
         <!-- Sign off -->
-        <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;color:#444;margin-top:8px;">
+        <div style="font-family:Arial,sans-serif;font-size:14px;color:#444444;margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;">
           — Salman / FortitudeFX
         </div>
       </td></tr>
 
       <!-- Footer -->
-      <tr><td style="background:#f8f8f8;padding:20px 40px;border-top:1px solid #e5e7eb;">
-        <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#9ca3af;text-align:center;">
+      <tr><td style="background:#f8f9fa;padding:20px 40px;border-top:1px solid #e5e7eb;">
+        <div style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;text-align:center;">
           <a href="https://fortitudefx.com/privacy" style="color:#9ca3af;text-decoration:underline;">Privacy Policy</a>
         </div>
       </td></tr>
@@ -290,7 +315,7 @@ async function sendApprovalEmail(env, globalArticle, regionalArticle, currentReg
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPERS — same as generate.js, self-contained
+// HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
 function extractVideoId(url) {
