@@ -20,7 +20,6 @@ const COL = {
   tumblr:      8,  // I
   yt_url:      9,  // J
   discord:     10, // K
-  region:      11, // L
 };
 
 export async function onRequestPost(context) {
@@ -46,6 +45,15 @@ export async function onRequestPost(context) {
 
   const slug = content.slug;
   const userSelected = platforms || { blog: true, x: true, linkedin: true, discord: true };
+
+  // Platform URLs — written to Excel instead of plain "Yes"
+  const platformUrls = {
+    blog:     `https://fortitudefx.com/article?slug=${slug}`,
+    x:        'https://x.com/fortitudefx',
+    linkedin: 'https://www.linkedin.com/company/fortitudefx',
+    discord:  'https://fortitudefx.com/vipdiscord',
+    tumblr:   'https://fortitudefx.tumblr.com',
+  };
 
   console.log('[FFX] slug:', slug, 'platforms:', userSelected);
 
@@ -80,7 +88,8 @@ export async function onRequestPost(context) {
   const getInit = (platform, colIndex) => {
     if (!userSelected[platform]) return 'not_selected';
     const val = existingRow?.[colIndex] || '';
-    if (val === 'Yes' || val === 'Skipped') return val;
+    // Treat existing URL links as already posted
+    if (val === 'Yes' || val === 'Skipped' || (typeof val === 'string' && val.startsWith('http'))) return val;
     return 'pending';
   };
 
@@ -92,9 +101,6 @@ export async function onRequestPost(context) {
     discord:  getInit('discord',  COL.discord),
   };
 
-  // Region comes from content object — set by generate.js cycle
-  const region = content.region || 'Global';
-
   const baseUrl = new URL(request.url).origin;
 
   // ── ALWAYS write articles.json first ─────────────────────────────────────
@@ -102,11 +108,10 @@ export async function onRequestPost(context) {
   try {
     const res = await callWorker(`${baseUrl}/publish`, {
       ...content,
-      region,
       skipSitemapAndIndex: !blogNeedsRun,
     });
     if (blogNeedsRun) {
-      status.blog = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
+      status.blog = res.ok ? platformUrls.blog : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
       console.log('[FFX] Blog:', status.blog);
     } else {
       console.log('[FFX] articles.json written (content only, blog not selected)');
@@ -125,7 +130,7 @@ export async function onRequestPost(context) {
         tweet3: content.tweet3, tweet4: content.tweet4,
         tweet5: content.tweet5, tweet6: content.tweet6,
       });
-      status.x = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      status.x = res.ok ? platformUrls.x : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] X:', status.x);
     } catch (err) {
       status.x = `Error: ${err.message}`;
@@ -139,7 +144,7 @@ export async function onRequestPost(context) {
         slug, linkedin: content.linkedin,
       });
       const liData = await res.json().catch(() => ({}));
-      status.linkedin = res.ok ? 'Yes' : `Error: ${liData.message || res.status}`;
+      status.linkedin = res.ok ? platformUrls.linkedin : `Error: ${liData.message || res.status}`;
       console.log('[FFX] LinkedIn:', status.linkedin);
     } catch (err) {
       status.linkedin = `Error: ${err.message}`;
@@ -152,7 +157,7 @@ export async function onRequestPost(context) {
       const res = await callWorker(`${baseUrl}/tumblr`, {
         slug, tumblr: content.tumblr,
       });
-      status.tumblr = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      status.tumblr = res.ok ? platformUrls.tumblr : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] Tumblr:', status.tumblr);
     } catch (err) {
       status.tumblr = `Error: ${err.message}`;
@@ -165,7 +170,7 @@ export async function onRequestPost(context) {
       const res = await callWorker(`${baseUrl}/discord`, {
         slug, discord: content.discord,
       });
-      status.discord = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      status.discord = res.ok ? platformUrls.discord : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] Discord:', status.discord);
     } catch (err) {
       status.discord = `Error: ${err.message}`;
@@ -179,7 +184,7 @@ export async function onRequestPost(context) {
 
   try {
     if (existingRow && rowIndex > 0) {
-      await updateExcelRow(graphToken, env, rowIndex + 1, status, existingRow, userSelected, excelRows[0].length, timestamp, region);
+      await updateExcelRow(graphToken, env, rowIndex + 1, status, existingRow, userSelected, excelRows[0].length, timestamp);
     } else {
       await appendExcelRow(graphToken, env, [
         timestamp,
@@ -193,7 +198,6 @@ export async function onRequestPost(context) {
         userSelected.tumblr   ? status.tumblr   : '',
         ytUrl,
         userSelected.discord  ? status.discord  : '',
-        region,
       ]);
     }
     console.log('[FFX] Excel updated');
@@ -249,7 +253,7 @@ async function getExcelRows(token, env) {
   return (await res.json()).values || [];
 }
 
-async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow, userSelected, numCols, timestamp, region) {
+async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow, userSelected, numCols, timestamp) {
   // Build updated row — only touch cells for platforms that ran this session
   const row = [...existingRow];
 
@@ -258,8 +262,6 @@ async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow
   if (userSelected.linkedin && newStatus.linkedin  !== 'pending' && newStatus.linkedin  !== 'not_selected') row[COL.linkedin]  = newStatus.linkedin;
   if (userSelected.tumblr   && newStatus.tumblr    !== 'pending' && newStatus.tumblr    !== 'not_selected') row[COL.tumblr]    = newStatus.tumblr;
   if (userSelected.discord  && newStatus.discord   !== 'pending' && newStatus.discord   !== 'not_selected') row[COL.discord]   = newStatus.discord;
-  // Always write region — set at generation time, not platform selection time
-  if (region) row[COL.region] = region;
   row[COL.lastUpdated] = timestamp;
 
   // Use range address — more reliable than rows/itemAt on SharePoint
