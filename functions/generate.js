@@ -7,8 +7,6 @@
 // Two sequential Claude calls at 8000 tokens each — avoids API timeout
 // ─────────────────────────────────────────────────────────────────────────────
 
-const REGIONS = ['GCC', 'US/Canada', 'EU/UK/Germany', 'SEA/Asia'];
-
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -61,70 +59,36 @@ export async function onRequestPost(context) {
     console.log('[FFX] articles.json fetch failed (non-fatal):', err.message);
   }
 
-  // 3. Fetch region cycle index from ffx-config.json — fails gracefully to index 0
-  console.log('[FFX] Fetching ffx-config.json for region cycle');
-  let regionCycleIndex = 0;
+  // 4. Call Claude — Global article only
+  console.log('[FFX] Calling Claude — Global');
+  let content;
   try {
-    const cfgRes = await fetch('https://fortitudefx.com/ffx-config.json', {
-      headers: { 'Cache-Control': 'no-cache' },
-    });
-    if (cfgRes.ok) {
-      const cfg = await cfgRes.json();
-      regionCycleIndex = typeof cfg.regionCycleIndex === 'number' ? cfg.regionCycleIndex : 0;
-    }
-    console.log('[FFX] regionCycleIndex:', regionCycleIndex);
+    content = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, existingArticles, 'Global', null);
+    console.log('[FFX] Claude done, slug:', content.slug);
   } catch (err) {
-    console.log('[FFX] ffx-config.json fetch failed (non-fatal), defaulting to index 0:', err.message);
+    console.log('[FFX] Claude failed:', err.message);
+    return new Response(JSON.stringify({ error: `Claude API failed: ${err.message}` }), { status: 502, headers });
   }
 
-  const currentRegion = REGIONS[regionCycleIndex % REGIONS.length];
-  console.log('[FFX] Current region for this run:', currentRegion);
-
-  // 4. Call Claude TWICE — one call per article — 8000 tokens each
-  // Call 1: Global article
-  console.log('[FFX] Calling Claude — Article 1: Global');
-  let globalArticle;
-  try {
-    globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, existingArticles, 'Global', null);
-    console.log('[FFX] Global article done, slug:', globalArticle.slug);
-  } catch (err) {
-    console.log('[FFX] Claude failed on Global article:', err.message);
-    return new Response(JSON.stringify({ error: `Claude API failed (Global): ${err.message}` }), { status: 502, headers });
-  }
-
-  // Call 2: Regional article
-  console.log('[FFX] Calling Claude — Article 2:', currentRegion);
-  let regionalArticle;
-  try {
-    regionalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, existingArticles, currentRegion, globalArticle.slug);
-    console.log('[FFX] Regional article done, slug:', regionalArticle.slug);
-  } catch (err) {
-    console.log('[FFX] Claude failed on Regional article:', err.message);
-    return new Response(JSON.stringify({ error: `Claude API failed (Regional): ${err.message}` }), { status: 502, headers });
-  }
-
-  const articles = [globalArticle, regionalArticle];
-
-  // 5. Apply existing slug lock to Global article only
+  // 5. Apply existing slug lock
   if (existingSlug && existingSlug.trim()) {
     console.log('[FFX] Locking slug to existing:', existingSlug);
-    const primary = articles[0];
-    const oldArticleUrl = `https://fortitudefx.com/article?slug=${primary.slug}`;
+    const oldArticleUrl = `https://fortitudefx.com/article?slug=${content.slug}`;
     const newArticleUrl = `https://fortitudefx.com/article?slug=${existingSlug}`;
-    primary.slug = existingSlug;
+    content.slug = existingSlug;
     const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
     fields.forEach(f => {
-      if (primary[f]) primary[f] = primary[f].replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl);
+      if (content[f]) content[f] = content[f].replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl);
     });
-    if (Array.isArray(primary.x_thread)) {
-      primary.x_thread = primary.x_thread.map(t => t.replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl));
+    if (Array.isArray(content.x_thread)) {
+      content.x_thread = content.x_thread.map(t => t.replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl));
     }
   }
 
-  // 6. Attach youtubeUrl to every article
-  articles.forEach(a => { a.youtubeUrl = youtubeUrl; });
+  // 6. Attach youtubeUrl
+  content.youtubeUrl = youtubeUrl;
 
-  return new Response(JSON.stringify({ success: true, articles, regionCycleIndex, currentRegion }), { status: 200, headers });
+  return new Response(JSON.stringify({ success: true, content }), { status: 200, headers });
 }
 
 export async function onRequestOptions() {
