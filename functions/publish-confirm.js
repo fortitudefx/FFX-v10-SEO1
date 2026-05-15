@@ -171,7 +171,14 @@ export async function onRequestPost(context) {
       const res = await callWorker(`${baseUrl}/discord`, {
         slug, discord: content.discord,
       });
-      status.discord = res.ok ? platformUrls.discord : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      if (res.ok) {
+        const discordData = await res.json().catch(() => ({}));
+        // Use direct message link if returned, otherwise fall back to site link
+        status.discord = discordData.messageLink || platformUrls.discord;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        status.discord = `Error: ${errData.message || res.status}`;
+      }
       console.log('[FFX] Discord:', status.discord);
     } catch (err) {
       status.discord = `Error: ${err.message}`;
