@@ -127,11 +127,11 @@ export async function onRequestPost(context) {
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
                       <td style="vertical-align:middle;padding-right:10px;">
-                        <img src="https://fortitudefx.com/favicon-192x192.png" alt="FFX" width="36" height="36" style="display:block;border-radius:9px;border:1px solid rgba(122,92,255,0.55);" />
+                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;display:block;"><img src="https://fortitudefx.com/favicon-192x192.png" alt="FFX" width="36" height="36" style="display:block;border-radius:9px;border:1px solid rgba(122,92,255,0.55);" /></a>
                       </td>
                       <td style="vertical-align:middle;">
-                        <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.14em;color:#ffffff;">FORTITUDEFX</p>
-                        <p style="margin:3px 0 0;font-family:Arial,sans-serif;font-size:9px;color:rgba(255,255,255,0.40);letter-spacing:0.07em;">CATCH THE WICK</p>
+                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;"><p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.14em;color:#ffffff;">FORTITUDEFX</p></a>
+                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;"><p style="margin:3px 0 0;font-family:Arial,sans-serif;font-size:9px;color:rgba(255,255,255,0.40);letter-spacing:0.07em;">CATCH THE WICK</p></a>
                       </td>
                     </tr>
                   </table>
@@ -170,8 +170,8 @@ export async function onRequestPost(context) {
 
                 <!-- Right: 2 Candles. 1 Story. vertically centered -->
                 <td style="vertical-align:middle;text-align:right;white-space:nowrap;">
-                  <p style="margin:0;font-family:Georgia,serif;font-size:32px;font-weight:900;color:#ffffff;line-height:1.05;letter-spacing:-0.01em;">2 Candles.</p>
-                  <p style="margin:0;font-family:Georgia,serif;font-size:32px;font-weight:900;color:#e06b1a;line-height:1.05;letter-spacing:-0.01em;">1 Story.</p>
+                  <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;"><p style="margin:0;font-family:Georgia,serif;font-size:32px;font-weight:900;color:#ffffff;line-height:1.05;letter-spacing:-0.01em;">2 Candles.</p>
+                  <p style="margin:0;font-family:Georgia,serif;font-size:32px;font-weight:900;color:#e06b1a;line-height:1.05;letter-spacing:-0.01em;">1 Story.</p></a>
                 </td>
 
               </tr>
