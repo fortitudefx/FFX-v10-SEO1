@@ -482,14 +482,19 @@
     pfDiv.innerHTML = '';
     PLATFORMS.forEach(({ key, label }) => {
       const val = data.status?.[key] || 'pending';
+      const isPosted = val === 'Yes' || (typeof val === 'string' && val.startsWith('http'));
       let cls;
-      if (val === 'Yes')           cls = 'ep-yes';
-      else if (val === 'Skipped')  cls = 'ep-skipped';
+      if (isPosted)                    cls = 'ep-yes';
+      else if (val === 'Skipped')      cls = 'ep-skipped';
       else if (val.startsWith('Error')) cls = 'ep-error';
-      else                         cls = 'ep-pending';
+      else                             cls = 'ep-pending';
       const span = document.createElement('span');
       span.className = `ep-badge ${cls}`;
-      span.textContent = label + ': ' + (val === 'Yes' ? '✓' : val === 'Skipped' ? '—' : val.startsWith('Error') ? '✕ Error' : 'Pending');
+      if (isPosted && val.startsWith('http')) {
+        span.innerHTML = label + ': <a href="' + val + '" target="_blank" style="color:inherit;">✓ View</a>';
+      } else {
+        span.textContent = label + ': ' + (isPosted ? '✓' : val === 'Skipped' ? '—' : val.startsWith('Error') ? '✕ Error' : 'Pending');
+      }
       pfDiv.appendChild(span);
     });
 
@@ -605,9 +610,10 @@
 
     PLATFORMS.forEach(({ key, label }) => {
       const val = platformState[key] || 'pending';
-      const isYes     = val === 'Yes';
+      const isYes     = val === 'Yes' || (typeof val === 'string' && val.startsWith('http'));
+      const isUrl     = typeof val === 'string' && val.startsWith('http');
       const isSkipped = val === 'Skipped';
-      const isError   = val.startsWith('Error');
+      const isError   = typeof val === 'string' && val.startsWith('Error');
 
       let itemClass = '';
       let checkContent = '';
@@ -617,7 +623,8 @@
 
       if (isYes) {
         itemClass = 'status-yes'; checkContent = '✓';
-        statusText = 'Already posted'; checked = true; locked = false;
+        statusText = isUrl ? '<a href="' + val + '" target="_blank" style="color:inherit;font-size:11px;">✓ View post</a>' : 'Already posted';
+        checked = true; locked = false;
       } else if (isSkipped) {
         itemClass = 'status-skipped locked'; checkContent = '—';
         statusText = 'Skipped by design'; checked = false; locked = true;
@@ -633,6 +640,7 @@
       item.className = `platform-item ${itemClass}`;
       item.dataset.key = key;
       item.dataset.checked = checked ? 'true' : 'false';
+      item.dataset.platformUrl = isUrl ? val : '';
       item.innerHTML = `
         <div class="platform-checkbox">${checkContent}</div>
         <div class="platform-info">
@@ -655,7 +663,12 @@
       item.classList.add('checked');
       item.classList.remove('status-error');
       checkbox.textContent = '✓';
-      statusText.textContent = 'Will post';
+      const platformUrl = item.dataset.platformUrl;
+      if (platformUrl) {
+        statusText.innerHTML = 'Will repost &nbsp;<a href="' + platformUrl + '" target="_blank" style="color:inherit;font-size:11px;">View prev</a>';
+      } else {
+        statusText.textContent = 'Will post';
+      }
     } else {
       item.classList.remove('checked', 'status-error', 'status-yes');
       checkbox.textContent = '';
