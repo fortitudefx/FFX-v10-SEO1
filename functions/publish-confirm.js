@@ -20,6 +20,7 @@ const COL = {
   tumblr:      8,  // I
   yt_url:      9,  // J
   discord:     10, // K
+  region:      11, // L
 };
 
 export async function onRequestPost(context) {
@@ -91,6 +92,9 @@ export async function onRequestPost(context) {
     discord:  getInit('discord',  COL.discord),
   };
 
+  // Region comes from content object — set by generate.js cycle
+  const region = content.region || 'Global';
+
   const baseUrl = new URL(request.url).origin;
 
   // ── ALWAYS write articles.json first ─────────────────────────────────────
@@ -98,6 +102,7 @@ export async function onRequestPost(context) {
   try {
     const res = await callWorker(`${baseUrl}/publish`, {
       ...content,
+      region,
       skipSitemapAndIndex: !blogNeedsRun,
     });
     if (blogNeedsRun) {
@@ -174,7 +179,7 @@ export async function onRequestPost(context) {
 
   try {
     if (existingRow && rowIndex > 0) {
-      await updateExcelRow(graphToken, env, rowIndex + 1, status, existingRow, userSelected, excelRows[0].length, timestamp);
+      await updateExcelRow(graphToken, env, rowIndex + 1, status, existingRow, userSelected, excelRows[0].length, timestamp, region);
     } else {
       await appendExcelRow(graphToken, env, [
         timestamp,
@@ -188,6 +193,7 @@ export async function onRequestPost(context) {
         userSelected.tumblr   ? status.tumblr   : '',
         ytUrl,
         userSelected.discord  ? status.discord  : '',
+        region,
       ]);
     }
     console.log('[FFX] Excel updated');
@@ -243,7 +249,7 @@ async function getExcelRows(token, env) {
   return (await res.json()).values || [];
 }
 
-async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow, userSelected, numCols, timestamp) {
+async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow, userSelected, numCols, timestamp, region) {
   // Build updated row — only touch cells for platforms that ran this session
   const row = [...existingRow];
 
@@ -252,6 +258,8 @@ async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow
   if (userSelected.linkedin && newStatus.linkedin  !== 'pending' && newStatus.linkedin  !== 'not_selected') row[COL.linkedin]  = newStatus.linkedin;
   if (userSelected.tumblr   && newStatus.tumblr    !== 'pending' && newStatus.tumblr    !== 'not_selected') row[COL.tumblr]    = newStatus.tumblr;
   if (userSelected.discord  && newStatus.discord   !== 'pending' && newStatus.discord   !== 'not_selected') row[COL.discord]   = newStatus.discord;
+  // Always write region — set at generation time, not platform selection time
+  if (region) row[COL.region] = region;
   row[COL.lastUpdated] = timestamp;
 
   // Use range address — more reliable than rows/itemAt on SharePoint

@@ -1,7 +1,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Generate Worker — No KV
-// POST /generate → Supadata transcript → Claude → return content to browser
+// POST /generate → Supadata transcript → Claude → return articles to browser
+// Phase 1: Regional SEO Intelligence Layer + Internal Linking
+// Region cycle: Global + mandated region from ffx-config.json cycle index
+// Regions: GCC → US/Canada → EU/UK/Germany → SEA/Asia → repeat
 // ─────────────────────────────────────────────────────────────────────────────
+
+const REGIONS = ['GCC', 'US/Canada', 'EU/UK/Germany', 'SEA/Asia'];
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -45,35 +50,66 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'Transcript too short or empty. Ensure captions are enabled and try again.' }), { status: 422, headers });
   }
 
-  // 2. Call Claude
-  console.log('[FFX] Calling Claude');
-  let content;
+  // 2. Fetch existing articles for internal linking — fails gracefully
+  console.log('[FFX] Fetching articles.json for internal linking');
+  let existingArticles = [];
   try {
-    content = await callClaude(transcript, youtubeUrl, env.ANTHROPIC_API_KEY);
-    console.log('[FFX] Claude done, slug:', content.slug);
+    existingArticles = await fetchExistingArticles();
+    console.log('[FFX] Existing articles fetched:', existingArticles.length);
+  } catch (err) {
+    console.log('[FFX] articles.json fetch failed (non-fatal):', err.message);
+  }
+
+  // 3. Fetch region cycle index from ffx-config.json — fails gracefully to index 0
+  console.log('[FFX] Fetching ffx-config.json for region cycle');
+  let regionCycleIndex = 0;
+  try {
+    const cfgRes = await fetch('https://fortitudefx.com/ffx-config.json', {
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    if (cfgRes.ok) {
+      const cfg = await cfgRes.json();
+      regionCycleIndex = typeof cfg.regionCycleIndex === 'number' ? cfg.regionCycleIndex : 0;
+    }
+    console.log('[FFX] regionCycleIndex:', regionCycleIndex);
+  } catch (err) {
+    console.log('[FFX] ffx-config.json fetch failed (non-fatal), defaulting to index 0:', err.message);
+  }
+
+  const currentRegion = REGIONS[regionCycleIndex % REGIONS.length];
+  console.log('[FFX] Current region for this run:', currentRegion);
+
+  // 4. Call Claude — always generates exactly 2 articles: Global + currentRegion
+  console.log('[FFX] Calling Claude');
+  let articles;
+  try {
+    articles = await callClaude(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, existingArticles, currentRegion);
+    console.log('[FFX] Claude done, articles generated:', articles.length, articles.map(a => a.region).join(', '));
   } catch (err) {
     console.log('[FFX] Claude failed:', err.message);
     return new Response(JSON.stringify({ error: `Claude API failed: ${err.message}` }), { status: 502, headers });
   }
 
-  // If an existing slug was passed (video already published), lock the slug
+  // 5. Apply existing slug lock to primary (Global) article only
   if (existingSlug && existingSlug.trim()) {
     console.log('[FFX] Locking slug to existing:', existingSlug);
-    const oldArticleUrl = `https://fortitudefx.com/article?slug=${content.slug}`;
+    const primary = articles[0];
+    const oldArticleUrl = `https://fortitudefx.com/article?slug=${primary.slug}`;
     const newArticleUrl = `https://fortitudefx.com/article?slug=${existingSlug}`;
-    content.slug = existingSlug;
+    primary.slug = existingSlug;
     const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
     fields.forEach(f => {
-      if (content[f]) content[f] = content[f].replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl);
+      if (primary[f]) primary[f] = primary[f].replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl);
     });
-    if (Array.isArray(content.x_thread)) {
-      content.x_thread = content.x_thread.map(t => t.replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl));
+    if (Array.isArray(primary.x_thread)) {
+      primary.x_thread = primary.x_thread.map(t => t.replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl));
     }
   }
 
-  content.youtubeUrl = youtubeUrl;
+  // 6. Attach youtubeUrl and regionCycleIndex to every article
+  articles.forEach(a => { a.youtubeUrl = youtubeUrl; });
 
-  return new Response(JSON.stringify({ success: true, content }), { status: 200, headers });
+  return new Response(JSON.stringify({ success: true, articles, regionCycleIndex, currentRegion }), { status: 200, headers });
 }
 
 export async function onRequestOptions() {
@@ -118,6 +154,19 @@ async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
   throw new Error('Unexpected Supadata response: ' + JSON.stringify(data).slice(0, 200));
 }
 
+// Fetch existing published articles for internal linking context
+async function fetchExistingArticles() {
+  const res = await fetch('https://fortitudefx.com/articles.json', {
+    headers: { 'Cache-Control': 'no-cache' },
+  });
+  if (!res.ok) throw new Error(`articles.json fetch failed: ${res.status}`);
+  const data = await res.json();
+  if (Array.isArray(data)) {
+    return data.map(a => ({ slug: a.slug, title: a.title })).filter(a => a.slug && a.title);
+  }
+  return [];
+}
+
 // Hard truncate to maxWords at last complete sentence
 function truncateToWordLimit(text, maxWords) {
   if (!text) return text;
@@ -129,36 +178,120 @@ function truncateToWordLimit(text, maxWords) {
   return truncated.trim();
 }
 
-async function callClaude(transcript, youtubeUrl, apiKey) {
+async function callClaude(transcript, youtubeUrl, apiKey, existingArticles, currentRegion) {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
 
-  const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system (5 entry models, 2-candle philosophy).
+  // Build internal links context string for Claude
+  const internalLinksContext = existingArticles.length > 0
+    ? `\n\nEXISTING PUBLISHED ARTICLES FOR INTERNAL LINKING:\nThe following articles are already published on fortitudefx.com. Where contextually relevant and natural, insert internal links to these articles inside the body HTML using <a href="https://fortitudefx.com/article?slug=SLUG">TITLE</a>. Only link when genuinely relevant — never force links.\n${existingArticles.map(a => `- slug: ${a.slug} | title: ${a.title}`).join('\n')}`
+    : '';
 
-You will receive a YouTube video transcript. Generate a full content package and return it as a single valid JSON object with exactly these keys. No markdown, no preamble, no explanation — only the raw JSON object.
+  const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick™ mechanical entry system (5 entry models, 2-candle philosophy).
+
+You will receive a YouTube video transcript. Generate exactly 2 articles and return them as a single valid JSON object. No markdown, no preamble, no explanation — only the raw JSON object.
+
+═══════════════════════════════════════════════════════
+MANDATORY OUTPUT — ALWAYS EXACTLY 2 ARTICLES
+═══════════════════════════════════════════════════════
+
+Article 1: GLOBAL
+- Universal audience, no regional framing
+- Applies to all traders worldwide
+- Evergreen, authoritative, clean
+
+Article 2: ${currentRegion} REGIONAL
+- Targeted specifically to ${currentRegion} traders
+- Regionally framed examples, context, search intent
+- Different slug, title, headings, examples from Article 1
+- Same core trading knowledge, different regional lens
+
+REGIONAL FRAMING GUIDE FOR ${currentRegion}:
+${currentRegion === 'GCC' ? '- UAE, Saudi Arabia, Kuwait, Bahrain audience\n- Dubai trading lifestyle, Gulf trading culture\n- Evening London session preparation from Gulf timezone\n- Work-life balance with London open timing\n- English-speaking GCC traders' : ''}
+${currentRegion === 'US/Canada' ? '- New York session focus, North American traders\n- EST/CST timezone context\n- Overlap between London close and NY open\n- US economic calendar relevance' : ''}
+${currentRegion === 'EU/UK/Germany' ? '- London session authority, European institutional flow\n- GMT timezone, Frankfurt/London context\n- XETRA open, European market structure\n- UK and European retail trader audience' : ''}
+${currentRegion === 'SEA/Asia' ? '- Asian session focus, Singapore/Hong Kong/Tokyo\n- Overnight trading from Western perspective\n- Asian range setup for London open\n- SGT/HKT/JST timezone context' : ''}
+
+CONTENT PRINCIPLES:
+- 80% universal trading knowledge, 20% regional contextualisation
+- Genuinely different content between articles — different examples, framing, search intent, headings
+- Never duplicate body content — Google filters duplicates
+- Regional framing must feel natural, not keyword-stuffed
+- Each article targets a different search query
+
+═══════════════════════════════════════════════════════
+OUTPUT FORMAT — SINGLE JSON OBJECT
+═══════════════════════════════════════════════════════
+
+{
+  "articles": [
+    {
+      "region": "Global",
+      "slug": "...",
+      "title": "...",
+      "excerpt": "...",
+      "category": "...",
+      "tags": "...",
+      "readTime": "...",
+      "body": "...",
+      "linkedin": "...",
+      "x_thread": ["...", "...", "...", "...", "...", "..."],
+      "discord": "...",
+      "tumblr": "...",
+      "mediumIntro": "..."
+    },
+    {
+      "region": "${currentRegion}",
+      "slug": "...",
+      "title": "...",
+      "excerpt": "...",
+      "category": "...",
+      "tags": "...",
+      "readTime": "...",
+      "body": "...",
+      "linkedin": "...",
+      "x_thread": ["...", "...", "...", "...", "...", "..."],
+      "discord": "...",
+      "tumblr": "...",
+      "mediumIntro": "..."
+    }
+  ]
+}
+
+═══════════════════════════════════════════════════════
+CONTENT FIELD SPECIFICATIONS
+═══════════════════════════════════════════════════════
 
 slug
-URL-safe lowercase hyphenated string, 3-6 words, no stopwords, describes the core topic.
+URL-safe lowercase hyphenated string, 3-6 words, no stopwords.
+Global article: describes core topic e.g. "liquidity-sweep-trading-strategy"
+Regional article: append region identifier e.g. "liquidity-sweep-trading-dubai" or "london-session-trading-gcc"
 
 title
 SEO title 50-60 characters, includes primary keyword.
+Global: universal framing.
+Regional: includes regional signal e.g. "How Dubai Traders Can Master Liquidity Sweeps"
 
 excerpt
-Max 160 characters, compelling meta description.
+Max 160 characters, compelling meta description. Regionally relevant where applicable.
 
 category
 Exactly one of: Strategy, Psychology, Risk Management, Market Analysis, Fundamentals
 
 tags
-Comma-separated string of 4-6 relevant tags.
+Comma-separated string of 4-6 relevant tags. Include regional tags for regional article.
 
 readTime
 String like "7 min read".
 
 body
-Full 2000-word SEO article as valid HTML. Use <h2> and <h3> tags. Include internal links using <a href="https://fortitudefx.com/PATH"> throughout — link to /bootcamp, /vipdiscord, /blog where contextually appropriate. End with a CTA paragraph inviting readers to join the free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark in the entire body.
+Full 2000-word SEO article as valid HTML. Use <h2> and <h3> tags.${internalLinksContext}
+Also include internal links to /bootcamp, /vipdiscord, /blog where contextually appropriate using <a href="https://fortitudefx.com/PATH">.
+End with a CTA paragraph inviting readers to join the free Discord community at https://fortitudefx.com/joinfree — never link directly to Discord.
+Maximum 1 exclamation mark in the entire body.
+Regional article body must have genuinely different content — different examples, different headings, different framing — not the same article with regional words swapped in.
 
 linkedin
-You are writing a LinkedIn post for the founder of FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick" framework.
+You are writing a LinkedIn post for the founder of FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick™" framework.
 
 The writing must feel HUMAN, intelligent, credible, experienced, and emotionally controlled.
 
@@ -218,16 +351,7 @@ CORE STRUCTURE:
 3. Perspective Shift: Introduce a deeper realization. Something most traders misunderstand. Reframe how readers think about trading, patience, execution, consistency, or learning.
 4. Soft Continuation CTA: Must feel natural and low-pressure. Never sound like an advertisement.
 
-CONTENT GOALS:
-- Build credibility
-- Build trust slowly
-- Encourage engagement naturally
-- Position FortitudeFX as premium and thoughtful
-- Attract serious traders rather than mass-market retail audiences
-
-SOFT POSITIONING RULES:
-You may naturally reference YouTube videos, FortitudeFX articles, lessons from the community, mention FortitudeFX subtly, imply deeper educational resources exist.
-But NEVER hard sell, use pressure tactics, overuse CTAs, sound like a sales funnel, or push VIP aggressively.
+For regional article: naturally frame for ${currentRegion} audience — reference relevant timezone, trading context, or lifestyle angle without forcing it.
 
 ALWAYS INCLUDE AT THE END — these three links, every single post, no exceptions:
 📖 Full breakdown: [ARTICLE_URL]
@@ -238,7 +362,7 @@ OUTPUT: Generate the main LinkedIn post only. No hashtags in the body. Add 3-5 r
 FINAL REQUIREMENT: The final result must feel authentic enough that professionals and traders genuinely believe: "This founder wrote this himself."
 
 x_thread
-You are writing an X (Twitter) thread for FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick" framework.
+You are writing an X (Twitter) thread for FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick™" framework.
 
 The thread is written from the perspective of the founder/operator of the brand.
 
@@ -283,307 +407,78 @@ IMPORTANT BRAND POSITIONING:
 The account should feel: calm, sharp, disciplined, slightly mysterious, thoughtful, experienced, premium, institutional-adjacent.
 NOT: loud, flashy, crypto-bro, gambling culture, fake rich, overhyped.
 
-LIFESTYLE POSITIONING RULE:
-Subtle lifestyle/status signaling is acceptable ONLY when understated, tasteful, integrated naturally, and secondary to intelligence and insight.
-The audience should think: "This person is successful because they think well."
-NOT: "This person is trying to LOOK successful."
-
 THREAD STRUCTURE — Generate a JSON array of exactly 6 strings:
 
 POST 1:
 - Main hook
-- Psychological insight
-- Contrarian market observation
-- Curiosity-driven statement
+- Psychological insight or contrarian market observation
 - Must stop scrolling naturally
-- NO links
-- NO CTA
-- Pure attention + intrigue
+- NO links, NO CTA, pure attention + intrigue
 
 POSTS 2-3:
 - Expand intelligently on the topic
 - Deliver real educational value
-- Explain: liquidity behavior, trader psychology, execution, discipline, emotional control, institutional behavior, risk management, misconceptions, process thinking
 - Posts 2 and 3 MUST each end with https://fortitudefx.com — no exceptions
-- Vary the sentence or phrasing leading into the link each time — never repeat the exact same wording
-- The link should feel contextual and educational, NOT promotional
+- Vary the phrasing leading into the link each time
 
-POST 4 SPECIFICALLY:
-- Continue expanding on the topic with real educational value
+POST 4:
+- Continue expanding with real educational value
 - Must end with https://fortitudefx.com/vipdiscord — no exceptions
-- Reference it naturally — e.g. "We break this down inside the community." / "This is one of the core concepts we cover." / "Worth exploring if this resonates."
-- Never sound like a hard sell
+- Reference naturally, never a hard sell
 
-POST 5 SPECIFICALLY:
+POST 5:
 - Deliver the deeper realization or perspective shift
-- Reframe the topic intelligently
-- Make readers think differently
 - Must end with https://fortitudefx.com/bootcamp — no exceptions
-- Reference it naturally — e.g. "This is the foundation of what we teach." / "Covered in depth in our framework." / "The bootcamp builds this into a complete system."
-- Avoid turning the tweet into a sales CTA
+- Reference naturally, avoid turning into a sales CTA
 
 POST 6:
 - Soft continuation CTA
-- Include: relevant FortitudeFX article link [ARTICLE_URL], relevant YouTube video link ${youtubeUrl}, FortitudeFX website reference https://fortitudefx.com
+- Include: [ARTICLE_URL], ${youtubeUrl}, https://fortitudefx.com
 - Must feel natural and low-pressure
-- Examples: "I broke this down more deeply here for anyone interested." / "Full article + deeper video breakdown below." / "Most traders completely miss this detail."
-- The final tweet should feel like a continuation resource, NOT a sales pitch.
 
-WRITING STYLE:
-- Concise
-- Intelligent
-- High signal
-- Slightly opinionated
-- Conversational but controlled
-- Mobile friendly
-- Strong pacing
-- Short-medium tweet length
-- Avoid massive walls of text
-
-CONTENT THEMES:
-- why most traders fail
-- emotional volatility
-- liquidity
-- execution quality
-- discipline
-- patience
-- overtrading
-- social media trading culture
-- process vs prediction
-- risk management
-- long-term consistency
-- psychological traps
-- HTF vs LTF behavior
-- institutional thinking
-- trading identity and ego
-
-SOFT POSITIONING RULES:
-You may naturally reference articles, YouTube videos, lessons from experience, mention FortitudeFX subtly, imply deeper educational resources exist.
-But NEVER hard sell, push VIP aggressively, sound like a funnel, use pressure tactics, or overuse CTAs.
-
-FINAL REQUIREMENT:
-The final thread must feel authentic enough that readers genuinely believe: "This founder/operator wrote this manually."
+FINAL REQUIREMENT: The final thread must feel authentic enough that readers genuinely believe: "This founder wrote this manually."
 
 discord
-You are writing a Discord community post for FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick" framework.
+You are writing a Discord community post for FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick™" framework.
 The writing must feel HUMAN, experienced, intelligent, calm, and conversational.
-The goal is NOT to advertise aggressively. The goal is to build trust, create authority, nurture free Discord members, increase perceived depth and quality, and subtly encourage deeper engagement with the FortitudeFX ecosystem over time.
-The reader should feel: "These guys actually think differently."
-NOT: "These guys are trying to sell me something."
+The goal is to build trust, create authority, nurture free Discord members, and subtly encourage deeper engagement with the FortitudeFX ecosystem.
 VERY IMPORTANT:
 - Do NOT sound like marketing copy
 - Do NOT sound AI-generated
-- Do NOT sound overly polished or corporate
-- Avoid fake hype
-- Avoid "guru" language
-- Avoid generic motivation content
-- Avoid pressure tactics
-- Avoid spammy CTA language
-- Avoid sounding needy or sales-focused
-- Use emojis naturally and generously where they add energy, warmth, or emphasis — aim for 6-10 emojis throughout the post. Not on every line, but don't hold back when they fit.
-The writing should feel like an experienced trader sharing perspective naturally. High signal communication. Intelligent but accessible. Useful enough that people genuinely read it. Premium and thoughtful without trying too hard.
-STYLE:
-- Short-medium paragraphs
-- Mobile-friendly formatting
-- Natural phrasing
-- Slightly opinionated at times
-- Educational without lecturing
-- Calm institutional tone
-- Occasional incomplete sentences are acceptable
-- Prioritize clarity and perceived value per second
-- Separate each paragraph with a blank line — never write a wall of text
-- Maximum 3-4 sentences per paragraph
-
-POST LENGTH: 150-250 words of body content excluding the links section. Do not exceed 250 words of body content under any circumstances. The links section always appears regardless of word count.
-
+- Avoid fake hype, "guru" language, generic motivation, pressure tactics
+- Use emojis naturally — aim for 6-10 throughout, not on every line
+STYLE: Short-medium paragraphs, mobile-friendly, natural phrasing, calm institutional tone. Maximum 3-4 sentences per paragraph. Separate paragraphs with blank lines.
+POST LENGTH: 150-250 words body content excluding links. Hard limit.
 CORE STRUCTURE:
-1. Hook (1-2 lines): Something psychologically relevant, market-relevant, or thought-provoking. Must create curiosity naturally. Avoid clickbait.
-2. Insight + Perspective Shift (4-6 lines across 2-3 short paragraphs): Deliver REAL educational value. Explain a trading behavior, liquidity concept, execution issue, psychology mistake, risk management insight, or market observation clearly. Fold in a deeper realization or reframe naturally — something most traders overlook. Should feel useful even if the reader never buys anything. Each paragraph separated by a blank line.
-3. Links and CTA: Always include the following in this exact order — do not skip any:
+1. Hook (1-2 lines): Psychologically relevant, market-relevant, thought-provoking.
+2. Insight + Perspective Shift (2-3 short paragraphs): Real educational value. Each paragraph separated by blank line.
+3. Links and CTA — always in this exact order:
    Full breakdown 👉 [ARTICLE_URL]
    Watch the video: ${youtubeUrl}
-   Then a 1-2 line engagement hook — a genuine question or thought-provoking statement that invites the community to reply or reflect. Not a sales line. A real conversation starter related to the topic covered.
+   Then 1-2 line engagement question or thought-provoking statement.
    Final line: https://fortitudefx.com
-   CRITICAL: Write [ARTICLE_URL] exactly as shown — do NOT invent or construct any URL. Do not write /blog/ paths. Do not guess the URL format. Write [ARTICLE_URL] and it will be replaced automatically. The website link https://fortitudefx.com must always be the very last line with https:// prefix so Discord renders it as a clickable link.
-
-CONTENT GOALS: Deliver genuine value. Encourage discussion and engagement. Build long-term trust. Subtly position FortitudeFX as more thoughtful and higher quality than typical retail trading communities.
-SOFT POSITIONING RULES:
-You may naturally reference FortitudeFX articles, YouTube videos, the free Discord community, subtly imply deeper resources exist inside the ecosystem, occasionally reference the VIP Discord or Bootcamp indirectly.
-But NEVER hard sell, sound like a landing page, overuse CTAs, or push for conversion aggressively.
-FINAL REQUIREMENT: The final result must feel authentic enough that readers genuinely believe: "An actual experienced trader wrote this manually." Body content 150-250 words — this is a hard limit. Links section always included after.
+   CRITICAL: Write [ARTICLE_URL] exactly as shown — never construct a URL. https://fortitudefx.com must be the very last line.
+FINAL REQUIREMENT: Must feel like an actual experienced trader wrote this manually.
+NOTE: Discord post is always Global framing only — never regional.
 
 tumblr
-You are writing a Tumblr post for FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the “Catch The Wick” framework.
-
-The writing must feel:
-
-* HUMAN
-* thoughtful
-* intelligent
-* reflective
-* emotionally controlled
-* calm
-* authentic
-
-The tone should feel like:
-
-* an experienced trader sharing perspective
-* thoughtful internet writing
-* high-quality niche educational content
-* reflective market observations
-* journal-style insight with depth
-
-NOT:
-
-* corporate
-* overly polished
-* fake motivational
-* aggressive marketing
-* retail trading hype
-* “finfluencer” content
-
-The goal is NOT direct selling.
-
-The goal is to:
-
-* build long-term trust
-* create intellectual curiosity
-* position FortitudeFX as thoughtful and premium
-* attract serious traders naturally
-* generate organic traffic toward:
-
-  * FortitudeFX website
-  * articles
-  * YouTube videos
-* create evergreen searchable content
-* deepen emotional connection with the brand
-
-The audience should feel:
-“This feels more thoughtful than typical trading content.”
-
-VERY IMPORTANT:
-
-* Do NOT sound AI-generated
-* Do NOT sound like copywriting
-* Avoid fake inspiration
-* Avoid hustle culture
-* Avoid exaggerated luxury culture
-* Avoid fake PnL flexing
-* Avoid hard selling
-* Avoid sounding like an advertisement
-* Avoid spammy CTA behavior
-
-WRITING STYLE:
-
-* Thoughtful
-* Slightly reflective
-* Intelligent but accessible
-* Calm institutional tone
-* Natural sentence flow
-* Slightly philosophical at times
-* Strong readability
-* Mobile-friendly formatting
-* Medium-length paragraphs
-* Prioritize emotional resonance + insight density
-
-POST LENGTH:
-
-* Ideal range: 300–900 words
-* Shorter is acceptable if insight quality is high
-* Longer posts are acceptable if the writing remains engaging and thoughtful
-
+You are writing a Tumblr post for FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick™" framework.
+The writing must feel HUMAN, thoughtful, intelligent, reflective, emotionally controlled, calm, authentic.
+Tone: experienced trader sharing perspective, thoughtful internet writing, journal-style insight with depth.
+NOT: corporate, fake motivational, aggressive marketing, retail trading hype.
+WRITING STYLE: Thoughtful, slightly reflective, intelligent but accessible, calm institutional tone, slightly philosophical at times.
+POST LENGTH: 300–900 words. Shorter acceptable if insight quality is high.
 CORE STRUCTURE:
-
-1. Opening Hook
-
-* A thoughtful observation
-* Market truth
-* Psychological insight
-* Contrarian realization
-* Something emotionally or intellectually engaging
-
-2. Main Insight
-
-* Explain:
-
-  * trader psychology
-  * liquidity
-  * execution
-  * discipline
-  * emotional control
-  * patience
-  * market behavior
-  * consistency
-  * risk management
-  * trading identity
-* Deliver real educational value
-
-3. Perspective Shift
-
-* Introduce a deeper realization
-* Reframe how traders think
-* Challenge common assumptions
-* Create a memorable takeaway
-
-4. Soft Continuation CTA
-   Examples:
-
-* “I broke this down more deeply here.”
-* “There’s a longer breakdown on the site for anyone interested.”
-* “Covered this more deeply in a recent video.”
-* “One of the more overlooked concepts in trading.”
-
-The CTA must feel:
-
-* natural
-* low-pressure
-* contextual
-* non-promotional
-
-CONTENT THEMES:
-
-* emotional volatility
-* liquidity behavior
-* process over prediction
-* trading psychology
-* discipline
-* patience
-* consistency
-* execution quality
-* trader ego
-* social media trading culture
-* why most traders stay stuck
-* institutional thinking
-* calm decision making
-* uncertainty and risk
-
-SOFT POSITIONING RULES:
-You may naturally:
-
-* reference FortitudeFX articles
-* reference YouTube videos
-* mention lessons from the community
-* subtly imply deeper educational resources exist
-
-But NEVER:
-
-* hard sell
-* aggressively push VIP
-* sound like a funnel
-* use pressure tactics
-* overuse CTAs
-
-ALWAYS INCLUDE AT THE END — these three links, every single post, no exceptions:
+1. Opening Hook: thoughtful observation, market truth, psychological insight
+2. Main Insight: trader psychology, liquidity, execution, discipline, emotional control, consistency
+3. Perspective Shift: deeper realization, reframe, memorable takeaway
+4. Soft Continuation CTA: natural, low-pressure, contextual
+ALWAYS INCLUDE AT THE END:
 📖 Full breakdown: [ARTICLE_URL]
 ▶️ Watch the video: ${youtubeUrl}
 🌐 https://fortitudefx.com
-
-FORMAT: Plain text only. No HTML tags. No markdown. No asterisks. No angle brackets. Write as you would in a text editor — paragraphs separated by blank lines only.
-
-FINAL REQUIREMENT:
-The final post must feel authentic enough that readers genuinely believe:
-“This was written manually by an experienced trader/operator.”
-
+FORMAT: Plain text only. No HTML tags. No markdown. Paragraphs separated by blank lines only.
+FINAL REQUIREMENT: Must feel written manually by an experienced trader/operator.
 
 mediumIntro
 150-200 word rewritten article opening. Final line: "Originally published at [ARTICLE_URL]"
@@ -600,7 +495,7 @@ Write [ARTICLE_URL] exactly as shown — it will be replaced automatically after
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
-      max_tokens: 8000,
+      max_tokens: 16000,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Here is the transcript:\n\n${transcript}` }],
     }),
@@ -627,26 +522,36 @@ Write [ARTICLE_URL] exactly as shown — it will be replaced automatically after
     throw new Error('Claude returned invalid JSON. First 300 chars: ' + cleaned.slice(0, 300));
   }
 
-  const required = ['slug', 'title', 'excerpt', 'category', 'tags', 'readTime', 'body', 'linkedin', 'x_thread', 'discord', 'tumblr', 'mediumIntro'];
-  for (const key of required) {
-    if (!parsed[key]) throw new Error(`Missing key: "${key}"`);
+  // Validate structure
+  if (!Array.isArray(parsed.articles) || parsed.articles.length !== 2) {
+    throw new Error(`Expected exactly 2 articles, got: ${parsed.articles?.length ?? 0}`);
   }
 
-  // Map x_thread to tweet1-tweet6
-  if (Array.isArray(parsed.x_thread)) {
-    parsed.x_thread.forEach((t, i) => { parsed[`tweet${i + 1}`] = t; });
-  }
+  // Validate and post-process each article
+  const required = ['region', 'slug', 'title', 'excerpt', 'category', 'tags', 'readTime', 'body', 'linkedin', 'x_thread', 'discord', 'tumblr', 'mediumIntro'];
 
-  // Replace [ARTICLE_URL] with actual URL
-  const articleUrl = `https://fortitudefx.com/article?slug=${parsed.slug}`;
-  const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
-  fields.forEach(f => {
-    if (parsed[f]) parsed[f] = parsed[f].replace(/\[ARTICLE_URL\]/g, articleUrl);
+  parsed.articles.forEach((article, i) => {
+    for (const key of required) {
+      if (!article[key]) throw new Error(`Article ${i + 1} (${article.region || 'unknown'}): missing key "${key}"`);
+    }
+
+    // Map x_thread to tweet1-tweet6
+    if (Array.isArray(article.x_thread)) {
+      article.x_thread.forEach((t, j) => { article[`tweet${j + 1}`] = t; });
+    }
+
+    // Replace [ARTICLE_URL] with actual URL per article
+    const articleUrl = `https://fortitudefx.com/article?slug=${article.slug}`;
+    const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
+    fields.forEach(f => {
+      if (article[f]) article[f] = article[f].replace(/\[ARTICLE_URL\]/g, articleUrl);
+    });
+    if (Array.isArray(article.x_thread)) {
+      article.x_thread = article.x_thread.map(t => t.replace(/\[ARTICLE_URL\]/g, articleUrl));
+    }
+
+    console.log(`[FFX] Article ${i + 1}: region=${article.region}, slug=${article.slug}`);
   });
-  if (Array.isArray(parsed.x_thread)) {
-    parsed.x_thread = parsed.x_thread.map(t => t.replace(/\[ARTICLE_URL\]/g, articleUrl));
-  }
 
-  console.log('[FFX] Content ready, slug:', parsed.slug);
-  return parsed;
+  return parsed.articles;
 }
