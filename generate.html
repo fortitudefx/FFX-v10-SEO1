@@ -908,6 +908,13 @@
   function escHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   document.addEventListener('DOMContentLoaded', () => {
+    // Pre-fill URL from query param — used by notify email link
+    const params = new URLSearchParams(window.location.search);
+    const preUrl = params.get('url');
+    if (preUrl) {
+      document.getElementById('ytUrl').value = preUrl;
+    }
+
     document.getElementById('ytUrl').addEventListener('keydown', e => {
       if (e.key === 'Enter') checkUrl();
     });
