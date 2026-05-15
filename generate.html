@@ -482,7 +482,12 @@
     pfDiv.innerHTML = '';
     PLATFORMS.forEach(({ key, label }) => {
       const val = data.status?.[key] || 'pending';
-      const isPosted = val === 'Yes' || (typeof val === 'string' && val.startsWith('http'));
+      const isPosted = val === 'Yes' || (typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK(')));
+      const extractUrl = v => {
+        if (!v) return null;
+        if (v.startsWith('=HYPERLINK(')) { const m = v.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
+        return v.startsWith('http') ? v : null;
+      };
       let cls;
       if (isPosted)                    cls = 'ep-yes';
       else if (val === 'Skipped')      cls = 'ep-skipped';
@@ -490,8 +495,9 @@
       else                             cls = 'ep-pending';
       const span = document.createElement('span');
       span.className = `ep-badge ${cls}`;
-      if (isPosted && val.startsWith('http')) {
-        span.innerHTML = label + ': <a href="' + val + '" target="_blank" style="color:inherit;">✓ View</a>';
+      const postUrl = extractUrl(val);
+      if (isPosted && postUrl) {
+        span.innerHTML = label + ': <a href="' + postUrl + '" target="_blank" style="color:inherit;">✓ View</a>';
       } else {
         span.textContent = label + ': ' + (isPosted ? '✓' : val === 'Skipped' ? '—' : val.startsWith('Error') ? '✕ Error' : 'Pending');
       }
@@ -610,8 +616,10 @@
 
     PLATFORMS.forEach(({ key, label }) => {
       const val = platformState[key] || 'pending';
-      const isYes     = val === 'Yes' || (typeof val === 'string' && val.startsWith('http'));
-      const isUrl     = typeof val === 'string' && val.startsWith('http');
+      const isYes     = val === 'Yes' || (typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK(')));
+      const isUrl     = typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK('));
+      const getLink = v => { if (!v) return null; if (v.startsWith('=HYPERLINK(')) { const m = v.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; } return v.startsWith('http') ? v : null; };
+      const postLink = getLink(val);
       const isSkipped = val === 'Skipped';
       const isError   = typeof val === 'string' && val.startsWith('Error');
 
@@ -623,7 +631,7 @@
 
       if (isYes) {
         itemClass = 'status-yes'; checkContent = '✓';
-        statusText = isUrl ? '<a href="' + val + '" target="_blank" style="color:inherit;font-size:11px;">✓ View post</a>' : 'Already posted';
+        statusText = postLink ? '<a href="' + postLink + '" target="_blank" style="color:inherit;font-size:11px;">✓ View post</a>' : 'Already posted';
         checked = true; locked = false;
       } else if (isSkipped) {
         itemClass = 'status-skipped locked'; checkContent = '—';
@@ -640,7 +648,7 @@
       item.className = `platform-item ${itemClass}`;
       item.dataset.key = key;
       item.dataset.checked = checked ? 'true' : 'false';
-      item.dataset.platformUrl = isUrl ? val : '';
+      item.dataset.platformUrl = postLink || '';
       item.innerHTML = `
         <div class="platform-checkbox">${checkContent}</div>
         <div class="platform-info">
