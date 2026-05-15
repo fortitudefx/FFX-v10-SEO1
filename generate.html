@@ -571,16 +571,22 @@
     setHeaderStatus('Generating…');
     document.getElementById('progressWrap').style.display = 'block';
     setPS(1, 'active'); setPS(2, 'idle'); setPS(3, 'idle');
-    showAlert('genAlert', 'Working — fetching transcript then generating with Claude. Takes 25–45 seconds.', 'info');
+    showAlert('genAlert', 'Working — fetching transcript then generating 2 articles with Claude. Takes 60–120 seconds. Do not close this tab.', 'info');
 
     const t1 = setTimeout(() => { setPS(1, 'done'); setPS(2, 'active'); }, 4500);
+
+    // AbortController with 5 minute timeout — prevents browser canceling long Claude calls
+    const controller = new AbortController();
+    const abortTimeout = setTimeout(() => controller.abort(), 300000);
 
     try {
       const res = await fetch('/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ youtubeUrl: url, existingSlug: existingSlug || null }),
+        signal: controller.signal,
       });
+      clearTimeout(abortTimeout);
 
       clearTimeout(t1);
       const data = await res.json();
@@ -607,8 +613,10 @@
 
     } catch (err) {
       clearTimeout(t1);
+      clearTimeout(abortTimeout);
       failAll();
-      showAlert('genAlert', 'Network error: ' + err.message, 'error');
+      const errMsg = err.name === 'AbortError' ? 'Request timed out after 5 minutes. Please try again.' : 'Network error: ' + err.message;
+      showAlert('genAlert', errMsg, 'error');
       btn.disabled = false;
       btn.textContent = 'Generate Content';
       setHeaderStatus('Error');
