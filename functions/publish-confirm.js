@@ -288,10 +288,14 @@ async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow
 
   console.log('[FFX] Updating Excel range:', rangeAddr);
 
+  // Use formulas if any cell contains a HYPERLINK formula — otherwise use values
+  const hasFormula = row.some(v => typeof v === 'string' && v.startsWith('='));
+  const payload = hasFormula ? { formulas: [row] } : { values: [row] };
+
   const res = await fetch(workbookUrl(env, `/worksheets('${SHEET_NAME}')/range(address='${rangeAddr}')`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values: [row] }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) throw new Error(`Excel update ${res.status}: ${await res.text()}`);
@@ -305,10 +309,14 @@ async function appendExcelRow(token, env, rowValues) {
 
   console.log('[FFX] Appending Excel row at:', rangeAddr);
 
+  // Use formulas if any cell contains a HYPERLINK formula — otherwise use values
+  const hasFormula = rowValues.some(v => typeof v === 'string' && v.startsWith('='));
+  const payload = hasFormula ? { formulas: [rowValues] } : { values: [rowValues] };
+
   const res = await fetch(workbookUrl(env, `/worksheets('${SHEET_NAME}')/range(address='${rangeAddr}')`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values: [rowValues] }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) throw new Error(`Excel append ${res.status}: ${await res.text()}`);
