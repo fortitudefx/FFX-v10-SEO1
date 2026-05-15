@@ -46,6 +46,15 @@ export async function onRequestPost(context) {
   const slug = content.slug;
   const userSelected = platforms || { blog: true, x: true, linkedin: true, discord: true };
 
+  // Platform URLs written to Excel on success instead of plain "Yes"
+  const platformUrls = {
+    blog:     `https://fortitudefx.com/article?slug=${slug}`,
+    x:        'https://x.com/fortitudefx',
+    linkedin: 'https://www.linkedin.com/company/fortitudefx',
+    tumblr:   'https://fortitudefx.tumblr.com',
+    discord:  'https://fortitudefx.com/vipdiscord',
+  };
+
   console.log('[FFX] slug:', slug, 'platforms:', userSelected);
 
   // ── Get Graph token ────────────────────────────────────────────────────────
@@ -79,7 +88,9 @@ export async function onRequestPost(context) {
   const getInit = (platform, colIndex) => {
     if (!userSelected[platform]) return 'not_selected';
     const val = existingRow?.[colIndex] || '';
-    if (val === 'Yes' || val === 'Skipped') return val;
+    if (val === 'Skipped') return val;
+    // Treat existing URL as already posted
+    if (val === 'Yes' || (typeof val === 'string' && val.startsWith('http'))) return val;
     return 'pending';
   };
 
@@ -101,7 +112,7 @@ export async function onRequestPost(context) {
       skipSitemapAndIndex: !blogNeedsRun,
     });
     if (blogNeedsRun) {
-      status.blog = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
+      status.blog = res.ok ? platformUrls.blog : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
       console.log('[FFX] Blog:', status.blog);
     } else {
       console.log('[FFX] articles.json written (content only, blog not selected)');
@@ -120,7 +131,7 @@ export async function onRequestPost(context) {
         tweet3: content.tweet3, tweet4: content.tweet4,
         tweet5: content.tweet5, tweet6: content.tweet6,
       });
-      status.x = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      status.x = res.ok ? platformUrls.x : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] X:', status.x);
     } catch (err) {
       status.x = `Error: ${err.message}`;
@@ -134,7 +145,7 @@ export async function onRequestPost(context) {
         slug, linkedin: content.linkedin,
       });
       const liData = await res.json().catch(() => ({}));
-      status.linkedin = res.ok ? 'Yes' : `Error: ${liData.message || res.status}`;
+      status.linkedin = res.ok ? platformUrls.linkedin : `Error: ${liData.message || res.status}`;
       console.log('[FFX] LinkedIn:', status.linkedin);
     } catch (err) {
       status.linkedin = `Error: ${err.message}`;
@@ -147,7 +158,7 @@ export async function onRequestPost(context) {
       const res = await callWorker(`${baseUrl}/tumblr`, {
         slug, tumblr: content.tumblr,
       });
-      status.tumblr = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      status.tumblr = res.ok ? platformUrls.tumblr : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] Tumblr:', status.tumblr);
     } catch (err) {
       status.tumblr = `Error: ${err.message}`;
@@ -160,7 +171,7 @@ export async function onRequestPost(context) {
       const res = await callWorker(`${baseUrl}/discord`, {
         slug, discord: content.discord,
       });
-      status.discord = res.ok ? 'Yes' : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      status.discord = res.ok ? platformUrls.discord : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] Discord:', status.discord);
     } catch (err) {
       status.discord = `Error: ${err.message}`;
