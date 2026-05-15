@@ -84,27 +84,14 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: `Claude failed (Global): ${err.message}` }), { status: 502, headers });
   }
 
-  // 5. Call Claude — Article 2: Regional
-  console.log('[FFX Pipeline] Calling Claude —', currentRegion);
-  let regionalArticle;
-  try {
-    regionalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, existingArticles, currentRegion, globalArticle.slug);
-    console.log('[FFX Pipeline] Regional article done, slug:', regionalArticle.slug);
-  } catch (err) {
-    console.log('[FFX Pipeline] Claude failed (Regional):', err.message);
-    return new Response(JSON.stringify({ error: `Claude failed (Regional): ${err.message}` }), { status: 502, headers });
-  }
-
-  // 6. Attach metadata
+  // 5. Attach metadata
   globalArticle.youtubeUrl = youtubeUrl;
   globalArticle.regionCycleIndex = regionCycleIndex;
-  regionalArticle.youtubeUrl = youtubeUrl;
-  regionalArticle.regionCycleIndex = regionCycleIndex;
 
-  // 7. Send approval email
+  // 6. Send approval email — Global article only for now
   console.log('[FFX Pipeline] Sending approval email');
   try {
-    await sendApprovalEmail(env, globalArticle, regionalArticle, currentRegion, youtubeUrl);
+    await sendApprovalEmail(env, globalArticle, null, currentRegion, youtubeUrl);
     console.log('[FFX Pipeline] Approval email sent');
   } catch (err) {
     console.log('[FFX Pipeline] Email failed:', err.message);
@@ -115,7 +102,6 @@ export async function onRequestPost(context) {
     success: true,
     message: 'Pipeline complete. Approval email sent.',
     globalSlug: globalArticle.slug,
-    regionalSlug: regionalArticle.slug,
     region: currentRegion,
   }), { status: 200, headers });
 }
@@ -136,11 +122,12 @@ export async function onRequestOptions() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function sendApprovalEmail(env, globalArticle, regionalArticle, currentRegion, youtubeUrl) {
+  // regionalArticle may be null when only generating Global
   const approveBaseUrl = 'https://fortitudefx.com/approve';
 
   // Encode each article payload as base64 for form hidden fields
   const globalPayload = btoa(unescape(encodeURIComponent(JSON.stringify(globalArticle))));
-  const regionalPayload = btoa(unescape(encodeURIComponent(JSON.stringify(regionalArticle))));
+  const regionalPayload = regionalArticle ? btoa(unescape(encodeURIComponent(JSON.stringify(regionalArticle)))) : '';
 
   const platforms = ['blog', 'x', 'linkedin', 'discord', 'tumblr'];
 
@@ -250,6 +237,7 @@ async function sendApprovalEmail(env, globalArticle, regionalArticle, currentReg
           </table>
         </div>
 
+        ${regionalArticle ? `
         <!-- REGIONAL ARTICLE -->
         <div style="border:1px solid #e5e7eb;border-radius:8px;padding:24px;margin-bottom:28px;">
           <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:#f97316;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">📍 ${currentRegion} Regional Article</div>
@@ -259,7 +247,7 @@ async function sendApprovalEmail(env, globalArticle, regionalArticle, currentReg
           <table width="100%" cellpadding="0" cellspacing="0">
             ${buildPlatformRows(regionalArticle, regionalPayload, currentRegion)}
           </table>
-        </div>
+        </div>` : ''}
 
         <!-- Sign off -->
         <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;color:#444;margin-top:8px;">
