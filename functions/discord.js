@@ -62,7 +62,7 @@ export async function onRequestPost(context) {
 
   let discordRes;
   try {
-    discordRes = await fetch(DISCORD_WEBHOOK_URL, {
+    discordRes = await fetch(DISCORD_WEBHOOK_URL + '?wait=true', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -71,8 +71,15 @@ export async function onRequestPost(context) {
     return json({ message: 'Discord webhook request failed: ' + err.message }, 500);
   }
 
-  if (discordRes.status === 204 || discordRes.ok) {
-    return json({ success: true, slug });
+  if (discordRes.ok) {
+    const msgData = await discordRes.json().catch(() => ({}));
+    const guildId   = context.env.DISCORD_GUILD_ID || '';
+    const channelId = msgData.channel_id || '';
+    const messageId = msgData.id || '';
+    const messageLink = guildId && channelId && messageId
+      ? `https://discord.com/channels/${guildId}/${channelId}/${messageId}`
+      : 'https://fortitudefx.com/vipdiscord';
+    return json({ success: true, slug, messageLink });
   }
 
   const errData = await discordRes.json().catch(() => ({}));
