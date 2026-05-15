@@ -53,10 +53,12 @@ export async function onRequestPost(context) {
   // Read Excel
   let rows;
   try {
-    const url = `https://graph.microsoft.com/v1.0/sites/${env.MS_SHAREPOINT_HOST}/drive/items/${env.MS_FILE_ID}/workbook/worksheets('${SHEET_NAME}')/usedRange`;
+    // Use formulas endpoint — returns raw formula strings (e.g. =HYPERLINK(...)) not evaluated display text
+    // This ensures platform URLs written as HYPERLINK formulas are returned as-is for link display
+    const url = `https://graph.microsoft.com/v1.0/sites/${env.MS_SHAREPOINT_HOST}/drive/items/${env.MS_FILE_ID}/workbook/worksheets('${SHEET_NAME}')/usedRange?$select=formulas`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) throw new Error(`Excel read ${res.status}: ${await res.text()}`);
-    rows = (await res.json()).values || [];
+    rows = (await res.json()).formulas || [];
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
   }
