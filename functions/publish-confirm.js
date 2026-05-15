@@ -46,13 +46,13 @@ export async function onRequestPost(context) {
   const slug = content.slug;
   const userSelected = platforms || { blog: true, x: true, linkedin: true, discord: true };
 
-  // Platform URLs written to Excel on success instead of plain "Yes"
+  // Platform URLs written to Excel as HYPERLINK formula — clickable with short display text
   const platformUrls = {
-    blog:     `https://fortitudefx.com/article?slug=${slug}`,
-    x:        'https://x.com/fortitudefx',
-    linkedin: 'https://www.linkedin.com/company/fortitudefx',
-    tumblr:   'https://fortitudefx.tumblr.com',
-    discord:  'https://fortitudefx.com/vipdiscord',
+    blog:     `=HYPERLINK("https://fortitudefx.com/article?slug=${slug}","View post")`,
+    x:        '=HYPERLINK("https://x.com/fortitudefx","View post")',
+    linkedin: '=HYPERLINK("https://www.linkedin.com/company/fortitudefx","View post")',
+    tumblr:   '=HYPERLINK("https://fortitudefx.tumblr.com","View post")',
+    discord:  '=HYPERLINK("https://fortitudefx.com/vipdiscord","View post")',
   };
 
   console.log('[FFX] slug:', slug, 'platforms:', userSelected);
@@ -89,8 +89,8 @@ export async function onRequestPost(context) {
     if (!userSelected[platform]) return 'not_selected';
     const val = existingRow?.[colIndex] || '';
     if (val === 'Skipped') return val;
-    // Treat existing URL as already posted
-    if (val === 'Yes' || (typeof val === 'string' && val.startsWith('http'))) return val;
+    // Treat existing URL or HYPERLINK formula as already posted
+    if (val === 'Yes' || (typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK')))) return val;
     return 'pending';
   };
 
@@ -174,7 +174,8 @@ export async function onRequestPost(context) {
       if (res.ok) {
         const discordData = await res.json().catch(() => ({}));
         // Use direct message link if returned, otherwise fall back to site link
-        status.discord = discordData.messageLink || platformUrls.discord;
+        const rawLink = discordData.messageLink || 'https://fortitudefx.com/vipdiscord';
+        status.discord = `=HYPERLINK("${rawLink}","View post")`;
       } else {
         const errData = await res.json().catch(() => ({}));
         status.discord = `Error: ${errData.message || res.status}`;
