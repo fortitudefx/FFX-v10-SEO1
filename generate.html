@@ -482,7 +482,7 @@
     pfDiv.innerHTML = '';
     PLATFORMS.forEach(({ key, label }) => {
       const val = data.status?.[key] || 'pending';
-      const isPosted = val === 'Yes' || (typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK(')));
+      const isPosted = val === 'Yes' || val === 'View post' || (typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK(')));
       const extractUrl = v => {
         if (!v) return null;
         if (v.startsWith('=HYPERLINK(')) { const m = v.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
@@ -616,7 +616,7 @@
 
     PLATFORMS.forEach(({ key, label }) => {
       const val = platformState[key] || 'pending';
-      const isYes     = val === 'Yes' || (typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK(')));
+      const isYes     = val === 'Yes' || val === 'View post' || (typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK(')));
       const isUrl     = typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK('));
       const getLink = v => { if (!v) return null; if (v.startsWith('=HYPERLINK(')) { const m = v.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; } return v.startsWith('http') ? v : null; };
       const postLink = getLink(val);
@@ -743,19 +743,28 @@
     PLATFORMS.forEach(({ key, label }) => {
       const val = status?.[key] || 'unknown';
       const selected = platforms?.[key];
+      const getSuccessLink = v => {
+        if (!v) return null;
+        if (v.startsWith('=HYPERLINK(')) { const m = v.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
+        return v.startsWith('http') ? v : null;
+      };
+      const successLink = getSuccessLink(val);
+      const isPostedVal = val === 'Yes' || successLink !== null;
       let cls, icon, detail;
       if (!selected || val === 'not_selected') { cls = 'skipped'; icon = 'Not selected'; detail = ''; }
-      else if (val === 'Yes')               { cls = 'ok';      icon = 'Posted';  detail = ''; }
-      else if (val === 'Skipped')           { cls = 'skipped'; icon = 'Skipped'; detail = 'Already posted'; }
-      else if (val.startsWith('Error'))     { cls = 'error';   icon = 'Failed';  detail = val.replace('Error: ', ''); }
-      else                                  { cls = 'skipped'; icon = val;       detail = ''; }
+      else if (isPostedVal)                    { cls = 'ok';      icon = 'Posted';  detail = ''; }
+      else if (val === 'Skipped')              { cls = 'skipped'; icon = 'Skipped'; detail = 'Already posted'; }
+      else if (typeof val === 'string' && val.startsWith('Error')) { cls = 'error'; icon = 'Failed'; detail = val.replace('Error: ', ''); }
+      else                                     { cls = 'skipped'; icon = val;       detail = ''; }
 
       const card = document.createElement('div');
       card.className = 'platform-card';
+      const linkHtml = successLink ? `<div class="p-detail"><a href="${successLink}" target="_blank" style="color:var(--blue);font-size:11px;text-decoration:none;">View post →</a></div>` : '';
       card.innerHTML = `
         <div class="p-name">${label}</div>
         <div class="p-status ${cls}"><div class="p-dot"></div>${icon}</div>
-        ${detail ? `<div class="p-detail">${detail}</div>` : ''}`;
+        ${detail ? `<div class="p-detail">${detail}</div>` : ''}
+        ${linkHtml}`;
       grid.appendChild(card);
     });
   }
