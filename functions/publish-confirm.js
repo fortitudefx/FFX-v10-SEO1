@@ -49,7 +49,7 @@ export async function onRequestPost(context) {
   // Platform URLs written to Excel as HYPERLINK formula — clickable with short display text
   const platformUrls = {
     blog:     `=HYPERLINK("https://fortitudefx.com/article?slug=${slug}","View post")`,
-    x:        '=HYPERLINK("https://x.com/fortitudefx","View post")',
+    x:        '=HYPERLINK("https://x.com/fortitudefx","View post")', // fallback only — overridden by actual tweet URL
     linkedin: '=HYPERLINK("https://www.linkedin.com/company/fortitudefx","View post")',
     tumblr:   '=HYPERLINK("https://fortitudefx.tumblr.com","View post")',
     discord:  '=HYPERLINK("https://fortitudefx.com/vipdiscord","View post")',
@@ -131,7 +131,16 @@ export async function onRequestPost(context) {
         tweet3: content.tweet3, tweet4: content.tweet4,
         tweet5: content.tweet5, tweet6: content.tweet6,
       });
-      status.x = res.ok ? platformUrls.x : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      if (res.ok) {
+        const xData = await res.json().catch(() => ({}));
+        const firstTweetId = xData.results?.[0]?.tweet_id || '';
+        const tweetUrl = firstTweetId
+          ? `https://x.com/fortitudefx/status/${firstTweetId}`
+          : 'https://x.com/fortitudefx';
+        status.x = `=HYPERLINK("${tweetUrl}","View post")`;
+      } else {
+        status.x = `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      }
       console.log('[FFX] X:', status.x);
     } catch (err) {
       status.x = `Error: ${err.message}`;
