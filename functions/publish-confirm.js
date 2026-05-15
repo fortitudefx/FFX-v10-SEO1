@@ -153,8 +153,17 @@ export async function onRequestPost(context) {
       const res = await callWorker(`${baseUrl}/linkedin`, {
         slug, linkedin: content.linkedin,
       });
-      const liData = await res.json().catch(() => ({}));
-      status.linkedin = res.ok ? platformUrls.linkedin : `Error: ${liData.message || res.status}`;
+      if (res.ok) {
+        const liData = await res.json().catch(() => ({}));
+        const postId = liData.post_id || '';
+        const liUrl = postId
+          ? `https://www.linkedin.com/feed/update/${encodeURIComponent(postId)}`
+          : 'https://www.linkedin.com/in/salman-khan-fortitudefx';
+        status.linkedin = `=HYPERLINK("${liUrl}","View post")`;
+      } else {
+        const liData = await res.json().catch(() => ({}));
+        status.linkedin = `Error: ${liData.message || res.status}`;
+      }
       console.log('[FFX] LinkedIn:', status.linkedin);
     } catch (err) {
       status.linkedin = `Error: ${err.message}`;
