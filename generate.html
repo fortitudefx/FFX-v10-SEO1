@@ -601,7 +601,8 @@
       }
 
       setPS(1, 'done'); setPS(2, 'done'); setPS(3, 'active');
-      currentArticles = data.articles;
+      // Single article — wrap in array for review compatibility
+      currentArticles = [data.content];
       activeTabIndex  = 0;
       currentContent  = currentArticles[0];
 
