@@ -190,6 +190,14 @@
     .tweet-item { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 18px; font-size: 14px; line-height: 1.65; color: var(--text); display: flex; gap: 14px; }
     .tweet-num { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); min-width: 20px; padding-top: 2px; }
 
+    /* ── ARTICLE TABS ── */
+    .article-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .article-tab { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 18px; border-radius: 5px; border: 1px solid var(--border2); background: var(--surface); color: var(--muted); cursor: pointer; transition: all 0.15s; }
+    .article-tab:hover { border-color: #555; color: var(--text); }
+    .article-tab.active { background: var(--blue-bg); border-color: var(--blue-bd); color: var(--blue); }
+    .article-tab .tab-region { display: block; }
+    .article-count { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+
     /* ── PLATFORM CHECKLIST ── */
     .platform-checklist { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 16px; }
     .platform-checklist-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-mid); margin-bottom: 18px; }
@@ -309,7 +317,7 @@
 
     <div class="progress-wrap" id="progressWrap">
       <div class="progress-step" id="ps1"><div class="pip" id="pp1"></div>Fetching transcript from YouTube</div>
-      <div class="progress-step" id="ps2"><div class="pip" id="pp2"></div>Generating article + all platform content with Claude</div>
+      <div class="progress-step" id="ps2"><div class="pip" id="pp2"></div>Generating regional SEO articles + all platform content with Claude</div>
       <div class="progress-step" id="ps3"><div class="pip" id="pp3"></div>Preparing review</div>
     </div>
   </div>
@@ -323,6 +331,10 @@
       </div>
       <button class="btn-back" onclick="backToInput()">← Start Over</button>
     </div>
+
+    <!-- Article tabs — shown only when 2+ articles generated -->
+    <div class="article-tabs" id="articleTabs" style="display:none"></div>
+    <div class="article-count" id="articleCount"></div>
 
     <div class="meta-strip">
       <div class="meta-cell"><div class="meta-label">Slug</div><div class="meta-val mono" id="rSlug">—</div></div>
@@ -422,9 +434,11 @@
     { key: 'discord',  label: 'Discord' },
   ];
 
-  let currentContent = null;   // full content object held in JS memory
-  let platformState  = {};     // current Excel status per platform
-  let existingData   = null;   // data returned from /excel-status
+  let currentArticles = [];    // array of article objects returned by generate.js
+  let currentContent  = null;  // currently selected article object (active tab)
+  let activeTabIndex  = 0;     // index of currently selected tab
+  let platformState   = {};    // current Excel status per platform
+  let existingData    = null;  // data returned from /excel-status
 
   // ── CHECK URL — first step ────────────────────────────────────────────────
   async function checkUrl() {
@@ -507,9 +521,11 @@
     if (!existingData) return;
 
     if (existingData.content) {
-      // articles.json has the full content
-      currentContent = existingData.content;
-      platformState = existingData.status;
+      // articles.json has the full content — wrap in array for tab compatibility
+      currentArticles = [existingData.content];
+      currentContent  = currentArticles[0];
+      activeTabIndex  = 0;
+      platformState   = existingData.status;
       showReview();
     } else {
       // articles.json didn't return content — regenerate
@@ -527,6 +543,9 @@
     pubBtn.disabled = false;
     pubBtn.textContent = 'Publish';
     hideAlert('pubAlert');
+    // Reset article state
+    currentArticles = [];
+    activeTabIndex  = 0;
     // Reset platform state — fresh generate means everything pending
     platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', tumblr: 'pending', discord: 'pending' };
     // Pass existing slug so generate.js locks it — keeps article URL consistent
@@ -576,7 +595,9 @@
       }
 
       setPS(1, 'done'); setPS(2, 'done'); setPS(3, 'active');
-      currentContent = data.content;
+      currentArticles = data.articles;
+      activeTabIndex  = 0;
+      currentContent  = currentArticles[0];
 
       setTimeout(() => {
         setPS(3, 'done');
@@ -596,12 +617,49 @@
 
   // ── SHOW REVIEW ───────────────────────────────────────────────────────────
   function showReview() {
+    renderTabs();
     populateReview(currentContent);
     renderChecklist();
     document.getElementById('inputView').style.display = 'none';
     document.getElementById('reviewView').style.display = 'block';
     document.getElementById('publishFooter').classList.add('visible');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── RENDER ARTICLE TABS ───────────────────────────────────────────────────
+  function renderTabs() {
+    const tabsEl   = document.getElementById('articleTabs');
+    const countEl  = document.getElementById('articleCount');
+    tabsEl.innerHTML = '';
+
+    if (currentArticles.length <= 1) {
+      tabsEl.style.display = 'none';
+      countEl.textContent = '';
+      return;
+    }
+
+    tabsEl.style.display = 'flex';
+    countEl.textContent = `${currentArticles.length} articles generated for this video`;
+
+    currentArticles.forEach((article, i) => {
+      const tab = document.createElement('button');
+      tab.className = 'article-tab' + (i === activeTabIndex ? ' active' : '');
+      tab.innerHTML = `<span class="tab-region">${article.region}</span>`;
+      tab.addEventListener('click', () => {
+        activeTabIndex = i;
+        currentContent = currentArticles[i];
+        // Update tab active state
+        tabsEl.querySelectorAll('.article-tab').forEach((t, j) => {
+          t.classList.toggle('active', j === i);
+        });
+        // Re-populate review with selected article
+        populateReview(currentContent);
+        // Reset platform state for new article selection
+        platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', tumblr: 'pending', discord: 'pending' };
+        renderChecklist();
+      });
+      tabsEl.appendChild(tab);
+    });
   }
 
   // ── RENDER CHECKLIST ──────────────────────────────────────────────────────
@@ -777,7 +835,9 @@
   function toggleSection(id) { document.getElementById(id).classList.toggle('open'); }
 
   function backToInput() {
+    currentArticles = [];
     currentContent = null;
+    activeTabIndex  = 0;
     document.getElementById('reviewView').style.display = 'none';
     document.getElementById('publishFooter').classList.remove('visible');
     document.getElementById('inputView').style.display = 'block';
@@ -795,9 +855,11 @@
   }
 
   function reset() {
-    currentContent = null;
-    platformState  = {};
-    existingData   = null;
+    currentArticles = [];
+    currentContent  = null;
+    platformState   = {};
+    existingData    = null;
+    activeTabIndex  = 0;
     document.getElementById('successView').style.display = 'none';
     document.getElementById('inputView').style.display = 'block';
     document.getElementById('ytUrl').value = '';
