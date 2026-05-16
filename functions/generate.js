@@ -193,7 +193,8 @@ body
 Full 2000-word SEO article as valid HTML. Use <h2> and <h3> tags. Include internal links using <a href="https://fortitudefx.com/PATH"> throughout — link to /bootcamp, /vipdiscord, /blog where contextually appropriate. End with a CTA paragraph inviting readers to join the free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark in the entire body.
 
 linkedin
-VARIETY RULES APPLY — see CRITICAL RULES at top of prompt. LinkedIn format this run: ${linkedinFormat}. Do not start with any banned opening hook.
+FORMAT THIS RUN: ${linkedinFormat}. Length is determined by format — WALL: 350-500 words / SHORT: 80-150 words / SINGLE: 60-100 words / STORY: 200-350 words / CONTRARIAN: 150-300 words. Do not exceed the upper limit for the selected format.
+BANNED OPENINGS: See CRITICAL RULES above. Never start with any banned hook.
 
 You are writing a LinkedIn post for the founder of FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick" framework.
 
@@ -244,13 +245,6 @@ WRITING STYLE:
 - Clean pacing
 - Slightly reflective tone is encouraged
 
-POST LENGTH — DETERMINED BY FORMAT SELECTED FOR THIS RUN:
-- WALL: 350-500 words. Dense, earned, every paragraph adds value. No padding.
-- SHORT: 80-150 words. 2-3 tight paragraphs. Strong hook, one core insight, punchy close.
-- SINGLE: 60-100 words. One powerful observation. No buildup. Just the point and the link.
-- STORY: 200-350 words. Opens with a real trading scenario or moment. Builds to the lesson naturally.
-- CONTRARIAN: 150-300 words. Challenges a widely held belief. Takes a clear position. May be uncomfortable.
-
 ANGLE FOR THIS RUN — take the founder/operator perspective from the transcript. What would a professional who has seen this pattern a hundred times say about it. Not the tutorial angle — the been-there angle.
 
 CORE STRUCTURE:
@@ -279,6 +273,9 @@ OUTPUT: Generate the main LinkedIn post only. No hashtags in the body. Add 3-5 r
 FINAL REQUIREMENT: The final result must feel authentic enough that professionals and traders genuinely believe: "This founder wrote this himself."
 
 x_thread
+FORMAT THIS RUN: ${xFormat}. Tweet count by format — THREAD: exactly 6 tweets / SINGLE: exactly 1 tweet, max 280 characters / MINI: exactly 3 tweets / HOTTAKE: exactly 4 tweets. Return a JSON array with exactly that many strings — no more, no less.
+BANNED OPENINGS: See CRITICAL RULES above. Never start tweet 1 with any banned hook.
+
 You are writing an X (Twitter) thread for FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick" framework.
 
 The thread is written from the perspective of the founder/operator of the brand.
@@ -414,6 +411,10 @@ FINAL REQUIREMENT:
 The final thread must feel authentic enough that readers genuinely believe: "This founder/operator wrote this manually."
 
 discord
+WORD LIMIT: Maximum 200 words for the body content. Count every word. Stop before 200. Do not exceed this under any circumstances. The links section is separate and not counted.
+FORMAT THIS RUN: ${discordFormat} — see format definitions in CRITICAL RULES above.
+BANNED OPENINGS: See CRITICAL RULES above. Never start with "Most traders" or any banned hook.
+
 You are writing a Discord community post for FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick" framework.
 The writing must feel HUMAN, experienced, intelligent, calm, and conversational.
 The goal is NOT to advertise aggressively. The goal is to build trust, create authority, nurture free Discord members, increase perceived depth and quality, and subtly encourage deeper engagement with the FortitudeFX ecosystem over time.
@@ -450,8 +451,6 @@ FORMAT AND LENGTH FOR THIS RUN — follow exactly, hard limits:
 
 ANGLE FOR THIS RUN — always pick the tactical/execution angle from the transcript. What does a trader need to DO or think differently after reading this. Not theory — application.
 
-HARD WORD LIMIT: Body content maximum 250 words under any circumstances. Count before returning. Links section always included after body regardless of format.
-
 CORE STRUCTURE:
 1. Hook (1-2 lines): Something psychologically relevant, market-relevant, or thought-provoking. Must create curiosity naturally. Avoid clickbait.
 2. Insight + Perspective Shift (length determined by format above): Deliver REAL educational value. Each paragraph separated by a blank line.
@@ -466,9 +465,12 @@ CONTENT GOALS: Deliver genuine value. Encourage discussion and engagement. Build
 SOFT POSITIONING RULES:
 You may naturally reference FortitudeFX articles, YouTube videos, the free Discord community, subtly imply deeper resources exist inside the ecosystem, occasionally reference the VIP Discord or Bootcamp indirectly.
 But NEVER hard sell, sound like a landing page, overuse CTAs, or push for conversion aggressively.
-FINAL REQUIREMENT: The final result must feel authentic enough that readers genuinely believe: "An actual experienced trader wrote this manually." Body content 150-250 words — this is a hard limit. Links section always included after.
+FINAL REQUIREMENT: The final result must feel authentic enough that readers genuinely believe: "An actual experienced trader wrote this manually." Links section always included after body.
 
 tumblr
+LENGTH: 300-600 words. Do not exceed 600 words.
+BANNED OPENINGS: See CRITICAL RULES above. Never start with any banned hook.
+
 You are writing a Tumblr post for FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the “Catch The Wick” framework.
 
 The writing must feel:
