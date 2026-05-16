@@ -193,7 +193,7 @@ body
 Full 2000-word SEO article as valid HTML. Use <h2> and <h3> tags. Include internal links using <a href="https://fortitudefx.com/PATH"> throughout — link to /bootcamp, /vipdiscord, /blog where contextually appropriate. End with a CTA paragraph inviting readers to join the free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark in the entire body.
 
 linkedin
-FORMAT THIS RUN: ${linkedinFormat}. Length is determined by format — WALL: 350-500 words / SHORT: 80-150 words / SINGLE: 60-100 words / STORY: 200-350 words / CONTRARIAN: 150-300 words. Do not exceed the upper limit for the selected format.
+FORMAT THIS RUN: ${linkedinFormat}. Length is determined by format — WALL: 350-500 words / SHORT: 80-150 words / SINGLE: 60-100 words / STORY: 200-350 words / CONTRARIAN: 150-300 words. Do not exceed the upper limit for the selected format. HARD CEILING: 500 words absolute maximum for any format. No exceptions.
 BANNED OPENINGS: See CRITICAL RULES above. Never start with any banned hook.
 
 You are writing a LinkedIn post for the founder of FortitudeFX — a premium forex trading education brand focused on discipline, liquidity, execution quality, market psychology, and the "Catch The Wick" framework.
