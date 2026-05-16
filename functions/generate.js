@@ -660,7 +660,7 @@ Write [ARTICLE_URL] exactly as shown — it will be replaced automatically after
       model: 'claude-sonnet-4-5',
       max_tokens: 8000,
       system: systemPrompt,
-      messages: [{ role: 'user', content: `Here is the transcript:\n\n${transcript}` }],
+      messages: [{ role: 'user', content: `Here is the transcript:\n\n${transcript}\n\nVOICE INSTRUCTION: This transcript is Salman speaking — the founder of FortitudeFX. Before writing anything, study how he naturally speaks: his sentence rhythm, his directness, the specific words and phrases he chooses, how he builds and frames trading concepts, his personality and level of formality. Write ALL platform variants (LinkedIn, Discord, X, Tumblr) AND the article body in his voice as demonstrated in this transcript — not in a generic trading educator voice. The reader should feel this content was written by the same person who recorded this video.` }],
     }),
   });
 
