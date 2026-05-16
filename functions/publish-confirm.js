@@ -232,6 +232,52 @@ export async function onRequestPost(context) {
     console.log('[FFX] Excel write failed (non-fatal):', err.message);
   }
 
+  // ── Write platform status to KV ───────────────────────────────────────────
+  try {
+    if (env.FFX_KV) {
+      const extractVideoId = (url) => {
+        try {
+          const u = new URL(url || '');
+          if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+          if (u.hostname.includes('youtube.com')) {
+            const v = u.searchParams.get('v');
+            if (v) return v;
+            const parts = u.pathname.split('/');
+            const si = parts.indexOf('shorts');
+            if (si !== -1) return parts[si + 1];
+          }
+        } catch {}
+        return null;
+      };
+
+      const videoId = extractVideoId(content.youtubeUrl || content.yt_url || '');
+      if (videoId) {
+        // Read existing KV entry — preserve content, only update platform status
+        const existing = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' }) || {};
+        const existingPlatforms = existing.platforms || {};
+
+        // Only update platforms that were selected this run
+        const updatedPlatforms = { ...existingPlatforms };
+        if (userSelected.blog)     updatedPlatforms.blog     = { status: status.blog,     updatedAt: timestamp };
+        if (userSelected.x)        updatedPlatforms.x        = { status: status.x,        updatedAt: timestamp };
+        if (userSelected.linkedin) updatedPlatforms.linkedin = { status: status.linkedin,  updatedAt: timestamp };
+        if (userSelected.tumblr)   updatedPlatforms.tumblr   = { status: status.tumblr,   updatedAt: timestamp };
+        if (userSelected.discord)  updatedPlatforms.discord  = { status: status.discord,  updatedAt: timestamp };
+
+        const updatedEntry = {
+          ...existing,
+          platforms: updatedPlatforms,
+          updatedAt: timestamp,
+        };
+
+        await env.FFX_KV.put(`video:${videoId}`, JSON.stringify(updatedEntry));
+        console.log('[FFX] KV platform status updated for videoId:', videoId);
+      }
+    }
+  } catch (kvErr) {
+    console.log('[FFX] KV status write failed (non-fatal):', kvErr.message);
+  }
+
   return resp({ success: true, slug, status }, 200, headers);
 }
 
