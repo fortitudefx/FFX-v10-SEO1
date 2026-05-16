@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FFX Generate Worker — No KV
+// FFX Generate Worker — Phase 1 KV integration
 // POST /generate → Supadata transcript → Claude → return content to browser
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -81,6 +81,20 @@ export async function onRequestPost(context) {
   }
 
   content.youtubeUrl = youtubeUrl;
+  content.region = 'Global';
+  content.regionCycleIndex = 0;
+
+  // Read region cycle index from KV for display in FFX Press (non-fatal)
+  try {
+    if (env.FFX_KV) {
+      const cycleData = await env.FFX_KV.get('config:regionCycle', { type: 'json' });
+      if (cycleData !== null) {
+        content.regionCycleIndex = typeof cycleData === 'number' ? cycleData : (cycleData.index || 0);
+      }
+    }
+  } catch (err) {
+    console.log('[FFX] KV region cycle read failed (non-fatal):', err.message);
+  }
 
   return new Response(JSON.stringify({ success: true, content }), { status: 200, headers });
 }
