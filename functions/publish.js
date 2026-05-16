@@ -129,6 +129,67 @@ export async function onRequestPost(context) {
 
     console.log('[FFX] articles.json written for slug:', slug);
 
+    // ── 2b. KV — write article metadata + full content ────────────────────
+    try {
+      if (env.FFX_KV) {
+        // Extract videoId from youtubeUrl
+        const extractVideoId = (url) => {
+          try {
+            const u = new URL(url);
+            if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+            if (u.hostname.includes('youtube.com')) {
+              const v = u.searchParams.get('v');
+              if (v) return v;
+              const parts = u.pathname.split('/');
+              const si = parts.indexOf('shorts');
+              if (si !== -1) return parts[si + 1];
+            }
+          } catch {}
+          return null;
+        };
+
+        const videoId = extractVideoId(youtubeUrl || yt_url || '');
+
+        // article:{slug} — lightweight blog metadata for blog listing
+        const articleMeta = {
+          slug,
+          title,
+          excerpt: newArticle.excerpt,
+          category: newArticle.category,
+          tags: newArticle.tags,
+          readTime: newArticle.readTime,
+          date: articleDate,
+          region: body.region || 'Global',
+          youtubeUrl: youtubeUrl || yt_url || '',
+          videoId: videoId || '',
+          createdAt: new Date().toISOString(),
+        };
+        await env.FFX_KV.put(`article:${slug}`, JSON.stringify(articleMeta));
+
+        // video:{videoId} — full content store for FFX Press and load-from-memory
+        if (videoId) {
+          // Read existing entry to preserve platform status if already set
+          const existing = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' }) || {};
+          const videoEntry = {
+            ...existing,
+            videoId,
+            youtubeUrl: youtubeUrl || yt_url || '',
+            slug,
+            title,
+            region: body.region || 'Global',
+            regionCycleIndex: body.regionCycleIndex || 0,
+            createdAt: existing.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            content: newArticle,
+          };
+          await env.FFX_KV.put(`video:${videoId}`, JSON.stringify(videoEntry));
+          console.log('[FFX] KV written for videoId:', videoId);
+        }
+      }
+    } catch (kvErr) {
+      console.log('[FFX] KV write failed (non-fatal):', kvErr.message);
+    }
+
     // ── 3. CONDITIONALLY: sitemap + Google index ───────────────────────────
     if (!skipSitemapAndIndex) {
 
