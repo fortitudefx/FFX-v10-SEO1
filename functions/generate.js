@@ -30,80 +30,107 @@ export async function onRequestPost(context) {
 
   console.log('[FFX] videoId:', videoId, 'existingSlug:', existingSlug || 'none');
 
-  // 1. Fetch transcript via Supadata
-  console.log('[FFX] Fetching transcript via Supadata');
-  let transcript;
-  try {
-    transcript = await fetchTranscriptSupadata(youtubeUrl, env.SUPADATA_API_KEY);
-    console.log('[FFX] Transcript fetched, length:', transcript?.length);
-  } catch (err) {
-    console.log('[FFX] Supadata failed:', err.message);
-    return new Response(JSON.stringify({ error: `Transcript fetch failed: ${err.message}` }), { status: 502, headers });
-  }
-
-  if (!transcript || transcript.trim().length < 100) {
-    return new Response(JSON.stringify({ error: 'Transcript too short or empty. Ensure captions are enabled and try again.' }), { status: 422, headers });
-  }
-
-  // 2. Select random formats for variety engine
-  const linkedinFormats = ['WALL', 'SHORT', 'SINGLE', 'STORY', 'CONTRARIAN'];
-  const discordFormats  = ['NUGGET', 'DROP', 'QUESTION'];
-  const xFormats        = ['THREAD', 'SINGLE', 'MINI', 'HOTTAKE'];
-  const selectedLinkedin = linkedinFormats[Math.floor(Math.random() * linkedinFormats.length)];
-  const selectedDiscord  = discordFormats[Math.floor(Math.random() * discordFormats.length)];
-  const selectedX        = xFormats[Math.floor(Math.random() * xFormats.length)];
-  console.log('[FFX] Formats selected — LinkedIn:', selectedLinkedin, 'Discord:', selectedDiscord, 'X:', selectedX);
-
-  // 3. Call Claude
-  console.log('[FFX] Calling Claude');
-  let content;
-  try {
-    content = await callClaude(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, selectedLinkedin, selectedDiscord, selectedX);
-    console.log('[FFX] Claude done, slug:', content.slug);
-  } catch (err) {
-    console.log('[FFX] Claude failed:', err.message);
-    return new Response(JSON.stringify({ error: `Claude API failed: ${err.message}` }), { status: 502, headers });
-  }
-
-  // If an existing slug was passed (video already published), lock the slug
-  if (existingSlug && existingSlug.trim()) {
-    console.log('[FFX] Locking slug to existing:', existingSlug);
-    const oldArticleUrl = `https://fortitudefx.com/article?slug=${content.slug}`;
-    const newArticleUrl = `https://fortitudefx.com/article?slug=${existingSlug}`;
-    content.slug = existingSlug;
-    const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
-    fields.forEach(f => {
-      if (content[f]) content[f] = content[f].replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl);
-    });
-    if (Array.isArray(content.x_thread)) {
-      content.x_thread = content.x_thread.map(t => t.replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl));
-    }
-  }
-
-  content.youtubeUrl = youtubeUrl;
-  content.region = 'Global';
-  content.regionCycleIndex = 0;
-  content.videoId = videoId;
-
-  // Generate jobId for KV storage
+  // Generate jobId immediately — return to browser before any heavy work
   const jobId = `${Date.now()}-${videoId}`;
+  console.log('[FFX] jobId generated:', jobId);
 
-  // Store job in KV with 24hr TTL — browser polls /generate-status?job=jobId
+  // Write pending status to KV immediately so polling knows job exists
   try {
     if (env.FFX_KV) {
       await env.FFX_KV.put(
         `job:${jobId}`,
-        JSON.stringify({ status: 'complete', content, videoId, slug: content.slug }),
-        { expirationTtl: 86400 } // 24 hours
+        JSON.stringify({ status: 'pending', videoId }),
+        { expirationTtl: 86400 }
       );
-      console.log('[FFX] Job stored in KV:', jobId);
     }
   } catch (err) {
-    console.log('[FFX] KV job write failed (non-fatal):', err.message);
+    console.log('[FFX] KV pending write failed (non-fatal):', err.message);
   }
 
-  // Return jobId + content — press.html uses jobId for link, generate.html uses content directly
-  return new Response(JSON.stringify({ success: true, content, jobId, videoId }), { status: 200, headers });
+  // Run generation in background — browser polls /generate-status?job=jobId
+  context.waitUntil(runGeneration(env, youtubeUrl, videoId, existingSlug, jobId));
+
+  // Return immediately — browser does not wait for Claude
+  return new Response(JSON.stringify({ success: true, jobId, videoId }), { status: 200, headers });
+}
+
+async function runGeneration(env, youtubeUrl, videoId, existingSlug, jobId) {
+  const headers = { 'Content-Type': 'application/json' };
+
+  try {
+    // 1. Fetch transcript
+    console.log('[FFX Background] Fetching transcript for jobId:', jobId);
+    let transcript;
+    try {
+      transcript = await fetchTranscriptSupadata(youtubeUrl, env.SUPADATA_API_KEY);
+      console.log('[FFX Background] Transcript length:', transcript?.length);
+    } catch (err) {
+      console.log('[FFX Background] Supadata failed:', err.message);
+      if (env.FFX_KV) await env.FFX_KV.put(`job:${jobId}`, JSON.stringify({ status: 'error', error: `Transcript failed: ${err.message}`, videoId }), { expirationTtl: 86400 });
+      return;
+    }
+
+    if (!transcript || transcript.trim().length < 100) {
+      if (env.FFX_KV) await env.FFX_KV.put(`job:${jobId}`, JSON.stringify({ status: 'error', error: 'Transcript too short or empty', videoId }), { expirationTtl: 86400 });
+      return;
+    }
+
+    // 2. Select random formats
+    const linkedinFormats = ['WALL', 'SHORT', 'SINGLE', 'STORY', 'CONTRARIAN'];
+    const discordFormats  = ['NUGGET', 'DROP', 'QUESTION'];
+    const xFormats        = ['THREAD', 'SINGLE', 'MINI', 'HOTTAKE'];
+    const selectedLinkedin = linkedinFormats[Math.floor(Math.random() * linkedinFormats.length)];
+    const selectedDiscord  = discordFormats[Math.floor(Math.random() * discordFormats.length)];
+    const selectedX        = xFormats[Math.floor(Math.random() * xFormats.length)];
+    console.log('[FFX Background] Formats — LinkedIn:', selectedLinkedin, 'Discord:', selectedDiscord, 'X:', selectedX);
+
+    // 3. Call Claude
+    console.log('[FFX Background] Calling Claude');
+    let content;
+    try {
+      content = await callClaude(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, selectedLinkedin, selectedDiscord, selectedX);
+      console.log('[FFX Background] Claude done, slug:', content.slug);
+    } catch (err) {
+      console.log('[FFX Background] Claude failed:', err.message);
+      if (env.FFX_KV) await env.FFX_KV.put(`job:${jobId}`, JSON.stringify({ status: 'error', error: `Claude failed: ${err.message}`, videoId }), { expirationTtl: 86400 });
+      return;
+    }
+
+    // 4. Apply existing slug lock
+    if (existingSlug && existingSlug.trim()) {
+      const oldArticleUrl = `https://fortitudefx.com/article?slug=${content.slug}`;
+      const newArticleUrl = `https://fortitudefx.com/article?slug=${existingSlug}`;
+      content.slug = existingSlug;
+      const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
+      fields.forEach(f => {
+        if (content[f]) content[f] = content[f].replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\]/g, '\$&'), 'g'), newArticleUrl);
+      });
+      if (Array.isArray(content.x_thread)) {
+        content.x_thread = content.x_thread.map(t => t.replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\]/g, '\$&'), 'g'), newArticleUrl));
+      }
+    }
+
+    content.youtubeUrl = youtubeUrl;
+    content.region = 'Global';
+    content.regionCycleIndex = 0;
+    content.videoId = videoId;
+
+    // 5. Write completed job to KV
+    if (env.FFX_KV) {
+      await env.FFX_KV.put(
+        `job:${jobId}`,
+        JSON.stringify({ status: 'complete', content, videoId, slug: content.slug }),
+        { expirationTtl: 86400 }
+      );
+      console.log('[FFX Background] Job complete, stored in KV:', jobId);
+    }
+
+  } catch (err) {
+    console.log('[FFX Background] Unexpected error:', err.message);
+    try {
+      if (env.FFX_KV) await env.FFX_KV.put(`job:${jobId}`, JSON.stringify({ status: 'error', error: err.message, videoId }), { expirationTtl: 86400 });
+    } catch {}
+  }
 }
 
 export async function onRequestOptions() {
