@@ -200,14 +200,15 @@
       canonicalEl.setAttribute('href', 'https://fortitudefx.com/article?slug=' + slug);
     }
 
-    fetch('articles.json')
+    fetch('/article-content?slug=' + encodeURIComponent(slug))
       .then(r => r.json())
-      .then(articles => {
-        const a = articles.find(x => x.slug === slug);
-        if (!a) {
+      .then(data => {
+        if (!data.success || !data.article) {
           wrap.innerHTML = '<div style="padding:80px 0;text-align:center;color:rgba(255,255,255,0.28);">Article not found. <a href="blog.html" style="color:rgba(196,181,253,.7);">Back to blog</a></div>';
           return;
         }
+        const a = data.article;
+        if (true) {  // always true — keeps indentation consistent with original
 
         // Update canonical URL dynamically
         const canonicalEl = document.getElementById('canonicalTag');
