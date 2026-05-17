@@ -583,51 +583,10 @@
         return;
       }
 
-      // waitUntil flow — jobId returned immediately, poll for completion
-      if (data.jobId) {
-        genJobId = data.jobId;
-        setPS(1, 'done'); setPS(2, 'active');
-        showAlert('genAlert', 'Generating — Claude is working in the background. Checking every 3 seconds…', 'info');
-
-        pollTimer = setInterval(async () => {
-          try {
-            const pollRes = await fetch(`/generate-status?job=${genJobId}`);
-            const pollData = await pollRes.json();
-
-            if (pollData.status === 'complete' && pollData.content) {
-              clearInterval(pollTimer);
-              setPS(2, 'done'); setPS(3, 'active');
-              currentContent = pollData.content;
-              setTimeout(() => {
-                setPS(3, 'done');
-                setHeaderStatus('Review ready');
-                showReview();
-              }, 400);
-
-            } else if (pollData.status === 'error') {
-              clearInterval(pollTimer);
-              failAll();
-              showAlert('genAlert', pollData.error || 'Generation failed.', 'error');
-              btn.disabled = false;
-              btn.textContent = 'Generate Content';
-              setHeaderStatus('Error');
-            }
-            // else pending — keep polling
-          } catch (pollErr) {
-            clearInterval(pollTimer);
-            failAll();
-            showAlert('genAlert', 'Poll error: ' + pollErr.message, 'error');
-            btn.disabled = false;
-            btn.textContent = 'Generate Content';
-            setHeaderStatus('Error');
-          }
-        }, 3000);
-        return;
-      }
-
-      // Legacy fallback — content returned directly
-      setPS(1, 'done'); setPS(2, 'done'); setPS(3, 'active');
-      currentContent = data.content;
+      // Content returned directly — synchronous flow
+      if (data.content) {
+        setPS(1, 'done'); setPS(2, 'done'); setPS(3, 'active');
+        currentContent = data.content;
       setTimeout(() => {
         setPS(3, 'done');
         setHeaderStatus('Review ready');
