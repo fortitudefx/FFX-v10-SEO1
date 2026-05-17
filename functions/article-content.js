@@ -46,6 +46,15 @@ export async function onRequestGet(context) {
       }
     }
 
+    // Fallback for legacy articles migrated without videoId — stored as video:slug:{slug}
+    if (!body) {
+      const slugEntry = await env.FFX_KV.get(`video:slug:${slug}`, { type: 'json' });
+      if (slugEntry?.content) {
+        fullContent = slugEntry.content;
+        body = slugEntry.content.body || '';
+      }
+    }
+
     // 3. Build article object matching the shape article.html expects
     const article = {
       slug: articleMeta.slug,
