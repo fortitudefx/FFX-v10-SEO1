@@ -52,112 +52,33 @@ export async function onRequestPost(context) {
     const rawDate = date || new Date().toISOString().split('T')[0];
     const articleDate = rawDate.replace(/['"]/g, '').trim();
 
-    // ── 1. READ current articles.json ──────────────────────────────────────
-    const articlesUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/articles.json?ref=${GITHUB_BRANCH}`;
-    const articlesRes = await fetch(articlesUrl, {
-      headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker' }
-    });
-
-    let articles = [];
-    let articlesSha = null;
-
-    if (articlesRes.ok) {
-      const articlesData = await articlesRes.json();
-      articlesSha = articlesData.sha;
-      const base64 = articlesData.content.replace(/\n/g, '');
-      const binaryStr = atob(base64);
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-      articles = JSON.parse(new TextDecoder().decode(bytes));
-    }
-
-    // Build full article object — all fields including all platform content
-    const newArticle = {
-      slug,
-      title,
-      excerpt: excerpt || '',
-      category: category || 'Strategy',
-      tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : [],
-      readTime: readTime || '5 min read',
-      date: articleDate,
-      yt_url: youtubeUrl || yt_url || '',
-      linkedin: linkedin || '',
-      discord: discord || '',
-      tumblr: tumblr || '',
-      mediumIntro: mediumIntro || '',
-      tweet1: tweet1 || (Array.isArray(x_thread) ? x_thread[0] : '') || '',
-      tweet2: tweet2 || (Array.isArray(x_thread) ? x_thread[1] : '') || '',
-      tweet3: tweet3 || (Array.isArray(x_thread) ? x_thread[2] : '') || '',
-      tweet4: tweet4 || (Array.isArray(x_thread) ? x_thread[3] : '') || '',
-      tweet5: tweet5 || (Array.isArray(x_thread) ? x_thread[4] : '') || '',
-      tweet6: tweet6 || (Array.isArray(x_thread) ? x_thread[5] : '') || '',
-      body: articleBody,
+    // ── 1. Write article metadata to KV ────────────────────────────────────
+    // Called only when blog is selected — publish-confirm guards this
+    const extractVideoId = (url) => {
+      try {
+        const u = new URL(url || '');
+        if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+        if (u.hostname.includes('youtube.com')) {
+          const v = u.searchParams.get('v');
+          if (v) return v;
+          const parts = u.pathname.split('/');
+          const si = parts.indexOf('shorts');
+          if (si !== -1) return parts[si + 1];
+        }
+      } catch {}
+      return null;
     };
+    const videoId = extractVideoId(youtubeUrl || yt_url || '');
 
-    // Dedup by slug — update if exists, prepend if new
-    const exists = articles.findIndex(a => a.slug === slug);
-    if (exists >= 0) {
-      articles[exists] = newArticle;
-    } else {
-      articles.unshift(newArticle);
-    }
-
-    // ── 2. ALWAYS write articles.json ──────────────────────────────────────
-    const articlesPayload = {
-      message: `publish: ${slug}`,
-      content: (() => { const bytes = new TextEncoder().encode(JSON.stringify(articles, null, 2)); let binary = ''; for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]); return btoa(binary); })(),
-      branch: GITHUB_BRANCH,
-      ...(articlesSha && { sha: articlesSha })
-    };
-
-    const writeArticles = await fetch(articlesUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        'User-Agent': 'FFX-Worker',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(articlesPayload)
-    });
-
-    if (!writeArticles.ok) {
-      const err = await writeArticles.text();
-      return new Response(JSON.stringify({ error: 'Failed to write articles.json', detail: err }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    console.log('[FFX] articles.json written for slug:', slug);
-
-    // ── 2b. KV — write article metadata + full content ────────────────────
-    try {
-      if (env.FFX_KV) {
-        // Extract videoId from youtubeUrl
-        const extractVideoId = (url) => {
-          try {
-            const u = new URL(url);
-            if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
-            if (u.hostname.includes('youtube.com')) {
-              const v = u.searchParams.get('v');
-              if (v) return v;
-              const parts = u.pathname.split('/');
-              const si = parts.indexOf('shorts');
-              if (si !== -1) return parts[si + 1];
-            }
-          } catch {}
-          return null;
-        };
-
-        const videoId = extractVideoId(youtubeUrl || yt_url || '');
-
-        // article:{slug} — lightweight blog metadata for blog listing
+    if (env.FFX_KV) {
+      try {
         const articleMeta = {
           slug,
           title,
-          excerpt: newArticle.excerpt,
-          category: newArticle.category,
-          tags: newArticle.tags,
-          readTime: newArticle.readTime,
+          excerpt: excerpt || '',
+          category: category || 'Strategy',
+          tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : [],
+          readTime: readTime || '5 min read',
           date: articleDate,
           region: body.region || 'Global',
           youtubeUrl: youtubeUrl || yt_url || '',
@@ -165,33 +86,29 @@ export async function onRequestPost(context) {
           createdAt: new Date().toISOString(),
         };
         await env.FFX_KV.put(`article:${slug}`, JSON.stringify(articleMeta));
-
-        // video:{videoId} — full content store for FFX Press and load-from-memory
-        if (videoId) {
-          // Read existing entry to preserve platform status if already set
-          const existing = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' }) || {};
-          const videoEntry = {
-            ...existing,
-            videoId,
-            youtubeUrl: youtubeUrl || yt_url || '',
-            slug,
-            title,
-            region: body.region || 'Global',
-            regionCycleIndex: body.regionCycleIndex || 0,
-            createdAt: existing.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            content: newArticle,
-          };
-          await env.FFX_KV.put(`video:${videoId}`, JSON.stringify(videoEntry));
-          console.log('[FFX] KV written for videoId:', videoId);
-        }
+        console.log('[FFX] KV article metadata written for slug:', slug);
+      } catch (kvErr) {
+        console.log('[FFX] KV article write failed (non-fatal):', kvErr.message);
       }
-    } catch (kvErr) {
-      console.log('[FFX] KV write failed (non-fatal):', kvErr.message);
     }
 
-    // ── 3. CONDITIONALLY: sitemap + Google index ───────────────────────────
+    // ── 2. CONDITIONALLY: sitemap only ────────────────────────────────────
     if (!skipSitemapAndIndex) {
+
+      // Read all article keys from KV for sitemap rebuild
+      let articleSlugs = [];
+      try {
+        if (env.FFX_KV) {
+          const kvList = await env.FFX_KV.list({ prefix: 'article:' });
+          const slugEntries = await Promise.all(
+            kvList.keys.map(k => env.FFX_KV.get(k.name, { type: 'json' }))
+          );
+          articleSlugs = slugEntries.filter(Boolean).map(a => ({ slug: a.slug, date: a.date || articleDate }));
+        }
+      } catch (kvErr) {
+        console.log('[FFX] KV article list failed, using current slug only:', kvErr.message);
+        articleSlugs = [{ slug, date: articleDate }];
+      }
 
       // Rebuild sitemap.xml
       const staticPages = [
@@ -203,7 +120,7 @@ export async function onRequestPost(context) {
         { loc: 'https://fortitudefx.com/privacy',    lastmod: '2026-04-26', changefreq: 'yearly',  priority: '0.3' },
       ];
 
-      const articleEntries = articles.map(a => ({
+      const articleEntries = articleSlugs.map(a => ({
         loc: `https://fortitudefx.com/article?slug=${a.slug}`,
         lastmod: a.date || articleDate,
         changefreq: 'monthly',

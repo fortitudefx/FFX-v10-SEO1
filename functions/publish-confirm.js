@@ -104,22 +104,19 @@ export async function onRequestPost(context) {
 
   const baseUrl = new URL(request.url).origin;
 
-  // ── ALWAYS write articles.json first ─────────────────────────────────────
-  const blogNeedsRun = userSelected.blog && shouldRun('blog', COL.blog);
-  try {
-    const res = await callWorker(`${baseUrl}/publish`, {
-      ...content,
-      skipSitemapAndIndex: !blogNeedsRun,
-    });
-    if (blogNeedsRun) {
+  // ── Blog — only when selected ─────────────────────────────────────────────
+  if (userSelected.blog && shouldRun('blog', COL.blog)) {
+    try {
+      const res = await callWorker(`${baseUrl}/publish`, {
+        ...content,
+        skipSitemapAndIndex: false,
+      });
       status.blog = res.ok ? platformUrls.blog : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
       console.log('[FFX] Blog:', status.blog);
-    } else {
-      console.log('[FFX] articles.json written (content only, blog not selected)');
+    } catch (err) {
+      status.blog = `Error: ${err.message}`;
+      console.log('[FFX] Blog publish error:', err.message);
     }
-  } catch (err) {
-    if (blogNeedsRun) status.blog = `Error: ${err.message}`;
-    console.log('[FFX] publish error:', err.message);
   }
 
   // ── X — content passed directly ────────────────────────────────────────────
@@ -232,7 +229,9 @@ export async function onRequestPost(context) {
     console.log('[FFX] Excel write failed (non-fatal):', err.message);
   }
 
-  // ── Write platform status to KV ───────────────────────────────────────────
+  // ── Write per-platform published content + status to KV ─────────────────
+  // Only written for platforms that actually ran this session
+  // Each platform stores exactly what was published — no drift possible
   try {
     if (env.FFX_KV) {
       const extractVideoId = (url) => {
@@ -252,30 +251,70 @@ export async function onRequestPost(context) {
 
       const videoId = extractVideoId(content.youtubeUrl || content.yt_url || '');
       if (videoId) {
-        // Read existing KV entry — preserve content, only update platform status
+        // Read existing KV entry — preserve all existing platform data
         const existing = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' }) || {};
         const existingPlatforms = existing.platforms || {};
 
-        // Only update platforms that were selected this run
+        // Build updated platforms — only touch platforms that ran this session
+        // Each platform stores exact content published + status URL + timestamp
         const updatedPlatforms = { ...existingPlatforms };
-        if (userSelected.blog)     updatedPlatforms.blog     = { status: status.blog,     updatedAt: timestamp };
-        if (userSelected.x)        updatedPlatforms.x        = { status: status.x,        updatedAt: timestamp };
-        if (userSelected.linkedin) updatedPlatforms.linkedin = { status: status.linkedin,  updatedAt: timestamp };
-        if (userSelected.tumblr)   updatedPlatforms.tumblr   = { status: status.tumblr,   updatedAt: timestamp };
-        if (userSelected.discord)  updatedPlatforms.discord  = { status: status.discord,  updatedAt: timestamp };
 
-        const updatedEntry = {
+        if (userSelected.blog && status.blog && !status.blog.startsWith('not_selected')) {
+          updatedPlatforms.blog = {
+            status: status.blog,
+            content: { body: content.body, title: content.title, excerpt: content.excerpt },
+            updatedAt: timestamp,
+          };
+        }
+        if (userSelected.x && status.x && !status.x.startsWith('not_selected')) {
+          updatedPlatforms.x = {
+            status: status.x,
+            content: { tweet1: content.tweet1, tweet2: content.tweet2, tweet3: content.tweet3, tweet4: content.tweet4, tweet5: content.tweet5, tweet6: content.tweet6, x_thread: content.x_thread },
+            updatedAt: timestamp,
+          };
+        }
+        if (userSelected.linkedin && status.linkedin && !status.linkedin.startsWith('not_selected')) {
+          updatedPlatforms.linkedin = {
+            status: status.linkedin,
+            content: { linkedin: content.linkedin },
+            updatedAt: timestamp,
+          };
+        }
+        if (userSelected.tumblr && status.tumblr && !status.tumblr.startsWith('not_selected')) {
+          updatedPlatforms.tumblr = {
+            status: status.tumblr,
+            content: { tumblr: content.tumblr },
+            updatedAt: timestamp,
+          };
+        }
+        if (userSelected.discord && status.discord && !status.discord.startsWith('not_selected')) {
+          updatedPlatforms.discord = {
+            status: status.discord,
+            content: { discord: content.discord },
+            updatedAt: timestamp,
+          };
+        }
+
+        // Build video entry — preserve existing, update platforms and metadata
+        const videoEntry = {
           ...existing,
-          platforms: updatedPlatforms,
+          videoId,
+          youtubeUrl: content.youtubeUrl || content.yt_url || '',
+          slug: content.slug,
+          title: content.title || '',
+          region: content.region || 'Global',
+          regionCycleIndex: content.regionCycleIndex || 0,
+          createdAt: existing.createdAt || timestamp,
           updatedAt: timestamp,
+          platforms: updatedPlatforms,
         };
 
-        await env.FFX_KV.put(`video:${videoId}`, JSON.stringify(updatedEntry));
-        console.log('[FFX] KV platform status updated for videoId:', videoId);
+        await env.FFX_KV.put(`video:${videoId}`, JSON.stringify(videoEntry));
+        console.log('[FFX] KV video entry updated for videoId:', videoId);
       }
     }
   } catch (kvErr) {
-    console.log('[FFX] KV status write failed (non-fatal):', kvErr.message);
+    console.log('[FFX] KV write failed (non-fatal):', kvErr.message);
   }
 
   return resp({ success: true, slug, status }, 200, headers);

@@ -17,20 +17,22 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { youtubeUrl, note } = body;
-  if (!youtubeUrl) {
-    return new Response(JSON.stringify({ error: 'youtubeUrl is required' }), { status: 400, headers });
+  const { jobId, videoId, youtubeUrl, title } = body;
+  if (!jobId) {
+    return new Response(JSON.stringify({ error: 'jobId is required' }), { status: 400, headers });
   }
 
-  console.log('[FFX Notify] Sending reminder for:', youtubeUrl);
+  console.log('[FFX Notify] Sending press link for job:', jobId);
 
-  // Generate link to generate.html with URL pre-filled
-  const generateLink = `https://fortitudefx.com/generate?url=${encodeURIComponent(youtubeUrl)}`;
+  // Link opens FFX Press with job pre-loaded
+  const pressLink = `https://fortitudefx.com/press?job=${jobId}`;
 
-  const emailHtml = `<p>Time to publish a new video.</p>
-<p><strong>Video:</strong> <a href="${youtubeUrl}">${youtubeUrl}</a></p>
-<p><a href="${generateLink}" style="font-size:18px;font-weight:bold;">Open Generate &amp; Publish &rarr;</a></p>
-<p style="color:#999;font-size:12px;">${generateLink}</p>`;
+  const emailHtml = `<p>Your content is ready for review.</p>
+${title ? `<p><strong>${title}</strong></p>` : ''}
+${youtubeUrl ? `<p><strong>Video:</strong> <a href="${youtubeUrl}">${youtubeUrl}</a></p>` : ''}
+<p><a href="${pressLink}" style="font-size:18px;font-weight:bold;">Review &amp; Publish &rarr;</a></p>
+<p style="color:#999;font-size:12px;">${pressLink}</p>
+<p style="color:#999;font-size:11px;">This link is valid for 24 hours.</p>`;
 
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -42,7 +44,7 @@ export async function onRequestPost(context) {
       sender: { name: 'FortitudeFX', email: 'salmankhanfx@fortitudefx.com' },
       to: [{ email: env.APPROVAL_EMAIL }],
       replyTo: { email: 'support@fortitudefx.com' },
-      subject: `FFX — Time to Publish`,
+      subject: `FFX — Content Ready for Review`,
       htmlContent: emailHtml,
     }),
   });
@@ -54,7 +56,7 @@ export async function onRequestPost(context) {
   }
 
   console.log('[FFX Notify] Email sent successfully');
-  return new Response(JSON.stringify({ success: true, generateLink }), { status: 200, headers });
+  return new Response(JSON.stringify({ success: true, pressLink }), { status: 200, headers });
 }
 
 export async function onRequestOptions() {

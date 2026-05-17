@@ -83,20 +83,27 @@ export async function onRequestPost(context) {
   content.youtubeUrl = youtubeUrl;
   content.region = 'Global';
   content.regionCycleIndex = 0;
+  content.videoId = videoId;
 
-  // Read region cycle index from KV for display in FFX Press (non-fatal)
+  // Generate jobId for KV storage
+  const jobId = `${Date.now()}-${videoId}`;
+
+  // Store job in KV with 24hr TTL — browser polls /generate-status?job=jobId
   try {
     if (env.FFX_KV) {
-      const cycleData = await env.FFX_KV.get('config:regionCycle', { type: 'json' });
-      if (cycleData !== null) {
-        content.regionCycleIndex = typeof cycleData === 'number' ? cycleData : (cycleData.index || 0);
-      }
+      await env.FFX_KV.put(
+        `job:${jobId}`,
+        JSON.stringify({ status: 'complete', content, videoId, slug: content.slug }),
+        { expirationTtl: 86400 } // 24 hours
+      );
+      console.log('[FFX] Job stored in KV:', jobId);
     }
   } catch (err) {
-    console.log('[FFX] KV region cycle read failed (non-fatal):', err.message);
+    console.log('[FFX] KV job write failed (non-fatal):', err.message);
   }
 
-  return new Response(JSON.stringify({ success: true, content }), { status: 200, headers });
+  // Return jobId + content — press.html uses jobId for link, generate.html uses content directly
+  return new Response(JSON.stringify({ success: true, content, jobId, videoId }), { status: 200, headers });
 }
 
 export async function onRequestOptions() {
