@@ -418,7 +418,7 @@
 
   let currentContent = null;   // full content object held in JS memory
   let platformState  = {};     // current Excel status per platform
-  let existingData   = null;   // data returned from /excel-status
+  let existingData   = null;   // data returned from /kv-status
 
   // ── CHECK URL — first step ────────────────────────────────────────────────
   async function checkUrl() {
@@ -442,7 +442,7 @@
     setHeaderStatus('Checking…');
 
     try {
-      const res = await fetch('/excel-status', {
+      const res = await fetch('/kv-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ youtubeUrl: url }),
