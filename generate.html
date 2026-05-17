@@ -561,17 +561,20 @@
 
     const t1 = setTimeout(() => { setPS(1, 'done'); setPS(2, 'active'); }, 4500);
 
-    let genJobId = null;
-    let pollTimer = null;
+    // AbortController with 5 minute timeout — prevents browser canceling long Claude calls
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 300000);
 
     try {
       const res = await fetch('/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ youtubeUrl: url, existingSlug: existingSlug || null }),
+        signal: controller.signal,
       });
 
       clearTimeout(t1);
+      clearTimeout(timeout);
       const data = await res.json();
 
       if (!res.ok) {
@@ -583,9 +586,10 @@
         return;
       }
 
-      // Content returned directly — synchronous flow
       setPS(1, 'done'); setPS(2, 'done'); setPS(3, 'active');
-      currentContent = data.content;
+      currentArticles = data.articles;
+      currentContent  = currentArticles[0];
+
       setTimeout(() => {
         setPS(3, 'done');
         setHeaderStatus('Review ready');
@@ -594,7 +598,7 @@
 
     } catch (err) {
       clearTimeout(t1);
-      if (pollTimer) clearInterval(pollTimer);
+      clearTimeout(timeout);
       failAll();
       showAlert('genAlert', 'Network error: ' + err.message, 'error');
       btn.disabled = false;
