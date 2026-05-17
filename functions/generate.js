@@ -103,10 +103,10 @@ async function runGeneration(env, youtubeUrl, videoId, existingSlug, jobId) {
       content.slug = existingSlug;
       const fields = ['discord', 'tumblr', 'mediumIntro', 'linkedin', 'tweet1', 'tweet2', 'tweet3', 'tweet4', 'tweet5', 'tweet6'];
       fields.forEach(f => {
-        if (content[f]) content[f] = content[f].replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\]/g, '\$&'), 'g'), newArticleUrl);
+        if (content[f]) content[f] = content[f].replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl);
       });
       if (Array.isArray(content.x_thread)) {
-        content.x_thread = content.x_thread.map(t => t.replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\]/g, '\$&'), 'g'), newArticleUrl));
+        content.x_thread = content.x_thread.map(t => t.replace(new RegExp(oldArticleUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newArticleUrl));
       }
     }
 
