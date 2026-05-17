@@ -909,16 +909,37 @@ function buildExpandedContent(container, video) {
   PLATFORMS.forEach(p => {
     const pStatus = platforms[p.key]?.status || 'pending';
     const isPosted = pStatus === 'Yes' || pStatus.startsWith('=HYPERLINK') || pStatus.startsWith('http');
+    const chkExtractUrl = (val) => {
+      if (!val) return null;
+      if (val.startsWith('=HYPERLINK(')) { const m = val.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
+      if (val.startsWith('http')) return val;
+      return null;
+    };
+    const chkPostUrl = chkExtractUrl(pStatus);
     const chk = document.createElement('div');
     chk.className = `platform-checkbox ${isPosted ? 'already-posted' : 'checked'}`;
     chk.dataset.platform = p.key;
     chk.dataset.checked = isPosted ? 'false' : 'true';
-    chk.innerHTML = `<span class="chk-dot"></span>${p.label}${isPosted ? ' ✓' : ''}`;
+    chk.dataset.wasPosted = isPosted ? 'true' : 'false';
+    chk.dataset.postUrl = chkPostUrl || '';
+    const linkHtml = chkPostUrl ? ` <a href="${chkPostUrl}" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View</a>` : '';
+    chk.innerHTML = `<span class="chk-dot"></span>${p.label}${isPosted ? ' ✓' : ''}${linkHtml}`;
     chk.addEventListener('click', () => {
       const c = chk.dataset.checked === 'true';
       chk.dataset.checked = c ? 'false' : 'true';
-      chk.classList.toggle('checked', !c);
-      chk.classList.toggle('already-posted', false);
+      const wasPosted = chk.dataset.wasPosted === 'true';
+      const url = chk.dataset.postUrl;
+      const link = url ? ` <a href="${url}" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View prev</a>` : '';
+      if (!c) {
+        // Checking — will post/repost
+        chk.classList.add('checked');
+        chk.classList.remove('already-posted');
+        chk.innerHTML = `<span class="chk-dot"></span>${p.label}${wasPosted ? ' ↻' : ''}${link}`;
+      } else {
+        // Unchecking — skip
+        chk.classList.remove('checked', 'already-posted');
+        chk.innerHTML = `<span class="chk-dot"></span>${p.label} —${link}`;
+      }
     });
     actionRow.appendChild(chk);
   });
@@ -1087,7 +1108,14 @@ async function startGeneration() {
       return;
     }
 
-    // Generation complete — content returned directly (current flow)
+    // Job-based flow — jobId returned immediately, poll for completion
+    if (data.jobId) {
+      setGenStatus('Generating… Claude is working. Checking every 3 seconds.', 'active');
+      pollForJob(data.jobId, btn);
+      return;
+    }
+
+    // Fallback — content returned directly (legacy flow)
     if (data.success && data.content) {
       setGenStatus('✓ Content generated. Reloading…', 'done');
       setTimeout(async () => {
@@ -1098,13 +1126,6 @@ async function startGeneration() {
         document.getElementById('genUrl').value = '';
         setGenStatus('', '');
       }, 1500);
-      return;
-    }
-
-    // Job-based flow (future — when waitUntil is added to generate.js)
-    if (data.jobId) {
-      setGenStatus('Processing… checking every 3 seconds', 'active');
-      pollForJob(data.jobId, btn);
       return;
     }
 
