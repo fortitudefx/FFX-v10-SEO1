@@ -48,12 +48,12 @@
 </header>
 <main>
   <h1>Send Publish Reminder</h1>
-  <p class="sub">Sends an email with the YouTube URL pre-filled in the generate link. Tap the email link to open Generate &amp; Publish directly.</p>
+  <p class="sub">Generates content for the YouTube URL, then sends you an email with a link to FFX Press for review and publishing. The link is valid for 24 hours.</p>
 
   <label class="field-label" for="ytUrl">YouTube URL</label>
   <input type="url" id="ytUrl" placeholder="https://youtu.be/..." autocomplete="off" spellcheck="false" />
 
-  <button class="btn-primary" id="sendBtn" onclick="send()">Send Reminder Email</button>
+  <button class="btn-primary" id="sendBtn" onclick="send()">Generate &amp; Send Email</button>
 
   <div class="alert" id="alert"></div>
 
@@ -61,7 +61,7 @@
 
   <div class="field-label">Quick links</div>
   <div class="quick-links">
-    <a href="/generate" class="quick-link">Generate &amp; Publish</a>
+    <a href="/press" class="quick-link">FFX Press</a>
     <a href="/retry" class="quick-link">Retry</a>
   </div>
 </main>
@@ -83,12 +83,15 @@
     }
 
     btn.disabled = true;
-    btn.textContent = 'Sending…';
+    btn.textContent = 'Generating…';
     hideAlert();
-    document.getElementById('headerStatus').textContent = 'Sending…';
+    document.getElementById('headerStatus').textContent = 'Generating…';
+    showAlert('Step 1 of 2 — Fetching transcript and generating content with Claude. Takes 60–90 seconds. Do not close this tab.', 'info');
 
+    // Step 1 — Generate content
+    let jobId, videoId, title;
     try {
-      const res = await fetch('/notify', {
+      const res = await fetch('/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ youtubeUrl: url }),
@@ -97,22 +100,56 @@
       const data = await res.json();
 
       if (!res.ok) {
-        showAlert(data.error || 'Something went wrong.', 'error');
+        showAlert(data.error || 'Generation failed.', 'error');
         btn.disabled = false;
-        btn.textContent = 'Send Reminder Email';
+        btn.textContent = 'Generate & Send Email';
         document.getElementById('headerStatus').textContent = 'Error';
         return;
       }
 
-      showAlert('Email sent. Check your inbox — tap the link to open Generate & Publish.', 'ok');
-      document.getElementById('headerStatus').textContent = 'Email sent';
-      btn.disabled = false;
-      btn.textContent = 'Send Reminder Email';
+      jobId   = data.jobId;
+      videoId = data.videoId;
+      title   = data.content?.title || '';
+
+      document.getElementById('headerStatus').textContent = 'Sending email…';
+      btn.textContent = 'Sending email…';
+      showAlert('Step 2 of 2 — Content generated. Sending email…', 'info');
 
     } catch (err) {
-      showAlert('Network error: ' + err.message, 'error');
+      showAlert('Network error during generation: ' + err.message, 'error');
       btn.disabled = false;
-      btn.textContent = 'Send Reminder Email';
+      btn.textContent = 'Generate & Send Email';
+      document.getElementById('headerStatus').textContent = 'Error';
+      return;
+    }
+
+    // Step 2 — Send email with press link
+    try {
+      const res = await fetch('/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, videoId, youtubeUrl: url, title }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showAlert(data.error || 'Email send failed.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Generate & Send Email';
+        document.getElementById('headerStatus').textContent = 'Error';
+        return;
+      }
+
+      showAlert('Done. Check your email — tap the link to open FFX Press. Link is valid for 24 hours.', 'ok');
+      document.getElementById('headerStatus').textContent = 'Email sent';
+      btn.disabled = false;
+      btn.textContent = 'Generate & Send Email';
+
+    } catch (err) {
+      showAlert('Network error sending email: ' + err.message, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Generate & Send Email';
       document.getElementById('headerStatus').textContent = 'Error';
     }
   }

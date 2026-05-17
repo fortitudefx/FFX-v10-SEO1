@@ -43,8 +43,8 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      font-size: 14px;
-      line-height: 1.6;
+      font-size: 15px;
+      line-height: 1.7;
     }
 
     /* ── Header ─────────────────────────────────────────────────────────── */
@@ -219,7 +219,7 @@
 
     .row-info {}
     .row-title {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--text);
       line-height: 1.3;
@@ -227,7 +227,7 @@
     }
     .row-meta {
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 12px;
       color: var(--muted);
       display: flex;
       gap: 10px;
@@ -267,7 +267,7 @@
 
     .row-date {
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 12px;
       color: var(--muted);
       text-align: right;
     }
@@ -367,7 +367,7 @@
       border: 1px solid var(--border);
       border-radius: 4px;
       padding: 16px 18px;
-      font-size: 13px;
+      font-size: 14px;
       line-height: 1.75;
       color: var(--text-mid);
       white-space: pre-wrap;
@@ -376,7 +376,7 @@
       overflow-y: auto;
     }
     .content-block.article-body {
-      font-size: 13px;
+      font-size: 14px;
       white-space: normal;
     }
     .content-block.article-body h2 {
@@ -401,8 +401,8 @@
       padding: 12px 14px;
       display: flex;
       gap: 12px;
-      font-size: 13px;
-      line-height: 1.65;
+      font-size: 14px;
+      line-height: 1.7;
       color: var(--text-mid);
     }
     .tweet-num {
@@ -602,14 +602,21 @@ const PLATFORMS = [
 // INIT
 // ─────────────────────────────────────────────────────────────────────────────
 async function init() {
-  // Check if opened with a specific video pre-selected
   const params = new URLSearchParams(window.location.search);
+  const jobId   = params.get('job');
   const preVideoId = params.get('video');
 
+  // Load all existing videos
   await loadVideos();
 
+  // If opened with a job link — load new generated content from KV
+  if (jobId) {
+    await loadJobContent(jobId);
+    return;
+  }
+
+  // If opened with a specific video — expand it
   if (preVideoId) {
-    // Find and expand the row for this video
     setTimeout(() => {
       const row = document.querySelector(`[data-videoid="${preVideoId}"]`);
       if (row && !row.classList.contains('open')) {
@@ -618,6 +625,71 @@ async function init() {
       }
     }, 300);
   }
+}
+
+async function loadJobContent(jobId) {
+  // Show generate panel with loading state
+  document.getElementById('generatePanel').classList.add('open');
+  setGenStatus('Loading content from job ' + jobId + '…', 'active');
+
+  try {
+    const res = await fetch(`/generate-status?job=${jobId}`);
+    const data = await res.json();
+
+    if (!res.ok || data.status === 'error') {
+      setGenStatus('Error: ' + (data.error || 'Job not found — link may have expired'), 'err');
+      return;
+    }
+
+    if (data.status === 'pending') {
+      setGenStatus('Content still generating… refreshing in 3 seconds', 'active');
+      setTimeout(() => loadJobContent(jobId), 3000);
+      return;
+    }
+
+    if (data.status === 'complete' && data.content) {
+      // Content loaded — inject as a new job row at the top of the list
+      setGenStatus('✓ Content loaded. Review and publish below.', 'done');
+      injectJobRow(data.content, jobId, data.videoId);
+    }
+
+  } catch (err) {
+    setGenStatus('Network error: ' + err.message, 'err');
+  }
+}
+
+function injectJobRow(content, jobId, videoId) {
+  // Build a temporary video object for the row
+  const jobVideo = {
+    videoId: videoId || content.videoId || jobId,
+    jobId,
+    youtubeUrl: content.youtubeUrl || '',
+    slug: content.slug,
+    title: content.title || '',
+    region: content.region || 'Global',
+    regionCycleIndex: content.regionCycleIndex || 0,
+    createdAt: new Date().toISOString(),
+    content,
+    platforms: {}, // No platforms published yet
+    isNewJob: true,
+  };
+
+  const list = document.getElementById('videoList');
+  const existingRow = list.querySelector(`[data-videoid="${jobVideo.videoId}"]`);
+
+  // Remove existing row for same video if present (avoid duplicate)
+  if (existingRow) existingRow.remove();
+
+  const row = buildVideoRow(jobVideo);
+  list.insertBefore(row, list.firstChild);
+
+  // Auto-expand the new row
+  setTimeout(() => {
+    row.querySelector('.row-summary').click();
+    row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+
+  document.getElementById('headerCount').textContent = `${document.querySelectorAll('.video-row').length} videos`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -898,11 +970,16 @@ async function publishVideo(videoId, actionRow, pubBtn, container, video) {
   pubBtn.disabled = true;
   pubBtn.textContent = 'Publishing…';
 
+  // Pass jobId for new content, videoId for republish
+  const publishPayload = video.jobId
+    ? { jobId: video.jobId, videoId, platforms }
+    : { videoId, platforms };
+
   try {
     const res = await fetch('/press-publish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoId, platforms }),
+      body: JSON.stringify(publishPayload),
     });
 
     const data = await res.json();
