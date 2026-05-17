@@ -584,9 +584,8 @@
       }
 
       // Content returned directly — synchronous flow
-      if (data.content) {
-        setPS(1, 'done'); setPS(2, 'done'); setPS(3, 'active');
-        currentContent = data.content;
+      setPS(1, 'done'); setPS(2, 'done'); setPS(3, 'active');
+      currentContent = data.content;
       setTimeout(() => {
         setPS(3, 'done');
         setHeaderStatus('Review ready');
