@@ -218,9 +218,10 @@
       return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     }
 
-    fetch('articles.json')
+    fetch('/articles')
       .then(r => r.json())
-      .then(articles => {
+      .then(data => {
+        const articles = data.articles || [];
         if (!articles || articles.length === 0) {
           list.innerHTML = '<div class="blog-empty">No articles yet — check back soon.</div>';
           return;
