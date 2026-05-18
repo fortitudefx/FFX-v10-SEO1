@@ -1,7 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Publish Confirm — Master Orchestrator
-// Calls platform Workers, writes published status to KV permanently
-// Excel retired — all state in KV only
+// Calls platform Workers, writes published status to published:{videoId} permanently
+// video:{videoId} is written by consumer Worker only — never touched here
+// published:{videoId} is written here only — permanent, no TTL
+// Clean separation — no race conditions ever
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestPost(context) {
@@ -28,7 +30,6 @@ export async function onRequestPost(context) {
   const slug = content.slug;
   const userSelected = platforms || { blog: true, x: true, linkedin: true, discord: true };
 
-  // Platform URLs — plain URLs, no Excel hyperlink formulas
   const platformUrls = {
     blog:     `https://fortitudefx.com/article?slug=${slug}`,
     x:        'https://x.com/fortitudefx',
@@ -56,7 +57,9 @@ export async function onRequestPost(context) {
         ...content,
         skipSitemapAndIndex: false,
       });
-      status.blog = res.ok ? platformUrls.blog : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
+      status.blog = res.ok
+        ? platformUrls.blog
+        : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
       console.log('[FFX] Blog:', status.blog);
     } catch (err) {
       status.blog = `Error: ${err.message}`;
@@ -116,7 +119,9 @@ export async function onRequestPost(context) {
       const res = await callWorker(`${baseUrl}/tumblr`, {
         slug, tumblr: content.tumblr,
       });
-      status.tumblr = res.ok ? platformUrls.tumblr : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      status.tumblr = res.ok
+        ? platformUrls.tumblr
+        : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       console.log('[FFX] Tumblr:', status.tumblr);
     } catch (err) {
       status.tumblr = `Error: ${err.message}`;
@@ -142,7 +147,10 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── Write published status to KV — PERMANENT, no TTL ─────────────────────
+  // ── Write to published:{videoId} — PERMANENT, no TTL ─────────────────────
+  // This key is owned exclusively by publish-confirm
+  // video:{videoId} is owned exclusively by consumer Worker
+  // No race conditions possible
   try {
     if (env.FFX_KV) {
       const extractVideoId = (url) => {
@@ -166,24 +174,31 @@ export async function onRequestPost(context) {
       const timestamp = dubaiTime.toISOString().replace('T', ' ').substring(0, 19);
 
       if (videoId) {
-        // Read existing KV — preserve all existing platform data
-        const existing = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' }) || {};
-        const existingPlatforms = existing.platforms || {};
+        // Read existing published entry — preserve previously published platforms
+        const existingPublished = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' }) || {};
+        const existingPlatforms = existingPublished.platforms || {};
         const updatedPlatforms = { ...existingPlatforms };
 
         // Only write platforms that ran and succeeded this session
-        // Published platforms get no TTL — permanent
         if (userSelected.blog && status.blog && !status.blog.startsWith('Error') && status.blog !== 'not_selected') {
           updatedPlatforms.blog = {
             status: status.blog,
-            content: { body: content.body, title: content.title, excerpt: content.excerpt },
+            content: {
+              body:    content.body,
+              title:   content.title,
+              excerpt: content.excerpt,
+            },
             publishedAt: timestamp,
           };
         }
         if (userSelected.x && status.x && !status.x.startsWith('Error') && status.x !== 'not_selected') {
           updatedPlatforms.x = {
             status: status.x,
-            content: { tweet1: content.tweet1, tweet2: content.tweet2, tweet3: content.tweet3, tweet4: content.tweet4, tweet5: content.tweet5, tweet6: content.tweet6 },
+            content: {
+              tweet1: content.tweet1, tweet2: content.tweet2,
+              tweet3: content.tweet3, tweet4: content.tweet4,
+              tweet5: content.tweet5, tweet6: content.tweet6,
+            },
             publishedAt: timestamp,
           };
         }
@@ -209,8 +224,7 @@ export async function onRequestPost(context) {
           };
         }
 
-        const videoEntry = {
-          ...existing,
+        const publishedEntry = {
           videoId,
           youtubeUrl: content.youtubeUrl || content.yt_url || '',
           slug: content.slug,
@@ -221,8 +235,10 @@ export async function onRequestPost(context) {
         };
 
         // No TTL — published content is permanent
-        await env.FFX_KV.put(`video:${videoId}`, JSON.stringify(videoEntry));
-        console.log('[FFX] KV video entry written permanently for videoId:', videoId);
+        await env.FFX_KV.put(`published:${videoId}`, JSON.stringify(publishedEntry));
+        console.log('[FFX] published: KV written permanently for videoId:', videoId);
+      } else {
+        console.log('[FFX] No videoId found in content — published: KV not written');
       }
     }
   } catch (kvErr) {
