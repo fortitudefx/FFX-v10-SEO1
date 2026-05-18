@@ -1,26 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Publish Confirm — Master Orchestrator
-//
-// 1. Read Excel to check platform statuses
-// 2. Call platform Workers with content directly (no GitHub race condition)
-// 3. Update Excel row using range address (not rows/itemAt which fails on SharePoint)
+// Calls platform Workers, writes published status to KV permanently
+// Excel retired — all state in KV only
 // ─────────────────────────────────────────────────────────────────────────────
-
-const SHEET_NAME = 'FFX Articles';
-
-const COL = {
-  lastUpdated: 0,  // A
-  slug:        1,  // B
-  title:       2,  // C
-  date:        3,  // D
-  blog:        4,  // E
-  x:           5,  // F
-  linkedin:    6,  // G
-  medium:      7,  // H
-  tumblr:      8,  // I
-  yt_url:      9,  // J
-  discord:     10, // K
-};
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -46,66 +28,29 @@ export async function onRequestPost(context) {
   const slug = content.slug;
   const userSelected = platforms || { blog: true, x: true, linkedin: true, discord: true };
 
-  // Platform URLs written to Excel as HYPERLINK formula — clickable with short display text
+  // Platform URLs — plain URLs, no Excel hyperlink formulas
   const platformUrls = {
-    blog:     `=HYPERLINK("https://fortitudefx.com/article?slug=${slug}","View post")`,
-    x:        '=HYPERLINK("https://x.com/fortitudefx","View post")', // fallback only — overridden by actual tweet URL
-    linkedin: '=HYPERLINK("https://www.linkedin.com/company/fortitudefx","View post")',
-    tumblr:   '=HYPERLINK("https://fortitudefx.tumblr.com","View post")',
-    discord:  '=HYPERLINK("https://fortitudefx.com/vipdiscord","View post")',
+    blog:     `https://fortitudefx.com/article?slug=${slug}`,
+    x:        'https://x.com/fortitudefx',
+    linkedin: 'https://www.linkedin.com/in/salman-khan-fortitudefx',
+    tumblr:   'https://fortitudefx.tumblr.com',
+    discord:  'https://fortitudefx.com/vipdiscord',
   };
 
   console.log('[FFX] slug:', slug, 'platforms:', userSelected);
 
-  // ── Get Graph token ────────────────────────────────────────────────────────
-  let graphToken;
-  try {
-    graphToken = await getGraphToken(env);
-  } catch (err) {
-    return resp({ error: `Graph auth failed: ${err.message}` }, 500, headers);
-  }
-
-  // ── Read Excel ─────────────────────────────────────────────────────────────
-  let excelRows;
-  try {
-    excelRows = await getExcelRows(graphToken, env);
-  } catch (err) {
-    return resp({ error: `Excel read failed: ${err.message}` }, 500, headers);
-  }
-
-  // rowIndex is 0-based in the array (row 0 = header)
-  const rowIndex = excelRows.findIndex((r, i) => i > 0 && r[COL.slug] === slug);
-  const existingRow = rowIndex > 0 ? excelRows[rowIndex] : null;
-
-  console.log('[FFX] Excel row found:', rowIndex > 0 ? `array index ${rowIndex} = Excel row ${rowIndex + 1}` : 'none');
-
-  // ── Determine what to run ──────────────────────────────────────────────────
-  const shouldRun = (platform, colIndex) => {
-    if (!userSelected[platform]) return false;
-    return true;
-  };
-
-  const getInit = (platform, colIndex) => {
-    if (!userSelected[platform]) return 'not_selected';
-    const val = existingRow?.[colIndex] || '';
-    if (val === 'Skipped') return val;
-    // Treat existing URL or HYPERLINK formula as already posted
-    if (val === 'Yes' || (typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK')))) return val;
-    return 'pending';
-  };
-
-  const status = {
-    blog:     getInit('blog',     COL.blog),
-    x:        getInit('x',        COL.x),
-    linkedin: getInit('linkedin', COL.linkedin),
-    tumblr:   getInit('tumblr',   COL.tumblr),
-    discord:  getInit('discord',  COL.discord),
-  };
-
   const baseUrl = new URL(request.url).origin;
 
-  // ── Blog — only when selected ─────────────────────────────────────────────
-  if (userSelected.blog && shouldRun('blog', COL.blog)) {
+  const status = {
+    blog:     userSelected.blog     ? 'pending' : 'not_selected',
+    x:        userSelected.x        ? 'pending' : 'not_selected',
+    linkedin: userSelected.linkedin ? 'pending' : 'not_selected',
+    tumblr:   userSelected.tumblr   ? 'pending' : 'not_selected',
+    discord:  userSelected.discord  ? 'pending' : 'not_selected',
+  };
+
+  // ── Blog ──────────────────────────────────────────────────────────────────
+  if (userSelected.blog) {
     try {
       const res = await callWorker(`${baseUrl}/publish`, {
         ...content,
@@ -115,12 +60,12 @@ export async function onRequestPost(context) {
       console.log('[FFX] Blog:', status.blog);
     } catch (err) {
       status.blog = `Error: ${err.message}`;
-      console.log('[FFX] Blog publish error:', err.message);
+      console.log('[FFX] Blog error:', err.message);
     }
   }
 
-  // ── X — content passed directly ────────────────────────────────────────────
-  if (shouldRun('x', COL.x)) {
+  // ── X ────────────────────────────────────────────────────────────────────
+  if (userSelected.x) {
     try {
       const res = await callWorker(`${baseUrl}/tweet`, {
         slug,
@@ -131,10 +76,9 @@ export async function onRequestPost(context) {
       if (res.ok) {
         const xData = await res.json().catch(() => ({}));
         const firstTweetId = xData.results?.[0]?.tweet_id || '';
-        const tweetUrl = firstTweetId
+        status.x = firstTweetId
           ? `https://x.com/fortitudefx/status/${firstTweetId}`
-          : 'https://x.com/fortitudefx';
-        status.x = `=HYPERLINK("${tweetUrl}","View post")`;
+          : platformUrls.x;
       } else {
         status.x = `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
       }
@@ -144,8 +88,8 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── LinkedIn — content passed directly ─────────────────────────────────────
-  if (shouldRun('linkedin', COL.linkedin)) {
+  // ── LinkedIn ──────────────────────────────────────────────────────────────
+  if (userSelected.linkedin) {
     try {
       const res = await callWorker(`${baseUrl}/linkedin`, {
         slug, linkedin: content.linkedin,
@@ -153,10 +97,9 @@ export async function onRequestPost(context) {
       if (res.ok) {
         const liData = await res.json().catch(() => ({}));
         const postId = liData.post_id || '';
-        const liUrl = postId
+        status.linkedin = postId
           ? `https://www.linkedin.com/feed/update/${encodeURIComponent(postId)}`
-          : 'https://www.linkedin.com/in/salman-khan-fortitudefx';
-        status.linkedin = `=HYPERLINK("${liUrl}","View post")`;
+          : platformUrls.linkedin;
       } else {
         const liData = await res.json().catch(() => ({}));
         status.linkedin = `Error: ${liData.message || res.status}`;
@@ -167,8 +110,8 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── Tumblr — content passed directly ───────────────────────────────────────
-  if (shouldRun('tumblr', COL.tumblr)) {
+  // ── Tumblr ────────────────────────────────────────────────────────────────
+  if (userSelected.tumblr) {
     try {
       const res = await callWorker(`${baseUrl}/tumblr`, {
         slug, tumblr: content.tumblr,
@@ -180,17 +123,15 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── Discord — content passed directly ──────────────────────────────────────
-  if (shouldRun('discord', COL.discord)) {
+  // ── Discord ───────────────────────────────────────────────────────────────
+  if (userSelected.discord) {
     try {
       const res = await callWorker(`${baseUrl}/discord`, {
         slug, discord: content.discord,
       });
       if (res.ok) {
         const discordData = await res.json().catch(() => ({}));
-        // Use direct message link if returned, otherwise fall back to site link
-        const rawLink = discordData.messageLink || 'https://fortitudefx.com/vipdiscord';
-        status.discord = `=HYPERLINK("${rawLink}","View post")`;
+        status.discord = discordData.messageLink || platformUrls.discord;
       } else {
         const errData = await res.json().catch(() => ({}));
         status.discord = `Error: ${errData.message || res.status}`;
@@ -201,37 +142,7 @@ export async function onRequestPost(context) {
     }
   }
 
-  // ── Update or add Excel row ────────────────────────────────────────────────
-  const today = new Date().toISOString().split('T')[0];
-  const now = new Date(); const dubaiTime = new Date(now.getTime() + (4 * 60 * 60 * 1000)); const timestamp = dubaiTime.toISOString().replace('T', ' ').substring(0, 19);
-  const ytUrl = content.youtubeUrl || content.yt_url || '';
-
-  try {
-    if (existingRow && rowIndex > 0) {
-      await updateExcelRow(graphToken, env, rowIndex + 1, status, existingRow, userSelected, excelRows[0].length, timestamp);
-    } else {
-      await appendExcelRow(graphToken, env, [
-        timestamp,
-        slug,
-        content.title || '',
-        today,
-        userSelected.blog     ? status.blog     : '',
-        userSelected.x        ? status.x        : '',
-        userSelected.linkedin ? status.linkedin  : '',
-        'Manual',
-        userSelected.tumblr   ? status.tumblr   : '',
-        ytUrl,
-        userSelected.discord  ? status.discord  : '',
-      ]);
-    }
-    console.log('[FFX] Excel updated');
-  } catch (err) {
-    console.log('[FFX] Excel write failed (non-fatal):', err.message);
-  }
-
-  // ── Write per-platform published content + status to KV ─────────────────
-  // Only written for platforms that actually ran this session
-  // Each platform stores exactly what was published — no drift possible
+  // ── Write published status to KV — PERMANENT, no TTL ─────────────────────
   try {
     if (env.FFX_KV) {
       const extractVideoId = (url) => {
@@ -250,52 +161,54 @@ export async function onRequestPost(context) {
       };
 
       const videoId = extractVideoId(content.youtubeUrl || content.yt_url || '');
+      const now = new Date();
+      const dubaiTime = new Date(now.getTime() + (4 * 60 * 60 * 1000));
+      const timestamp = dubaiTime.toISOString().replace('T', ' ').substring(0, 19);
+
       if (videoId) {
-        // Read existing KV entry — preserve all existing platform data
+        // Read existing KV — preserve all existing platform data
         const existing = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' }) || {};
         const existingPlatforms = existing.platforms || {};
-
-        // Build updated platforms — only touch platforms that ran this session
-        // Each platform stores exact content published + status URL + timestamp
         const updatedPlatforms = { ...existingPlatforms };
 
-        if (userSelected.blog && status.blog && !status.blog.startsWith('not_selected')) {
+        // Only write platforms that ran and succeeded this session
+        // Published platforms get no TTL — permanent
+        if (userSelected.blog && status.blog && !status.blog.startsWith('Error') && status.blog !== 'not_selected') {
           updatedPlatforms.blog = {
             status: status.blog,
             content: { body: content.body, title: content.title, excerpt: content.excerpt },
-            updatedAt: timestamp,
+            publishedAt: timestamp,
           };
         }
-        if (userSelected.x && status.x && !status.x.startsWith('not_selected')) {
+        if (userSelected.x && status.x && !status.x.startsWith('Error') && status.x !== 'not_selected') {
           updatedPlatforms.x = {
             status: status.x,
-            content: { tweet1: content.tweet1, tweet2: content.tweet2, tweet3: content.tweet3, tweet4: content.tweet4, tweet5: content.tweet5, tweet6: content.tweet6, x_thread: content.x_thread },
-            updatedAt: timestamp,
+            content: { tweet1: content.tweet1, tweet2: content.tweet2, tweet3: content.tweet3, tweet4: content.tweet4, tweet5: content.tweet5, tweet6: content.tweet6 },
+            publishedAt: timestamp,
           };
         }
-        if (userSelected.linkedin && status.linkedin && !status.linkedin.startsWith('not_selected')) {
+        if (userSelected.linkedin && status.linkedin && !status.linkedin.startsWith('Error') && status.linkedin !== 'not_selected') {
           updatedPlatforms.linkedin = {
             status: status.linkedin,
             content: { linkedin: content.linkedin },
-            updatedAt: timestamp,
+            publishedAt: timestamp,
           };
         }
-        if (userSelected.tumblr && status.tumblr && !status.tumblr.startsWith('not_selected')) {
+        if (userSelected.tumblr && status.tumblr && !status.tumblr.startsWith('Error') && status.tumblr !== 'not_selected') {
           updatedPlatforms.tumblr = {
             status: status.tumblr,
             content: { tumblr: content.tumblr },
-            updatedAt: timestamp,
+            publishedAt: timestamp,
           };
         }
-        if (userSelected.discord && status.discord && !status.discord.startsWith('not_selected')) {
+        if (userSelected.discord && status.discord && !status.discord.startsWith('Error') && status.discord !== 'not_selected') {
           updatedPlatforms.discord = {
             status: status.discord,
             content: { discord: content.discord },
-            updatedAt: timestamp,
+            publishedAt: timestamp,
           };
         }
 
-        // Build video entry — preserve existing, update platforms and metadata
         const videoEntry = {
           ...existing,
           videoId,
@@ -303,127 +216,10 @@ export async function onRequestPost(context) {
           slug: content.slug,
           title: content.title || '',
           region: content.region || 'Global',
-          regionCycleIndex: content.regionCycleIndex || 0,
-          createdAt: existing.createdAt || timestamp,
           updatedAt: timestamp,
           platforms: updatedPlatforms,
         };
 
+        // No TTL — published content is permanent
         await env.FFX_KV.put(`video:${videoId}`, JSON.stringify(videoEntry));
-        console.log('[FFX] KV video entry updated for videoId:', videoId);
-      }
-    }
-  } catch (kvErr) {
-    console.log('[FFX] KV write failed (non-fatal):', kvErr.message);
-  }
-
-  return resp({ success: true, slug, status }, 200, headers);
-}
-
-export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GRAPH HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function getGraphToken(env) {
-  const res = await fetch(
-    `https://login.microsoftonline.com/${env.MS_TENANT_ID}/oauth2/v2.0/token`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type:    'client_credentials',
-        client_id:     env.MS_CLIENT_ID,
-        client_secret: env.MS_CLIENT_SECRET,
-        scope:         'https://graph.microsoft.com/.default',
-      }),
-    }
-  );
-  if (!res.ok) throw new Error(`Token failed ${res.status}: ${await res.text()}`);
-  return (await res.json()).access_token;
-}
-
-function workbookUrl(env, path) {
-  return `https://graph.microsoft.com/v1.0/sites/${env.MS_SHAREPOINT_HOST}/drive/items/${env.MS_FILE_ID}/workbook${path}`;
-}
-
-async function getExcelRows(token, env) {
-  const res = await fetch(workbookUrl(env, `/worksheets('${SHEET_NAME}')/usedRange`), {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`Excel read ${res.status}: ${await res.text()}`);
-  return (await res.json()).values || [];
-}
-
-async function updateExcelRow(token, env, excelRowNumber, newStatus, existingRow, userSelected, numCols, timestamp) {
-  // Build updated row — only touch cells for platforms that ran this session
-  const row = [...existingRow];
-
-  if (userSelected.blog     && newStatus.blog     !== 'pending' && newStatus.blog     !== 'not_selected') row[COL.blog]     = newStatus.blog;
-  if (userSelected.x        && newStatus.x        !== 'pending' && newStatus.x        !== 'not_selected') row[COL.x]        = newStatus.x;
-  if (userSelected.linkedin && newStatus.linkedin  !== 'pending' && newStatus.linkedin  !== 'not_selected') row[COL.linkedin]  = newStatus.linkedin;
-  if (userSelected.tumblr   && newStatus.tumblr    !== 'pending' && newStatus.tumblr    !== 'not_selected') row[COL.tumblr]    = newStatus.tumblr;
-  if (userSelected.discord  && newStatus.discord   !== 'pending' && newStatus.discord   !== 'not_selected') row[COL.discord]   = newStatus.discord;
-  row[COL.lastUpdated] = timestamp;
-
-  // Use range address — more reliable than rows/itemAt on SharePoint
-  const colEnd = String.fromCharCode(64 + row.length);
-  const rangeAddr = `A${excelRowNumber}:${colEnd}${excelRowNumber}`;
-
-  console.log('[FFX] Updating Excel range:', rangeAddr);
-
-  // Use formulas if any cell contains a HYPERLINK formula — otherwise use values
-  const hasFormula = row.some(v => typeof v === 'string' && v.startsWith('='));
-  const payload = hasFormula ? { formulas: [row] } : { values: [row] };
-
-  const res = await fetch(workbookUrl(env, `/worksheets('${SHEET_NAME}')/range(address='${rangeAddr}')`), {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) throw new Error(`Excel update ${res.status}: ${await res.text()}`);
-}
-
-async function appendExcelRow(token, env, rowValues) {
-  const rows = await getExcelRows(token, env);
-  const nextRow = rows.length + 1;
-  const colEnd = String.fromCharCode(64 + rowValues.length);
-  const rangeAddr = `A${nextRow}:${colEnd}${nextRow}`;
-
-  console.log('[FFX] Appending Excel row at:', rangeAddr);
-
-  // Use formulas if any cell contains a HYPERLINK formula — otherwise use values
-  const hasFormula = rowValues.some(v => typeof v === 'string' && v.startsWith('='));
-  const payload = hasFormula ? { formulas: [rowValues] } : { values: [rowValues] };
-
-  const res = await fetch(workbookUrl(env, `/worksheets('${SHEET_NAME}')/range(address='${rangeAddr}')`), {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) throw new Error(`Excel append ${res.status}: ${await res.text()}`);
-}
-
-async function callWorker(url, payload) {
-  return fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-}
-
-function resp(data, status, headers) {
-  return new Response(JSON.stringify(data), { status, headers });
-}
+        console.log('[FFX] KV video entry written per
