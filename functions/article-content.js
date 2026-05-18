@@ -58,12 +58,13 @@ export async function onRequestGet(context) {
           body = blogContent.body || '';
         }
 
-        // Legacy fallback — old structure had content directly on videoEntry
+        // Legacy fallback
         if (!body && videoEntry?.content) {
           fullContent = videoEntry.content;
           body = videoEntry.content.body || '';
         }
       }
+      } // close published check
     }
 
     // 3. Legacy fallback — video:slug:{slug}
