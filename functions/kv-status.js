@@ -1,10 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX KV Status — read-only lookup
-// POST /excel-status
-// Accepts: { slug } or { youtubeUrl }
-// Returns: platform statuses + existing article content if found
-// Reads from KV FFX_KV — no Excel dependency
-// Used by generate.html to check if video was published before
+// POST /kv-status
+// Accepts: { youtubeUrl } or { slug }
+// Returns: platform statuses + full content if found
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestPost(context) {
@@ -34,7 +32,6 @@ export async function onRequestPost(context) {
     status: { blog: 'pending', x: 'pending', linkedin: 'pending', tumblr: 'pending', discord: 'pending' }
   };
 
-  // Extract videoId from youtubeUrl
   const extractVideoId = (url) => {
     try {
       const u = new URL(url);
@@ -52,7 +49,7 @@ export async function onRequestPost(context) {
 
   let videoEntry = null;
 
-  // Try lookup by videoId first
+  // Lookup by videoId from youtubeUrl
   if (youtubeUrl) {
     const videoId = extractVideoId(youtubeUrl);
     if (videoId) {
@@ -64,7 +61,7 @@ export async function onRequestPost(context) {
     }
   }
 
-  // Try lookup by slug if not found yet
+  // Lookup by slug fallback
   if (!videoEntry && slug) {
     try {
       videoEntry = await env.FFX_KV.get(`video:slug:${slug}`, { type: 'json' });
@@ -73,54 +70,58 @@ export async function onRequestPost(context) {
     }
   }
 
-  // If still not found by videoId, try slug from youtubeUrl via article metadata
-  if (!videoEntry && youtubeUrl) {
-    try {
-      // List all article keys to find by youtubeUrl
-      const list = await env.FFX_KV.list({ prefix: 'article:' });
-      for (const key of list.keys) {
-        const article = await env.FFX_KV.get(key.name, { type: 'json' });
-        if (article && article.youtubeUrl) {
-          const articleVideoId = extractVideoId(article.youtubeUrl);
-          const searchVideoId = extractVideoId(youtubeUrl);
-          if (articleVideoId && searchVideoId && articleVideoId === searchVideoId) {
-            // Found matching article — try video:slug key
-            videoEntry = await env.FFX_KV.get(`video:slug:${article.slug}`, { type: 'json' });
-            break;
-          }
-        }
-      }
-    } catch (err) {
-      console.log('[FFX Status] KV article list failed (non-fatal):', err.message);
-    }
-  }
-
   if (!videoEntry) {
     return new Response(JSON.stringify(notFound), { status: 200, headers });
   }
 
-  // Build platform status from KV — same shape as Excel version
   const platforms = videoEntry.platforms || {};
-  const getStatus = (p) => platforms[p]?.status || 'pending';
 
-  // Get full content — from video entry content field
-  const content = videoEntry.content || null;
+  // Platform status — check both new keys (blog_global) and published keys (blog)
+  const getBlogStatus = () => {
+    if (platforms.blog?.status && !platforms.blog.status.startsWith('generated')) return platforms.blog.status;
+    if (platforms.blog_global?.status === 'generated') return 'pending';
+    return 'pending';
+  };
 
-  console.log('[FFX Status] Found in KV:', videoEntry.slug);
+  const getStatus = (key) => {
+    const p = platforms[key];
+    if (!p) return 'pending';
+    if (p.status && p.status !== 'generated') return p.status;
+    return 'pending';
+  };
+
+  // Build full content for Load Existing — global article from blog_global or blog
+  const globalContent = platforms.blog_global?.content || platforms.blog?.content || null;
+  const regionalContent = platforms.blog_regional?.content || null;
+
+  // Build articles array matching generate-status.js format
+  let articles = null;
+  if (globalContent) {
+    const global = { ...globalContent, region: 'Global', regionLabel: 'Global' };
+    articles = [global];
+    if (regionalContent) {
+      const regional = { ...regionalContent, region: videoEntry.region || 'Regional', regionLabel: videoEntry.region || 'Regional' };
+      articles.push(regional);
+    }
+  }
+
+  console.log('[FFX Status] Found in KV:', videoEntry.slug, 'articles:', articles ? articles.length : 0);
 
   return new Response(JSON.stringify({
     found: true,
     slug: videoEntry.slug || '',
-    title: videoEntry.title || content?.title || '',
-    ytUrl: videoEntry.youtubeUrl || '',
+    title: videoEntry.title || globalContent?.title || '',
+    youtubeUrl: videoEntry.youtubeUrl || '',
     status: {
-      blog:     getStatus('blog'),
+      blog:     getBlogStatus(),
       x:        getStatus('x'),
       linkedin: getStatus('linkedin'),
       tumblr:   getStatus('tumblr'),
       discord:  getStatus('discord'),
     },
-    content,
+    articles,
+    // Legacy content field for backwards compatibility
+    content: globalContent,
   }), { status: 200, headers });
 }
 
