@@ -1,8 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FFX Article Content Worker
+// FFX Article Content
 // GET /article-content?slug=SLUG → returns full article from KV
-// Used by article.html to render individual articles
-// All articles migrated to KV — no articles.json fallback needed
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestGet(context) {
@@ -33,20 +31,36 @@ export async function onRequestGet(context) {
       return new Response(JSON.stringify({ error: 'Article not found' }), { status: 404, headers });
     }
 
-    // 2. Read full body from video:{videoId} content
+    // 2. Read full body from video:{videoId}
     const videoId = articleMeta.videoId;
     let body = '';
     let fullContent = {};
 
     if (videoId) {
       const videoEntry = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' });
-      if (videoEntry?.content) {
-        fullContent = videoEntry.content;
-        body = videoEntry.content.body || '';
+
+      if (videoEntry) {
+        // New structure — consumer Worker writes platforms.blog_global.content
+        // Published structure — publish-confirm writes platforms.blog.content
+        const blogContent =
+          videoEntry?.platforms?.blog?.content ||
+          videoEntry?.platforms?.blog_global?.content ||
+          null;
+
+        if (blogContent) {
+          fullContent = blogContent;
+          body = blogContent.body || '';
+        }
+
+        // Legacy fallback — old structure had content directly on videoEntry
+        if (!body && videoEntry?.content) {
+          fullContent = videoEntry.content;
+          body = videoEntry.content.body || '';
+        }
       }
     }
 
-    // Fallback for legacy articles migrated without videoId — stored as video:slug:{slug}
+    // 3. Legacy fallback — video:slug:{slug}
     if (!body) {
       const slugEntry = await env.FFX_KV.get(`video:slug:${slug}`, { type: 'json' });
       if (slugEntry?.content) {
@@ -55,7 +69,7 @@ export async function onRequestGet(context) {
       }
     }
 
-    // 3. Build article object matching the shape article.html expects
+    // 4. Build article object
     const article = {
       slug: articleMeta.slug,
       title: articleMeta.title || fullContent.title || '',
@@ -65,10 +79,12 @@ export async function onRequestGet(context) {
       readTime: articleMeta.readTime || fullContent.readTime || '5 min read',
       date: articleMeta.date || fullContent.date || '',
       body: body || fullContent.body || '',
+      youtubeUrl: articleMeta.youtubeUrl || fullContent.youtubeUrl || '',
+      videoId: articleMeta.videoId || '',
       draft: articleMeta.draft || false,
     };
 
-    console.log('[FFX Article] Served from KV:', slug);
+    console.log('[FFX Article] Served slug:', slug, 'body length:', body.length);
     return new Response(JSON.stringify({ success: true, article }), { status: 200, headers });
 
   } catch (err) {
