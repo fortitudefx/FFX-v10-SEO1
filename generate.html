@@ -75,6 +75,7 @@
     .btn-primary:hover:not(:disabled) { background: #e8e8e8; }
     .btn-primary:disabled { opacity: 0.25; cursor: not-allowed; }
 
+    /* ── PROGRESS ── */
     .progress-wrap { margin-top: 32px; display: none; }
     .progress-step { display: flex; align-items: center; gap: 14px; padding: 10px 0; font-size: 14px; color: var(--muted); transition: color 0.2s; }
     .progress-step.active { color: var(--text); }
@@ -87,6 +88,8 @@
     .spin { width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--blue); border-top-color: transparent; animation: rot 0.7s linear infinite; flex-shrink: 0; }
     @keyframes rot { to { transform: rotate(360deg); } }
 
+    .elapsed { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 16px; }
+
     .alert { padding: 14px 18px; border-radius: 6px; font-size: 14px; line-height: 1.6; margin-top: 20px; display: none; }
     .alert.info  { background: var(--blue-bg);  border: 1px solid var(--blue-bd);  color: #8bbfe8; }
     .alert.ok    { background: var(--green-bg); border: 1px solid var(--green-bd); color: #6dcf9a; }
@@ -94,72 +97,42 @@
 
     /* ── EXISTING VIDEO PANEL ── */
     #existingPanel {
-      display: none;
-      background: var(--surface);
-      border: 1px solid var(--yellow-bd);
-      border-radius: 10px;
-      padding: 28px;
-      margin-top: 24px;
+      display: none; background: var(--surface);
+      border: 1px solid var(--yellow-bd); border-radius: 10px;
+      padding: 28px; margin-top: 24px;
     }
-
-    .existing-header {
-      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
-    }
-
+    .existing-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
     .existing-icon { font-size: 22px; }
-
     .existing-title { font-size: 16px; font-weight: 700; color: var(--yellow); margin-bottom: 3px; }
     .existing-sub { font-size: 13px; color: var(--text-mid); }
-
-    .existing-slug {
-      font-family: var(--mono); font-size: 13px; color: var(--blue);
-      background: var(--blue-bg); border: 1px solid var(--blue-bd);
-      border-radius: 5px; padding: 8px 14px; display: inline-block; margin-bottom: 20px;
-    }
-
-    .existing-platforms {
-      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;
-    }
-
-    .ep-badge {
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
-      padding: 4px 12px; border-radius: 4px; letter-spacing: 0.06em;
-    }
+    .existing-slug { font-family: var(--mono); font-size: 13px; color: var(--blue); background: var(--blue-bg); border: 1px solid var(--blue-bd); border-radius: 5px; padding: 8px 14px; display: inline-block; margin-bottom: 20px; }
+    .existing-platforms { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+    .ep-badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 4px; letter-spacing: 0.06em; }
     .ep-yes     { background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green); }
     .ep-error   { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: var(--red); }
     .ep-skipped { background: var(--surface2); border: 1px solid var(--border);   color: var(--muted); }
     .ep-pending { background: var(--yellow-bg);border: 1px solid var(--yellow-bd);color: var(--yellow); }
-
     .existing-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-
-    .btn-load {
-      background: var(--green); color: #fff; border: none; border-radius: 6px;
-      font-family: var(--sans); font-size: 14px; font-weight: 700;
-      padding: 13px 24px; cursor: pointer; transition: background 0.15s;
-    }
+    .btn-load  { background: var(--green); color: #fff; border: none; border-radius: 6px; font-family: var(--sans); font-size: 14px; font-weight: 700; padding: 13px 24px; cursor: pointer; transition: background 0.15s; }
     .btn-load:hover { background: #3a9060; }
-
-    .btn-fresh {
-      background: transparent; color: var(--text-mid); border: 1px solid var(--border2);
-      border-radius: 6px; font-family: var(--sans); font-size: 14px; font-weight: 600;
-      padding: 13px 24px; cursor: pointer; transition: border-color 0.15s, color 0.15s;
-    }
+    .btn-fresh { background: transparent; color: var(--text-mid); border: 1px solid var(--border2); border-radius: 6px; font-family: var(--sans); font-size: 14px; font-weight: 600; padding: 13px 24px; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
     .btn-fresh:hover { border-color: #555; color: var(--text); }
-
-    .btn-newurl {
-      background: transparent; color: var(--muted); border: 1px solid var(--border);
-      border-radius: 6px; font-family: var(--sans); font-size: 14px;
-      padding: 13px 24px; cursor: pointer; transition: color 0.15s;
-    }
+    .btn-newurl { background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; font-family: var(--sans); font-size: 14px; padding: 13px 24px; cursor: pointer; transition: color 0.15s; }
     .btn-newurl:hover { color: var(--text-mid); }
+
+    /* ── ARTICLE TABS ── */
+    .tab-bar { display: flex; gap: 0; margin-bottom: 28px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .tab-btn { flex: 1; padding: 13px 20px; background: var(--surface); border: none; color: var(--muted); font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; border-right: 1px solid var(--border); }
+    .tab-btn:last-child { border-right: none; }
+    .tab-btn.active { background: var(--bg); color: var(--text); }
+    .tab-btn:hover:not(.active) { background: var(--surface2); color: var(--text-mid); }
+    .tab-label-region { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); display: block; margin-top: 3px; }
 
     /* ── REVIEW VIEW ── */
     #reviewView { display: none; }
-
-    .review-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 36px; flex-wrap: wrap; }
+    .review-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
     .review-header h2 { font-size: 24px; font-weight: 700; color: #fff; letter-spacing: -0.02em; margin-bottom: 6px; }
     .review-header p { font-size: 14px; color: var(--text-mid); }
-
     .btn-back { background: transparent; border: 1px solid var(--border2); border-radius: 6px; color: var(--text-mid); font-family: var(--sans); font-size: 14px; padding: 10px 20px; cursor: pointer; transition: border-color 0.15s, color 0.15s; flex-shrink: 0; }
     .btn-back:hover { border-color: #555; color: var(--text); }
 
@@ -194,7 +167,6 @@
     .platform-checklist { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 16px; }
     .platform-checklist-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-mid); margin-bottom: 18px; }
     .platform-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-
     .platform-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
     .platform-item:hover:not(.locked) { border-color: var(--border2); background: var(--surface2); }
     .platform-item.locked { cursor: default; }
@@ -202,12 +174,10 @@
     .platform-item.status-skipped { border-color: var(--border);   opacity: 0.45; }
     .platform-item.status-error   { border-color: var(--red-bd);   background: var(--red-bg); }
     .platform-item.checked:not(.status-yes):not(.status-error) { border-color: var(--blue-bd); background: var(--blue-bg); }
-
     .platform-checkbox { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border2); background: var(--surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; font-size: 11px; color: #fff; }
     .platform-item.checked:not(.status-yes):not(.status-error) .platform-checkbox { background: var(--blue); border-color: var(--blue); }
     .platform-item.status-yes   .platform-checkbox { background: var(--green); border-color: var(--green); }
     .platform-item.status-error .platform-checkbox { background: var(--red);   border-color: var(--red); }
-
     .platform-info { flex: 1; }
     .platform-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
     .platform-status-text { font-size: 12px; color: var(--muted); font-family: var(--mono); }
@@ -275,7 +245,7 @@
   <!-- ── INPUT VIEW ── -->
   <div id="inputView">
     <h1>Generate &amp; Publish</h1>
-    <p class="sub">Paste a YouTube URL. Claude generates the full content package for your review before anything goes live.</p>
+    <p class="sub">Paste a YouTube URL. Claude generates Global + Regional content for your review before anything goes live.</p>
 
     <label class="field-label" for="ytUrl">YouTube URL</label>
     <input type="url" id="ytUrl" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" spellcheck="false" />
@@ -301,11 +271,16 @@
       </div>
     </div>
 
+    <!-- Progress steps -->
     <div class="progress-wrap" id="progressWrap">
-      <div class="progress-step" id="ps1"><div class="pip" id="pp1"></div>Fetching transcript from YouTube</div>
-      <div class="progress-step" id="ps2"><div class="pip" id="pp2"></div>Generating article + all platform content with Claude</div>
-      <div class="progress-step" id="ps3"><div class="pip" id="pp3"></div>Preparing review</div>
+      <div class="progress-step" id="ps1"><div class="pip" id="pp1"></div>Queuing generation job</div>
+      <div class="progress-step" id="ps2"><div class="pip" id="pp2"></div>Fetching transcript from YouTube</div>
+      <div class="progress-step" id="ps3"><div class="pip" id="pp3"></div>Generating Global article with Claude</div>
+      <div class="progress-step" id="ps4"><div class="pip" id="pp4"></div>Generating Regional article with Claude</div>
+      <div class="progress-step" id="ps5"><div class="pip" id="pp5"></div>Extracting knowledge library items</div>
+      <div class="progress-step" id="ps6"><div class="pip" id="pp6"></div>Preparing review</div>
     </div>
+    <div class="elapsed" id="elapsedWrap" style="display:none">Elapsed: <span id="elapsedTime">0s</span></div>
   </div>
 
   <!-- ── REVIEW VIEW ── -->
@@ -316,6 +291,18 @@
         <p>Check all sections. Nothing is published until you click Publish.</p>
       </div>
       <button class="btn-back" onclick="backToInput()">← Start Over</button>
+    </div>
+
+    <!-- Article tabs — Global / Regional -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabGlobal" onclick="switchTab(0)">
+        Global Article
+        <span class="tab-label-region">All regions</span>
+      </button>
+      <button class="tab-btn" id="tabRegional" onclick="switchTab(1)">
+        Regional Article
+        <span class="tab-label-region" id="tabRegionLabel">—</span>
+      </button>
     </div>
 
     <div class="meta-strip">
@@ -337,7 +324,7 @@
 
     <div class="section" id="secX">
       <div class="section-head" onclick="toggleSection('secX')">
-        <div class="section-title"><span class="platform-badge badge-x">X</span>Tweet Thread (6 tweets)</div>
+        <div class="section-title"><span class="platform-badge badge-x">X</span>Tweet Thread</div>
         <span class="chevron">▼</span>
       </div>
       <div class="section-body"><div class="tweet-list" id="rTweets"></div></div>
@@ -375,9 +362,8 @@
       <div class="section-body"><div class="content-block" id="rMedium">—</div></div>
     </div>
 
-    <!-- Platform checklist -->
     <div class="platform-checklist">
-      <div class="platform-checklist-title">Publishing destinations — uncheck to skip by design</div>
+      <div class="platform-checklist-title">Publishing destinations — uncheck to skip</div>
       <div class="platform-list" id="platformList"></div>
     </div>
 
@@ -398,10 +384,9 @@
 
 </main>
 
-<!-- Publish footer -->
 <div class="publish-footer" id="publishFooter">
   <div class="footer-info">
-    <strong>Ready to publish?</strong>
+    <strong id="footerArticleLabel">Ready to publish?</strong>
     Review content and platform selection above.
   </div>
   <button class="btn-publish" id="pubBtn" onclick="publish()">Publish</button>
@@ -416,26 +401,36 @@
     { key: 'discord',  label: 'Discord' },
   ];
 
-  let currentContent = null;   // full content object held in JS memory
-  let platformState  = {};     // current Excel status per platform
-  let existingData   = null;   // data returned from /kv-status
+  let currentArticles  = [];     // [globalArticle, regionalArticle]
+  let currentContent   = null;   // whichever tab is active
+  let activeTabIndex   = 0;
+  let platformState    = {};
+  let existingData     = null;
+  let pollInterval     = null;
+  let elapsedInterval  = null;
+  let elapsedSeconds   = 0;
 
-  // ── CHECK URL — first step ────────────────────────────────────────────────
+  // Pre-fill URL from query param
+  document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const preUrl = params.get('url');
+    if (preUrl) document.getElementById('ytUrl').value = preUrl;
+    document.getElementById('ytUrl').addEventListener('keydown', e => {
+      if (e.key === 'Enter') checkUrl();
+    });
+  });
+
+  // ── CHECK URL ─────────────────────────────────────────────────────────────
   async function checkUrl() {
     const url = document.getElementById('ytUrl').value.trim();
     if (!url) { showAlert('genAlert', 'Paste a YouTube URL first.', 'error'); return; }
     if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-      showAlert('genAlert', 'That does not look like a YouTube URL.', 'error');
-      return;
+      showAlert('genAlert', 'That does not look like a YouTube URL.', 'error'); return;
     }
 
     const btn = document.getElementById('genBtn');
     btn.disabled = true;
     btn.textContent = 'Checking…';
-    // Always reset publish button at the start of a new generate cycle
-    const pubBtn = document.getElementById('pubBtn');
-    pubBtn.disabled = false;
-    pubBtn.textContent = 'Publish';
     hideAlert('genAlert');
     hideAlert('pubAlert');
     document.getElementById('existingPanel').style.display = 'none';
@@ -447,11 +442,9 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ youtubeUrl: url }),
       });
-
       const data = await res.json();
 
       if (data.found) {
-        // Video was published before — show options
         existingData = data;
         platformState = data.status;
         showExistingPanel(data);
@@ -459,14 +452,12 @@
         btn.textContent = 'Generate Content';
         setHeaderStatus('Video found in records');
       } else {
-        // Not found — go straight to generate
         existingData = null;
         platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', tumblr: 'pending', discord: 'pending' };
         btn.textContent = 'Generate Content';
         await runGenerate(url);
       }
     } catch (err) {
-      // Excel check failed — proceed with generate anyway
       existingData = null;
       platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', tumblr: 'pending', discord: 'pending' };
       btn.textContent = 'Generate Content';
@@ -474,51 +465,35 @@
     }
   }
 
+  // ── SHOW EXISTING PANEL ───────────────────────────────────────────────────
   function showExistingPanel(data) {
     document.getElementById('existingTitle').textContent = data.title || '';
     document.getElementById('existingSlug').textContent  = data.slug  || '';
-
     const pfDiv = document.getElementById('existingPlatforms');
     pfDiv.innerHTML = '';
     PLATFORMS.forEach(({ key, label }) => {
       const val = data.status?.[key] || 'pending';
-      const isPosted = val === 'Yes' || val === 'View post' || (typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK(')));
-      const extractUrl = v => {
-        if (!v) return null;
-        if (v.startsWith('=HYPERLINK(')) { const m = v.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
-        return v.startsWith('http') ? v : null;
-      };
-      let cls;
-      if (isPosted)                    cls = 'ep-yes';
-      else if (val === 'Skipped')      cls = 'ep-skipped';
-      else if (val.startsWith('Error')) cls = 'ep-error';
-      else                             cls = 'ep-pending';
+      const isPosted = val === 'Yes' || val === 'View post' || (typeof val === 'string' && val.startsWith('http'));
+      let cls = isPosted ? 'ep-yes' : val === 'Skipped' ? 'ep-skipped' : (val.startsWith && val.startsWith('Error')) ? 'ep-error' : 'ep-pending';
       const span = document.createElement('span');
       span.className = `ep-badge ${cls}`;
-      const postUrl = extractUrl(val);
-      if (isPosted && postUrl) {
-        span.innerHTML = label + ': <a href="' + postUrl + '" target="_blank" style="color:inherit;">✓ View</a>';
-      } else {
-        span.textContent = label + ': ' + (isPosted ? '✓' : val === 'Skipped' ? '—' : val.startsWith('Error') ? '✕ Error' : 'Pending');
-      }
+      span.textContent = label + ': ' + (isPosted ? '✓' : val === 'Skipped' ? '—' : 'Pending');
       pfDiv.appendChild(span);
     });
-
     document.getElementById('existingPanel').style.display = 'block';
   }
 
-  // ── LOAD EXISTING CONTENT ─────────────────────────────────────────────────
+  // ── LOAD EXISTING ─────────────────────────────────────────────────────────
   async function loadExisting() {
     if (!existingData) return;
-
     if (existingData.content) {
-      // articles.json has the full content
-      currentContent = existingData.content;
-      platformState = existingData.status;
+      currentArticles = [existingData.content];
+      currentContent  = existingData.content;
+      activeTabIndex  = 0;
+      platformState   = existingData.status;
       showReview();
     } else {
-      // articles.json didn't return content — regenerate
-      showAlert('genAlert', 'Existing content not found in articles.json — regenerating.', 'info');
+      showAlert('genAlert', 'Existing content not found — regenerating.', 'info');
       await generateFresh();
     }
   }
@@ -527,19 +502,11 @@
   async function generateFresh() {
     const url = document.getElementById('ytUrl').value.trim();
     document.getElementById('existingPanel').style.display = 'none';
-    // Reset publish button state from any previous session
-    const pubBtn = document.getElementById('pubBtn');
-    pubBtn.disabled = false;
-    pubBtn.textContent = 'Publish';
-    hideAlert('pubAlert');
-    // Reset platform state — fresh generate means everything pending
     platformState = { blog: 'pending', x: 'pending', linkedin: 'pending', tumblr: 'pending', discord: 'pending' };
-    // Pass existing slug so generate.js locks it — keeps article URL consistent
     const slugToLock = existingData?.slug || null;
     await runGenerate(url, slugToLock);
   }
 
-  // ── CLEAR URL ─────────────────────────────────────────────────────────────
   function clearUrl() {
     document.getElementById('ytUrl').value = '';
     document.getElementById('existingPanel').style.display = 'none';
@@ -549,62 +516,150 @@
     setHeaderStatus('Ready');
   }
 
-  // ── RUN GENERATE ──────────────────────────────────────────────────────────
+  // ── RUN GENERATE — queue producer + polling ───────────────────────────────
   async function runGenerate(url, existingSlug) {
     const btn = document.getElementById('genBtn');
     btn.disabled = true;
     hideAlert('genAlert');
-    setHeaderStatus('Generating…');
+    setHeaderStatus('Queuing…');
     document.getElementById('progressWrap').style.display = 'block';
-    setPS(1, 'active'); setPS(2, 'idle'); setPS(3, 'idle');
-    showAlert('genAlert', 'Working — fetching transcript then generating with Claude. Takes 25–45 seconds.', 'info');
+    document.getElementById('elapsedWrap').style.display = 'block';
+    allPS('idle');
+    setPS(1, 'active');
 
-    const t1 = setTimeout(() => { setPS(1, 'done'); setPS(2, 'active'); }, 4500);
+    // Start elapsed timer
+    elapsedSeconds = 0;
+    document.getElementById('elapsedTime').textContent = '0s';
+    elapsedInterval = setInterval(() => {
+      elapsedSeconds++;
+      document.getElementById('elapsedTime').textContent = elapsedSeconds + 's';
+    }, 1000);
 
-    // AbortController with 5 minute timeout — prevents browser canceling long Claude calls
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 300000);
-
+    // Step 1 — Send to queue
+    let jobId, videoId;
     try {
       const res = await fetch('/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ youtubeUrl: url, existingSlug: existingSlug || null }),
-        signal: controller.signal,
       });
-
-      clearTimeout(t1);
-      clearTimeout(timeout);
       const data = await res.json();
 
       if (!res.ok) {
-        failAll();
-        showAlert('genAlert', data.error || 'Something went wrong.', 'error');
+        stopTimers();
+        allPS('fail');
+        showAlert('genAlert', data.error || 'Failed to queue job.', 'error');
         btn.disabled = false;
         btn.textContent = 'Generate Content';
         setHeaderStatus('Error');
         return;
       }
 
-      setPS(1, 'done'); setPS(2, 'done'); setPS(3, 'active');
-      currentArticles = data.articles;
-      currentContent  = currentArticles[0];
-
-      setTimeout(() => {
-        setPS(3, 'done');
-        setHeaderStatus('Review ready');
-        showReview();
-      }, 600);
+      jobId   = data.jobId;
+      videoId = data.videoId;
+      setPS(1, 'done');
+      setPS(2, 'active');
+      setHeaderStatus('Generating…');
+      showAlert('genAlert', 'Job queued. Generating Global + Regional articles — takes 2–3 minutes. You can leave this tab open.', 'info');
 
     } catch (err) {
-      clearTimeout(t1);
-      clearTimeout(timeout);
-      failAll();
+      stopTimers();
+      allPS('fail');
       showAlert('genAlert', 'Network error: ' + err.message, 'error');
       btn.disabled = false;
       btn.textContent = 'Generate Content';
       setHeaderStatus('Error');
+      return;
     }
+
+    // Step 2 — Poll /generate-status every 3 seconds
+    startPolling(jobId, btn);
+  }
+
+  // ── POLLING ───────────────────────────────────────────────────────────────
+  function startPolling(jobId, btn) {
+    let lastStep = 'transcript';
+
+    pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/generate-status?job=${jobId}`);
+        const data = await res.json();
+
+        // Update progress steps based on job step
+        if (data.step === 'transcript' || data.status === 'processing') {
+          setPS(2, 'active');
+        }
+        if (data.step === 'global') {
+          setPS(2, 'done'); setPS(3, 'active');
+        }
+        if (data.step === 'regional') {
+          setPS(2, 'done'); setPS(3, 'done'); setPS(4, 'active');
+        }
+        if (data.step === 'library') {
+          setPS(2, 'done'); setPS(3, 'done'); setPS(4, 'done'); setPS(5, 'active');
+        }
+
+        if (data.status === 'complete') {
+          stopPolling();
+          stopTimers();
+          setPS(2, 'done'); setPS(3, 'done'); setPS(4, 'done'); setPS(5, 'done'); setPS(6, 'active');
+
+          setTimeout(() => {
+            setPS(6, 'done');
+            setHeaderStatus('Review ready');
+            hideAlert('genAlert');
+
+            currentArticles = data.articles;
+            currentContent  = currentArticles[0];
+            activeTabIndex  = 0;
+
+            // Set regional tab label
+            if (currentArticles[1]) {
+              document.getElementById('tabRegionLabel').textContent = currentArticles[1].region || currentArticles[1].regionLabel || 'Regional';
+            }
+
+            showReview();
+          }, 600);
+        }
+
+        if (data.status === 'error') {
+          stopPolling();
+          stopTimers();
+          allPS('fail');
+          showAlert('genAlert', `Generation failed at step: ${data.step || 'unknown'}. Reason: ${data.reason || 'Unknown error'}. Check Cloudflare logs.`, 'error');
+          btn.disabled = false;
+          btn.textContent = 'Generate Content';
+          setHeaderStatus('Error');
+        }
+
+      } catch (err) {
+        // Network hiccup during poll — keep polling, do not stop
+        console.warn('[FFX] Poll error (continuing):', err.message);
+      }
+    }, 3000);
+  }
+
+  function stopPolling() {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  }
+
+  function stopTimers() {
+    stopPolling();
+    if (elapsedInterval) { clearInterval(elapsedInterval); elapsedInterval = null; }
+  }
+
+  // ── TAB SWITCHING ─────────────────────────────────────────────────────────
+  function switchTab(index) {
+    if (!currentArticles[index]) return;
+    activeTabIndex = index;
+    currentContent = currentArticles[index];
+
+    document.getElementById('tabGlobal').classList.toggle('active', index === 0);
+    document.getElementById('tabRegional').classList.toggle('active', index === 1);
+    document.getElementById('footerArticleLabel').textContent =
+      index === 0 ? 'Publishing: Global Article' : `Publishing: ${currentArticles[1]?.region || 'Regional'} Article`;
+
+    populateReview(currentContent);
   }
 
   // ── SHOW REVIEW ───────────────────────────────────────────────────────────
@@ -614,6 +669,13 @@
     document.getElementById('inputView').style.display = 'none';
     document.getElementById('reviewView').style.display = 'block';
     document.getElementById('publishFooter').classList.add('visible');
+    document.getElementById('footerArticleLabel').textContent = 'Publishing: Global Article';
+
+    // Hide regional tab if only one article
+    if (!currentArticles[1]) {
+      document.getElementById('tabRegional').style.display = 'none';
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -621,29 +683,21 @@
   function renderChecklist() {
     const list = document.getElementById('platformList');
     list.innerHTML = '';
-
     PLATFORMS.forEach(({ key, label }) => {
       const val = platformState[key] || 'pending';
-      const isYes     = val === 'Yes' || val === 'View post' || (typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK(')));
-      const isUrl     = typeof val === 'string' && (val.startsWith('http') || val.startsWith('=HYPERLINK('));
-      const getLink = v => { if (!v) return null; if (v.startsWith('=HYPERLINK(')) { const m = v.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; } return v.startsWith('http') ? v : null; };
-      const postLink = getLink(val);
+      const isYes     = val === 'Yes' || val === 'View post' || (typeof val === 'string' && val.startsWith('http'));
       const isSkipped = val === 'Skipped';
       const isError   = typeof val === 'string' && val.startsWith('Error');
+      const postLink  = isYes && val.startsWith('http') ? val : null;
 
-      let itemClass = '';
-      let checkContent = '';
-      let statusText = '';
-      let checked = false;
-      let locked = false;
-
+      let itemClass, checkContent, statusText, checked, locked;
       if (isYes) {
         itemClass = 'status-yes'; checkContent = '✓';
-        statusText = postLink ? '<a href="' + postLink + '" target="_blank" style="color:inherit;font-size:11px;">✓ View post</a>' : 'Already posted';
+        statusText = postLink ? `<a href="${postLink}" target="_blank" style="color:inherit;font-size:11px;">✓ View post</a>` : 'Already posted';
         checked = true; locked = false;
       } else if (isSkipped) {
         itemClass = 'status-skipped locked'; checkContent = '—';
-        statusText = 'Skipped by design'; checked = false; locked = true;
+        statusText = 'Skipped'; checked = false; locked = true;
       } else if (isError) {
         itemClass = 'status-error checked'; checkContent = '✕';
         statusText = val.replace('Error: ', ''); checked = true; locked = false;
@@ -663,7 +717,6 @@
           <div class="platform-name">${label}</div>
           <div class="platform-status-text">${statusText}</div>
         </div>`;
-
       if (!locked) item.addEventListener('click', () => togglePlatform(item, key));
       list.appendChild(item);
     });
@@ -672,19 +725,15 @@
   function togglePlatform(item, key) {
     const isChecked = item.dataset.checked === 'true';
     item.dataset.checked = isChecked ? 'false' : 'true';
-    const checkbox = item.querySelector('.platform-checkbox');
+    const checkbox   = item.querySelector('.platform-checkbox');
     const statusText = item.querySelector('.platform-status-text');
-
     if (!isChecked) {
-      item.classList.add('checked');
-      item.classList.remove('status-error');
+      item.classList.add('checked'); item.classList.remove('status-error');
       checkbox.textContent = '✓';
       const platformUrl = item.dataset.platformUrl;
-      if (platformUrl) {
-        statusText.innerHTML = 'Will repost &nbsp;<a href="' + platformUrl + '" target="_blank" style="color:inherit;font-size:11px;">View prev</a>';
-      } else {
-        statusText.textContent = 'Will post';
-      }
+      statusText.innerHTML = platformUrl
+        ? `Will repost &nbsp;<a href="${platformUrl}" target="_blank" style="color:inherit;font-size:11px;">View prev</a>`
+        : 'Will post';
     } else {
       item.classList.remove('checked', 'status-error', 'status-yes');
       checkbox.textContent = '';
@@ -695,15 +744,12 @@
   // ── PUBLISH ───────────────────────────────────────────────────────────────
   async function publish() {
     if (!currentContent) return;
-
     const platforms = {};
     document.querySelectorAll('.platform-item').forEach(item => {
       platforms[item.dataset.key] = item.dataset.checked === 'true';
     });
-
     if (!Object.values(platforms).some(v => v)) {
-      showAlert('pubAlert', 'Select at least one platform to publish to.', 'error');
-      return;
+      showAlert('pubAlert', 'Select at least one platform to publish to.', 'error'); return;
     }
 
     const btn = document.getElementById('pubBtn');
@@ -718,13 +764,11 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: currentContent, platforms }),
       });
-
       const data = await res.json();
 
       if (!res.ok) {
         showAlert('pubAlert', data.error || 'Publish failed. Check Cloudflare logs.', 'error');
-        btn.disabled = false;
-        btn.textContent = 'Publish';
+        btn.disabled = false; btn.textContent = 'Publish';
         setHeaderStatus('Publish failed');
         return;
       }
@@ -738,8 +782,7 @@
 
     } catch (err) {
       showAlert('pubAlert', 'Network error: ' + err.message, 'error');
-      btn.disabled = false;
-      btn.textContent = 'Publish';
+      btn.disabled = false; btn.textContent = 'Publish';
       setHeaderStatus('Error');
     }
   }
@@ -751,19 +794,14 @@
     PLATFORMS.forEach(({ key, label }) => {
       const val = status?.[key] || 'unknown';
       const selected = platforms?.[key];
-      const getSuccessLink = v => {
-        if (!v) return null;
-        if (v.startsWith('=HYPERLINK(')) { const m = v.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
-        return v.startsWith('http') ? v : null;
-      };
-      const successLink = getSuccessLink(val);
+      const successLink = val.startsWith && val.startsWith('http') ? val : null;
       const isPostedVal = val === 'Yes' || successLink !== null;
       let cls, icon, detail;
       if (!selected || val === 'not_selected') { cls = 'skipped'; icon = 'Not selected'; detail = ''; }
-      else if (isPostedVal)                    { cls = 'ok';      icon = 'Posted';  detail = ''; }
-      else if (val === 'Skipped')              { cls = 'skipped'; icon = 'Skipped'; detail = 'Already posted'; }
+      else if (isPostedVal)  { cls = 'ok';      icon = 'Posted';  detail = ''; }
+      else if (val === 'Skipped') { cls = 'skipped'; icon = 'Skipped'; detail = ''; }
       else if (typeof val === 'string' && val.startsWith('Error')) { cls = 'error'; icon = 'Failed'; detail = val.replace('Error: ', ''); }
-      else                                     { cls = 'skipped'; icon = val;       detail = ''; }
+      else { cls = 'skipped'; icon = val; detail = ''; }
 
       const card = document.createElement('div');
       card.className = 'platform-card';
@@ -790,8 +828,8 @@
     const tweetList = document.getElementById('rTweets');
     tweetList.innerHTML = '';
     const tweets = Array.isArray(c.x_thread) && c.x_thread.length > 0
-  ? c.x_thread
-  : [c.tweet1, c.tweet2, c.tweet3, c.tweet4, c.tweet5, c.tweet6].filter(Boolean);
+      ? c.x_thread
+      : [c.tweet1, c.tweet2, c.tweet3, c.tweet4, c.tweet5, c.tweet6].filter(Boolean);
     tweets.forEach((t, i) => {
       const div = document.createElement('div');
       div.className = 'tweet-item';
@@ -799,81 +837,74 @@
       tweetList.appendChild(div);
     });
 
-    document.getElementById('rLinkedin').textContent = c.linkedin   || '';
-    document.getElementById('rDiscord').textContent  = c.discord    || '';
-    document.getElementById('rTumblr').textContent   = c.tumblr     || '';
-    document.getElementById('rMedium').textContent   = c.mediumIntro || '';
+    document.getElementById('rLinkedin').textContent  = c.linkedin    || '';
+    document.getElementById('rDiscord').textContent   = c.discord     || '';
+    document.getElementById('rTumblr').textContent    = c.tumblr      || '';
+    document.getElementById('rMedium').textContent    = c.mediumIntro || '';
   }
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
   function toggleSection(id) { document.getElementById(id).classList.toggle('open'); }
 
   function backToInput() {
-    currentContent = null;
+    stopTimers();
+    currentArticles = []; currentContent = null; activeTabIndex = 0;
     document.getElementById('reviewView').style.display = 'none';
     document.getElementById('publishFooter').classList.remove('visible');
     document.getElementById('inputView').style.display = 'block';
     document.getElementById('genBtn').disabled = false;
     document.getElementById('genBtn').textContent = 'Generate Content';
     document.getElementById('progressWrap').style.display = 'none';
+    document.getElementById('elapsedWrap').style.display = 'none';
     document.getElementById('existingPanel').style.display = 'none';
-    const pubBtn = document.getElementById('pubBtn');
-    pubBtn.disabled = false;
-    pubBtn.textContent = 'Publish';
-    hideAlert('genAlert');
-    hideAlert('pubAlert');
+    document.getElementById('pubBtn').disabled = false;
+    document.getElementById('pubBtn').textContent = 'Publish';
+    hideAlert('genAlert'); hideAlert('pubAlert');
     setHeaderStatus('Ready');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function reset() {
-    currentContent = null;
-    platformState  = {};
-    existingData   = null;
+    stopTimers();
+    currentArticles = []; currentContent = null; activeTabIndex = 0;
+    platformState = {}; existingData = null;
     document.getElementById('successView').style.display = 'none';
     document.getElementById('inputView').style.display = 'block';
     document.getElementById('ytUrl').value = '';
     document.getElementById('genBtn').disabled = false;
     document.getElementById('genBtn').textContent = 'Generate Content';
     document.getElementById('progressWrap').style.display = 'none';
+    document.getElementById('elapsedWrap').style.display = 'none';
     document.getElementById('existingPanel').style.display = 'none';
-    const pubBtn = document.getElementById('pubBtn');
-    pubBtn.disabled = false;
-    pubBtn.textContent = 'Publish';
-    hideAlert('genAlert');
-    hideAlert('pubAlert');
+    document.getElementById('pubBtn').disabled = false;
+    document.getElementById('pubBtn').textContent = 'Publish';
+    hideAlert('genAlert'); hideAlert('pubAlert');
     setHeaderStatus('Ready');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function allPS(state) { [1,2,3,4,5,6].forEach(n => setPS(n, state === 'idle' ? 'idle' : state)); }
+
   function setPS(n, state) {
     const step = document.getElementById('ps' + n);
-    const pip  = document.getElementById('pp' + n);
+    if (!step) return;
+    const pip = document.getElementById('pp' + n);
     step.className = 'progress-step' + (state !== 'idle' ? ' ' + state : '');
     if (state === 'active') {
-      pip.outerHTML = `<div class="spin" id="pp${n}"></div>`;
+      if (pip) pip.outerHTML = `<div class="spin" id="pp${n}"></div>`;
     } else {
       const el = document.getElementById('pp' + n);
       if (el && el.className === 'spin') el.outerHTML = `<div class="pip" id="pp${n}"></div>`;
     }
   }
 
-  function failAll() { [1, 2, 3].forEach(n => setPS(n, 'fail')); }
-
   function showAlert(id, msg, type) {
     const el = document.getElementById(id);
     el.textContent = msg; el.className = 'alert ' + type; el.style.display = 'block';
   }
-
   function hideAlert(id) { document.getElementById(id).style.display = 'none'; }
   function setHeaderStatus(msg) { document.getElementById('headerStatus').textContent = msg; }
-  function escHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('ytUrl').addEventListener('keydown', e => {
-      if (e.key === 'Enter') checkUrl();
-    });
-  });
+  function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
 
 </body>
