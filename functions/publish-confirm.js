@@ -222,4 +222,35 @@ export async function onRequestPost(context) {
 
         // No TTL — published content is permanent
         await env.FFX_KV.put(`video:${videoId}`, JSON.stringify(videoEntry));
-        console.log('[FFX] KV video entry written per
+        console.log('[FFX] KV video entry written permanently for videoId:', videoId);
+      }
+    }
+  } catch (kvErr) {
+    console.log('[FFX] KV write failed (non-fatal):', kvErr.message);
+  }
+
+  return resp({ success: true, slug, status }, 200, headers);
+}
+
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
+async function callWorker(url, payload) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+function resp(data, status, headers) {
+  return new Response(JSON.stringify(data), { status, headers });
+}
