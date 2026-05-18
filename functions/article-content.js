@@ -37,13 +37,19 @@ export async function onRequestGet(context) {
     let fullContent = {};
 
     if (videoId) {
-      const videoEntry = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' });
+      // Check published:{videoId} first — permanent storage written by publish-confirm
+      const publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
+      if (publishedEntry?.platforms?.blog?.content) {
+        fullContent = publishedEntry.platforms.blog.content;
+        body = fullContent.body || '';
+      }
+
+      // Fallback to video:{videoId} — generated content, 24hr TTL
+      if (!body) {
+        const videoEntry = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' });
 
       if (videoEntry) {
-        // New structure — consumer Worker writes platforms.blog_global.content
-        // Published structure — publish-confirm writes platforms.blog.content
         const blogContent =
-          videoEntry?.platforms?.blog?.content ||
           videoEntry?.platforms?.blog_global?.content ||
           null;
 
