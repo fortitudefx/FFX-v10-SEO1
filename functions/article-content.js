@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Article Content
 // GET /article-content?slug=SLUG → returns full article from KV
+// Reads published:{videoId} first (permanent), falls back to video:{videoId} (24hr TTL)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestGet(context) {
@@ -23,60 +24,58 @@ export async function onRequestGet(context) {
   }
 
   try {
-    // 1. Read article metadata from KV article:{slug}
+    // 1. Read article metadata
     const articleMeta = await env.FFX_KV.get(`article:${slug}`, { type: 'json' });
 
     if (!articleMeta) {
-      console.log('[FFX Article] Not found in KV:', slug);
       return new Response(JSON.stringify({ error: 'Article not found' }), { status: 404, headers });
     }
 
-    // 2. Read full body from video:{videoId}
     const videoId = articleMeta.videoId;
     let body = '';
     let fullContent = {};
 
     if (videoId) {
-      // Check published:{videoId} first — permanent storage written by publish-confirm
-      const publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
-      if (publishedEntry?.platforms?.blog?.content) {
-        fullContent = publishedEntry.platforms.blog.content;
-        body = fullContent.body || '';
-      }
+      // 2a. Check published:{videoId} first — permanent, written by publish-confirm
+      try {
+        const publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
+        if (publishedEntry?.platforms?.blog?.content?.body) {
+          fullContent = publishedEntry.platforms.blog.content;
+          body = fullContent.body;
+          console.log('[FFX Article] Served from published KV:', slug);
+        }
+      } catch {}
 
-      // Fallback to video:{videoId} — generated content, 24hr TTL
+      // 2b. Fallback to video:{videoId} — generated content, 24hr TTL
       if (!body) {
-        const videoEntry = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' });
-
-      if (videoEntry) {
-        const blogContent =
-          videoEntry?.platforms?.blog_global?.content ||
-          null;
-
-        if (blogContent) {
-          fullContent = blogContent;
-          body = blogContent.body || '';
-        }
-
-        // Legacy fallback
-        if (!body && videoEntry?.content) {
-          fullContent = videoEntry.content;
-          body = videoEntry.content.body || '';
-        }
+        try {
+          const videoEntry = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' });
+          if (videoEntry) {
+            const blogContent =
+              videoEntry?.platforms?.blog_global?.content ||
+              videoEntry?.content ||
+              null;
+            if (blogContent) {
+              fullContent = blogContent;
+              body = blogContent.body || '';
+              console.log('[FFX Article] Served from video KV:', slug);
+            }
+          }
+        } catch {}
       }
-      } // close published check
     }
 
     // 3. Legacy fallback — video:slug:{slug}
     if (!body) {
-      const slugEntry = await env.FFX_KV.get(`video:slug:${slug}`, { type: 'json' });
-      if (slugEntry?.content) {
-        fullContent = slugEntry.content;
-        body = slugEntry.content.body || '';
-      }
+      try {
+        const slugEntry = await env.FFX_KV.get(`video:slug:${slug}`, { type: 'json' });
+        if (slugEntry?.content) {
+          fullContent = slugEntry.content;
+          body = slugEntry.content.body || '';
+        }
+      } catch {}
     }
 
-    // 4. Build article object
     const article = {
       slug: articleMeta.slug,
       title: articleMeta.title || fullContent.title || '',
@@ -91,7 +90,6 @@ export async function onRequestGet(context) {
       draft: articleMeta.draft || false,
     };
 
-    console.log('[FFX Article] Served slug:', slug, 'body length:', body.length);
     return new Response(JSON.stringify({ success: true, article }), { status: 200, headers });
 
   } catch (err) {
