@@ -484,9 +484,18 @@
   }
 
   // ── LOAD EXISTING ─────────────────────────────────────────────────────────
-  async function loadExisting() {
+async function loadExisting() {
     if (!existingData) return;
-    if (existingData.content) {
+    if (existingData.articles && existingData.articles.length > 0) {
+      currentArticles = existingData.articles;
+      currentContent  = currentArticles[0];
+      activeTabIndex  = 0;
+      platformState   = existingData.status;
+      if (currentArticles[1]) {
+        document.getElementById('tabRegionLabel').textContent = currentArticles[1].region || 'Regional';
+      }
+      showReview();
+    } else if (existingData.content) {
       currentArticles = [existingData.content];
       currentContent  = existingData.content;
       activeTabIndex  = 0;
