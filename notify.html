@@ -47,13 +47,13 @@
   <div class="header-status" id="headerStatus">Ready</div>
 </header>
 <main>
-  <h1>Send Publish Reminder</h1>
-  <p class="sub">Generates content for the YouTube URL, then sends you an email with a link to FFX Press for review and publishing. The link is valid for 24 hours.</p>
+  <h1>Send Reminder Email</h1>
+  <p class="sub">Paste a YouTube URL and send yourself an email with a direct link to FFX Press. Generation happens in the background — content will be ready and waiting when you open the link.</p>
 
   <label class="field-label" for="ytUrl">YouTube URL</label>
   <input type="url" id="ytUrl" placeholder="https://youtu.be/..." autocomplete="off" spellcheck="false" />
 
-  <button class="btn-primary" id="sendBtn" onclick="send()">Generate &amp; Send Email</button>
+  <button class="btn-primary" id="sendBtn" onclick="send()">Send Reminder Email</button>
 
   <div class="alert" id="alert"></div>
 
@@ -62,12 +62,12 @@
   <div class="field-label">Quick links</div>
   <div class="quick-links">
     <a href="/press" class="quick-link">FFX Press</a>
-    <a href="/retry" class="quick-link">Retry</a>
+    <a href="/generate" class="quick-link">Generate</a>
   </div>
 </main>
 
 <script>
-  // Pre-fill URL from query param if present (for future Cron use)
+  // Pre-fill URL from query param — for future Cron use
   const params = new URLSearchParams(window.location.search);
   const preUrl = params.get('url');
   if (preUrl) document.getElementById('ytUrl').value = preUrl;
@@ -78,20 +78,16 @@
 
     if (!url) { showAlert('Paste a YouTube URL first.', 'error'); return; }
     if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-      showAlert('That does not look like a YouTube URL.', 'error');
-      return;
+      showAlert('That does not look like a YouTube URL.', 'error'); return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Generating…';
+    btn.textContent = 'Sending…';
     hideAlert();
-    document.getElementById('headerStatus').textContent = 'Generating…';
-    showAlert('Step 1 of 2 — Fetching transcript and generating content with Claude. Takes 60–90 seconds. Do not close this tab.', 'info');
+    document.getElementById('headerStatus').textContent = 'Sending…';
 
-    // Step 1 — Generate content
-    let jobId, videoId, title;
     try {
-      const res = await fetch('/generate', {
+      const res = await fetch('/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ youtubeUrl: url }),
@@ -100,56 +96,22 @@
       const data = await res.json();
 
       if (!res.ok) {
-        showAlert(data.error || 'Generation failed.', 'error');
+        showAlert(data.error || 'Failed to send email.', 'error');
         btn.disabled = false;
-        btn.textContent = 'Generate & Send Email';
+        btn.textContent = 'Send Reminder Email';
         document.getElementById('headerStatus').textContent = 'Error';
         return;
       }
 
-      jobId   = data.jobId;
-      videoId = data.videoId;
-      title   = data.content?.title || '';
-
-      document.getElementById('headerStatus').textContent = 'Sending email…';
-      btn.textContent = 'Sending email…';
-      showAlert('Step 2 of 2 — Content generated. Sending email…', 'info');
-
-    } catch (err) {
-      showAlert('Network error during generation: ' + err.message, 'error');
-      btn.disabled = false;
-      btn.textContent = 'Generate & Send Email';
-      document.getElementById('headerStatus').textContent = 'Error';
-      return;
-    }
-
-    // Step 2 — Send email with press link
-    try {
-      const res = await fetch('/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, videoId, youtubeUrl: url, title }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        showAlert(data.error || 'Email send failed.', 'error');
-        btn.disabled = false;
-        btn.textContent = 'Generate & Send Email';
-        document.getElementById('headerStatus').textContent = 'Error';
-        return;
-      }
-
-      showAlert('Done. Check your email — tap the link to open FFX Press. Link is valid for 24 hours.', 'ok');
+      showAlert('Email sent. Generation is running in the background — content will be ready when you open the Press link. Link expires in 24 hours from now.', 'ok');
       document.getElementById('headerStatus').textContent = 'Email sent';
       btn.disabled = false;
-      btn.textContent = 'Generate & Send Email';
+      btn.textContent = 'Send Reminder Email';
 
     } catch (err) {
-      showAlert('Network error sending email: ' + err.message, 'error');
+      showAlert('Network error: ' + err.message, 'error');
       btn.disabled = false;
-      btn.textContent = 'Generate & Send Email';
+      btn.textContent = 'Send Reminder Email';
       document.getElementById('headerStatus').textContent = 'Error';
     }
   }
