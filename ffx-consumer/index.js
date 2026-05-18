@@ -179,10 +179,6 @@ async function processJob(job, env) {
   await kvPut(env, `job:${jobId}`, JSON.stringify({
     status: 'complete',
     videoId,
-    articles: [
-      { ...globalArticle,   region: 'Global',   regionLabel: 'Global' },
-      { ...regionalArticle, region: regionName, regionLabel: regionName },
-    ],
     generatedAt: new Date().toISOString(),
   }), { expirationTtl: 86400 });
 
