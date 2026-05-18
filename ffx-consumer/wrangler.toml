@@ -1,0 +1,16 @@
+name = "ffx-consumer"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+[[queues.consumers]]
+queue = "ffx-generate-queue"
+max_batch_size = 1
+max_batch_timeout = 30
+max_retries = 2
+
+[[kv_namespaces]]
+binding = "FFX_KV"
+id = "6660064783ba4b2fbe4f8a0031818e99"
+
+[vars]
+ARTICLE_BASE_URL = "https://fortitudefx.com/article?slug="
