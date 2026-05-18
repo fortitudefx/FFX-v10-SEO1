@@ -546,7 +546,7 @@ Write [ARTICLE_URL] exactly as shown — it will be replaced automatically after
 
   let parsed;
   try { parsed = JSON.parse(cleaned); } catch {
-    throw new Error('Claude returned invalid JSON. First 300 chars: ' + cleaned.slice(0, 300));
+    throw new Error('Claude returned invalid JSON. First 2000 chars: ' + cleaned.slice(0, 2000));
   }
 
   const required = ['slug', 'title', 'excerpt', 'category', 'tags', 'readTime', 'body', 'linkedin', 'x_thread', 'discord', 'tumblr', 'mediumIntro'];
