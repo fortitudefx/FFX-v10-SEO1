@@ -1,8 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FFX Press Publish Worker
-// POST /press-publish → publishes selected platforms for a video
-// Reads content from video:{videoId}.platforms.blog_global.content
-// Passes both global + regional content to publish-confirm for dual blog publish
+// FFX Press Publish
+// POST /press-publish → republishes selected platforms for a published video
+// Reads full globalContent + regionalContent from published:{videoId}
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestPost(context) {
@@ -34,25 +33,22 @@ export async function onRequestPost(context) {
 
   console.log('[FFX Press Publish] videoId:', videoId, 'platforms:', platforms);
 
-  // ── Fetch video record from KV ─────────────────────────────────────────────
-  let videoEntry;
+  // ── Read from published:{videoId} — permanent, always available ────────────
+  let publishedEntry;
   try {
-    videoEntry = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' });
-    if (!videoEntry) {
-      return new Response(JSON.stringify({ error: 'Video not found in KV — content may have expired (24hr limit). Regenerate.' }), { status: 404, headers });
+    publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
+    if (!publishedEntry) {
+      return new Response(JSON.stringify({ error: 'Video not found in published records.' }), { status: 404, headers });
     }
   } catch (err) {
     return new Response(JSON.stringify({ error: `KV read failed: ${err.message}` }), { status: 500, headers });
   }
 
-  // ── Extract content from correct KV structure ──────────────────────────────
-  // Consumer writes: video.platforms.blog_global.content = globalContent
-  //                  video.platforms.blog_regional.content = regionalContent
-  const globalContent   = videoEntry.platforms?.blog_global?.content;
-  const regionalContent = videoEntry.platforms?.blog_regional?.content || null;
+  const globalContent   = publishedEntry.globalContent;
+  const regionalContent = publishedEntry.regionalContent || null;
 
   if (!globalContent || !globalContent.slug) {
-    return new Response(JSON.stringify({ error: 'Global content missing or malformed in KV. Regenerate.' }), { status: 400, headers });
+    return new Response(JSON.stringify({ error: 'Full content not found in published record. This video was published before full content storage was implemented. Regenerate from generate.html.' }), { status: 400, headers });
   }
 
   console.log('[FFX Press Publish] Global slug:', globalContent.slug, 'Regional:', regionalContent?.slug || 'none');
@@ -79,7 +75,7 @@ export async function onRequestPost(context) {
       }), { status: 500, headers });
     }
 
-    console.log('[FFX Press Publish] publish-confirm result:', JSON.stringify(publishResult.status));
+    console.log('[FFX Press Publish] Result:', JSON.stringify(publishResult.status));
 
   } catch (err) {
     return new Response(JSON.stringify({ error: `publish-confirm error: ${err.message}` }), { status: 500, headers });
