@@ -1,7 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FFX Press Publish
-// POST /press-publish → republishes selected platforms for a published video
-// Reads full globalContent + regionalContent from published:{videoId}
+// FFX Press Publish Worker
+// POST /press-publish → publishes selected platforms for a video
+// Calls publish-confirm internally, writes status back to KV
+// Used by press.html publish button
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestPost(context) {
@@ -21,50 +22,57 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { videoId, platforms } = body;
+  const { videoId, jobId, platforms } = body;
 
-  if (!videoId) {
-    return new Response(JSON.stringify({ error: 'videoId is required' }), { status: 400, headers });
+  if (!videoId && !jobId) {
+    return new Response(JSON.stringify({ error: 'videoId or jobId is required' }), { status: 400, headers });
   }
 
   if (!platforms || typeof platforms !== 'object') {
     return new Response(JSON.stringify({ error: 'platforms object is required' }), { status: 400, headers });
   }
 
-  console.log('[FFX Press Publish] videoId:', videoId, 'platforms:', platforms);
+  console.log('[FFX Press Publish] jobId:', jobId || 'none', 'videoId:', videoId || 'none', 'platforms:', platforms);
 
-  // ── Read from published:{videoId} — permanent, always available ────────────
-  let publishedEntry;
+  let contentObj;
+  let resolvedVideoId = videoId;
+
   try {
-    publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
-    if (!publishedEntry) {
-      return new Response(JSON.stringify({ error: 'Video not found in published records.' }), { status: 404, headers });
+    if (jobId) {
+      const jobEntry = await env.FFX_KV.get(`job:${jobId}`, { type: 'json' });
+      if (!jobEntry) {
+        return new Response(JSON.stringify({ error: 'Job not found — link may have expired (24hr limit)' }), { status: 404, headers });
+      }
+      contentObj = jobEntry.content;
+      resolvedVideoId = jobEntry.videoId || videoId;
+    } else {
+      let videoEntry = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' });
+      if (!videoEntry) {
+        videoEntry = await env.FFX_KV.get(`video:slug:${videoId}`, { type: 'json' });
+      }
+      if (!videoEntry) {
+        return new Response(JSON.stringify({ error: 'Video not found in KV' }), { status: 404, headers });
+      }
+      contentObj = videoEntry.content;
     }
   } catch (err) {
     return new Response(JSON.stringify({ error: `KV read failed: ${err.message}` }), { status: 500, headers });
   }
 
-  const globalContent   = publishedEntry.globalContent;
-  const regionalContent = publishedEntry.regionalContent || null;
-
-  if (!globalContent || !globalContent.slug) {
-    return new Response(JSON.stringify({ error: 'Full content not found in published record. This video was published before full content storage was implemented. Regenerate from generate.html.' }), { status: 400, headers });
+  const content = contentObj;
+  if (!content || !content.slug) {
+    return new Response(JSON.stringify({ error: 'No content found' }), { status: 400, headers });
   }
 
-  console.log('[FFX Press Publish] Global slug:', globalContent.slug, 'Regional:', regionalContent?.slug || 'none');
+  console.log('[FFX Press Publish] Content found, slug:', content.slug, 'videoId:', resolvedVideoId);
 
-  // ── Call publish-confirm ───────────────────────────────────────────────────
   const baseUrl = new URL(request.url).origin;
   let publishResult;
   try {
     const res = await fetch(`${baseUrl}/publish-confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: globalContent,
-        regionalContent,
-        platforms,
-      }),
+      body: JSON.stringify({ content, platforms }),
     });
 
     publishResult = await res.json();
@@ -75,7 +83,7 @@ export async function onRequestPost(context) {
       }), { status: 500, headers });
     }
 
-    console.log('[FFX Press Publish] Result:', JSON.stringify(publishResult.status));
+    console.log('[FFX Press Publish] publish-confirm result:', JSON.stringify(publishResult.status));
 
   } catch (err) {
     return new Response(JSON.stringify({ error: `publish-confirm error: ${err.message}` }), { status: 500, headers });
@@ -83,8 +91,8 @@ export async function onRequestPost(context) {
 
   return new Response(JSON.stringify({
     success: true,
-    videoId,
-    slug: globalContent.slug,
+    videoId: resolvedVideoId,
+    slug: content.slug,
     status: publishResult.status,
   }), { status: 200, headers });
 }
