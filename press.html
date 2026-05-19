@@ -802,7 +802,10 @@ function toggleRow(row, video) {
 }
 
 function buildExpandedContent(container, video) {
-  const content = video.content || {};
+  // Content lives at platforms.blog_global.content — not video.content
+  const globalContent   = video.platforms?.blog_global?.content || {};
+  const regionalContent = video.platforms?.blog_regional?.content || null;
+  const content = globalContent;
   const platforms = video.platforms || {};
   const videoId = video.videoId || video.slug;
 
