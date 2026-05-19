@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Publish Confirm — Master Orchestrator
 // Calls platform Workers, writes published status to published:{videoId} permanently
+// Stores FULL globalContent + regionalContent for Press republishing
 // video:{videoId} is written by consumer Worker only — never touched here
 // published:{videoId} is written here only — permanent, no TTL
 // Clean separation — no race conditions ever
@@ -44,12 +45,12 @@ export async function onRequestPost(context) {
   const baseUrl = new URL(request.url).origin;
 
   const status = {
-    blog:           userSelected.blog     ? 'pending' : 'not_selected',
-    blogRegional:   (userSelected.blog && regionalContent) ? 'pending' : 'not_selected',
-    x:              userSelected.x        ? 'pending' : 'not_selected',
-    linkedin:       userSelected.linkedin ? 'pending' : 'not_selected',
-    tumblr:         userSelected.tumblr   ? 'pending' : 'not_selected',
-    discord:        userSelected.discord  ? 'pending' : 'not_selected',
+    blog:         userSelected.blog     ? 'pending' : 'not_selected',
+    blogRegional: (userSelected.blog && regionalContent) ? 'pending' : 'not_selected',
+    x:            userSelected.x        ? 'pending' : 'not_selected',
+    linkedin:     userSelected.linkedin ? 'pending' : 'not_selected',
+    tumblr:       userSelected.tumblr   ? 'pending' : 'not_selected',
+    discord:      userSelected.discord  ? 'pending' : 'not_selected',
   };
 
   // ── Blog Global ───────────────────────────────────────────────────────────
@@ -70,8 +71,6 @@ export async function onRequestPost(context) {
   }
 
   // ── Blog Regional ─────────────────────────────────────────────────────────
-  // Only runs when blog is selected AND regionalContent was sent
-  // Regional blog publish is independent — failure does not block anything else
   if (userSelected.blog && regionalContent && regionalContent.slug) {
     try {
       const res = await callWorker(`${baseUrl}/publish`, {
@@ -170,9 +169,6 @@ export async function onRequestPost(context) {
   }
 
   // ── Write to published:{videoId} — PERMANENT, no TTL ─────────────────────
-  // This key is owned exclusively by publish-confirm
-  // video:{videoId} is owned exclusively by consumer Worker
-  // No race conditions possible
   try {
     if (env.FFX_KV) {
       const extractVideoId = (url) => {
@@ -196,66 +192,28 @@ export async function onRequestPost(context) {
       const timestamp = dubaiTime.toISOString().replace('T', ' ').substring(0, 19);
 
       if (videoId) {
-        // Read existing published entry — preserve previously published platforms
         const existingPublished = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' }) || {};
         const existingPlatforms = existingPublished.platforms || {};
         const updatedPlatforms = { ...existingPlatforms };
 
-        // Only write platforms that ran and succeeded this session
+        // Write per-platform status — only platforms that ran and succeeded
         if (userSelected.blog && status.blog && !status.blog.startsWith('Error') && status.blog !== 'not_selected') {
-          updatedPlatforms.blog = {
-            status: status.blog,
-            content: {
-              body:    content.body,
-              title:   content.title,
-              excerpt: content.excerpt,
-            },
-            publishedAt: timestamp,
-          };
+          updatedPlatforms.blog = { status: status.blog, publishedAt: timestamp };
         }
-        // Regional blog — stored separately, non-fatal if missing
         if (userSelected.blog && regionalContent && status.blogRegional && !status.blogRegional.startsWith('Error') && status.blogRegional !== 'not_selected') {
-          updatedPlatforms.blogRegional = {
-            status: status.blogRegional,
-            content: {
-              body:    regionalContent.body,
-              title:   regionalContent.title,
-              excerpt: regionalContent.excerpt,
-            },
-            publishedAt: timestamp,
-          };
+          updatedPlatforms.blogRegional = { status: status.blogRegional, publishedAt: timestamp };
         }
         if (userSelected.x && status.x && !status.x.startsWith('Error') && status.x !== 'not_selected') {
-          updatedPlatforms.x = {
-            status: status.x,
-            content: {
-              tweet1: content.tweet1, tweet2: content.tweet2,
-              tweet3: content.tweet3, tweet4: content.tweet4,
-              tweet5: content.tweet5, tweet6: content.tweet6,
-            },
-            publishedAt: timestamp,
-          };
+          updatedPlatforms.x = { status: status.x, publishedAt: timestamp };
         }
         if (userSelected.linkedin && status.linkedin && !status.linkedin.startsWith('Error') && status.linkedin !== 'not_selected') {
-          updatedPlatforms.linkedin = {
-            status: status.linkedin,
-            content: { linkedin: content.linkedin },
-            publishedAt: timestamp,
-          };
+          updatedPlatforms.linkedin = { status: status.linkedin, publishedAt: timestamp };
         }
         if (userSelected.tumblr && status.tumblr && !status.tumblr.startsWith('Error') && status.tumblr !== 'not_selected') {
-          updatedPlatforms.tumblr = {
-            status: status.tumblr,
-            content: { tumblr: content.tumblr },
-            publishedAt: timestamp,
-          };
+          updatedPlatforms.tumblr = { status: status.tumblr, publishedAt: timestamp };
         }
         if (userSelected.discord && status.discord && !status.discord.startsWith('Error') && status.discord !== 'not_selected') {
-          updatedPlatforms.discord = {
-            status: status.discord,
-            content: { discord: content.discord },
-            publishedAt: timestamp,
-          };
+          updatedPlatforms.discord = { status: status.discord, publishedAt: timestamp };
         }
 
         const publishedEntry = {
@@ -265,10 +223,14 @@ export async function onRequestPost(context) {
           title: content.title || '',
           region: content.region || 'Global',
           updatedAt: timestamp,
+          // Store FULL content objects for Press republishing
+          // video:{videoId} expires after 24hrs — published:{videoId} is permanent
+          // Press reads globalContent + regionalContent from here for republish
+          globalContent: content,
+          regionalContent: regionalContent || null,
           platforms: updatedPlatforms,
         };
 
-        // No TTL — published content is permanent
         await env.FFX_KV.put(`published:${videoId}`, JSON.stringify(publishedEntry));
         console.log('[FFX] published: KV written permanently for videoId:', videoId);
       } else {
