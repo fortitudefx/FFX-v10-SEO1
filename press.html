@@ -956,7 +956,7 @@ function buildExpandedContent(container, video) {
   const pubBtn = document.createElement('button');
   pubBtn.className = 'btn-publish';
   pubBtn.textContent = 'Publish';
-  pubBtn.onclick = () => publishVideo(videoId, actionRow, pubBtn, container, video);
+  pubBtn.onclick = () => publishVideo(videoId, actionRow, pubBtn, container, video, globalContent, regionalContent);
   actionRow.appendChild(pubBtn);
 
   const pubResult = document.createElement('div');
@@ -980,7 +980,7 @@ function switchTab(panelContainer, tabBar, key) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLISH
 // ─────────────────────────────────────────────────────────────────────────────
-async function publishVideo(videoId, actionRow, pubBtn, container, video) {
+async function publishVideo(videoId, actionRow, pubBtn, container, video, globalContent, regionalContent) {
   const platforms = {};
   actionRow.querySelectorAll('.platform-checkbox').forEach(el => {
     platforms[el.dataset.platform] = el.dataset.checked === 'true';
@@ -994,10 +994,8 @@ async function publishVideo(videoId, actionRow, pubBtn, container, video) {
   pubBtn.disabled = true;
   pubBtn.textContent = 'Publishing…';
 
-  // Pass jobId for new content, videoId for republish
-  const publishPayload = video.jobId
-    ? { jobId: video.jobId, videoId, platforms }
-    : { videoId, platforms };
+  // Always use videoId — content read from KV by press-publish
+  const publishPayload = { videoId, platforms };
 
   try {
     const res = await fetch('/press-publish', {
