@@ -1,8 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Press Data
-// GET /press-data → lists all published:{videoId} entries from KV
-// Only videos with at least one platform published appear in Press
-// Press is the republish dashboard — generate.html is the review dashboard
+// GET /press-data → lists all published:* entries from KV
+// GET /press-data?video=VIDEO_ID → returns single published entry
+// Press is the republish dashboard — reads published:* only
+// published:{videoId} is permanent — written by publish-confirm on first publish
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestGet(context) {
@@ -23,7 +24,12 @@ export async function onRequestGet(context) {
   // ── Single video fetch ─────────────────────────────────────────────────────
   if (videoId) {
     try {
-      const entry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
+      // Try published:{videoId} first
+      let entry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
+      // Fall back to published:slug:{videoId} for legacy slug-keyed entries
+      if (!entry) {
+        entry = await env.FFX_KV.get(`published:slug:${videoId}`, { type: 'json' });
+      }
       if (!entry) {
         return new Response(JSON.stringify({ error: 'Video not found in published records' }), { status: 404, headers });
       }
