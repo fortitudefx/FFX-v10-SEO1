@@ -222,6 +222,76 @@ async function processJob(job, env) {
 
   try { await env.FFX_KV.delete('lock:generating'); } catch {}
   console.log('[FFX] Job complete:', jobId);
+
+  // ── STEP 11: Send email — non-fatal, generation already complete ──────────
+  try {
+    await sendCompletionEmail(env, youtubeUrl, videoId, globalContent.title);
+    console.log('[FFX] Completion email sent');
+  } catch (err) {
+    console.error('[FFX] Completion email failed (non-fatal):', err.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEND COMPLETION EMAIL via Brevo
+// Called only after video:{videoId} is written to KV — content guaranteed ready
+// Press link uses ?video=videoId — loads directly from KV, no polling needed
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function sendCompletionEmail(env, youtubeUrl, videoId, videoTitle) {
+  if (!env.BREVO_API_KEY) throw new Error('BREVO_API_KEY not set on consumer Worker');
+  if (!env.APPROVAL_EMAIL) throw new Error('APPROVAL_EMAIL not set on consumer Worker');
+
+  const pressLink = `https://fortitudefx.com/press?video=${videoId}`;
+  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+
+  const expiry = new Date(Date.now() + 86400000);
+  const expiryStr = expiry.toLocaleString('en-GB', {
+    timeZone: 'Asia/Dubai',
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
+  });
+
+  const emailHtml = `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;background:#0c0c0c;color:#e8e8e8;padding:40px 32px;border-radius:8px;">
+
+  <div style="font-family:'Courier New',monospace;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#787878;margin-bottom:24px;">FortitudeFX™ — Internal</div>
+
+  <h1 style="font-size:22px;font-weight:700;color:#ffffff;margin:0 0 8px;letter-spacing:-0.02em;">Content Ready for Review</h1>
+  <p style="font-size:14px;color:#b8b8b8;margin:0 0 24px;line-height:1.6;">Global + Regional articles generated. All platforms ready. Open Press to review and publish.</p>
+
+  <a href="${youtubeUrl}" style="display:block;margin-bottom:24px;border-radius:8px;overflow:hidden;text-decoration:none;">
+    <img src="${thumbnailUrl}" alt="${videoTitle || 'Video thumbnail'}" style="width:100%;display:block;border-radius:8px;" />
+  </a>
+
+  <p style="font-size:15px;font-weight:600;color:#ffffff;margin:0 0 24px;">${videoTitle || ''}</p>
+
+  <a href="${pressLink}" style="display:block;background:#ffffff;color:#000000;text-align:center;padding:16px 24px;border-radius:6px;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:24px;">Review &amp; Publish in FFX Press →</a>
+
+  <p style="font-family:'Courier New',monospace;font-size:11px;color:#484848;word-break:break-all;margin:0 0 8px;">${pressLink}</p>
+  <p style="font-size:12px;color:#484848;margin:0;">Expires: ${expiryStr}</p>
+
+</div>`;
+
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-key': env.BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: { name: 'FortitudeFX™', email: 'salmankhanfx@fortitudefx.com' },
+      to: [{ email: env.APPROVAL_EMAIL }],
+      replyTo: { email: 'support@fortitudefx.com' },
+      subject: `FFX — Content Ready · Expires ${expiryStr}`,
+      htmlContent: emailHtml,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo ${res.status}: ${err}`);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
