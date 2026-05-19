@@ -55,9 +55,9 @@ export async function onRequestGet(context) {
     for (const key of allKeys) {
       try {
         const entry = await env.FFX_KV.get(key.name, { type: 'json' });
-        if (entry && entry.platforms && Object.keys(entry.platforms).length > 0) {
-          videos.push(entry);
-        }
+        if (entry) {
+  videos.push(entry);
+}
       } catch (err) {
         console.log('[FFX Press] Failed to fetch key:', key.name, err.message);
       }
