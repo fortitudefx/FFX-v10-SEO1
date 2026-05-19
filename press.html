@@ -155,8 +155,8 @@
       display: none;
     }
     .gen-status.active { display: block; color: var(--blue); }
-    .gen-status.done { display: block; color: var(--green); }
-    .gen-status.err { display: block; color: var(--red); }
+    .gen-status.done   { display: block; color: var(--green); }
+    .gen-status.err    { display: block; color: var(--red); }
 
     /* ── Main ────────────────────────────────────────────────────────────── */
     main { max-width: 1100px; margin: 0 auto; padding: 0 32px 80px; }
@@ -164,7 +164,7 @@
     /* ── Table header ────────────────────────────────────────────────────── */
     .table-header {
       display: grid;
-      grid-template-columns: 80px 1fr 100px 120px;
+      grid-template-columns: 160px 1fr 180px 120px;
       gap: 16px;
       padding: 12px 16px;
       border-bottom: 1px solid var(--border);
@@ -186,29 +186,34 @@
 
     .row-summary {
       display: grid;
-      grid-template-columns: 80px 1fr 100px 120px;
+      grid-template-columns: 160px 1fr 180px 120px;
       gap: 16px;
-      padding: 14px 16px;
+      padding: 12px 16px;
       cursor: pointer;
       align-items: center;
     }
 
-    .row-thumb {
-      width: 80px;
-      height: 45px;
-      border-radius: 3px;
-      object-fit: cover;
-      background: var(--surface);
-      flex-shrink: 0;
-      display: block;
-    }
-    .row-thumb-placeholder {
-      width: 80px;
-      height: 45px;
-      border-radius: 3px;
+    /* Thumbnail — larger, recognizable, same column width */
+    .row-thumb-wrap {
+      width: 160px;
+      height: 90px;
+      border-radius: 5px;
+      overflow: hidden;
       background: var(--surface);
       border: 1px solid var(--border);
       flex-shrink: 0;
+      position: relative;
+    }
+    .row-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: opacity 0.2s;
+    }
+    .row-thumb-placeholder {
+      width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -222,20 +227,21 @@
       font-size: 15px;
       font-weight: 600;
       color: var(--text);
-      line-height: 1.3;
-      margin-bottom: 4px;
+      line-height: 1.35;
+      margin-bottom: 6px;
     }
     .row-meta {
       font-family: var(--mono);
-      font-size: 12px;
+      font-size: 11px;
       color: var(--muted);
       display: flex;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
+      align-items: center;
     }
     .region-tag {
       display: inline-block;
-      padding: 1px 6px;
+      padding: 2px 7px;
       border-radius: 2px;
       font-size: 10px;
       font-weight: 600;
@@ -243,12 +249,12 @@
       text-transform: uppercase;
     }
     .region-global { background: var(--surface2); color: var(--text-mid); border: 1px solid var(--border2); }
-    .region-gcc { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); }
-    .region-us { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-bd); }
-    .region-eu { background: #1a1630; color: #8b7fd4; border: 1px solid #2a2450; }
-    .region-sea { background: #1a1e16; color: #7da85a; border: 1px solid #2a3420; }
+    .region-gcc    { background: var(--amber-bg); color: var(--amber);    border: 1px solid var(--amber-bd); }
+    .region-us     { background: var(--blue-bg);  color: var(--blue);     border: 1px solid var(--blue-bd); }
+    .region-eu     { background: #1a1630; color: #8b7fd4; border: 1px solid #2a2450; }
+    .region-sea    { background: #1a1e16; color: #7da85a; border: 1px solid #2a3420; }
 
-    .row-platforms { display: flex; flex-direction: column; gap: 4px; }
+    .row-platforms { display: flex; flex-direction: column; gap: 5px; }
     .platform-pills { display: flex; gap: 4px; flex-wrap: wrap; }
     .pill {
       font-family: var(--mono);
@@ -256,18 +262,18 @@
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      padding: 2px 6px;
+      padding: 3px 7px;
       border-radius: 2px;
       border: 1px solid;
     }
-    .pill-ok     { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
-    .pill-error  { background: var(--red-bg);   color: var(--red);   border-color: var(--red-bd); }
-    .pill-skip   { background: var(--surface);   color: var(--muted); border-color: var(--border); }
-    .pill-pend   { background: var(--surface);   color: var(--dim);   border-color: var(--border); }
+    .pill-ok    { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
+    .pill-error { background: var(--red-bg);   color: var(--red);   border-color: var(--red-bd); }
+    .pill-skip  { background: var(--surface);   color: var(--muted); border-color: var(--border); }
+    .pill-pend  { background: var(--surface);   color: var(--dim);   border-color: var(--border); }
 
     .row-date {
       font-family: var(--mono);
-      font-size: 12px;
+      font-size: 11px;
       color: var(--muted);
       text-align: right;
     }
@@ -286,7 +292,6 @@
       border-top: 1px solid var(--border);
     }
     .video-row.open .row-expanded { display: block; }
-
     .expanded-inner { padding-top: 20px; }
 
     /* Platform tabs */
@@ -326,12 +331,10 @@
     .ptab-status.ok  { background: var(--green); }
     .ptab-status.err { background: var(--red); }
 
-    /* Content panels */
     .platform-panels { position: relative; }
     .ppanel { display: none; }
     .ppanel.active { display: block; }
 
-    /* Status bar per platform */
     .platform-status-bar {
       display: flex;
       align-items: center;
@@ -343,25 +346,14 @@
       background: var(--surface);
     }
     .psb-left { display: flex; align-items: center; gap: 10px; }
-    .psb-indicator {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-    }
+    .psb-indicator { font-family: var(--mono); font-size: 11px; font-weight: 600; }
     .psb-ok   { color: var(--green); }
     .psb-err  { color: var(--red); }
     .psb-skip { color: var(--muted); }
     .psb-pend { color: var(--dim); }
-    .psb-link {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--blue);
-      text-decoration: none;
-    }
+    .psb-link { font-family: var(--mono); font-size: 11px; color: var(--blue); text-decoration: none; }
     .psb-link:hover { text-decoration: underline; }
-    .psb-right { display: flex; gap: 8px; }
 
-    /* Content display */
     .content-block {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -375,24 +367,12 @@
       max-height: 360px;
       overflow-y: auto;
     }
-    .content-block.article-body {
-      font-size: 14px;
-      white-space: normal;
-    }
-    .content-block.article-body h2 {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      margin: 16px 0 8px;
-    }
-    .content-block.article-body h3 {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      margin: 12px 0 6px;
-    }
+    .content-block.article-body { font-size: 14px; white-space: normal; }
+    .content-block.article-body h2 { font-size: 15px; font-weight: 700; color: var(--text); margin: 16px 0 8px; }
+    .content-block.article-body h3 { font-size: 13px; font-weight: 600; color: var(--text); margin: 12px 0 6px; }
     .content-block.article-body p { margin-bottom: 10px; }
     .content-block.article-body a { color: var(--blue); }
+
     .tweet-list { display: flex; flex-direction: column; gap: 8px; }
     .tweet-item {
       background: var(--surface);
@@ -405,13 +385,19 @@
       line-height: 1.7;
       color: var(--text-mid);
     }
-    .tweet-num {
+    .tweet-num { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--dim); min-width: 16px; padding-top: 2px; }
+
+    /* Regen notice for old entries */
+    .regen-notice {
+      background: var(--amber-bg);
+      border: 1px solid var(--amber-bd);
+      border-radius: 4px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: var(--amber);
       font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--dim);
-      min-width: 16px;
-      padding-top: 2px;
+      margin-bottom: 16px;
+      line-height: 1.6;
     }
 
     /* Action buttons */
@@ -450,22 +436,9 @@
       background: var(--surface);
     }
     .platform-checkbox:hover { border-color: var(--border2); color: var(--text-mid); }
-    .platform-checkbox.checked {
-      border-color: var(--blue-bd);
-      background: var(--blue-bg);
-      color: var(--blue);
-    }
-    .platform-checkbox.already-posted {
-      border-color: var(--green-bd);
-      background: var(--green-bg);
-      color: var(--green);
-    }
-    .chk-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      border: 1.5px solid currentColor;
-      flex-shrink: 0;
-    }
+    .platform-checkbox.checked { border-color: var(--blue-bd); background: var(--blue-bg); color: var(--blue); }
+    .platform-checkbox.already-posted { border-color: var(--green-bd); background: var(--green-bg); color: var(--green); }
+    .chk-dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; flex-shrink: 0; }
     .platform-checkbox.checked .chk-dot,
     .platform-checkbox.already-posted .chk-dot { background: currentColor; }
 
@@ -485,6 +458,7 @@
     }
     .btn-publish:hover:not(:disabled) { opacity: 0.85; }
     .btn-publish:disabled { opacity: 0.3; cursor: not-allowed; }
+
     .btn-regen {
       font-family: var(--mono);
       font-size: 11px;
@@ -526,7 +500,6 @@
     .empty-state { text-align: center; padding: 80px 0; }
     .empty-state p { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
-    /* ── Scrollbar ───────────────────────────────────────────────────────── */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
@@ -536,15 +509,14 @@
       main { padding: 0 16px 80px; }
       #generatePanel { padding: 20px 16px; }
       .table-header { display: none; }
-      .row-summary { grid-template-columns: 60px 1fr; gap: 12px; }
+      .row-summary { grid-template-columns: 120px 1fr; gap: 12px; }
       .row-platforms, .row-date { display: none; }
-      .row-thumb { width: 60px; height: 34px; }
+      .row-thumb-wrap { width: 120px; height: 68px; }
     }
   </style>
 </head>
 <body>
 
-<!-- Header -->
 <header>
   <div class="header-left">
     <div class="wordmark">FFX <span>Press</span></div>
@@ -556,7 +528,6 @@
   </div>
 </header>
 
-<!-- Generate Panel -->
 <div id="generatePanel">
   <div class="gen-title">New Content Generation</div>
   <div class="gen-row">
@@ -566,7 +537,6 @@
   <div class="gen-status" id="genStatus"></div>
 </div>
 
-<!-- Main -->
 <main>
   <div class="table-header">
     <div>Video</div>
@@ -574,7 +544,6 @@
     <div>Platforms</div>
     <div style="text-align:right;">Date</div>
   </div>
-
   <div id="videoList">
     <div class="loading-state">
       <div class="loading-spin"></div>
@@ -584,10 +553,7 @@
 </main>
 
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────────────────────────────────────
-let allVideos = [];
+let allVideos  = [];
 let pollInterval = null;
 
 const PLATFORMS = [
@@ -598,24 +564,13 @@ const PLATFORMS = [
   { key: 'discord',  label: 'Discord' },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── INIT ────────────────────────────────────────────────────────────────────
 async function init() {
-  const params = new URLSearchParams(window.location.search);
-  const jobId   = params.get('job');
+  const params     = new URLSearchParams(window.location.search);
   const preVideoId = params.get('video');
 
-  // Load all existing videos
   await loadVideos();
 
-  // If opened with a job link — load new generated content from KV
-  if (jobId) {
-    await loadJobContent(jobId);
-    return;
-  }
-
-  // If opened with a specific video — expand it
   if (preVideoId) {
     setTimeout(() => {
       const row = document.querySelector(`[data-videoid="${preVideoId}"]`);
@@ -627,140 +582,69 @@ async function init() {
   }
 }
 
-async function loadJobContent(jobId) {
-  document.getElementById('generatePanel').classList.add('open');
-  setGenStatus('Loading content from job ' + jobId + '…', 'active');
-
-  try {
-    const res = await fetch(`/generate-status?job=${jobId}`);
-    const data = await res.json();
-
-    if (!res.ok || data.status === 'error') {
-      setGenStatus('Error: ' + (data.error || 'Job not found — link may have expired'), 'err');
-      return;
-    }
-
-    if (data.status === 'pending') {
-      setGenStatus('Content still generating… refreshing in 3 seconds', 'active');
-      setTimeout(() => loadJobContent(jobId), 3000);
-      return;
-    }
-
-    if (data.status === 'complete' && data.content) {
-      setGenStatus('✓ Content loaded. Review and publish below.', 'done');
-      injectJobRow(data.content, jobId, data.videoId);
-    }
-
-  } catch (err) {
-    setGenStatus('Network error: ' + err.message, 'err');
-  }
-}
-
-function injectJobRow(content, jobId, videoId) {
-  const jobVideo = {
-    videoId: videoId || content.videoId || jobId,
-    jobId,
-    youtubeUrl: content.youtubeUrl || '',
-    slug: content.slug,
-    title: content.title || '',
-    region: content.region || 'Global',
-    regionCycleIndex: content.regionCycleIndex || 0,
-    createdAt: new Date().toISOString(),
-    content,
-    platforms: {},
-    isNewJob: true,
-  };
-
-  const list = document.getElementById('videoList');
-  const existingRow = list.querySelector(`[data-videoid="${jobVideo.videoId}"]`);
-  if (existingRow) existingRow.remove();
-
-  const row = buildVideoRow(jobVideo);
-  list.insertBefore(row, list.firstChild);
-
-  setTimeout(() => {
-    row.querySelector('.row-summary').click();
-    row.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 100);
-
-  document.getElementById('headerCount').textContent = `${document.querySelectorAll('.video-row').length} videos`;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// LOAD VIDEOS
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── LOAD VIDEOS — reads published:* only ────────────────────────────────────
 async function loadVideos() {
   try {
-    const res = await fetch('/press-data');
+    const res  = await fetch('/press-data');
     const data = await res.json();
-
     if (!res.ok) {
       document.getElementById('videoList').innerHTML =
         `<div class="empty-state"><p>Error loading data: ${data.error}</p></div>`;
       return;
     }
-
     allVideos = data.videos || [];
     document.getElementById('headerCount').textContent = `${allVideos.length} videos`;
     renderVideoList(allVideos);
-
   } catch (err) {
     document.getElementById('videoList').innerHTML =
       `<div class="empty-state"><p>Network error: ${err.message}</p></div>`;
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RENDER
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── RENDER ───────────────────────────────────────────────────────────────────
 function renderVideoList(videos) {
   const list = document.getElementById('videoList');
-
   if (videos.length === 0) {
-    list.innerHTML = '<div class="empty-state"><p>No videos yet. Generate your first article above.</p></div>';
+    list.innerHTML = '<div class="empty-state"><p>No published videos yet. Publish your first article from generate.html.</p></div>';
     return;
   }
-
   list.innerHTML = '';
-  videos.forEach(video => {
-    const row = buildVideoRow(video);
-    list.appendChild(row);
-  });
+  videos.forEach(v => list.appendChild(buildVideoRow(v)));
 }
 
 function buildVideoRow(video) {
-  const row = document.createElement('div');
+  const row     = document.createElement('div');
   row.className = 'video-row';
   row.dataset.videoid = video.videoId || video.slug;
 
-  const videoId = video.videoId || '';
+  const videoId  = video.videoId || '';
   const thumbUrl = videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '';
-  const date = formatDate(video.createdAt || video.content?.date || '');
-  const region = video.region || 'Global';
+  const date     = formatDate(video.updatedAt || '');
+  const region   = video.region || 'Global';
   const platforms = video.platforms || {};
-  const content = video.content || {};
 
   const summary = document.createElement('div');
   summary.className = 'row-summary';
   summary.innerHTML = `
-    ${thumbUrl
-      ? `<img class="row-thumb" src="${thumbUrl}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\\'row-thumb-placeholder\\'>No thumb</div>'">`
-      : '<div class="row-thumb-placeholder">No thumb</div>'
-    }
+    <div class="row-thumb-wrap">
+      ${thumbUrl
+        ? `<img class="row-thumb" src="${thumbUrl}" alt="" loading="lazy"
+             onerror="this.outerHTML='<div class=\\'row-thumb-placeholder\\'>No thumb</div>'">`
+        : '<div class="row-thumb-placeholder">No thumb</div>'
+      }
+    </div>
     <div class="row-info">
-      <div class="row-title">${escHtml(video.title || content.title || 'Untitled')}</div>
+      <div class="row-title">${escHtml(video.title || 'Untitled')}</div>
       <div class="row-meta">
         <span class="region-tag ${regionClass(region)}">${region}</span>
-        <span>${escHtml(content.category || '')}</span>
-        <span>${escHtml(content.slug || '')}</span>
+        <span>${escHtml(video.slug || '')}</span>
       </div>
     </div>
     <div class="row-platforms">
       <div class="platform-pills">
         ${PLATFORMS.map(p => {
-          const s = platforms[p.key]?.status || 'pending';
-          const cls = pillClass(s);
-          return `<span class="pill ${cls}">${p.label}</span>`;
+          const s   = platforms[p.key]?.status || 'pending';
+          return `<span class="pill ${pillClass(s)}">${p.label}</span>`;
         }).join('')}
       </div>
     </div>
@@ -790,84 +674,78 @@ function toggleRow(row, video) {
   }
 }
 
+// ─── BUILD EXPANDED ───────────────────────────────────────────────────────────
 function buildExpandedContent(container, video) {
-  const content = video.content || {};
-  const platforms = video.platforms || {};
-  const videoId = video.videoId || video.slug;
+  // published:{videoId} stores globalContent + regionalContent
+  // Old entries (before today) will not have globalContent — show notice
+  const content         = video.globalContent || null;
+  const regionalContent = video.regionalContent || null;
+  const platforms       = video.platforms || {};
+  const videoId         = video.videoId || video.slug;
+  const hasFullContent  = content && content.slug;
 
-  const tweets = Array.isArray(content.x_thread) && content.x_thread.length
-    ? content.x_thread
-    : [1,2,3,4,5,6].map(i => content[`tweet${i}`]).filter(Boolean);
+  const tweets = hasFullContent
+    ? (Array.isArray(content.x_thread) && content.x_thread.length
+        ? content.x_thread
+        : [1,2,3,4,5,6].map(i => content[`tweet${i}`]).filter(Boolean))
+    : [];
 
   const panelsData = [
     {
-      key: 'article',
-      label: 'Article',
-      platformKey: 'blog',
-      content: () => `<div class="content-block article-body">${content.body || '<em>No body content</em>'}</div>`,
+      key: 'article', label: 'Article', platformKey: 'blog',
+      html: () => hasFullContent
+        ? `<div class="content-block article-body">${content.body || '<em>No body</em>'}</div>`
+        : `<div class="content-block"><em>Content not available — regenerate to unlock.</em></div>`,
     },
     {
-      key: 'x',
-      label: 'X',
-      platformKey: 'x',
-      content: () => `<div class="tweet-list">${tweets.map((t, i) =>
-        `<div class="tweet-item"><span class="tweet-num">${i+1}</span><span>${escHtml(t)}</span></div>`
-      ).join('')}</div>`,
+      key: 'x', label: 'X', platformKey: 'x',
+      html: () => hasFullContent && tweets.length
+        ? `<div class="tweet-list">${tweets.map((t,i) =>
+            `<div class="tweet-item"><span class="tweet-num">${i+1}</span><span>${escHtml(t)}</span></div>`
+          ).join('')}</div>`
+        : `<div class="content-block"><em>Content not available — regenerate to unlock.</em></div>`,
     },
     {
-      key: 'linkedin',
-      label: 'LinkedIn',
-      platformKey: 'linkedin',
-      content: () => `<div class="content-block">${escHtml(content.linkedin || '')}</div>`,
+      key: 'linkedin', label: 'LinkedIn', platformKey: 'linkedin',
+      html: () => `<div class="content-block">${hasFullContent ? escHtml(content.linkedin || '') : '<em>Content not available — regenerate to unlock.</em>'}</div>`,
     },
     {
-      key: 'discord',
-      label: 'Discord',
-      platformKey: 'discord',
-      content: () => `<div class="content-block">${escHtml(content.discord || '')}</div>`,
+      key: 'discord', label: 'Discord', platformKey: 'discord',
+      html: () => `<div class="content-block">${hasFullContent ? escHtml(content.discord || '') : '<em>Content not available — regenerate to unlock.</em>'}</div>`,
     },
     {
-      key: 'tumblr',
-      label: 'Tumblr',
-      platformKey: 'tumblr',
-      content: () => `<div class="content-block">${escHtml(content.tumblr || '')}</div>`,
+      key: 'tumblr', label: 'Tumblr', platformKey: 'tumblr',
+      html: () => `<div class="content-block">${hasFullContent ? escHtml(content.tumblr || '') : '<em>Content not available — regenerate to unlock.</em>'}</div>`,
     },
   ];
 
-  const tabBar = document.createElement('div');
-  tabBar.className = 'platform-tabs';
-
+  const tabBar        = document.createElement('div');
+  tabBar.className    = 'platform-tabs';
   const panelContainer = document.createElement('div');
   panelContainer.className = 'platform-panels';
 
   panelsData.forEach((p, idx) => {
     const pStatus = platforms[p.platformKey]?.status || 'pending';
-    const isOk = pStatus === 'Yes' || pStatus.startsWith('=HYPERLINK') || pStatus.startsWith('http');
-    const isErr = pStatus.startsWith('Error');
+    const isOk    = pStatus.startsWith('http');
+    const isErr   = pStatus.startsWith('Error');
 
     const tab = document.createElement('button');
-    tab.className = 'ptab' + (idx === 0 ? ' active' : '');
+    tab.className    = 'ptab' + (idx === 0 ? ' active' : '');
     tab.dataset.panel = p.key;
-    tab.innerHTML = `${p.label}<span class="ptab-status ${isOk ? 'ok' : isErr ? 'err' : ''}"></span>`;
+    tab.innerHTML    = `${p.label}<span class="ptab-status ${isOk ? 'ok' : isErr ? 'err' : ''}"></span>`;
     tab.addEventListener('click', () => switchTab(panelContainer, tabBar, p.key));
     tabBar.appendChild(tab);
 
     const panel = document.createElement('div');
-    panel.className = 'ppanel' + (idx === 0 ? ' active' : '');
+    panel.className    = 'ppanel' + (idx === 0 ? ' active' : '');
     panel.dataset.panel = p.key;
 
-    const extractUrl = (val) => {
-      if (!val) return null;
-      if (val.startsWith('=HYPERLINK(')) { const m = val.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
-      if (val.startsWith('http')) return val;
-      return null;
-    };
-    const postUrl = extractUrl(pStatus);
-    const statusLabel = pStatus === 'Yes' || postUrl ? '✓ Posted'
+    const postUrl     = pStatus.startsWith('http') ? pStatus : null;
+    const statusLabel = postUrl ? '✓ Posted'
       : pStatus.startsWith('Error') ? '✕ ' + pStatus.replace('Error: ', '')
       : pStatus === 'Skipped' ? '— Skipped'
       : '○ Not posted';
-    const statusCls = pStatus === 'Yes' || postUrl ? 'psb-ok'
+    const statusCls = postUrl ? 'psb-ok'
       : pStatus.startsWith('Error') ? 'psb-err'
       : pStatus === 'Skipped' ? 'psb-skip'
       : 'psb-pend';
@@ -879,40 +757,38 @@ function buildExpandedContent(container, video) {
           ${postUrl ? `<a href="${postUrl}" target="_blank" class="psb-link">View post →</a>` : ''}
         </div>
       </div>
-      ${p.content()}
+      ${p.html()}
     `;
-
     panelContainer.appendChild(panel);
   });
 
+  // Action row
   const actionRow = document.createElement('div');
   actionRow.className = 'action-row';
   actionRow.innerHTML = `<span class="action-label">Publish to:</span>`;
 
   PLATFORMS.forEach(p => {
-    const pStatus = platforms[p.key]?.status || 'pending';
-    const isPosted = pStatus === 'Yes' || pStatus.startsWith('=HYPERLINK') || pStatus.startsWith('http');
-    const chkExtractUrl = (val) => {
-      if (!val) return null;
-      if (val.startsWith('=HYPERLINK(')) { const m = val.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
-      if (val.startsWith('http')) return val;
-      return null;
-    };
-    const chkPostUrl = chkExtractUrl(pStatus);
-    const chk = document.createElement('div');
-    chk.className = `platform-checkbox ${isPosted ? 'already-posted' : 'checked'}`;
+    const pStatus  = platforms[p.key]?.status || 'pending';
+    const isPosted = pStatus.startsWith('http');
+    const postUrl  = isPosted ? pStatus : null;
+    const chk      = document.createElement('div');
+    chk.className        = `platform-checkbox ${isPosted ? 'already-posted' : 'checked'}`;
     chk.dataset.platform = p.key;
-    chk.dataset.checked = isPosted ? 'false' : 'true';
+    chk.dataset.checked  = isPosted ? 'false' : 'true';
     chk.dataset.wasPosted = isPosted ? 'true' : 'false';
-    chk.dataset.postUrl = chkPostUrl || '';
-    const linkHtml = chkPostUrl ? ` <a href="${chkPostUrl}" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View</a>` : '';
+    chk.dataset.postUrl  = postUrl || '';
+    const linkHtml = postUrl
+      ? ` <a href="${postUrl}" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View</a>`
+      : '';
     chk.innerHTML = `<span class="chk-dot"></span>${p.label}${isPosted ? ' ✓' : ''}${linkHtml}`;
     chk.addEventListener('click', () => {
-      const c = chk.dataset.checked === 'true';
+      const c         = chk.dataset.checked === 'true';
       chk.dataset.checked = c ? 'false' : 'true';
       const wasPosted = chk.dataset.wasPosted === 'true';
-      const url = chk.dataset.postUrl;
-      const link = url ? ` <a href="${url}" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View prev</a>` : '';
+      const url       = chk.dataset.postUrl;
+      const link      = url
+        ? ` <a href="${url}" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View prev</a>`
+        : '';
       if (!c) {
         chk.classList.add('checked');
         chk.classList.remove('already-posted');
@@ -925,28 +801,37 @@ function buildExpandedContent(container, video) {
     actionRow.appendChild(chk);
   });
 
-  const regenBtn = document.createElement('button');
+  const regenBtn    = document.createElement('button');
   regenBtn.className = 'btn-regen';
   regenBtn.textContent = 'Regenerate';
-  regenBtn.onclick = () => regenVideo(video, container);
+  regenBtn.onclick  = () => regenVideo(video, container);
   actionRow.appendChild(regenBtn);
 
-  const pubBtn = document.createElement('button');
-  pubBtn.className = 'btn-publish';
-  pubBtn.textContent = 'Publish';
-  pubBtn.onclick = () => publishVideo(videoId, actionRow, pubBtn, container, video);
+  const pubBtn      = document.createElement('button');
+  pubBtn.className  = 'btn-publish';
+  pubBtn.textContent = hasFullContent ? 'Publish' : 'Regenerate First';
+  pubBtn.disabled   = !hasFullContent;
+  pubBtn.onclick    = () => publishVideo(videoId, actionRow, pubBtn, container, video);
   actionRow.appendChild(pubBtn);
 
-  const pubResult = document.createElement('div');
+  const pubResult   = document.createElement('div');
   pubResult.className = 'pub-result';
 
-  const inner = document.createElement('div');
-  inner.className = 'expanded-inner';
+  const inner       = document.createElement('div');
+  inner.className   = 'expanded-inner';
+
+  // Show notice for old entries missing full content
+  if (!hasFullContent) {
+    const notice    = document.createElement('div');
+    notice.className = 'regen-notice';
+    notice.textContent = 'This article was published before full content storage was introduced. To republish to any platform, go to generate.html, paste the YouTube URL, and regenerate.';
+    inner.appendChild(notice);
+  }
+
   inner.appendChild(tabBar);
   inner.appendChild(panelContainer);
   inner.appendChild(actionRow);
   inner.appendChild(pubResult);
-
   container.appendChild(inner);
 }
 
@@ -955,9 +840,7 @@ function switchTab(panelContainer, tabBar, key) {
   panelContainer.querySelectorAll('.ppanel').forEach(p => p.classList.toggle('active', p.dataset.panel === key));
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PUBLISH
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── PUBLISH ──────────────────────────────────────────────────────────────────
 async function publishVideo(videoId, actionRow, pubBtn, container, video) {
   const platforms = {};
   actionRow.querySelectorAll('.platform-checkbox').forEach(el => {
@@ -969,52 +852,45 @@ async function publishVideo(videoId, actionRow, pubBtn, container, video) {
     return;
   }
 
-  pubBtn.disabled = true;
+  pubBtn.disabled    = true;
   pubBtn.textContent = 'Publishing…';
 
-  const publishPayload = video.jobId
-    ? { jobId: video.jobId, videoId, platforms }
-    : { videoId, platforms };
-
   try {
-    const res = await fetch('/press-publish', {
+    const res  = await fetch('/press-publish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(publishPayload),
+      body: JSON.stringify({ videoId, platforms }),
     });
-
     const data = await res.json();
 
     if (!res.ok) {
       showPubResult(container, data.error || 'Publish failed.', false);
-      pubBtn.disabled = false;
+      pubBtn.disabled    = false;
       pubBtn.textContent = 'Publish';
       return;
     }
 
     const row = container.closest('.video-row');
-    if (data.status) {
-      updatePills(row, data.status);
-    }
+    if (data.status) updatePills(row, data.status);
 
-    container.dataset.built = '';
-    container.innerHTML = '';
-
+    // Merge updated status into video and rebuild
     if (data.status) {
       Object.keys(data.status).forEach(p => {
         if (!video.platforms) video.platforms = {};
         video.platforms[p] = { status: data.status[p], updatedAt: new Date().toISOString() };
       });
     }
+    container.dataset.built = '';
+    container.innerHTML     = '';
     buildExpandedContent(container, video);
 
     showPubResult(container, '✓ Published successfully', true);
-    pubBtn.disabled = false;
+    pubBtn.disabled    = false;
     pubBtn.textContent = 'Publish';
 
   } catch (err) {
     showPubResult(container, 'Network error: ' + err.message, false);
-    pubBtn.disabled = false;
+    pubBtn.disabled    = false;
     pubBtn.textContent = 'Publish';
   }
 }
@@ -1023,36 +899,28 @@ function showPubResult(container, msg, ok) {
   const el = container.querySelector('.pub-result');
   if (!el) return;
   el.textContent = msg;
-  el.className = 'pub-result ' + (ok ? 'ok' : 'err');
+  el.className   = 'pub-result ' + (ok ? 'ok' : 'err');
 }
 
 function updatePills(row, status) {
   const pills = row.querySelectorAll('.pill');
   PLATFORMS.forEach((p, i) => {
     if (!pills[i]) return;
-    const s = status[p.key] || 'pending';
-    pills[i].className = 'pill ' + pillClass(s);
+    pills[i].className = 'pill ' + pillClass(status[p.key] || 'pending');
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REGENERATE
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── REGENERATE ───────────────────────────────────────────────────────────────
 function regenVideo(video, container) {
-  const ytUrl = video.youtubeUrl || video.content?.yt_url || '';
+  const ytUrl = video.youtubeUrl || video.globalContent?.youtubeUrl || '';
   if (!ytUrl) {
-    showPubResult(container, 'No YouTube URL found for this video.', false);
+    showPubResult(container, 'No YouTube URL found. Go to generate.html manually.', false);
     return;
   }
-  document.getElementById('genUrl').value = ytUrl;
-  document.getElementById('generatePanel').classList.add('open');
-  document.getElementById('genUrl').focus();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.location.href = `/generate?url=${encodeURIComponent(ytUrl)}`;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GENERATE
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── GENERATE PANEL ───────────────────────────────────────────────────────────
 function toggleGeneratePanel() {
   document.getElementById('generatePanel').classList.toggle('open');
 }
@@ -1060,125 +928,61 @@ function toggleGeneratePanel() {
 async function startGeneration() {
   const url = document.getElementById('genUrl').value.trim();
   const btn = document.getElementById('genBtn');
-  const status = document.getElementById('genStatus');
-
   if (!url) { setGenStatus('Paste a YouTube URL first.', 'err'); return; }
-
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = 'Generating…';
-  setGenStatus('Sending to generate Worker…', 'active');
-
+  setGenStatus('Sending to queue…', 'active');
   try {
-    const res = await fetch('/generate', {
+    const res  = await fetch('/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ youtubeUrl: url }),
     });
-
     const data = await res.json();
-
     if (!res.ok) {
       setGenStatus('Error: ' + (data.error || res.status), 'err');
-      btn.disabled = false;
-      btn.textContent = 'Generate';
+      btn.disabled = false; btn.textContent = 'Generate';
       return;
     }
-
-    if (data.jobId) {
-      setGenStatus('Generating… Claude is working. Checking every 3 seconds.', 'active');
-      pollForJob(data.jobId, btn);
-      return;
-    }
-
-    if (data.success && data.content) {
-      setGenStatus('✓ Content generated. Reloading…', 'done');
-      setTimeout(async () => {
-        await loadVideos();
-        btn.disabled = false;
-        btn.textContent = 'Generate';
-        document.getElementById('generatePanel').classList.remove('open');
-        document.getElementById('genUrl').value = '';
-        setGenStatus('', '');
-      }, 1500);
-      return;
-    }
-
-    setGenStatus('Unexpected response from generate Worker.', 'err');
-    btn.disabled = false;
-    btn.textContent = 'Generate';
-
+    setGenStatus('Queued. Go to generate.html to review when ready.', 'done');
+    btn.disabled = false; btn.textContent = 'Generate';
+    document.getElementById('generatePanel').classList.remove('open');
+    document.getElementById('genUrl').value = '';
+    setGenStatus('', '');
   } catch (err) {
     setGenStatus('Network error: ' + err.message, 'err');
-    btn.disabled = false;
-    btn.textContent = 'Generate';
+    btn.disabled = false; btn.textContent = 'Generate';
   }
 }
 
-async function pollForJob(jobId, btn) {
-  if (pollInterval) clearInterval(pollInterval);
-
-  pollInterval = setInterval(async () => {
-    try {
-      const res = await fetch(`/generate-status?job=${jobId}`);
-      const data = await res.json();
-
-      if (data.status === 'complete') {
-        clearInterval(pollInterval);
-        setGenStatus('✓ Content ready. Reloading…', 'done');
-        setTimeout(async () => {
-          await loadVideos();
-          btn.disabled = false;
-          btn.textContent = 'Generate';
-          document.getElementById('generatePanel').classList.remove('open');
-          document.getElementById('genUrl').value = '';
-          setGenStatus('', '');
-        }, 1000);
-      } else if (data.status === 'error') {
-        clearInterval(pollInterval);
-        setGenStatus('Generation failed: ' + (data.error || 'Unknown error'), 'err');
-        btn.disabled = false;
-        btn.textContent = 'Generate';
-      }
-    } catch (err) {
-      clearInterval(pollInterval);
-      setGenStatus('Poll error: ' + err.message, 'err');
-      btn.disabled = false;
-      btn.textContent = 'Generate';
-    }
-  }, 3000);
-}
-
 function setGenStatus(msg, cls) {
-  const el = document.getElementById('genStatus');
+  const el     = document.getElementById('genStatus');
   el.textContent = msg;
-  el.className = 'gen-status ' + cls;
+  el.className = 'gen-status' + (cls ? ' ' + cls : '');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
 function pillClass(status) {
   if (!status || status === 'pending') return 'pill-pend';
-  if (status === 'Yes' || status.startsWith('=HYPERLINK') || status.startsWith('http')) return 'pill-ok';
-  if (status.startsWith('Error')) return 'pill-error';
-  if (status === 'Skipped') return 'pill-skip';
+  if (status.startsWith('http'))       return 'pill-ok';
+  if (status.startsWith('Error'))      return 'pill-error';
+  if (status === 'Skipped')            return 'pill-skip';
   return 'pill-pend';
 }
 
 function regionClass(region) {
-  if (!region || region === 'Global') return 'region-global';
-  if (region.includes('GCC')) return 'region-gcc';
-  if (region.includes('US') || region.includes('Canada')) return 'region-us';
+  if (!region || region === 'Global')                          return 'region-global';
+  if (region.includes('GCC'))                                  return 'region-gcc';
+  if (region.includes('US') || region.includes('Canada'))      return 'region-us';
   if (region.includes('EU') || region.includes('UK') || region.includes('Germany')) return 'region-eu';
-  if (region.includes('SEA') || region.includes('Asia')) return 'region-sea';
+  if (region.includes('SEA') || region.includes('Asia'))       return 'region-sea';
   return 'region-global';
 }
 
 function formatDate(str) {
   if (!str) return '—';
   try {
-    const d = new Date(str);
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(str).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   } catch { return str; }
 }
 
@@ -1191,11 +995,7 @@ function escHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// START
-// ─────────────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
-
 document.getElementById('genUrl').addEventListener('keydown', e => {
   if (e.key === 'Enter') startGeneration();
 });
