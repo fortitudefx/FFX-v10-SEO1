@@ -2,7 +2,7 @@
 // FFX Press Publish
 // POST /press-publish → republishes selected platforms for a published video
 // Reads globalContent + regionalContent from published:{videoId}
-// Old entries (pre globalContent storage) return clear message — regenerate needed
+// Full content always available — migrated permanently on first publish
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestPost(context) {
@@ -22,22 +22,31 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { videoId, platforms } = body;
+  const { videoId, slug, platforms } = body;
 
-  if (!videoId) {
-    return new Response(JSON.stringify({ error: 'videoId is required' }), { status: 400, headers });
+  if (!videoId && !slug) {
+    return new Response(JSON.stringify({ error: 'videoId or slug is required' }), { status: 400, headers });
   }
 
   if (!platforms || typeof platforms !== 'object') {
     return new Response(JSON.stringify({ error: 'platforms object is required' }), { status: 400, headers });
   }
 
-  console.log('[FFX Press Publish] videoId:', videoId, 'platforms:', platforms);
+  console.log('[FFX Press Publish] videoId:', videoId || 'none', 'slug:', slug || 'none', 'platforms:', platforms);
 
-  // ── Read from published:{videoId} — permanent ──────────────────────────────
+  // ── Read from published:* — permanent, always available ───────────────────
   let publishedEntry;
   try {
-    publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
+    if (videoId) {
+      publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
+    }
+    // Fall back to slug-keyed entry for legacy entries
+    if (!publishedEntry && slug) {
+      publishedEntry = await env.FFX_KV.get(`published:slug:${slug}`, { type: 'json' });
+    }
+    if (!publishedEntry && videoId) {
+      publishedEntry = await env.FFX_KV.get(`published:slug:${videoId}`, { type: 'json' });
+    }
     if (!publishedEntry) {
       return new Response(JSON.stringify({ error: 'Video not found in published records.' }), { status: 404, headers });
     }
@@ -45,14 +54,11 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: `KV read failed: ${err.message}` }), { status: 500, headers });
   }
 
-  // ── Check for full content — only present on entries published after today ──
   const globalContent   = publishedEntry.globalContent;
   const regionalContent = publishedEntry.regionalContent || null;
 
   if (!globalContent || !globalContent.slug) {
-    return new Response(JSON.stringify({
-      error: 'Full content not available for this article. Go to generate.html, paste the YouTube URL, and regenerate — this will store full content for future republishing from Press.'
-    }), { status: 400, headers });
+    return new Response(JSON.stringify({ error: 'Full content not found in published record. Please regenerate from generate.html.' }), { status: 400, headers });
   }
 
   console.log('[FFX Press Publish] slug:', globalContent.slug, 'regional:', regionalContent?.slug || 'none');
@@ -87,7 +93,7 @@ export async function onRequestPost(context) {
 
   return new Response(JSON.stringify({
     success: true,
-    videoId,
+    videoId: videoId || slug,
     slug: globalContent.slug,
     status: publishResult.status,
   }), { status: 200, headers });
