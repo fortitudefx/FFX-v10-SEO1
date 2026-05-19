@@ -21,7 +21,7 @@ export async function onRequestPost(context) {
     return resp({ error: 'Invalid JSON body' }, 400, headers);
   }
 
-  const { content, platforms } = body;
+  const { content, regionalContent, platforms } = body;
 
   if (!content || !content.slug) {
     return resp({ error: 'content with slug is required' }, 400, headers);
@@ -39,18 +39,20 @@ export async function onRequestPost(context) {
   };
 
   console.log('[FFX] slug:', slug, 'platforms:', userSelected);
+  if (regionalContent) console.log('[FFX] regionalContent slug:', regionalContent.slug);
 
   const baseUrl = new URL(request.url).origin;
 
   const status = {
-    blog:     userSelected.blog     ? 'pending' : 'not_selected',
-    x:        userSelected.x        ? 'pending' : 'not_selected',
-    linkedin: userSelected.linkedin ? 'pending' : 'not_selected',
-    tumblr:   userSelected.tumblr   ? 'pending' : 'not_selected',
-    discord:  userSelected.discord  ? 'pending' : 'not_selected',
+    blog:           userSelected.blog     ? 'pending' : 'not_selected',
+    blogRegional:   (userSelected.blog && regionalContent) ? 'pending' : 'not_selected',
+    x:              userSelected.x        ? 'pending' : 'not_selected',
+    linkedin:       userSelected.linkedin ? 'pending' : 'not_selected',
+    tumblr:         userSelected.tumblr   ? 'pending' : 'not_selected',
+    discord:        userSelected.discord  ? 'pending' : 'not_selected',
   };
 
-  // ── Blog ──────────────────────────────────────────────────────────────────
+  // ── Blog Global ───────────────────────────────────────────────────────────
   if (userSelected.blog) {
     try {
       const res = await callWorker(`${baseUrl}/publish`, {
@@ -60,10 +62,30 @@ export async function onRequestPost(context) {
       status.blog = res.ok
         ? platformUrls.blog
         : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
-      console.log('[FFX] Blog:', status.blog);
+      console.log('[FFX] Blog Global:', status.blog);
     } catch (err) {
       status.blog = `Error: ${err.message}`;
-      console.log('[FFX] Blog error:', err.message);
+      console.log('[FFX] Blog Global error:', err.message);
+    }
+  }
+
+  // ── Blog Regional ─────────────────────────────────────────────────────────
+  // Only runs when blog is selected AND regionalContent was sent
+  // Regional blog publish is independent — failure does not block anything else
+  if (userSelected.blog && regionalContent && regionalContent.slug) {
+    try {
+      const res = await callWorker(`${baseUrl}/publish`, {
+        ...regionalContent,
+        skipSitemapAndIndex: false,
+      });
+      const regionalUrl = `https://fortitudefx.com/article?slug=${regionalContent.slug}`;
+      status.blogRegional = res.ok
+        ? regionalUrl
+        : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
+      console.log('[FFX] Blog Regional:', status.blogRegional);
+    } catch (err) {
+      status.blogRegional = `Error: ${err.message}`;
+      console.log('[FFX] Blog Regional error:', err.message);
     }
   }
 
@@ -187,6 +209,18 @@ export async function onRequestPost(context) {
               body:    content.body,
               title:   content.title,
               excerpt: content.excerpt,
+            },
+            publishedAt: timestamp,
+          };
+        }
+        // Regional blog — stored separately, non-fatal if missing
+        if (userSelected.blog && regionalContent && status.blogRegional && !status.blogRegional.startsWith('Error') && status.blogRegional !== 'not_selected') {
+          updatedPlatforms.blogRegional = {
+            status: status.blogRegional,
+            content: {
+              body:    regionalContent.body,
+              title:   regionalContent.title,
+              excerpt: regionalContent.excerpt,
             },
             publishedAt: timestamp,
           };
