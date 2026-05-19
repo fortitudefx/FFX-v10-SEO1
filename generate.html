@@ -771,7 +771,11 @@ async function loadExisting() {
       const res = await fetch('/publish-confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: currentContent, platforms }),
+        body: JSON.stringify({
+          content: currentArticles[0] || currentContent,
+          regionalContent: currentArticles[1] || null,
+          platforms,
+        }),
       });
       const data = await res.json();
 
