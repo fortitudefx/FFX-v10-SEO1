@@ -603,17 +603,10 @@ const PLATFORMS = [
 // ─────────────────────────────────────────────────────────────────────────────
 async function init() {
   const params = new URLSearchParams(window.location.search);
-  const jobId   = params.get('job');
   const preVideoId = params.get('video');
 
-  // Load all existing videos
+  // Load all published videos
   await loadVideos();
-
-  // If opened with a job link — load new generated content from KV
-  if (jobId) {
-    await loadJobContent(jobId);
-    return;
-  }
 
   // If opened with a specific video — expand it
   if (preVideoId) {
@@ -627,73 +620,8 @@ async function init() {
   }
 }
 
-async function loadJobContent(jobId) {
-  // Show generate panel with loading state
-  document.getElementById('generatePanel').classList.add('open');
-  setGenStatus('Loading content from job ' + jobId + '…', 'active');
-
-  try {
-    const res = await fetch(`/generate-status?job=${jobId}`);
-    const data = await res.json();
-
-    if (!res.ok || data.status === 'error') {
-      setGenStatus('Error: ' + (data.error || 'Job not found — link may have expired'), 'err');
-      return;
-    }
-
-    if (data.status === 'pending') {
-      setGenStatus('Content still generating… refreshing in 3 seconds', 'active');
-      setTimeout(() => loadJobContent(jobId), 3000);
-      return;
-    }
-
-    if (data.status === 'complete' && data.content) {
-      // Content loaded — inject as a new job row at the top of the list
-      setGenStatus('✓ Content loaded. Review and publish below.', 'done');
-      injectJobRow(data.content, jobId, data.videoId);
-    }
-
-  } catch (err) {
-    setGenStatus('Network error: ' + err.message, 'err');
-  }
-}
-
-function injectJobRow(content, jobId, videoId) {
-  // Build a temporary video object for the row
-  const jobVideo = {
-    videoId: videoId || content.videoId || jobId,
-    jobId,
-    youtubeUrl: content.youtubeUrl || '',
-    slug: content.slug,
-    title: content.title || '',
-    region: content.region || 'Global',
-    regionCycleIndex: content.regionCycleIndex || 0,
-    createdAt: new Date().toISOString(),
-    content,
-    platforms: {}, // No platforms published yet
-    isNewJob: true,
-  };
-
-  const list = document.getElementById('videoList');
-  const existingRow = list.querySelector(`[data-videoid="${jobVideo.videoId}"]`);
-
-  // Remove existing row for same video if present (avoid duplicate)
-  if (existingRow) existingRow.remove();
-
-  const row = buildVideoRow(jobVideo);
-  list.insertBefore(row, list.firstChild);
-
-  // Auto-expand the new row
-  setTimeout(() => {
-    row.querySelector('.row-summary').click();
-    row.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 100);
-
-  document.getElementById('headerCount').textContent = `${document.querySelectorAll('.video-row').length} videos`;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
-// LOAD VIDEOS
+// LOAD VIDEOS — reads from published:* keys only
 // ─────────────────────────────────────────────────────────────────────────────
 async function loadVideos() {
   try {
@@ -723,7 +651,7 @@ function renderVideoList(videos) {
   const list = document.getElementById('videoList');
 
   if (videos.length === 0) {
-    list.innerHTML = '<div class="empty-state"><p>No videos yet. Generate your first article above.</p></div>';
+    list.innerHTML = '<div class="empty-state"><p>No published videos yet. Publish your first article from generate.html.</p></div>';
     return;
   }
 
@@ -741,10 +669,9 @@ function buildVideoRow(video) {
 
   const videoId = video.videoId || '';
   const thumbUrl = videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '';
-  const date = formatDate(video.createdAt || video.content?.date || '');
+  const date = formatDate(video.updatedAt || '');
   const region = video.region || 'Global';
   const platforms = video.platforms || {};
-  const content = video.content || {};
 
   // Summary row
   const summary = document.createElement('div');
@@ -755,11 +682,10 @@ function buildVideoRow(video) {
       : '<div class="row-thumb-placeholder">No thumb</div>'
     }
     <div class="row-info">
-      <div class="row-title">${escHtml(video.title || content.title || 'Untitled')}</div>
+      <div class="row-title">${escHtml(video.title || 'Untitled')}</div>
       <div class="row-meta">
         <span class="region-tag ${regionClass(region)}">${region}</span>
-        <span>${escHtml(content.category || '')}</span>
-        <span>${escHtml(content.slug || '')}</span>
+        <span>${escHtml(video.slug || '')}</span>
       </div>
     </div>
     <div class="row-platforms">
@@ -787,10 +713,7 @@ function buildVideoRow(video) {
 
 function toggleRow(row, video) {
   const isOpen = row.classList.contains('open');
-
-  // Close all open rows
   document.querySelectorAll('.video-row.open').forEach(r => r.classList.remove('open'));
-
   if (!isOpen) {
     row.classList.add('open');
     const expanded = row.querySelector('.row-expanded');
@@ -801,13 +724,16 @@ function toggleRow(row, video) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BUILD EXPANDED CONTENT
+// SURGICAL CHANGE 1: reads from published:{videoId}.globalContent + regionalContent
+// ─────────────────────────────────────────────────────────────────────────────
 function buildExpandedContent(container, video) {
-  // Content lives at platforms.blog_global.content — not video.content
-  const globalContent   = video.platforms?.blog_global?.content || {};
-  const regionalContent = video.platforms?.blog_regional?.content || null;
-  const content = globalContent;
-  const platforms = video.platforms || {};
-  const videoId = video.videoId || video.slug;
+  // Press reads from published:{videoId} — content lives at globalContent/regionalContent
+  const content         = video.globalContent || {};
+  const regionalContent = video.regionalContent || null;
+  const platforms       = video.platforms || {};
+  const videoId         = video.videoId || video.slug;
 
   // Build tweets array
   const tweets = Array.isArray(content.x_thread) && content.x_thread.length
@@ -858,7 +784,7 @@ function buildExpandedContent(container, video) {
 
   panelsData.forEach((p, idx) => {
     const pStatus = platforms[p.platformKey]?.status || 'pending';
-    const isOk = pStatus === 'Yes' || pStatus.startsWith('=HYPERLINK') || pStatus.startsWith('http');
+    const isOk = pStatus === 'Yes' || pStatus.startsWith('http');
     const isErr = pStatus.startsWith('Error');
 
     // Tab
@@ -874,19 +800,12 @@ function buildExpandedContent(container, video) {
     panel.className = 'ppanel' + (idx === 0 ? ' active' : '');
     panel.dataset.panel = p.key;
 
-    // Status bar
-    const extractUrl = (val) => {
-      if (!val) return null;
-      if (val.startsWith('=HYPERLINK(')) { const m = val.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
-      if (val.startsWith('http')) return val;
-      return null;
-    };
-    const postUrl = extractUrl(pStatus);
-    const statusLabel = pStatus === 'Yes' || postUrl ? '✓ Posted'
+    const postUrl = pStatus.startsWith('http') ? pStatus : null;
+    const statusLabel = postUrl ? '✓ Posted'
       : pStatus.startsWith('Error') ? '✕ ' + pStatus.replace('Error: ', '')
       : pStatus === 'Skipped' ? '— Skipped'
       : '○ Not posted';
-    const statusCls = pStatus === 'Yes' || postUrl ? 'psb-ok'
+    const statusCls = postUrl ? 'psb-ok'
       : pStatus.startsWith('Error') ? 'psb-err'
       : pStatus === 'Skipped' ? 'psb-skip'
       : 'psb-pend';
@@ -911,21 +830,15 @@ function buildExpandedContent(container, video) {
 
   PLATFORMS.forEach(p => {
     const pStatus = platforms[p.key]?.status || 'pending';
-    const isPosted = pStatus === 'Yes' || pStatus.startsWith('=HYPERLINK') || pStatus.startsWith('http');
-    const chkExtractUrl = (val) => {
-      if (!val) return null;
-      if (val.startsWith('=HYPERLINK(')) { const m = val.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
-      if (val.startsWith('http')) return val;
-      return null;
-    };
-    const chkPostUrl = chkExtractUrl(pStatus);
+    const isPosted = pStatus.startsWith('http');
+    const postUrl = isPosted ? pStatus : null;
     const chk = document.createElement('div');
     chk.className = `platform-checkbox ${isPosted ? 'already-posted' : 'checked'}`;
     chk.dataset.platform = p.key;
     chk.dataset.checked = isPosted ? 'false' : 'true';
     chk.dataset.wasPosted = isPosted ? 'true' : 'false';
-    chk.dataset.postUrl = chkPostUrl || '';
-    const linkHtml = chkPostUrl ? ` <a href="${chkPostUrl}" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View</a>` : '';
+    chk.dataset.postUrl = postUrl || '';
+    const linkHtml = postUrl ? ` <a href="${postUrl}" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View</a>` : '';
     chk.innerHTML = `<span class="chk-dot"></span>${p.label}${isPosted ? ' ✓' : ''}${linkHtml}`;
     chk.addEventListener('click', () => {
       const c = chk.dataset.checked === 'true';
@@ -934,12 +847,10 @@ function buildExpandedContent(container, video) {
       const url = chk.dataset.postUrl;
       const link = url ? ` <a href="${url}" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View prev</a>` : '';
       if (!c) {
-        // Checking — will post/repost
         chk.classList.add('checked');
         chk.classList.remove('already-posted');
         chk.innerHTML = `<span class="chk-dot"></span>${p.label}${wasPosted ? ' ↻' : ''}${link}`;
       } else {
-        // Unchecking — skip
         chk.classList.remove('checked', 'already-posted');
         chk.innerHTML = `<span class="chk-dot"></span>${p.label} —${link}`;
       }
@@ -956,7 +867,8 @@ function buildExpandedContent(container, video) {
   const pubBtn = document.createElement('button');
   pubBtn.className = 'btn-publish';
   pubBtn.textContent = 'Publish';
-  pubBtn.onclick = () => publishVideo(videoId, actionRow, pubBtn, container, video, globalContent, regionalContent);
+  // SURGICAL CHANGE 2: pass content + regionalContent to publishVideo
+  pubBtn.onclick = () => publishVideo(videoId, actionRow, pubBtn, container, video, content, regionalContent);
   actionRow.appendChild(pubBtn);
 
   const pubResult = document.createElement('div');
@@ -979,6 +891,8 @@ function switchTab(panelContainer, tabBar, key) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLISH
+// SURGICAL CHANGE 3: updated signature
+// SURGICAL CHANGE 4: always sends videoId only — content read from published KV
 // ─────────────────────────────────────────────────────────────────────────────
 async function publishVideo(videoId, actionRow, pubBtn, container, video, globalContent, regionalContent) {
   const platforms = {};
@@ -994,7 +908,7 @@ async function publishVideo(videoId, actionRow, pubBtn, container, video, global
   pubBtn.disabled = true;
   pubBtn.textContent = 'Publishing…';
 
-  // Always use videoId — content read from KV by press-publish
+  // Always use videoId — press-publish reads full content from published:{videoId}
   const publishPayload = { videoId, platforms };
 
   try {
@@ -1063,12 +977,11 @@ function updatePills(row, status) {
 // REGENERATE
 // ─────────────────────────────────────────────────────────────────────────────
 function regenVideo(video, container) {
-  const ytUrl = video.youtubeUrl || video.content?.yt_url || '';
+  const ytUrl = video.youtubeUrl || video.globalContent?.youtubeUrl || '';
   if (!ytUrl) {
     showPubResult(container, 'No YouTube URL found for this video.', false);
     return;
   }
-  // Pre-fill generate panel and open it
   document.getElementById('genUrl').value = ytUrl;
   document.getElementById('generatePanel').classList.add('open');
   document.getElementById('genUrl').focus();
@@ -1085,7 +998,6 @@ function toggleGeneratePanel() {
 async function startGeneration() {
   const url = document.getElementById('genUrl').value.trim();
   const btn = document.getElementById('genBtn');
-  const status = document.getElementById('genStatus');
 
   if (!url) { setGenStatus('Paste a YouTube URL first.', 'err'); return; }
 
@@ -1109,24 +1021,13 @@ async function startGeneration() {
       return;
     }
 
-    // Job-based flow — jobId returned immediately, poll for completion
     if (data.jobId) {
-      setGenStatus('Generating… Claude is working. Checking every 3 seconds.', 'active');
-      pollForJob(data.jobId, btn);
-      return;
-    }
-
-    // Fallback — content returned directly (legacy flow)
-    if (data.success && data.content) {
-      setGenStatus('✓ Content generated. Reloading…', 'done');
-      setTimeout(async () => {
-        await loadVideos();
-        btn.disabled = false;
-        btn.textContent = 'Generate';
-        document.getElementById('generatePanel').classList.remove('open');
-        document.getElementById('genUrl').value = '';
-        setGenStatus('', '');
-      }, 1500);
+      setGenStatus('Generating… Claude is working. Go to generate.html to review when ready.', 'active');
+      btn.disabled = false;
+      btn.textContent = 'Generate';
+      document.getElementById('generatePanel').classList.remove('open');
+      document.getElementById('genUrl').value = '';
+      setGenStatus('', '');
       return;
     }
 
@@ -1141,45 +1042,10 @@ async function startGeneration() {
   }
 }
 
-async function pollForJob(jobId, btn) {
-  if (pollInterval) clearInterval(pollInterval);
-
-  pollInterval = setInterval(async () => {
-    try {
-      const res = await fetch(`/generate-status?job=${jobId}`);
-      const data = await res.json();
-
-      if (data.status === 'complete') {
-        clearInterval(pollInterval);
-        setGenStatus('✓ Content ready. Reloading…', 'done');
-        setTimeout(async () => {
-          await loadVideos();
-          btn.disabled = false;
-          btn.textContent = 'Generate';
-          document.getElementById('generatePanel').classList.remove('open');
-          document.getElementById('genUrl').value = '';
-          setGenStatus('', '');
-        }, 1000);
-      } else if (data.status === 'error') {
-        clearInterval(pollInterval);
-        setGenStatus('Generation failed: ' + (data.error || 'Unknown error'), 'err');
-        btn.disabled = false;
-        btn.textContent = 'Generate';
-      }
-      // else pending — keep polling
-    } catch (err) {
-      clearInterval(pollInterval);
-      setGenStatus('Poll error: ' + err.message, 'err');
-      btn.disabled = false;
-      btn.textContent = 'Generate';
-    }
-  }, 3000);
-}
-
 function setGenStatus(msg, cls) {
   const el = document.getElementById('genStatus');
   el.textContent = msg;
-  el.className = 'gen-status ' + cls;
+  el.className = 'gen-status ' + (cls ? cls : '');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1187,7 +1053,7 @@ function setGenStatus(msg, cls) {
 // ─────────────────────────────────────────────────────────────────────────────
 function pillClass(status) {
   if (!status || status === 'pending') return 'pill-pend';
-  if (status === 'Yes' || status.startsWith('=HYPERLINK') || status.startsWith('http')) return 'pill-ok';
+  if (status.startsWith('http')) return 'pill-ok';
   if (status.startsWith('Error')) return 'pill-error';
   if (status === 'Skipped') return 'pill-skip';
   return 'pill-pend';
