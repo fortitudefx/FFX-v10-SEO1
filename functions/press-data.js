@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FFX Press Worker
-// GET /press-data → lists all video entries from KV, ordered newest first
-// GET /press-data?video=VIDEO_ID → returns single video entry
-// Used by press.html
+// FFX Press Data
+// GET /press-data → lists all published:{videoId} entries from KV
+// Only videos with at least one platform published appear in Press
+// Press is the republish dashboard — generate.html is the review dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestGet(context) {
@@ -23,12 +23,9 @@ export async function onRequestGet(context) {
   // ── Single video fetch ─────────────────────────────────────────────────────
   if (videoId) {
     try {
-      let entry = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' });
+      const entry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
       if (!entry) {
-        entry = await env.FFX_KV.get(`video:slug:${videoId}`, { type: 'json' });
-      }
-      if (!entry) {
-        return new Response(JSON.stringify({ error: 'Video not found in KV' }), { status: 404, headers });
+        return new Response(JSON.stringify({ error: 'Video not found in published records' }), { status: 404, headers });
       }
       return new Response(JSON.stringify({ success: true, video: entry }), { status: 200, headers });
     } catch (err) {
@@ -36,14 +33,14 @@ export async function onRequestGet(context) {
     }
   }
 
-  // ── Full list ──────────────────────────────────────────────────────────────
+  // ── Full list — published:* keys only ─────────────────────────────────────
   try {
     const allKeys = [];
     let cursor = undefined;
     let done = false;
 
     while (!done) {
-      const result = await env.FFX_KV.list({ prefix: 'video:', cursor, limit: 1000 });
+      const result = await env.FFX_KV.list({ prefix: 'published:', cursor, limit: 1000 });
       allKeys.push(...result.keys);
       if (result.list_complete) {
         done = true;
@@ -52,7 +49,7 @@ export async function onRequestGet(context) {
       }
     }
 
-    console.log('[FFX Press] Found', allKeys.length, 'video keys');
+    console.log('[FFX Press] Found', allKeys.length, 'published keys');
 
     const videos = [];
     for (const key of allKeys) {
@@ -64,13 +61,14 @@ export async function onRequestGet(context) {
       }
     }
 
+    // Sort newest first by updatedAt
     videos.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
+      const dateA = new Date(a.updatedAt || 0).getTime();
+      const dateB = new Date(b.updatedAt || 0).getTime();
       return dateB - dateA;
     });
 
-    console.log('[FFX Press] Returning', videos.length, 'videos');
+    console.log('[FFX Press] Returning', videos.length, 'published videos');
 
     return new Response(JSON.stringify({
       success: true,
