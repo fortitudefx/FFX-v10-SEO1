@@ -249,6 +249,40 @@
         });
         document.head.appendChild(schema);
 
+        // Inject hreflang tags for global/regional article pairs
+        // Tells Google which article targets which region — prevents duplicate content flags
+        if (a.slug && a.siblingSlug) {
+          // Remove any existing hreflang tags first
+          document.querySelectorAll('link[rel="alternate"][hreflang]').forEach(el => el.remove());
+
+          const regionToHreflang = (region) => {
+            if (!region || region === 'Global') return 'en';
+            if (region.includes('GCC'))                                                   return 'en-AE';
+            if (region.includes('US') || region.includes('Canada'))                       return 'en-US';
+            if (region.includes('EU') || region.includes('UK') || region.includes('Germany')) return 'en-GB';
+            if (region.includes('SEA') || region.includes('Asia'))                        return 'en-SG';
+            return 'en';
+          };
+
+          const thisUrl    = 'https://fortitudefx.com/article?slug=' + a.slug;
+          const siblingUrl = 'https://fortitudefx.com/article?slug=' + a.siblingSlug;
+          const thisHreflang    = regionToHreflang(a.region);
+          const siblingHreflang = regionToHreflang(a.siblingRegion);
+
+          // Global article is always x-default
+          const globalUrl = (a.region === 'Global' || !a.region) ? thisUrl : siblingUrl;
+
+          [[thisHreflang, thisUrl], [siblingHreflang, siblingUrl], ['x-default', globalUrl]].forEach(([lang, url]) => {
+            const link = document.createElement('link');
+            link.rel = 'alternate';
+            link.hreflang = lang;
+            link.href = url;
+            document.head.appendChild(link);
+          });
+        }
+
+        // Render article
+
         // Render article
         wrap.innerHTML = `
           <a class="article-back ffx-reveal" href="blog.html">
