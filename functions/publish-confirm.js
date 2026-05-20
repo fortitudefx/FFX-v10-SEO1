@@ -231,8 +231,14 @@ export async function onRequestPost(context) {
           platforms: updatedPlatforms,
         };
 
+        // No TTL — published content is permanent
         await env.FFX_KV.put(`published:${videoId}`, JSON.stringify(publishedEntry));
         console.log('[FFX] published: KV written permanently for videoId:', videoId);
+
+        // Clear video:{videoId} immediately — content is now permanent in published:{videoId}
+        // Non-fatal — publish already succeeded if this fails
+        try { await env.FFX_KV.delete(`video:${videoId}`); console.log('[FFX] video: KV cleared for videoId:', videoId); } catch {}
+
       } else {
         console.log('[FFX] No videoId found in content — published: KV not written');
       }
