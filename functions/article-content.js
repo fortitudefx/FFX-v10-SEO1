@@ -37,12 +37,18 @@ export async function onRequestGet(context) {
 
     if (videoId) {
       // 2a. Check published:{videoId} first — permanent, written by publish-confirm
+      // Full content lives in globalContent — not in platforms.blog.content
       try {
         const publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
-        if (publishedEntry?.platforms?.blog?.content?.body) {
+        if (publishedEntry?.globalContent?.body) {
+          fullContent = publishedEntry.globalContent;
+          body = fullContent.body;
+          console.log('[FFX Article] Served from published globalContent:', slug);
+        } else if (publishedEntry?.platforms?.blog?.content?.body) {
+          // Legacy fallback — old entries stored content inside platforms.blog.content
           fullContent = publishedEntry.platforms.blog.content;
           body = fullContent.body;
-          console.log('[FFX Article] Served from published KV:', slug);
+          console.log('[FFX Article] Served from published platforms.blog.content:', slug);
         }
       } catch {}
 
