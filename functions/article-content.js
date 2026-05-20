@@ -3,6 +3,7 @@
 // GET /article-content?slug=SLUG → returns full article from KV
 // Reads published:{videoId}.globalContent first (permanent)
 // Falls back to video:{videoId} (24hr TTL) then legacy paths
+// Returns siblingSlug + siblingRegion for "Also available for [region] traders" link
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestGet(context) {
@@ -35,6 +36,9 @@ export async function onRequestGet(context) {
     const videoId = articleMeta.videoId;
     let body = '';
     let fullContent = {};
+    let siblingSlug = null;
+    let siblingRegion = null;
+    let siblingTitle = null;
 
     if (videoId) {
       // 2a. Check published:{videoId} first — permanent
@@ -50,6 +54,26 @@ export async function onRequestGet(context) {
           fullContent = publishedEntry.platforms.blog.content;
           body = fullContent.body;
           console.log('[FFX Article] Served from published platforms.blog.content:', slug);
+        }
+
+        // Sibling article — regional variant of the same video
+        // If this is the global article, sibling is regional and vice versa
+        if (publishedEntry?.regionalContent?.slug) {
+          const regionalSlug   = publishedEntry.regionalContent.slug;
+          const regionalRegion = publishedEntry.regionalContent.region || publishedEntry.region || 'Regional';
+          const regionalTitle  = publishedEntry.regionalContent.title || '';
+
+          if (slug === publishedEntry.globalContent?.slug) {
+            // This is the global article — sibling is regional
+            siblingSlug   = regionalSlug;
+            siblingRegion = regionalRegion;
+            siblingTitle  = regionalTitle;
+          } else if (slug === regionalSlug) {
+            // This is the regional article — sibling is global
+            siblingSlug   = publishedEntry.globalContent?.slug || null;
+            siblingRegion = 'Global';
+            siblingTitle  = publishedEntry.globalContent?.title || '';
+          }
         }
       } catch {}
 
@@ -84,17 +108,22 @@ export async function onRequestGet(context) {
     }
 
     const article = {
-      slug:       articleMeta.slug,
-      title:      articleMeta.title    || fullContent.title    || '',
-      excerpt:    articleMeta.excerpt  || fullContent.excerpt  || '',
-      category:   articleMeta.category || fullContent.category || 'Strategy',
-      tags:       Array.isArray(articleMeta.tags) ? articleMeta.tags : (fullContent.tags || []),
-      readTime:   articleMeta.readTime || fullContent.readTime || '5 min read',
-      date:       articleMeta.date     || fullContent.date     || '',
-      body:       body || fullContent.body || '',
-      youtubeUrl: articleMeta.youtubeUrl || fullContent.youtubeUrl || '',
-      videoId:    articleMeta.videoId  || '',
-      draft:      articleMeta.draft    || false,
+      slug:         articleMeta.slug,
+      title:        articleMeta.title    || fullContent.title    || '',
+      excerpt:      articleMeta.excerpt  || fullContent.excerpt  || '',
+      category:     articleMeta.category || fullContent.category || 'Strategy',
+      tags:         Array.isArray(articleMeta.tags) ? articleMeta.tags : (fullContent.tags || []),
+      readTime:     articleMeta.readTime || fullContent.readTime || '5 min read',
+      date:         articleMeta.date     || fullContent.date     || '',
+      body:         body || fullContent.body || '',
+      youtubeUrl:   articleMeta.youtubeUrl || fullContent.youtubeUrl || '',
+      videoId:      articleMeta.videoId  || '',
+      region:       articleMeta.region   || fullContent.region   || 'Global',
+      draft:        articleMeta.draft    || false,
+      // Sibling article for "Also available for [region] traders" link
+      siblingSlug,
+      siblingRegion,
+      siblingTitle,
     };
 
     return new Response(JSON.stringify({ success: true, article }), { status: 200, headers });
