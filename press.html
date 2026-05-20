@@ -43,14 +43,14 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      font-size: 15px;
+      font-size: 16px; /* FIX 1: increased from 15px */
       line-height: 1.7;
     }
 
     header {
       border-bottom: 1px solid var(--border);
       padding: 0 32px;
-      height: 52px;
+      height: 56px; /* slightly taller */
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -60,11 +60,11 @@
       z-index: 100;
     }
     .header-left { display: flex; align-items: center; gap: 20px; }
-    .wordmark { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); }
+    .wordmark { font-family: var(--mono); font-size: 14px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); }
     .wordmark span { color: var(--muted); font-weight: 400; }
-    .header-count { font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px; }
+    .header-count { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 3px 10px; }
     .header-right { display: flex; align-items: center; gap: 12px; }
-    .btn-generate { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; background: var(--text); color: var(--bg); border: none; border-radius: 3px; padding: 6px 14px; cursor: pointer; transition: opacity 0.15s; }
+    .btn-generate { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; background: var(--text); color: var(--bg); border: none; border-radius: 3px; padding: 7px 16px; cursor: pointer; transition: opacity 0.15s; }
     .btn-generate:hover { opacity: 0.85; }
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px var(--green-bg); }
 
@@ -72,32 +72,32 @@
     #generatePanel.open { display: block; }
     .gen-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
     .gen-row { display: flex; gap: 10px; align-items: center; }
-    .gen-input { flex: 1; background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 13px; padding: 10px 14px; outline: none; transition: border-color 0.15s; }
+    .gen-input { flex: 1; background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 13px; padding: 11px 14px; outline: none; transition: border-color 0.15s; }
     .gen-input:focus { border-color: var(--blue); }
     .gen-input::placeholder { color: var(--dim); }
-    .btn-run { font-family: var(--mono); font-size: 12px; font-weight: 600; background: var(--text); color: var(--bg); border: none; border-radius: 4px; padding: 10px 20px; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
+    .btn-run { font-family: var(--mono); font-size: 13px; font-weight: 600; background: var(--text); color: var(--bg); border: none; border-radius: 4px; padding: 11px 22px; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
     .btn-run:hover:not(:disabled) { opacity: 0.85; }
     .btn-run:disabled { opacity: 0.3; cursor: not-allowed; }
-    .gen-status { margin-top: 12px; font-family: var(--mono); font-size: 12px; color: var(--muted); display: none; }
+    .gen-status { margin-top: 12px; font-family: var(--mono); font-size: 13px; color: var(--muted); display: none; }
     .gen-status.active { display: block; color: var(--blue); }
     .gen-status.done   { display: block; color: var(--green); }
     .gen-status.err    { display: block; color: var(--red); }
 
-    main { max-width: 1100px; margin: 0 auto; padding: 0 32px 80px; }
+    main { max-width: 1140px; margin: 0 auto; padding: 0 32px 80px; }
 
     .table-header {
       display: grid;
-      grid-template-columns: 160px 1fr 200px 120px;
+      grid-template-columns: 180px 1fr 220px 130px;
       gap: 16px;
-      padding: 12px 16px;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--border);
       font-family: var(--mono);
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--muted);
-      margin-top: 24px;
+      margin-top: 28px;
     }
 
     .video-row { border-bottom: 1px solid var(--border); transition: background 0.1s; }
@@ -105,85 +105,235 @@
 
     .row-summary {
       display: grid;
-      grid-template-columns: 160px 1fr 200px 120px;
+      grid-template-columns: 180px 1fr 220px 130px;
       gap: 16px;
-      padding: 12px 16px;
+      padding: 14px 16px;
       cursor: pointer;
       align-items: center;
     }
 
-    /* Thumbnail — large and recognizable */
+    /* FIX 3: Thumbnail is a link to YouTube */
     .row-thumb-wrap {
-      width: 160px;
-      height: 90px;
+      width: 180px;
+      height: 101px; /* 16:9 */
       border-radius: 5px;
       overflow: hidden;
       background: var(--surface);
       border: 1px solid var(--border);
       flex-shrink: 0;
+      display: block;
+      text-decoration: none;
+      position: relative;
+    }
+    .row-thumb-wrap:hover .thumb-overlay { opacity: 1; }
+    .thumb-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s;
+      font-size: 28px;
     }
     .row-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .row-thumb-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; color: var(--dim); }
+    .row-thumb-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; color: var(--dim); }
 
-    .row-title { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.35; margin-bottom: 6px; }
-    .row-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .row-info {}
+    .row-title { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.35; margin-bottom: 8px; }
+    .row-meta { font-family: var(--mono); font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
 
-    .region-tag { display: inline-block; padding: 2px 7px; border-radius: 2px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+    /* FIX 3: YouTube URL display */
+    .row-yt-url { font-family: var(--mono); font-size: 11px; color: var(--blue); text-decoration: none; display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .row-yt-url:hover { text-decoration: underline; }
+
+    .region-tag { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
     .region-global { background: var(--surface2); color: var(--text-mid); border: 1px solid var(--border2); }
     .region-gcc    { background: var(--amber-bg); color: var(--amber);    border: 1px solid var(--amber-bd); }
     .region-us     { background: var(--blue-bg);  color: var(--blue);     border: 1px solid var(--blue-bd); }
     .region-eu     { background: #1a1630; color: #8b7fd4; border: 1px solid #2a2450; }
     .region-sea    { background: #1a1e16; color: #7da85a; border: 1px solid #2a3420; }
 
-    .platform-pills { display: flex; gap: 4px; flex-wrap: wrap; }
-    .pill { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 7px; border-radius: 2px; border: 1px solid; }
+    /* FIX 5: Cleaner platform pills — text only, no confusing dots */
+    .platform-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+    .pill {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: 1px solid;
+    }
     .pill-ok    { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
     .pill-error { background: var(--red-bg);   color: var(--red);   border-color: var(--red-bd); }
-    .pill-pend  { background: var(--surface);   color: var(--dim);   border-color: var(--border); }
+    .pill-pend  { background: var(--surface2); color: var(--dim);   border-color: var(--border); }
 
-    .row-date { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: right; }
-    .row-chevron { font-size: 11px; color: var(--dim); transition: transform 0.2s; margin-left: 6px; }
+    .row-date { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; }
+    .row-chevron { font-size: 11px; color: var(--dim); transition: transform 0.2s; margin-left: 6px; display: block; margin-top: 4px; }
     .video-row.open .row-chevron { transform: rotate(180deg); }
 
-    .row-expanded { display: none; padding: 0 16px 24px; border-top: 1px solid var(--border); }
+    .row-expanded { display: none; padding: 0 16px 28px; border-top: 1px solid var(--border); }
     .video-row.open .row-expanded { display: block; }
-    .expanded-inner { padding-top: 20px; }
+    .expanded-inner { padding-top: 24px; }
 
+    /* FIX 6: Region label inside expanded view */
+    .expanded-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .expanded-region-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .expanded-yt-link {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--blue);
+      text-decoration: none;
+      margin-left: auto;
+    }
+    .expanded-yt-link:hover { text-decoration: underline; }
+
+    /* Platform tabs */
     .platform-tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
-    .ptab { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 14px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; background: none; border-top: none; border-left: none; border-right: none; }
+    .ptab {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 9px 16px;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
     .ptab:hover { color: var(--text-mid); }
     .ptab.active { color: var(--text); border-bottom-color: var(--text); }
-    .ptab-status { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-left: 5px; vertical-align: middle; background: var(--dim); }
-    .ptab-status.ok  { background: var(--green); }
-    .ptab-status.err { background: var(--red); }
+
+    /* FIX 5: Clean status chip — no confusing colored dots */
+    .ptab-chip {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 2px;
+      margin-left: 5px;
+      vertical-align: middle;
+      letter-spacing: 0.04em;
+    }
+    .ptab-chip-ok  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+    .ptab-chip-err { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
 
     .platform-panels { position: relative; }
     .ppanel { display: none; }
     .ppanel.active { display: block; }
 
-    .platform-status-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 4px; margin-bottom: 12px; border: 1px solid var(--border); background: var(--surface); }
-    .psb-left { display: flex; align-items: center; gap: 10px; }
-    .psb-indicator { font-family: var(--mono); font-size: 11px; font-weight: 600; }
-    .psb-ok   { color: var(--green); }
-    .psb-err  { color: var(--red); }
-    .psb-pend { color: var(--dim); }
-    .psb-link { font-family: var(--mono); font-size: 11px; color: var(--blue); text-decoration: none; }
+    /* FIX 4+5: Status bar — clean text, no ambiguous colors */
+    .platform-status-bar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: 5px;
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .psb-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .psb-status-chip {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 3px;
+    }
+    .psb-chip-ok   { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+    .psb-chip-err  { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
+    .psb-chip-pend { background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); }
+    .psb-link { font-family: var(--mono); font-size: 12px; color: var(--blue); text-decoration: none; }
     .psb-link:hover { text-decoration: underline; }
+    /* FIX 4: Published date */
+    .psb-date { font-family: var(--mono); font-size: 11px; color: var(--dim); }
 
-    .content-block { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 16px 18px; font-size: 14px; line-height: 1.75; color: var(--text-mid); white-space: pre-wrap; word-break: break-word; max-height: 360px; overflow-y: auto; }
+    .content-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 18px 20px;
+      font-size: 15px; /* FIX 1: increased from 14px */
+      line-height: 1.8;
+      color: var(--text-mid);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+    }
     .content-block.article-body { white-space: normal; }
-    .content-block.article-body h2 { font-size: 15px; font-weight: 700; color: var(--text); margin: 16px 0 8px; }
-    .content-block.article-body h3 { font-size: 13px; font-weight: 600; color: var(--text); margin: 12px 0 6px; }
-    .content-block.article-body p { margin-bottom: 10px; }
-    .content-block.article-body a { color: var(--blue); }
-    .tweet-list { display: flex; flex-direction: column; gap: 8px; }
-    .tweet-item { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 12px 14px; display: flex; gap: 12px; font-size: 14px; line-height: 1.7; color: var(--text-mid); }
-    .tweet-num { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--dim); min-width: 16px; padding-top: 2px; }
+    .content-block.article-body h2 { font-size: 16px; font-weight: 700; color: var(--text); margin: 18px 0 9px; }
+    .content-block.article-body h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 14px 0 7px; }
+    .content-block.article-body p  { margin-bottom: 12px; }
+    .content-block.article-body a  { color: var(--blue); }
 
-    .action-row { display: flex; align-items: center; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
-    .action-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+    .tweet-list { display: flex; flex-direction: column; gap: 10px; }
+    .tweet-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 14px;
+      font-size: 15px; /* FIX 1 */
+      line-height: 1.75;
+      color: var(--text-mid);
+    }
+    .tweet-num { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--dim); min-width: 18px; padding-top: 3px; }
 
-    .platform-checkbox { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 3px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; user-select: none; font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); background: var(--surface); }
+    .action-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .action-label { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+
+    .platform-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--surface);
+    }
     .platform-checkbox:hover { border-color: var(--border2); color: var(--text-mid); }
     .platform-checkbox.checked { border-color: var(--blue-bd); background: var(--blue-bg); color: var(--blue); }
     .platform-checkbox.already-posted { border-color: var(--green-bd); background: var(--green-bg); color: var(--green); }
@@ -191,22 +341,22 @@
     .platform-checkbox.checked .chk-dot,
     .platform-checkbox.already-posted .chk-dot { background: currentColor; }
 
-    .btn-publish { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; background: var(--green); color: #fff; border: none; border-radius: 3px; padding: 8px 20px; cursor: pointer; margin-left: auto; transition: opacity 0.15s; }
+    .btn-publish { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; background: var(--green); color: #fff; border: none; border-radius: 4px; padding: 9px 24px; cursor: pointer; margin-left: auto; transition: opacity 0.15s; }
     .btn-publish:hover:not(:disabled) { opacity: 0.85; }
     .btn-publish:disabled { opacity: 0.3; cursor: not-allowed; }
-    .btn-regen { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 7px 14px; cursor: pointer; transition: all 0.15s; }
+    .btn-regen { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 8px 16px; cursor: pointer; transition: all 0.15s; }
     .btn-regen:hover { border-color: var(--border2); color: var(--text-mid); }
 
-    .pub-result { font-family: var(--mono); font-size: 11px; margin-top: 10px; padding: 8px 12px; border-radius: 3px; display: none; }
+    .pub-result { font-family: var(--mono); font-size: 12px; margin-top: 12px; padding: 10px 14px; border-radius: 4px; display: none; }
     .pub-result.ok  { background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green); display: block; }
     .pub-result.err { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: var(--red);   display: block; }
 
     .loading-state { text-align: center; padding: 80px 0; }
     .loading-spin { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border2); border-top-color: var(--text-mid); animation: spin 0.7s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .loading-text { font-family: var(--mono); font-size: 13px; color: var(--muted); }
     .empty-state { text-align: center; padding: 80px 0; }
-    .empty-state p { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .empty-state p { font-family: var(--mono); font-size: 13px; color: var(--muted); }
 
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -217,8 +367,8 @@
       main { padding: 0 16px 80px; }
       #generatePanel { padding: 20px 16px; }
       .table-header { display: none; }
-      .row-summary { grid-template-columns: 120px 1fr; gap: 12px; }
-      .row-thumb-wrap { width: 120px; height: 68px; }
+      .row-summary { grid-template-columns: 130px 1fr; gap: 12px; }
+      .row-thumb-wrap { width: 130px; height: 73px; }
       .platform-pills, .row-date { display: none; }
     }
   </style>
@@ -261,7 +411,7 @@
 </main>
 
 <script>
-let allVideos  = [];
+let allVideos = [];
 
 const PLATFORMS = [
   { key: 'blog',     label: 'Blog' },
@@ -275,9 +425,7 @@ const PLATFORMS = [
 async function init() {
   const params     = new URLSearchParams(window.location.search);
   const preVideoId = params.get('video');
-
   await loadVideos();
-
   if (preVideoId) {
     setTimeout(() => {
       const row = document.querySelector(`[data-videoid="${preVideoId}"]`);
@@ -289,14 +437,14 @@ async function init() {
   }
 }
 
-// ─── LOAD VIDEOS ─────────────────────────────────────────────────────────────
+// ─── LOAD ─────────────────────────────────────────────────────────────────────
 async function loadVideos() {
   try {
     const res  = await fetch('/press-data');
     const data = await res.json();
     if (!res.ok) {
       document.getElementById('videoList').innerHTML =
-        `<div class="empty-state"><p>Error loading data: ${data.error}</p></div>`;
+        `<div class="empty-state"><p>Error: ${data.error}</p></div>`;
       return;
     }
     allVideos = data.videos || [];
@@ -312,7 +460,7 @@ async function loadVideos() {
 function renderVideoList(videos) {
   const list = document.getElementById('videoList');
   if (videos.length === 0) {
-    list.innerHTML = '<div class="empty-state"><p>No published videos yet. Publish your first article from generate.html.</p></div>';
+    list.innerHTML = '<div class="empty-state"><p>No published videos yet. Publish from generate.html first.</p></div>';
     return;
   }
   list.innerHTML = '';
@@ -322,13 +470,12 @@ function renderVideoList(videos) {
 function buildVideoRow(video) {
   const row = document.createElement('div');
   row.className = 'video-row';
-  // Use videoId or slug as identifier
   const identifier = video.videoId || video.slug;
   row.dataset.videoid = identifier;
 
   const videoId   = video.videoId || '';
-  // Thumbnail only works with real YouTube videoId (not slug-based)
-  const isRealId  = videoId && !videoId.includes('-') || (videoId && videoId.length < 20 && !videoId.includes('timeframe') && !videoId.includes('strategy') && !videoId.includes('fails'));
+  const ytUrl     = video.youtubeUrl || video.globalContent?.youtubeUrl || '';
+  const isRealId  = videoId && videoId.length <= 12 && !videoId.includes('-fx-') && !videoId.includes('trading') && !videoId.includes('strategy') && !videoId.includes('fails') && !videoId.includes('timeframe');
   const thumbUrl  = isRealId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '';
   const date      = formatDate(video.updatedAt || '');
   const region    = video.region || 'Global';
@@ -336,20 +483,25 @@ function buildVideoRow(video) {
 
   const summary = document.createElement('div');
   summary.className = 'row-summary';
+
+  // FIX 3: Thumbnail is a clickable link to YouTube
+  const thumbHtml = thumbUrl
+    ? `<a class="row-thumb-wrap" href="${escHtml(ytUrl)}" target="_blank" onclick="event.stopPropagation()">
+        <img class="row-thumb" src="${thumbUrl}" alt="" loading="lazy"
+          onerror="this.outerHTML='<div class=\\'row-thumb-placeholder\\'>No thumb</div>'">
+        <div class="thumb-overlay">▶</div>
+       </a>`
+    : `<div class="row-thumb-wrap"><div class="row-thumb-placeholder">No thumb</div></div>`;
+
   summary.innerHTML = `
-    <div class="row-thumb-wrap">
-      ${thumbUrl
-        ? `<img class="row-thumb" src="${thumbUrl}" alt="" loading="lazy"
-             onerror="this.outerHTML='<div class=\\'row-thumb-placeholder\\'>No thumb</div>'">`
-        : '<div class="row-thumb-placeholder">No thumb</div>'
-      }
-    </div>
+    ${thumbHtml}
     <div class="row-info">
       <div class="row-title">${escHtml(video.title || 'Untitled')}</div>
       <div class="row-meta">
         <span class="region-tag ${regionClass(region)}">${region}</span>
         <span>${escHtml(video.slug || '')}</span>
       </div>
+      ${ytUrl ? `<a class="row-yt-url" href="${escHtml(ytUrl)}" target="_blank" onclick="event.stopPropagation()">${escHtml(ytUrl)}</a>` : ''}
     </div>
     <div class="platform-pills">
       ${PLATFORMS.map(p => {
@@ -385,13 +537,14 @@ function toggleRow(row, video) {
 
 // ─── BUILD EXPANDED ───────────────────────────────────────────────────────────
 function buildExpandedContent(container, video) {
-  // All content lives in published:{videoId}.globalContent — single structure
-  const content   = video.globalContent || {};
+  // FIX 2: Check both globalContent (new) and content (old structure) for body
+  const content   = video.globalContent || video.content || {};
   const platforms = video.platforms || {};
   const videoId   = video.videoId || null;
   const slug      = video.slug || null;
+  const region    = video.region || 'Global';
+  const ytUrl     = video.youtubeUrl || content.youtubeUrl || content.yt_url || '';
 
-  // Build tweets array
   const tweets = Array.isArray(content.x_thread) && content.x_thread.length
     ? content.x_thread
     : [1,2,3,4,5,6].map(i => content[`tweet${i}`]).filter(Boolean);
@@ -413,15 +566,24 @@ function buildExpandedContent(container, video) {
     },
     {
       key: 'linkedin', label: 'LinkedIn', platformKey: 'linkedin',
-      html: () => `<div class="content-block">${content.linkedin ? escHtml(content.linkedin) : '<em>No LinkedIn content found.</em>'}</div>`,
+      html: () => {
+        const text = content.linkedin || platforms.linkedin?.content?.linkedin || platforms.linkedin?.content?.text || '';
+        return `<div class="content-block">${text ? escHtml(text) : '<em>No LinkedIn content found.</em>'}</div>`;
+      },
     },
     {
       key: 'discord', label: 'Discord', platformKey: 'discord',
-      html: () => `<div class="content-block">${content.discord ? escHtml(content.discord) : '<em>No Discord content found.</em>'}</div>`,
+      html: () => {
+        const text = content.discord || platforms.discord?.content?.discord || platforms.discord?.content?.text || '';
+        return `<div class="content-block">${text ? escHtml(text) : '<em>No Discord content found.</em>'}</div>`;
+      },
     },
     {
       key: 'tumblr', label: 'Tumblr', platformKey: 'tumblr',
-      html: () => `<div class="content-block">${content.tumblr ? escHtml(content.tumblr) : '<em>No Tumblr content found.</em>'}</div>`,
+      html: () => {
+        const text = content.tumblr || platforms.tumblr?.content?.tumblr || platforms.tumblr?.content?.text || '';
+        return `<div class="content-block">${text ? escHtml(text) : '<em>No Tumblr content found.</em>'}</div>`;
+      },
     },
   ];
 
@@ -431,15 +593,23 @@ function buildExpandedContent(container, video) {
   panelContainer.className = 'platform-panels';
 
   panelsData.forEach((p, idx) => {
-    const pStatus = platforms[p.platformKey]?.status || '';
-    const postUrl = extractPostUrl(pStatus);
-    const isOk    = !!postUrl;
-    const isErr   = pStatus.startsWith('Error');
+    const pStatus    = platforms[p.platformKey]?.status || '';
+    const postUrl    = extractPostUrl(pStatus);
+    const isOk       = !!postUrl;
+    const isErr      = pStatus.startsWith('Error');
+    const publishedAt = platforms[p.platformKey]?.publishedAt || '';
+
+    // FIX 5: Clean tab chip — text label not dot
+    const chipHtml = isOk
+      ? `<span class="ptab-chip ptab-chip-ok">Posted</span>`
+      : isErr
+        ? `<span class="ptab-chip ptab-chip-err">Error</span>`
+        : '';
 
     const tab = document.createElement('button');
     tab.className     = 'ptab' + (idx === 0 ? ' active' : '');
     tab.dataset.panel = p.key;
-    tab.innerHTML     = `${p.label}<span class="ptab-status ${isOk ? 'ok' : isErr ? 'err' : ''}"></span>`;
+    tab.innerHTML     = `${p.label}${chipHtml}`;
     tab.addEventListener('click', () => switchTab(panelContainer, tabBar, p.key));
     tabBar.appendChild(tab);
 
@@ -447,16 +617,23 @@ function buildExpandedContent(container, video) {
     panel.className     = 'ppanel' + (idx === 0 ? ' active' : '');
     panel.dataset.panel = p.key;
 
-    const statusLabel = postUrl ? '✓ Posted'
-      : isErr ? '✕ ' + pStatus.replace('Error: ', '')
-      : '○ Not posted';
-    const statusCls = postUrl ? 'psb-ok' : isErr ? 'psb-err' : 'psb-pend';
+    // FIX 5: Clean status chip text
+    let chipClass, chipText;
+    if (postUrl)       { chipClass = 'psb-chip-ok';   chipText = '✓ Posted'; }
+    else if (isErr)    { chipClass = 'psb-chip-err';   chipText = '✕ Error'; }
+    else               { chipClass = 'psb-chip-pend';  chipText = '○ Not posted'; }
+
+    // FIX 4: Published date display
+    const dateHtml = publishedAt
+      ? `<span class="psb-date">Published ${formatDate(publishedAt)}</span>`
+      : '';
 
     panel.innerHTML = `
       <div class="platform-status-bar">
         <div class="psb-left">
-          <span class="psb-indicator ${statusCls}">${statusLabel}</span>
+          <span class="psb-status-chip ${chipClass}">${chipText}</span>
           ${postUrl ? `<a href="${postUrl}" target="_blank" class="psb-link">View post →</a>` : ''}
+          ${dateHtml}
         </div>
       </div>
       ${p.html()}
@@ -519,6 +696,16 @@ function buildExpandedContent(container, video) {
 
   const inner = document.createElement('div');
   inner.className = 'expanded-inner';
+
+  // FIX 6: Region label + YouTube URL inside expanded view
+  inner.innerHTML = `
+    <div class="expanded-header">
+      <span class="region-tag ${regionClass(region)}">${region}</span>
+      <span class="expanded-region-label">Article</span>
+      ${ytUrl ? `<a class="expanded-yt-link" href="${escHtml(ytUrl)}" target="_blank">▶ ${escHtml(ytUrl)}</a>` : ''}
+    </div>
+  `;
+
   inner.appendChild(tabBar);
   inner.appendChild(panelContainer);
   inner.appendChild(actionRow);
@@ -543,11 +730,10 @@ async function publishVideo(videoId, slug, actionRow, pubBtn, container, video) 
     return;
   }
 
-  pubBtn.disabled    = true;
-  pubBtn.textContent = 'Publishing…';
+  pubBtn.disabled = true; pubBtn.textContent = 'Publishing…';
 
   try {
-    const res = await fetch('/press-publish', {
+    const res  = await fetch('/press-publish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ videoId, slug, platforms }),
@@ -560,24 +746,21 @@ async function publishVideo(videoId, slug, actionRow, pubBtn, container, video) 
       return;
     }
 
-    // Update platform status in video object and rebuild
     if (data.status) {
       Object.keys(data.status).forEach(p => {
         if (!video.platforms) video.platforms = {};
         if (!video.platforms[p]) video.platforms[p] = {};
         video.platforms[p].status = data.status[p];
+        video.platforms[p].publishedAt = new Date().toISOString();
       });
     }
 
-    // Update pills in summary row
     const row = container.closest('.video-row');
     if (data.status) updatePills(row, data.status);
 
-    // Rebuild expanded content with fresh status
     container.dataset.built = '';
     container.innerHTML = '';
     buildExpandedContent(container, video);
-
     showPubResult(container, '✓ Published successfully', true);
     pubBtn.disabled = false; pubBtn.textContent = 'Publish';
 
@@ -604,11 +787,8 @@ function updatePills(row, status) {
 
 // ─── REGENERATE ───────────────────────────────────────────────────────────────
 function regenVideo(video) {
-  const ytUrl = video.youtubeUrl || video.globalContent?.youtubeUrl || '';
-  if (!ytUrl) {
-    alert('No YouTube URL found for this video. Go to generate.html manually.');
-    return;
-  }
+  const ytUrl = video.youtubeUrl || video.globalContent?.youtubeUrl || video.content?.youtubeUrl || video.content?.yt_url || '';
+  if (!ytUrl) { alert('No YouTube URL found. Go to generate.html manually.'); return; }
   window.location.href = `/generate?url=${encodeURIComponent(ytUrl)}`;
 }
 
@@ -632,8 +812,7 @@ async function startGeneration() {
     const data = await res.json();
     if (!res.ok) {
       setGenStatus('Error: ' + (data.error || res.status), 'err');
-      btn.disabled = false; btn.textContent = 'Generate';
-      return;
+      btn.disabled = false; btn.textContent = 'Generate'; return;
     }
     setGenStatus('Queued. Go to generate.html to review when ready.', 'done');
     btn.disabled = false; btn.textContent = 'Generate';
@@ -653,8 +832,6 @@ function setGenStatus(msg, cls) {
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-// Extract real URL from either http:// or =HYPERLINK(...) format
 function extractPostUrl(status) {
   if (!status) return null;
   if (status.startsWith('http')) return status;
@@ -673,11 +850,11 @@ function pillClass(status) {
 }
 
 function regionClass(region) {
-  if (!region || region === 'Global')                                          return 'region-global';
-  if (region.includes('GCC'))                                                   return 'region-gcc';
-  if (region.includes('US') || region.includes('Canada'))                       return 'region-us';
+  if (!region || region === 'Global')                                              return 'region-global';
+  if (region.includes('GCC'))                                                       return 'region-gcc';
+  if (region.includes('US') || region.includes('Canada'))                           return 'region-us';
   if (region.includes('EU') || region.includes('UK') || region.includes('Germany')) return 'region-eu';
-  if (region.includes('SEA') || region.includes('Asia'))                        return 'region-sea';
+  if (region.includes('SEA') || region.includes('Asia'))                            return 'region-sea';
   return 'region-global';
 }
 
