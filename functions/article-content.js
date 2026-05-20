@@ -1,7 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Article Content
 // GET /article-content?slug=SLUG → returns full article from KV
-// Reads published:{videoId} first (permanent), falls back to video:{videoId} (24hr TTL)
+// Reads published:{videoId}.globalContent first (permanent)
+// Falls back to video:{videoId} (24hr TTL) then legacy paths
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestGet(context) {
@@ -36,8 +37,8 @@ export async function onRequestGet(context) {
     let fullContent = {};
 
     if (videoId) {
-      // 2a. Check published:{videoId} first — permanent, written by publish-confirm
-      // Full content lives in globalContent — not in platforms.blog.content
+      // 2a. Check published:{videoId} first — permanent
+      // Full article body lives in globalContent — not in platforms.blog.content
       try {
         const publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
         if (publishedEntry?.globalContent?.body) {
@@ -45,7 +46,7 @@ export async function onRequestGet(context) {
           body = fullContent.body;
           console.log('[FFX Article] Served from published globalContent:', slug);
         } else if (publishedEntry?.platforms?.blog?.content?.body) {
-          // Legacy fallback — old entries stored content inside platforms.blog.content
+          // Legacy fallback — old entries stored body inside platforms.blog.content
           fullContent = publishedEntry.platforms.blog.content;
           body = fullContent.body;
           console.log('[FFX Article] Served from published platforms.blog.content:', slug);
@@ -83,17 +84,17 @@ export async function onRequestGet(context) {
     }
 
     const article = {
-      slug: articleMeta.slug,
-      title: articleMeta.title || fullContent.title || '',
-      excerpt: articleMeta.excerpt || fullContent.excerpt || '',
-      category: articleMeta.category || fullContent.category || 'Strategy',
-      tags: Array.isArray(articleMeta.tags) ? articleMeta.tags : (fullContent.tags || []),
-      readTime: articleMeta.readTime || fullContent.readTime || '5 min read',
-      date: articleMeta.date || fullContent.date || '',
-      body: body || fullContent.body || '',
+      slug:       articleMeta.slug,
+      title:      articleMeta.title    || fullContent.title    || '',
+      excerpt:    articleMeta.excerpt  || fullContent.excerpt  || '',
+      category:   articleMeta.category || fullContent.category || 'Strategy',
+      tags:       Array.isArray(articleMeta.tags) ? articleMeta.tags : (fullContent.tags || []),
+      readTime:   articleMeta.readTime || fullContent.readTime || '5 min read',
+      date:       articleMeta.date     || fullContent.date     || '',
+      body:       body || fullContent.body || '',
       youtubeUrl: articleMeta.youtubeUrl || fullContent.youtubeUrl || '',
-      videoId: articleMeta.videoId || '',
-      draft: articleMeta.draft || false,
+      videoId:    articleMeta.videoId  || '',
+      draft:      articleMeta.draft    || false,
     };
 
     return new Response(JSON.stringify({ success: true, article }), { status: 200, headers });
