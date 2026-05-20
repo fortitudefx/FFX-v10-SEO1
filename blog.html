@@ -11,26 +11,26 @@
 </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Blog | FortitudeFX — Forex Trading Insights &amp; Strategy</title>
-  <meta name="description" content="FortitudeFX blog — in-depth forex trading strategy, price action analysis, risk management guides, and trader mindset articles." />
+  <title>Blog | FortitudeFX™ — Forex Trading Insights &amp; Strategy</title>
+  <meta name="description" content="FortitudeFX™ blog — in-depth forex trading strategy, price action analysis, risk management guides, and trader mindset articles." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://fortitudefx.com/blog" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
   <meta property="og:url"         content="https://fortitudefx.com/blog" />
-  <meta property="og:title"       content="Blog | FortitudeFX — Forex Trading Insights" />
+  <meta property="og:title"       content="Blog | FortitudeFX™ — Forex Trading Insights" />
   <meta property="og:description" content="In-depth forex trading strategy, price action analysis, risk management guides, and trader mindset articles." />
   <meta property="og:image"       content="https://fortitudefx.com/og-fortitudefx.png" />
   <meta property="og:image:width"  content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:site_name"   content="FortitudeFX" />
+  <meta property="og:site_name"   content="FortitudeFX™" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:site"        content="@_fortitudefx" />
-  <meta name="twitter:title"       content="Blog | FortitudeFX" />
-  <meta name="twitter:description" content="Forex trading strategy, price action, and trader mindset — from FortitudeFX." />
+  <meta name="twitter:title"       content="Blog | FortitudeFX™" />
+  <meta name="twitter:description" content="Forex trading strategy, price action, and trader mindset — from FortitudeFX™." />
   <meta name="twitter:image"       content="https://fortitudefx.com/og-fortitudefx.png" />
 
   <!-- Schema.org -->
@@ -38,12 +38,12 @@
 {
   "@context": "https://schema.org",
   "@type": "Blog",
-  "name": "FortitudeFX Blog",
+  "name": "FortitudeFX™ Blog",
   "url": "https://fortitudefx.com/blog",
-  "description": "Forex trading strategy, price action analysis, risk management guides, and trader mindset articles from FortitudeFX.",
+  "description": "Forex trading strategy, price action analysis, risk management guides, and trader mindset articles from FortitudeFX™.",
   "publisher": {
     "@type": "Organization",
-    "name": "FortitudeFX",
+    "name": "FortitudeFX™",
     "url": "https://fortitudefx.com"
   }
 }
@@ -58,6 +58,64 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+
+  <style>
+    /* ── Filter tabs ─────────────────────────────────────────────────── */
+    .blog-filters {
+      margin: 0 0 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .filter-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.28);
+      min-width: 68px;
+      flex-shrink: 0;
+    }
+    .filter-btn {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent;
+      color: rgba(255,255,255,0.45);
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .filter-btn:hover {
+      border-color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.75);
+    }
+    .filter-btn.active {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.95);
+    }
+    .blog-count {
+      font-size: 12px;
+      color: rgba(255,255,255,0.28);
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+    }
+    @media (max-width: 600px) {
+      .filter-label { display: none; }
+      .filter-row { gap: 6px; }
+      .filter-btn { font-size: 11px; padding: 4px 11px; }
+    }
+  </style>
 </head>
 <body class="page-home">
 
@@ -106,11 +164,15 @@
         <div class="blog-header ffx-reveal">
           <span class="kicker">Journal</span>
           <h1>Trading Insights</h1>
-          <p class="blog-header-meta">Strategy, price action, risk management &amp; trader mindset — from the FortitudeFX desk.</p>
+          <p class="blog-header-meta">Strategy, price action, risk management &amp; trader mindset — from the FortitudeFX™ desk.</p>
         </div>
 
+        <!-- Filter tabs — injected by JS after articles load -->
+        <div id="blogFilters"></div>
+
+        <div class="blog-count" id="blogCount"></div>
+
         <div class="blog-list ffx-reveal ffx-reveal-delay-1" id="blogList">
-          <!-- Articles rendered by JS from articles.json -->
           <div class="blog-empty">Loading articles&hellip;</div>
         </div>
 
@@ -164,7 +226,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      &copy; 2026 FortitudeFX. All rights reserved. &nbsp;&middot;&nbsp; <a href="privacy.html" class="footer-privacy-link">Privacy Policy</a>
+      &copy; 2026 FortitudeFX™. All rights reserved. &nbsp;&middot;&nbsp; <a href="privacy.html" class="footer-privacy-link">Privacy Policy</a>
     </div>
   </footer>
 
@@ -210,41 +272,132 @@
       reveals.forEach(el => io.observe(el));
     }
 
-    // Load articles from JSON
-    const list = document.getElementById('blogList');
+    // ── FILTER STATE ─────────────────────────────────────────────────────────
+    const REGIONS = ['All', 'Global', 'GCC', 'US/Canada', 'EU/UK/Germany', 'SEA/Asia'];
+    const CATEGORIES = ['All', 'Strategy', 'Mindset', 'Price Action', 'Risk Management', 'Execution'];
+
+    let allArticles = [];
+    let activeRegion   = 'All';
+    let activeCategory = 'All';
+
+    // ── FILTER LOGIC ──────────────────────────────────────────────────────────
+    function matchRegion(article, filter) {
+      if (filter === 'All') return true;
+      const r = (article.region || 'Global').toLowerCase();
+      if (filter === 'Global')         return r === 'global';
+      if (filter === 'GCC')            return r.includes('gcc');
+      if (filter === 'US/Canada')      return r.includes('us') || r.includes('canada');
+      if (filter === 'EU/UK/Germany')  return r.includes('eu') || r.includes('uk') || r.includes('germany');
+      if (filter === 'SEA/Asia')       return r.includes('sea') || r.includes('asia');
+      return true;
+    }
+
+    function matchCategory(article, filter) {
+      if (filter === 'All') return true;
+      return (article.category || '').toLowerCase() === filter.toLowerCase();
+    }
+
+    function applyFilters() {
+      const filtered = allArticles.filter(a =>
+        matchRegion(a, activeRegion) && matchCategory(a, activeCategory)
+      );
+      renderArticles(filtered);
+      // Update active state on buttons
+      document.querySelectorAll('.filter-btn[data-region]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.region === activeRegion);
+      });
+      document.querySelectorAll('.filter-btn[data-category]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.category === activeCategory);
+      });
+    }
+
+    // ── BUILD FILTER UI ───────────────────────────────────────────────────────
+    function buildFilters() {
+      const container = document.getElementById('blogFilters');
+      container.className = 'blog-filters';
+
+      // Region row
+      const regionRow = document.createElement('div');
+      regionRow.className = 'filter-row';
+      regionRow.innerHTML = '<span class="filter-label">Region</span>';
+      REGIONS.forEach(r => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn' + (r === 'All' ? ' active' : '');
+        btn.textContent = r;
+        btn.dataset.region = r;
+        btn.addEventListener('click', () => {
+          activeRegion = r;
+          applyFilters();
+        });
+        regionRow.appendChild(btn);
+      });
+
+      // Category row
+      const catRow = document.createElement('div');
+      catRow.className = 'filter-row';
+      catRow.innerHTML = '<span class="filter-label">Category</span>';
+      CATEGORIES.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn' + (c === 'All' ? ' active' : '');
+        btn.textContent = c;
+        btn.dataset.category = c;
+        btn.addEventListener('click', () => {
+          activeCategory = c;
+          applyFilters();
+        });
+        catRow.appendChild(btn);
+      });
+
+      container.appendChild(regionRow);
+      container.appendChild(catRow);
+    }
+
+    // ── RENDER ARTICLES ───────────────────────────────────────────────────────
+    const list  = document.getElementById('blogList');
+    const count = document.getElementById('blogCount');
 
     function formatDate(dateStr) {
       const d = new Date(dateStr + 'T00:00:00');
       return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     }
 
+    function renderArticles(articles) {
+      if (!articles || articles.length === 0) {
+        list.innerHTML = '<div class="blog-empty">No articles match this filter.</div>';
+        count.textContent = '';
+        return;
+      }
+      count.textContent = articles.length + ' article' + (articles.length === 1 ? '' : 's');
+      list.innerHTML = articles.map(a => `
+        <a class="blog-item" href="article.html?slug=${a.slug}">
+          <div class="blog-item-left">
+            <span class="blog-item-tag">${a.category}</span>
+            <p class="blog-item-title">${a.title}</p>
+            <p class="blog-item-excerpt">${a.excerpt}</p>
+          </div>
+          <div class="blog-item-right">
+            <span class="blog-item-date">${formatDate(a.date)}</span>
+            <span class="blog-item-read">${a.readTime}</span>
+            <span class="blog-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><polyline points="9 18 15 12 9 6" fill="none"></polyline></svg>
+            </span>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    // ── LOAD ARTICLES ─────────────────────────────────────────────────────────
     fetch('/articles')
       .then(r => r.json())
       .then(data => {
-        const articles = data.articles || [];
-        if (!articles || articles.length === 0) {
+        allArticles = (data.articles || []).sort((a, b) => new Date(b.date) - new Date(a.date));
+        if (allArticles.length === 0) {
           list.innerHTML = '<div class="blog-empty">No articles yet — check back soon.</div>';
           return;
         }
-        // Sort newest first
-        articles.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        list.innerHTML = articles.map(a => `
-          <a class="blog-item" href="article.html?slug=${a.slug}">
-            <div class="blog-item-left">
-              <span class="blog-item-tag">${a.category}</span>
-              <p class="blog-item-title">${a.title}</p>
-              <p class="blog-item-excerpt">${a.excerpt}</p>
-            </div>
-            <div class="blog-item-right">
-              <span class="blog-item-date">${formatDate(a.date)}</span>
-              <span class="blog-item-read">${a.readTime}</span>
-              <span class="blog-arrow" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><polyline points="9 18 15 12 9 6" fill="none"></polyline></svg>
-              </span>
-            </div>
-          </a>
-        `).join('');
+        buildFilters();
+        renderArticles(allArticles);
+        count.textContent = allArticles.length + ' articles';
       })
       .catch(() => {
         list.innerHTML = '<div class="blog-empty">Could not load articles.</div>';
