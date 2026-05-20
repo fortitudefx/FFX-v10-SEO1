@@ -12,15 +12,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Title and meta injected by JS once article data loads -->
-  <title>FortitudeFX — Trading Insights</title>
-  <meta name="description" content="FortitudeFX — forex trading strategy, price action, and trader mindset." />
+  <title>FortitudeFX™ — Trading Insights</title>
+  <meta name="description" content="FortitudeFX™ — forex trading strategy, price action, and trader mindset." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="" id="canonicalTag" />
   <meta property="og:type"        content="article" />
   <meta property="og:image"       content="https://fortitudefx.com/og-fortitudefx.png" />
   <meta property="og:image:width"  content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:site_name"   content="FortitudeFX" />
+  <meta property="og:site_name"   content="FortitudeFX™" />
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:site"        content="@_fortitudefx" />
   <meta name="twitter:image"       content="https://fortitudefx.com/og-fortitudefx.png" />
@@ -133,7 +133,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      &copy; 2026 FortitudeFX. All rights reserved. &nbsp;&middot;&nbsp; <a href="privacy.html" class="footer-privacy-link">Privacy Policy</a>
+      &copy; 2026 FortitudeFX™. All rights reserved. &nbsp;&middot;&nbsp; <a href="privacy.html" class="footer-privacy-link">Privacy Policy</a>
     </div>
   </footer>
 
@@ -221,12 +221,12 @@
         }
 
         // Update page meta
-        document.title = a.title + ' | FortitudeFX';
+        document.title = a.title + ' | FortitudeFX™';
         document.querySelector('meta[name="description"]').setAttribute('content', a.excerpt);
-        document.querySelector('meta[property="og:title"]') && document.querySelector('meta[property="og:title"]').setAttribute('content', a.title + ' | FortitudeFX');
+        document.querySelector('meta[property="og:title"]') && document.querySelector('meta[property="og:title"]').setAttribute('content', a.title + ' | FortitudeFX™');
         document.querySelector('meta[property="og:description"]') && document.querySelector('meta[property="og:description"]').setAttribute('content', a.excerpt);
         document.querySelector('meta[property="og:url"]') && document.querySelector('meta[property="og:url"]').setAttribute('content', 'https://fortitudefx.com/article?slug=' + a.slug);
-        document.querySelector('meta[name="twitter:title"]') && document.querySelector('meta[name="twitter:title"]').setAttribute('content', a.title + ' | FortitudeFX');
+        document.querySelector('meta[name="twitter:title"]') && document.querySelector('meta[name="twitter:title"]').setAttribute('content', a.title + ' | FortitudeFX™');
         document.querySelector('meta[name="twitter:description"]') && document.querySelector('meta[name="twitter:description"]').setAttribute('content', a.excerpt);
 
         // Inject schema
@@ -238,10 +238,10 @@
           "headline": a.title,
           "description": a.excerpt,
           "datePublished": a.date,
-          "author": { "@type": "Organization", "name": "FortitudeFX" },
+          "author": { "@type": "Organization", "name": "FortitudeFX™" },
           "publisher": {
             "@type": "Organization",
-            "name": "FortitudeFX",
+            "name": "FortitudeFX™",
             "url": "https://fortitudefx.com"
           },
           "url": "https://fortitudefx.com/article?slug=" + a.slug,
@@ -268,12 +268,20 @@
             ${a.body}
           </div>
 
+          ${a.siblingSlug ? `
+          <div class="ffx-reveal ffx-reveal-delay-2" style="margin:32px 0;padding:20px 24px;border:1px solid rgba(255,255,255,0.08);border-radius:8px;background:rgba(255,255,255,0.03);">
+            <p style="font-size:13px;color:rgba(255,255,255,0.45);letter-spacing:0.04em;text-transform:uppercase;font-weight:600;margin-bottom:8px;">Also available</p>
+            <a href="article.html?slug=${a.siblingSlug}" style="font-size:15px;color:rgba(196,181,253,0.85);text-decoration:none;font-weight:500;">
+              ${a.siblingTitle || 'Read the ' + a.siblingRegion + ' edition'} &rarr;
+            </a>
+          </div>` : ''}
+
           <hr class="article-divider ffx-reveal ffx-reveal-delay-2">
 
           <div class="article-cta ffx-reveal ffx-reveal-delay-3">
             <span class="article-cta-kicker">Free Community</span>
             <h3>Ready to trade with an edge?</h3>
-            <p>Join hundreds of traders inside the free FortitudeFX Discord — live setups, real-time market commentary, and the full Catch The Wick methodology explained from the ground up.</p>
+            <p>Join hundreds of traders inside the free FortitudeFX™ Discord — live setups, real-time market commentary, and the full Catch The Wick™ methodology explained from the ground up.</p>
             <div class="article-cta-actions">
               <a class="btn btn-primary" href="vipdiscord.html">Join Free Discord</a>
               <a class="btn btn-secondary" href="bootcamp.html">Explore the Bootcamp</a>
