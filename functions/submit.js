@@ -81,7 +81,6 @@ export async function onRequestPost(context) {
   }
 
   // Master FFX email template
-  // Approved design: gradient strip + dark hero (glows + logo row + hero content row + socials) + white body
   function ffxEmail({ kickerText, heroTitle, heroSubtitle, bodyHtml, footerNote, ctaUrl, ctaLabel, afterCtaHtml }) {
 
     const ctaBlock = ctaUrl ? `
@@ -111,7 +110,7 @@ export async function onRequestPost(context) {
     <td align="center" style="padding:40px 16px;">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;border:1px solid rgba(122,92,255,0.30);">
 
-        <!-- Gradient strip - Outlook fallback always visible -->
+        <!-- Gradient strip -->
         <tr>
           <td style="height:7px;background:linear-gradient(90deg,#7a5cff 0%,#e06b1a 100%);font-size:0;line-height:0;">&nbsp;</td>
         </tr>
@@ -127,11 +126,11 @@ export async function onRequestPost(context) {
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
                       <td style="vertical-align:middle;padding-right:10px;">
-                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;display:block;"><img src="https://fortitudefx.com/favicon-192x192.png" alt="FFX" width="36" height="36" style="display:block;border-radius:9px;border:1px solid rgba(122,92,255,0.55);" /></a>
+                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;display:block;"><img src="https://fortitudefx.com/favicon-192x192.png" alt="FFX" width="48" height="48" style="display:block;border-radius:9px;border:1px solid rgba(122,92,255,0.55);" /></a>
                       </td>
                       <td style="vertical-align:middle;">
-                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;"><p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.14em;color:#ffffff;">FORTITUDEFX</p></a>
-                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;"><p style="margin:3px 0 0;font-family:Arial,sans-serif;font-size:9px;color:rgba(255,255,255,0.40);letter-spacing:0.07em;">CATCH THE WICK</p></a>
+                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;"><p style="margin:0;font-family:Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.14em;color:#ffffff;">FORTITUDEFX&#8482;</p></a>
+                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;"><p style="margin:3px 0 0;font-family:Arial,sans-serif;font-size:10px;color:rgba(255,255,255,0.40);letter-spacing:0.07em;">CATCH THE WICK&#8482;</p></a>
                       </td>
                     </tr>
                   </table>
@@ -139,13 +138,10 @@ export async function onRequestPost(context) {
               </tr>
             </table>
 
-            <!-- Hero content row: left (kicker + title) | right (2 Candles. 1 Story.) -->
+            <!-- Hero content row -->
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;">
               <tr>
-                <!-- Left: kicker pill + hero text -->
                 <td style="vertical-align:middle;padding-right:20px;">
-
-                  <!-- Kicker pill -->
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
                     <tr>
                       <td style="background:rgba(122,92,255,0.14);border:1px solid rgba(122,92,255,0.32);border-radius:999px;padding:4px 14px;">
@@ -162,53 +158,39 @@ export async function onRequestPost(context) {
                       </td>
                     </tr>
                   </table>
-
                   <p style="margin:0 0 4px;font-family:Georgia,serif;font-size:26px;font-weight:700;color:#ffffff;line-height:1.15;">${heroTitle}</p>
                   <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;">${heroSubtitle}</p>
-
                 </td>
-
-                <!-- Right: 2 Candles. 1 Story. vertically centered -->
                 <td style="vertical-align:middle;text-align:right;white-space:nowrap;">
                   <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;"><p style="margin:0;font-family:Georgia,serif;font-size:32px;font-weight:900;color:#ffffff;line-height:1.05;letter-spacing:-0.01em;">2 Candles.</p>
-                  <p style="margin:0;font-family:Georgia,serif;font-size:32px;font-weight:900;color:#e06b1a;line-height:1.05;letter-spacing:-0.01em;">1 Story.</p></a>
+                  <p style="margin:0;font-family:Georgia,serif;font-size:32px;font-weight:900;color:#e06b1a;line-height:1.05;letter-spacing:-0.01em;">1 Story.&#8482;</p></a>
                 </td>
-
               </tr>
             </table>
 
             <!-- Social icons row -->
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr>
-
-                <!-- YouTube -->
                 <td style="padding-right:10px;">
                   <a href="https://www.youtube.com/@FortitudeFX" target="_blank" style="display:block;width:38px;height:38px;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.18);border-radius:9px;text-decoration:none;text-align:center;line-height:38px;">
                     <img src="https://fortitudefx.com/email-icon-youtube.png" width="20" height="20" alt="YouTube" style="display:inline-block;vertical-align:middle;" />
                   </a>
                 </td>
-
-                <!-- Instagram -->
                 <td style="padding-right:10px;">
                   <a href="https://instagram.com/fortitudefx_official" target="_blank" style="display:block;width:38px;height:38px;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.18);border-radius:9px;text-decoration:none;text-align:center;line-height:38px;">
                     <img src="https://fortitudefx.com/email-icon-instagram.png" width="20" height="20" alt="Instagram" style="display:inline-block;vertical-align:middle;" />
                   </a>
                 </td>
-
-                <!-- TikTok -->
                 <td style="padding-right:10px;">
                   <a href="https://tiktok.com/@fortitudefx_official" target="_blank" style="display:block;width:38px;height:38px;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.18);border-radius:9px;text-decoration:none;text-align:center;line-height:38px;">
                     <img src="https://fortitudefx.com/email-icon-tiktok.png" width="20" height="20" alt="TikTok" style="display:inline-block;vertical-align:middle;" />
                   </a>
                 </td>
-
-                <!-- X -->
                 <td>
                   <a href="https://x.com/_fortitudefx" target="_blank" style="display:block;width:38px;height:38px;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.18);border-radius:9px;text-decoration:none;text-align:center;line-height:38px;">
                     <img src="https://fortitudefx.com/email-icon-x.png" width="18" height="18" alt="X" style="display:inline-block;vertical-align:middle;" />
                   </a>
                 </td>
-
               </tr>
             </table>
 
@@ -231,7 +213,7 @@ export async function onRequestPost(context) {
               <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
             </table>
             <p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:15px;color:#1a1a2e;font-weight:600;">&#8212; Salman</p>
-            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;">FortitudeFX</p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;">FortitudeFX&#8482;</p>
           </td>
         </tr>
 
@@ -239,7 +221,7 @@ export async function onRequestPost(context) {
         <tr>
           <td style="background-color:#f8f8fb;padding:18px 40px;border-top:1px solid #f0f0f4;">
             <p style="margin:0 0 5px;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;line-height:1.6;">${footerNote}</p>
-            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">&copy; 2026 FortitudeFX. Dubai, UAE. &nbsp;&middot;&nbsp; <a href="https://fortitudefx.com/privacy" style="color:#7a5cff;text-decoration:none;">Privacy Policy</a></p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">&copy; 2026 FortitudeFX&#8482;. Dubai, UAE. &nbsp;&middot;&nbsp; <a href="https://fortitudefx.com/privacy" style="color:#7a5cff;text-decoration:none;">Privacy Policy</a></p>
           </td>
         </tr>
 
@@ -256,7 +238,7 @@ export async function onRequestPost(context) {
     const bodyHtml = `
       <p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">Hi ${firstName},</p>
       <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">You just joined a community built around one idea &mdash; that trading should be mechanical, not emotional. Structure over instinct. Execution over hope.</p>
-      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">The FortitudeFX Discord is where that idea lives daily. Real markets. Real markups. The Catch The Wick framework applied session by session, in real time.</p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">The FortitudeFX&#8482; Discord is where that idea lives daily. Real markets. Real markups. The Catch The Wick&#8482; framework applied session by session, in real time.</p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
         <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
       </table>
@@ -270,14 +252,14 @@ export async function onRequestPost(context) {
 
     await sendEmail(
       email, firstName,
-      "You're in. Welcome to FortitudeFX.",
+      "You're in. Welcome to FortitudeFX\u2122.",
       ffxEmail({
         kickerText:   'FREE COMMUNITY ACCESS',
         heroTitle:    "You're in.",
-        heroSubtitle: 'Welcome to FortitudeFX.',
+        heroSubtitle: 'Welcome to FortitudeFX\u2122.',
         bodyHtml,
         afterCtaHtml,
-        footerNote:   'You are receiving this because you joined the FortitudeFX free community at <a href="https://fortitudefx.com/joinfree" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/joinfree</a>. Reply to this email anytime.',
+        footerNote:   'You are receiving this because you joined the FortitudeFX\u2122 free community at <a href="https://fortitudefx.com/joinfree" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/joinfree</a>. Reply to this email anytime.',
         ctaUrl:       'https://discord.com/invite/fWAPJdR8TR',
         ctaLabel:     'Join Discord'
       }),
@@ -304,7 +286,7 @@ export async function onRequestPost(context) {
         heroTitle:    'Got your message.',
         heroSubtitle: 'We read everything.',
         bodyHtml,
-        footerNote:   'You are receiving this because you contacted FortitudeFX at <a href="https://fortitudefx.com/contact" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/contact</a>. Reply to this email anytime.',
+        footerNote:   'You are receiving this because you contacted FortitudeFX\u2122 at <a href="https://fortitudefx.com/contact" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/contact</a>. Reply to this email anytime.',
         ctaUrl:       null,
         ctaLabel:     null
       }),
