@@ -257,10 +257,10 @@
 
           const regionToHreflang = (region) => {
             if (!region || region === 'Global') return 'en';
-            if (region.includes('GCC'))                                                   return 'en-AE';
-            if (region.includes('US') || region.includes('Canada'))                       return 'en-US';
+            if (region.includes('GCC'))                                                       return 'en-AE';
+            if (region.includes('US') || region.includes('Canada'))                           return 'en-US';
             if (region.includes('EU') || region.includes('UK') || region.includes('Germany')) return 'en-GB';
-            if (region.includes('SEA') || region.includes('Asia'))                        return 'en-SG';
+            if (region.includes('SEA') || region.includes('Asia'))                            return 'en-SG';
             return 'en';
           };
 
@@ -270,7 +270,7 @@
           const siblingHreflang = regionToHreflang(a.siblingRegion);
 
           // Global article is always x-default
-          const globalUrl = (a.region === 'Global' || !a.region) ? thisUrl : siblingUrl;
+          const globalUrl = (!a.region || a.region === 'Global') ? thisUrl : siblingUrl;
 
           [[thisHreflang, thisUrl], [siblingHreflang, siblingUrl], ['x-default', globalUrl]].forEach(([lang, url]) => {
             const link = document.createElement('link');
@@ -280,8 +280,6 @@
             document.head.appendChild(link);
           });
         }
-
-        // Render article
 
         // Render article
         wrap.innerHTML = `
