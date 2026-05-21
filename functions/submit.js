@@ -63,6 +63,18 @@ export async function onRequestPost(context) {
     return json({ error: 'Network error. Please try again.' }, 500);
   }
 
+  // Whop URLs
+  const WHOP_URLS = {
+    VIP: {
+      monthly:   'https://whop.com/checkout/plan_QjGMc5VthTaf9',
+      quarterly: 'https://whop.com/checkout/plan_FJlofouQD240L',
+      '6months': 'https://whop.com/checkout/plan_ciFDSJveeSkXm',
+      annual:    'https://whop.com/checkout/plan_NixvSWyjh8gPW',
+      lifetime:  'https://whop.com/checkout/plan_HIZIt11IwHI7y'
+    },
+    Bootcamp: 'https://whop.com/checkout/plan_DMYuQrlQc2IdT'
+  };
+
   // Email sender helper
   async function sendEmail(to, toName, subject, htmlContent, replyToEmail, replyToName) {
     try {
@@ -81,13 +93,22 @@ export async function onRequestPost(context) {
   }
 
   // Master FFX email template
-  function ffxEmail({ kickerText, heroTitle, heroSubtitle, bodyHtml, footerNote, ctaUrl, ctaLabel, afterCtaHtml }) {
+  function ffxEmail({ kickerText, heroTitle, heroSubtitle, bodyHtml, footerNote, ctaUrl, ctaLabel, secondaryCtaUrl, secondaryCtaLabel, afterCtaHtml }) {
 
     const ctaBlock = ctaUrl ? `
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
         <tr>
           <td style="border-radius:999px;background-color:#e06b1a;">
             <a href="${ctaUrl}" target="_blank" style="display:inline-block;padding:12px 28px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.02em;">${ctaLabel} &#8594;</a>
+          </td>
+        </tr>
+      </table>` : '';
+
+    const secondaryCtaBlock = secondaryCtaUrl ? `
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+        <tr>
+          <td style="border-radius:999px;background-color:#5865F2;">
+            <a href="${secondaryCtaUrl}" target="_blank" style="display:inline-block;padding:10px 24px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.02em;">${secondaryCtaLabel} &#8594;</a>
           </td>
         </tr>
       </table>` : '';
@@ -202,6 +223,7 @@ export async function onRequestPost(context) {
           <td style="background-color:#ffffff;padding:32px 40px 8px;">
             ${bodyHtml}
             ${ctaBlock}
+            ${secondaryCtaBlock}
             ${afterCta}
           </td>
         </tr>
@@ -268,7 +290,6 @@ export async function onRequestPost(context) {
       </table>
       <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;line-height:1.7;">If you ever have a question, reply to this email directly. We read everything.</p>`;
 
-    // User welcome email
     await sendEmail(
       email, firstName,
       "You're in. Welcome to FortitudeFX\u2122.",
@@ -285,7 +306,6 @@ export async function onRequestPost(context) {
       'support@fortitudefx.com', 'Salman | FortitudeFX'
     );
 
-    // Internal notification
     await sendEmail(
       'salmankhanfx@fortitudefx.com', 'Salman',
       '[FFX] New Member \u00b7 ' + firstName + ' ' + email,
@@ -297,36 +317,59 @@ export async function onRequestPost(context) {
   if (path === 'VIP' || path === 'Bootcamp') {
     const isVIP = path === 'VIP';
 
+    // Resolve Whop URL from plan
+    const whopUrl = isVIP
+      ? (WHOP_URLS.VIP[VIP_PLAN] || WHOP_URLS.VIP.monthly)
+      : WHOP_URLS.Bootcamp;
+
     const bodyHtml = `
       <p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">Hi ${firstName},</p>
+      <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">Glad to have you here.</p>
       <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">Your spot on the FortitudeFX&#8482; ${isVIP ? 'VIP Discord' : 'Catch The Wick&#8482; Bootcamp'} waitlist has been secured.</p>
       <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">No payment has been taken. We will contact you directly before anything is processed. You will be among the first to know when doors open.</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+        <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
+      </table>
+      <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">FortitudeFX&#8482; was built around a simple idea &mdash; trading should feel structured, not stressful. Most traders trade emotionally because they don&rsquo;t have a clear plan or clear rules for entering. The Catch The Wick&#8482; framework fixes that. Mechanical execution. Wait for things to align, let the market come to you, and execute when the story is clear.</p>
+      <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">One candle sets the narrative. The next candle reveals intent through the wick. That&rsquo;s it. &ldquo;2 Candles. 1 Story.&rdquo;</p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">You do not need to chase the market to make money from it. There is always another candle &mdash; and every candle is an opportunity. That alone removes most of the stress and emotional pressure. The goal is freedom of time, freedom of mind, and eventually financial freedom. Trading should fit into your life, not consume it.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+        <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
+      </table>
+      <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">START HERE</p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340366861099073677" style="color:#7a5cff;text-decoration:none;">Road Map</a></p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340307009018527747" style="color:#7a5cff;text-decoration:none;">FFX Trade Plan</a></p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1365422976757010482" style="color:#7a5cff;text-decoration:none;">Acronyms</a></p>
+      <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">DAILY CHANNELS</p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1364581791637307453" style="color:#7a5cff;text-decoration:none;">FortitudeFX&#8482; Markups</a></p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1502065935639646459" style="color:#7a5cff;text-decoration:none;">Blog Updates</a></p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340383941516988559" style="color:#7a5cff;text-decoration:none;">General Chat</a></p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
         <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
       </table>
       <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;line-height:1.7;">If you have any questions in the meantime, reply to this email directly.</p>`;
 
-    // User confirmation email
     await sendEmail(
       email, firstName,
       isVIP ? 'Your VIP Discord spot is reserved.' : 'Your Bootcamp spot is reserved.',
       ffxEmail({
-        kickerText:   isVIP ? 'VIP DISCORD WAITLIST' : 'BOOTCAMP WAITLIST',
-        heroTitle:    'Spot secured.',
-        heroSubtitle: isVIP ? 'VIP Discord \u00b7 FortitudeFX\u2122' : 'Catch The Wick\u2122 Bootcamp',
+        kickerText:      isVIP ? 'VIP DISCORD WAITLIST' : 'BOOTCAMP WAITLIST',
+        heroTitle:       'Spot secured.',
+        heroSubtitle:    isVIP ? 'VIP Discord \u00b7 FortitudeFX\u2122' : 'Catch The Wick\u2122 Bootcamp',
         bodyHtml,
-        footerNote:   'You are receiving this because you joined the FortitudeFX\u2122 waitlist at <a href="https://fortitudefx.com/waitlist" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/waitlist</a>. Reply to this email anytime.',
-        ctaUrl:       null,
-        ctaLabel:     null
+        footerNote:      'You are receiving this because you joined the FortitudeFX\u2122 waitlist at <a href="https://fortitudefx.com/waitlist" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/waitlist</a>. Reply to this email anytime.',
+        ctaUrl:          whopUrl,
+        ctaLabel:        'Complete Registration',
+        secondaryCtaUrl:   'https://discord.com/invite/fWAPJdR8TR',
+        secondaryCtaLabel: 'Join Free Discord'
       }),
       'support@fortitudefx.com', 'Salman | FortitudeFX'
     );
 
-    // Internal notification
     await sendEmail(
       'salmankhanfx@fortitudefx.com', 'Salman',
       '[FFX] ' + (isVIP ? 'VIP Waitlist' : 'Bootcamp Waitlist') + ' \u00b7 ' + firstName + ' ' + email,
-      '<html><body><p>' + (isVIP ? 'VIP Waitlist' : 'Bootcamp Waitlist') + ': ' + firstName + ' &lt;' + email + '&gt;</p></body></html>'
+      '<html><body><p>' + (isVIP ? 'VIP Waitlist' : 'Bootcamp Waitlist') + ': ' + firstName + ' &lt;' + email + '&gt;' + (VIP_PLAN ? ' \u00b7 Plan: ' + VIP_PLAN : '') + '</p></body></html>'
     );
   }
 
@@ -341,7 +384,6 @@ export async function onRequestPost(context) {
       </table>
       <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;line-height:1.7;">If it is urgent, reply directly to this email.</p>`;
 
-    // User ack email
     await sendEmail(
       email, firstName,
       'Got your message.',
@@ -357,7 +399,6 @@ export async function onRequestPost(context) {
       'support@fortitudefx.com', 'Salman | FortitudeFX'
     );
 
-    // Internal notification
     await sendEmail(
       'contact@fortitudefx.com', 'FortitudeFX',
       '[FFX] ' + (CONTACT_CATEGORY || 'General Inquiry') + ' from ' + firstName + ' ' + (lastName || ''),
