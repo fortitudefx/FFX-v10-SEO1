@@ -216,7 +216,31 @@
     .p-status.error + .p-detail { color: #e08080; }
     .btn-again { background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-family: var(--sans); font-size: 15px; font-weight: 600; padding: 14px 30px; cursor: pointer; transition: border-color 0.15s; display: block; margin: 0 auto; }
     .btn-again:hover { border-color: #555; }
-
+/* ── INLINE EDITING ── */
+.content-block[contenteditable="true"],
+.tweet-item[contenteditable="true"] {
+  outline: 1px solid var(--blue);
+  cursor: text;
+  border-color: var(--blue-bd);
+  background: var(--blue-bg);
+}
+.edit-save-bar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--blue-bg);
+  border: 1px solid var(--blue-bd);
+  border-radius: 4px;
+}
+.edit-save-bar.visible { display: flex; }
+.edit-save-bar-label { font-family: var(--mono); font-size: 11px; color: var(--blue); flex: 1; }
+.btn-edit-save { font-family: var(--mono); font-size: 12px; font-weight: 600; background: var(--blue); color: #fff; border: none; border-radius: 4px; padding: 7px 18px; cursor: pointer; transition: opacity 0.15s; }
+.btn-edit-save:hover:not(:disabled) { opacity: 0.85; }
+.btn-edit-save:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-edit-discard { font-family: var(--mono); font-size: 12px; background: none; color: var(--muted); border: 1px solid var(--border2); border-radius: 4px; padding: 7px 14px; cursor: pointer; }
+.btn-edit-discard:hover { color: var(--text); border-color: #555; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
@@ -854,9 +878,93 @@ async function loadExisting() {
     document.getElementById('rDiscord').textContent   = c.discord     || '';
     document.getElementById('rTumblr').textContent    = c.tumblr      || '';
     document.getElementById('rMedium').textContent    = c.mediumIntro || '';
+
+    // Wire up click-to-edit
+    ['rBody','rLinkedin','rDiscord','rTumblr','rMedium'].forEach(id => {
+      const el = document.getElementById(id);
+      const field = { rBody: 'body', rLinkedin: 'linkedin', rDiscord: 'discord', rTumblr: 'tumblr', rMedium: 'mediumIntro' }[id];
+      el.dataset.editActive = 'false';
+      el.onclick = () => makeEditable(el, field);
+    });
+
+    // Wire up tweet click-to-edit
+    document.querySelectorAll('#rTweets .tweet-item').forEach((item, i) => {
+      const span = item.querySelector('span:last-child');
+      if (!span) return;
+      span.dataset.editActive = 'false';
+      span.onclick = () => makeEditable(span, `tweet${i + 1}`);
+    });
   }
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
+  // ── INLINE EDITING ──────────────────────────────────────────────────────────
+function makeEditable(el, field) {
+  if (el.dataset.editActive === 'true') return;
+  el.dataset.editActive = 'true';
+  const original = el.innerText;
+  el.setAttribute('contenteditable', 'true');
+  el.focus();
+
+  let bar = el.nextElementSibling;
+  if (!bar || !bar.classList.contains('edit-save-bar')) {
+    bar = document.createElement('div');
+    bar.className = 'edit-save-bar';
+    bar.innerHTML = `
+      <span class="edit-save-bar-label">Editing ${field} — unsaved</span>
+      <button class="btn-edit-discard">Discard</button>
+      <button class="btn-edit-save">Save</button>`;
+    el.parentNode.insertBefore(bar, el.nextSibling);
+  }
+  bar.classList.add('visible');
+
+  bar.querySelector('.btn-edit-save').onclick    = () => saveEditGenerate(el, bar, field, original);
+  bar.querySelector('.btn-edit-discard').onclick = () => discardEdit(el, bar, original);
+}
+
+function discardEdit(el, bar, original) {
+  el.setAttribute('contenteditable', 'false');
+  el.innerText = original;
+  el.dataset.editActive = 'false';
+  bar.classList.remove('visible');
+}
+
+async function saveEditGenerate(el, bar, field, original) {
+  if (!currentContent) return;
+  const saveBtn = bar.querySelector('.btn-edit-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  const value   = el.innerText.trim();
+  const videoId = currentContent.videoId || null;
+
+  try {
+    const res = await fetch('/save-edits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId, kvType: 'video', field, value })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+      bar.querySelector('.edit-save-bar-label').textContent = 'Error: ' + (data.error || 'Save failed');
+      return;
+    }
+    // Update in-memory currentContent so publish uses edited value
+    currentContent[field] = value;
+
+    el.setAttribute('contenteditable', 'false');
+    el.dataset.editActive = 'false';
+    bar.classList.remove('visible');
+    bar.querySelector('.edit-save-bar-label').textContent = `Editing ${field} — unsaved`;
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+  } catch (err) {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+    bar.querySelector('.edit-save-bar-label').textContent = 'Network error — try again';
+  }
+}
   function toggleSection(id) { document.getElementById(id).classList.toggle('open'); }
 
   function backToInput() {
