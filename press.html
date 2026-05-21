@@ -358,6 +358,32 @@
     .empty-state { text-align: center; padding: 80px 0; }
     .empty-state p { font-family: var(--mono); font-size: 13px; color: var(--muted); }
 
+    /* ── INLINE EDITING ── */
+.content-block[contenteditable="true"],
+.tweet-item[contenteditable="true"] {
+  outline: 1px solid var(--blue);
+  cursor: text;
+  border-color: var(--blue-bd);
+  background: var(--blue-bg);
+}
+.edit-save-bar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--blue-bg);
+  border: 1px solid var(--blue-bd);
+  border-radius: 4px;
+}
+.edit-save-bar.visible { display: flex; }
+.edit-save-bar-label { font-family: var(--mono); font-size: 11px; color: var(--blue); flex: 1; }
+.btn-edit-save { font-family: var(--mono); font-size: 12px; font-weight: 600; background: var(--blue); color: #fff; border: none; border-radius: 3px; padding: 7px 18px; cursor: pointer; transition: opacity 0.15s; }
+.btn-edit-save:hover:not(:disabled) { opacity: 0.85; }
+.btn-edit-save:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-edit-discard { font-family: var(--mono); font-size: 12px; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 7px 14px; cursor: pointer; }
+.btn-edit-discard:hover { color: var(--text-mid); border-color: var(--border2); }
+    
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
@@ -552,37 +578,39 @@ function buildExpandedContent(container, video) {
   const panelsData = [
     {
       key: 'article', label: 'Article', platformKey: 'blog',
-      html: () => content.body
-        ? `<div class="content-block article-body">${content.body}</div>`
-        : `<div class="content-block"><em>No article body found.</em></div>`,
+      html: () => {
+        const text = content.body ? stripHtml(content.body) : '';
+        return `<div class="content-block" data-field="body" data-edit-active="false">${escHtml(text) || '<em>No article body found.</em>'}</div>`;
+      },
     },
     {
       key: 'x', label: 'X', platformKey: 'x',
       html: () => tweets.length
         ? `<div class="tweet-list">${tweets.map((t,i) =>
-            `<div class="tweet-item"><span class="tweet-num">${i+1}</span><span>${escHtml(t)}</span></div>`
+            `<div class="tweet-item" data-field="tweet${i+1}" data-edit-active="false"><span class="tweet-num">${i+1}</span><span class="tweet-text">${escHtml(t)}</span></div>`
           ).join('')}</div>`
         : `<div class="content-block"><em>No tweets found.</em></div>`,
     },
     {
+      {
       key: 'linkedin', label: 'LinkedIn', platformKey: 'linkedin',
       html: () => {
         const text = content.linkedin || platforms.linkedin?.content?.linkedin || platforms.linkedin?.content?.text || '';
-        return `<div class="content-block">${text ? escHtml(text) : '<em>No LinkedIn content found.</em>'}</div>`;
+        return `<div class="content-block" data-field="linkedin" data-edit-active="false">${text ? escHtml(text) : '<em>No LinkedIn content found.</em>'}</div>`;
       },
     },
     {
       key: 'discord', label: 'Discord', platformKey: 'discord',
       html: () => {
         const text = content.discord || platforms.discord?.content?.discord || platforms.discord?.content?.text || '';
-        return `<div class="content-block">${text ? escHtml(text) : '<em>No Discord content found.</em>'}</div>`;
+        return `<div class="content-block" data-field="discord" data-edit-active="false">${text ? escHtml(text) : '<em>No Discord content found.</em>'}</div>`;
       },
     },
     {
       key: 'tumblr', label: 'Tumblr', platformKey: 'tumblr',
       html: () => {
         const text = content.tumblr || platforms.tumblr?.content?.tumblr || platforms.tumblr?.content?.text || '';
-        return `<div class="content-block">${text ? escHtml(text) : '<em>No Tumblr content found.</em>'}</div>`;
+        return `<div class="content-block" data-field="tumblr" data-edit-active="false">${text ? escHtml(text) : '<em>No Tumblr content found.</em>'}</div>`;
       },
     },
   ];
@@ -708,6 +736,17 @@ function buildExpandedContent(container, video) {
 
   inner.appendChild(tabBar);
   inner.appendChild(panelContainer);
+  // Wire up click-to-edit on all content blocks and tweet items
+  panelContainer.querySelectorAll('.content-block[data-field]').forEach(el => {
+    el.addEventListener('click', () => makeEditable(el, video, el.dataset.field));
+  });
+  panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(el => {
+    el.addEventListener('click', () => {
+      const textSpan = el.querySelector('.tweet-text');
+      if (!textSpan) return;
+      makeEditable(textSpan, video, el.dataset.field);
+    });
+  });
   inner.appendChild(actionRow);
   inner.appendChild(pubResult);
   container.appendChild(inner);
@@ -832,7 +871,79 @@ function setGenStatus(msg, cls) {
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-function extractPostUrl(status) {
+  // ── INLINE EDITING ──────────────────────────────────────────────────────────
+function makeEditable(el, video, field) {
+  if (el.dataset.editActive === 'true') return;
+  el.dataset.editActive = 'true';
+
+  // Strip HTML to plain text for editing
+  const original = el.innerText;
+  el.setAttribute('contenteditable', 'true');
+  el.focus();
+
+  // Find or create save bar
+  let bar = el.nextElementSibling;
+  if (!bar || !bar.classList.contains('edit-save-bar')) {
+    bar = document.createElement('div');
+    bar.className = 'edit-save-bar';
+    bar.innerHTML = `
+      <span class="edit-save-bar-label">Editing ${field} — unsaved</span>
+      <button class="btn-edit-discard">Discard</button>
+      <button class="btn-edit-save">Save</button>`;
+    el.parentNode.insertBefore(bar, el.nextSibling);
+  }
+  bar.classList.add('visible');
+
+  bar.querySelector('.btn-edit-save').onclick = () => saveEdit(el, bar, video, field, original);
+  bar.querySelector('.btn-edit-discard').onclick = () => discardEdit(el, bar, original);
+}
+
+function discardEdit(el, bar, original) {
+  el.setAttribute('contenteditable', 'false');
+  el.innerText = original;
+  el.dataset.editActive = 'false';
+  bar.classList.remove('visible');
+}
+
+async function saveEdit(el, bar, video, field, original) {
+  const saveBtn = bar.querySelector('.btn-edit-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  const value   = el.innerText.trim();
+  const videoId = video.videoId || null;
+  const slug    = video.slug || null;
+
+  try {
+    const res = await fetch('/save-edits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId, slug, kvType: 'published', field, value })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+      bar.querySelector('.edit-save-bar-label').textContent = 'Error: ' + (data.error || 'Save failed');
+      return;
+    }
+    // Update in-memory video object so republish uses edited content
+    if (!video.globalContent) video.globalContent = {};
+    video.globalContent[field] = value;
+
+    el.setAttribute('contenteditable', 'false');
+    el.dataset.editActive = 'false';
+    bar.classList.remove('visible');
+    bar.querySelector('.edit-save-bar-label').textContent = `Editing ${field} — unsaved`;
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+  } catch (err) {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+    bar.querySelector('.edit-save-bar-label').textContent = 'Network error — try again';
+  }
+}
+  function extractPostUrl(status) {
   if (!status) return null;
   if (status.startsWith('http')) return status;
   if (status.startsWith('=HYPERLINK(')) {
@@ -867,6 +978,10 @@ function formatDate(str) {
 function escHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+  function stripHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/<[^>]+>/g, ' ').replace(/\s{2,}/g, ' ').trim();
 }
 
 document.addEventListener('DOMContentLoaded', init);
