@@ -958,19 +958,20 @@ async function saveEdit(el, bar, video, field, original) {
     if (!video.editedFields.includes(field)) video.editedFields.push(field);
 
     // Rebuild expanded content to show orange chip immediately
+   // Do this last — it wipes the DOM so el/bar/saveBtn refs are dead after this
     const expandedContainer = el.closest('.row-expanded');
     if (expandedContainer) {
       expandedContainer.innerHTML = '';
       buildExpandedContent(expandedContainer, video);
       expandedContainer.dataset.built = '1';
+    } else {
+      // No rebuild possible — just clean up the edit state manually
+      el.setAttribute('contenteditable', 'false');
+      el.dataset.editActive = 'false';
+      bar.classList.remove('visible');
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
     }
-
-    el.setAttribute('contenteditable', 'false');
-    el.dataset.editActive = 'false';
-    bar.classList.remove('visible');
-    bar.querySelector('.edit-save-bar-label').textContent = `Editing ${field} — unsaved`;
-    saveBtn.disabled = false;
-    saveBtn.textContent = 'Save';
   } catch (err) {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save';
