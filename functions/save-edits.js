@@ -11,13 +11,10 @@ export async function onRequestPost(context) {
   catch { return json({ error: 'Invalid JSON.' }, 400); }
 
   const { videoId, slug, kvType, field, value } = payload;
-  // kvType: 'video' (24hr staging) or 'published' (permanent)
-  // field: 'body' | 'linkedin' | 'discord' | 'tumblr' | 'mediumIntro' | 'tweet1'..'tweet6'
 
   if (!field || value === undefined) return json({ error: 'Missing field or value.' }, 400);
   if (!kvType || !['video', 'published'].includes(kvType)) return json({ error: 'Invalid kvType.' }, 400);
 
-  // Resolve KV key
   let kvKey;
   if (kvType === 'video') {
     if (!videoId) return json({ error: 'videoId required for video kvType.' }, 400);
@@ -27,7 +24,6 @@ export async function onRequestPost(context) {
     kvKey = videoId ? `published:${videoId}` : `published:slug:${slug}`;
   }
 
-  // Read existing record
   const raw = await KV.get(kvKey, { type: 'text' }).catch(() => null);
   if (!raw) return json({ error: `KV record not found: ${kvKey}` }, 404);
 
@@ -35,14 +31,9 @@ export async function onRequestPost(context) {
   try { record = JSON.parse(raw); }
   catch { return json({ error: 'KV record is malformed JSON.' }, 500); }
 
-  // Resolve which content object to update
-  // video:{videoId} stores: { platforms: { blog_global, blog_regional, x, linkedin, discord, tumblr } }
-  // published:{videoId} stores: { globalContent: { body, linkedin, discord, tumblr, tweet1..6 } }
   const isTweet = /^tweet[1-6]$/.test(field);
 
   if (kvType === 'video') {
-    // Staging record — content lives in platforms.blog_global for article,
-    // and top-level for social fields
     if (field === 'body') {
       if (!record.platforms) record.platforms = {};
       if (!record.platforms.blog_global) record.platforms.blog_global = {};
@@ -51,26 +42,39 @@ export async function onRequestPost(context) {
       if (!record.platforms) record.platforms = {};
       if (!record.platforms.x) record.platforms.x = {};
       record.platforms.x[field] = value;
+      const tweetIndex = parseInt(field.replace('tweet', '')) - 1;
+      if (Array.isArray(record.platforms?.x_thread)) {
+        record.platforms.x_thread[tweetIndex] = value;
+      }
     } else {
-      // linkedin, discord, tumblr, mediumIntro
       if (!record.platforms) record.platforms = {};
       if (!record.platforms[field]) record.platforms[field] = {};
       record.platforms[field][field] = value;
     }
   } else {
-    // Published record — content lives in globalContent
+    // Published record
     if (!record.globalContent) record.globalContent = {};
+
     if (field === 'body') {
       record.globalContent.body = value;
     } else if (isTweet) {
       record.globalContent[field] = value;
+      const tweetIndex = parseInt(field.replace('tweet', '')) - 1;
+      if (Array.isArray(record.globalContent.x_thread)) {
+        record.globalContent.x_thread[tweetIndex] = value;
+      }
     } else {
       record.globalContent[field] = value;
     }
+
     record.updatedAt = new Date().toISOString();
+
+    // Track edited fields — so Press can show orange "Edited — republish" chip
+    // publish-confirm.js clears relevant fields from this array on successful publish
+    if (!Array.isArray(record.editedFields)) record.editedFields = [];
+    if (!record.editedFields.includes(field)) record.editedFields.push(field);
   }
 
-  // Write back — preserve TTL for video keys (24hr = 86400s)
   if (kvType === 'video') {
     await KV.put(kvKey, JSON.stringify(record), { expirationTtl: 86400 });
   } else {
