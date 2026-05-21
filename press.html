@@ -948,6 +948,22 @@ async function saveEdit(el, bar, video, field, original) {
     // Update in-memory video object so republish uses edited content
     if (!video.globalContent) video.globalContent = {};
     video.globalContent[field] = value;
+    // Also update x_thread in memory so rebuild after publish shows the edit
+    const tweetMatch = field.match(/^tweet([1-6])$/);
+    if (tweetMatch && Array.isArray(video.globalContent.x_thread)) {
+      video.globalContent.x_thread[parseInt(tweetMatch[1]) - 1] = value;
+    }
+    // Track edited field in memory — triggers orange chip on rebuild
+    if (!Array.isArray(video.editedFields)) video.editedFields = [];
+    if (!video.editedFields.includes(field)) video.editedFields.push(field);
+
+    // Rebuild expanded content to show orange chip immediately
+    const expandedContainer = el.closest('.row-expanded');
+    if (expandedContainer) {
+      expandedContainer.innerHTML = '';
+      buildExpandedContent(expandedContainer, video);
+      expandedContainer.dataset.built = '1';
+    }
 
     el.setAttribute('contenteditable', 'false');
     el.dataset.editActive = 'false';
