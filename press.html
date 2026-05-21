@@ -592,7 +592,6 @@ function buildExpandedContent(container, video) {
         : `<div class="content-block"><em>No tweets found.</em></div>`,
     },
     {
-      {
       key: 'linkedin', label: 'LinkedIn', platformKey: 'linkedin',
       html: () => {
         const text = content.linkedin || platforms.linkedin?.content?.linkedin || platforms.linkedin?.content?.text || '';
