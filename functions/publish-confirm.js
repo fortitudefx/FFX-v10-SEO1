@@ -216,6 +216,26 @@ export async function onRequestPost(context) {
           updatedPlatforms.discord = { status: status.discord, publishedAt: timestamp };
         }
 
+        // Clear editedFields for platforms that just published successfully
+        const fieldsToCheck = {
+          blog:     ['body'],
+          x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
+          linkedin: ['linkedin'],
+          discord:  ['discord'],
+          tumblr:   ['tumblr'],
+        };
+        let remainingEditedFields = Array.isArray(existingPublished.editedFields)
+          ? [...existingPublished.editedFields]
+          : [];
+
+        Object.entries(fieldsToCheck).forEach(([platform, fields]) => {
+          const s = status[platform];
+          const published = s && !s.startsWith('Error') && s !== 'not_selected' && s !== 'pending';
+          if (published) {
+            remainingEditedFields = remainingEditedFields.filter(f => !fields.includes(f));
+          }
+        });
+
         const publishedEntry = {
           videoId,
           youtubeUrl: content.youtubeUrl || content.yt_url || '',
@@ -223,12 +243,10 @@ export async function onRequestPost(context) {
           title: content.title || '',
           region: content.region || 'Global',
           updatedAt: timestamp,
-          // Store FULL content objects for Press republishing
-          // video:{videoId} expires after 24hrs — published:{videoId} is permanent
-          // Press reads globalContent + regionalContent from here for republish
           globalContent: content,
           regionalContent: regionalContent || null,
           platforms: updatedPlatforms,
+          editedFields: remainingEditedFields,
         };
 
         // No TTL — published content is permanent
