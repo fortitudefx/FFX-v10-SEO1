@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y056J2K2WK"></script>
 <script>
@@ -83,135 +82,6 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
-
-  <!-- ═══ CSS TO ADD ═══ -->
-<!-- Add this inside the <style> block in vipdiscord.html -->
-<!-- OR add it just before </head> in a new <style> tag -->
-
-  .vipd-price-card {
-    background: rgba(255,255,255,0.035);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px;
-    padding: 26px 22px;
-    display: flex;
-    flex-direction: column;
-    transition: border-color 0.2s ease, transform 0.2s ease;
-    position: relative;
-  }
-  .vipd-price-card:hover {
-    border-color: rgba(201,168,76,0.30);
-    transform: translateY(-2px);
-  }
-  .vipd-price-card.is-featured {
-    background: rgba(201,168,76,0.07);
-    border-color: rgba(201,168,76,0.40);
-  }
-  .vipd-price-card.is-featured::before {
-    content: 'MOST POPULAR';
-    position: absolute;
-    top: -1px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
-    background: rgba(201,168,76,0.90);
-    color: #06060a;
-    font-size: 0.65rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    padding: 3px 12px;
-    border-radius: 999px;
-    white-space: nowrap;
-  }
-
-  .vipd-price-card-name {
-    font-size: 0.74rem;
-    font-weight: 700;
-    letter-spacing: 0.10em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.40);
-    margin-bottom: 10px;
-  }
-  .vipd-price-card.is-featured .vipd-price-card-name {
-    color: rgba(232,210,140,0.65);
-  }
-
-  .vipd-price-card-save {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 9px;
-    border-radius: 999px;
-    background: rgba(201,168,76,0.12);
-    border: 1px solid rgba(201,168,76,0.28);
-    color: rgba(232,210,140,0.90);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    margin-bottom: 10px;
-    width: fit-content;
-  }
-
-  .vipd-price-card-price {
-    font-size: 2.1rem;
-    font-weight: 800;
-    color: #fff;
-    letter-spacing: -0.04em;
-    line-height: 1;
-  }
-  .vipd-price-card-term {
-    font-size: 0.78rem;
-    color: rgba(255,255,255,0.35);
-    margin-top: 4px;
-    margin-bottom: 14px;
-  }
-
-  .vipd-price-card-meta {
-    font-size: 0.82rem;
-    color: rgba(255,255,255,0.48);
-    line-height: 1.5;
-    flex: 1;
-    margin-bottom: 22px;
-  }
-  .vipd-price-card-meta strong {
-    color: rgba(255,255,255,0.78);
-    font-weight: 600;
-  }
-
-  .vipd-price-card-btn {
-    display: block;
-    width: 100%;
-    text-align: center;
-    padding: 12px 0;
-    border-radius: 11px;
-    font-size: 0.80rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    text-decoration: none;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.78);
-    transition: all 0.2s ease;
-  }
-  .vipd-price-card-btn:hover {
-    background: rgba(255,255,255,0.10);
-    border-color: rgba(255,255,255,0.22);
-    color: #fff;
-  }
-  .vipd-price-card.is-featured .vipd-price-card-btn {
-    background: rgba(201,168,76,0.18);
-    border-color: rgba(201,168,76,0.50);
-    color: rgba(232,210,140,0.95);
-  }
-  .vipd-price-card.is-featured .vipd-price-card-btn:hover {
-    background: rgba(201,168,76,0.28);
-  }
-
-  .vipd-pricing-footnote {
-    margin-top: 28px;
-    font-size: 0.80rem;
-    color: rgba(255,255,255,0.25);
-    text-align: center;
-  }
-
 </head>
 <body class="page-vip">
 
@@ -454,96 +324,124 @@
 
 
 
-<!-- ═══ REPLACEMENT PRICING SECTION FOR vipdiscord.html ═══ -->
-<!-- Find the existing <section class="vipd-section" id="vipd-pricing"> block -->
-<!-- and replace the ENTIRE section with this -->
+  <section class="vipd-section" id="vipd-pricing">
+      <div class="vipd-container">
+        <div class="vipd-pricing-shell">
+          <div class="vipd-pricing-topbar">
+            <div class="vipd-pricing-title-wrap">
+              <div class="kicker">Membership Access</div>
+              <h3>Choose your plan.</h3>
+              <p>
+                Access is structured to reward longer-term commitment without making the page feel promotional or loud.
+                The value sits in the environment, the consistency, and the quality of proximity — not in discount theatrics.
+              </p>
+            </div>
 
-<section class="section ffx-reveal" id="vipd-pricing">
-  <div class="section-wrap">
+            <div class="panel-badge panel-badge-gold">BONUS · Additional 50% Off</div>
+          </div>
 
-    <div class="section-head">
-      <div>
-        <span class="kicker">MEMBERSHIP ACCESS</span>
-        <h2>Choose your plan.</h2>
+          <div class="vipd-plans">
+            <input class="vipd-plan-input" type="radio" name="vipd-membership-plan" id="vipd-plan-monthly" value="monthly" checked="">
+            <label class="vipd-plan-card" for="vipd-plan-monthly">
+              <div class="vipd-plan-select"></div>
+              <div class="vipd-plan-main">
+                <div class="vipd-plan-row-top">
+                  <div class="vipd-plan-name">Monthly</div>
+                </div>
+                <div class="vipd-plan-price-line">
+                  <div class="vipd-plan-price">$149.00</div>
+                  <div class="vipd-plan-term">/ month</div>
+                </div>
+              </div>
+              <div class="vipd-plan-meta">
+                <strong>Flexible entry</strong>
+              </div>
+            </label>
+
+            <input class="vipd-plan-input" type="radio" name="vipd-membership-plan" id="vipd-plan-quarterly" value="quarterly">
+            <label class="vipd-plan-card" for="vipd-plan-quarterly">
+              <div class="vipd-plan-select"></div>
+              <div class="vipd-plan-main">
+                <div class="vipd-plan-row-top">
+                  <div class="vipd-plan-name">Quarterly</div>
+                  <div class="vipd-plan-save">22% off</div>
+                </div>
+                <div class="vipd-plan-price-line">
+                  <div class="vipd-plan-price">$349.00</div>
+                  <div class="vipd-plan-term">/ 3 months</div>
+                </div>
+              </div>
+              <div class="vipd-plan-meta">
+                <strong>Lower monthly rate</strong>
+              </div>
+            </label>
+
+            <input class="vipd-plan-input" type="radio" name="vipd-membership-plan" id="vipd-plan-6months" value="6months">
+            <label class="vipd-plan-card" for="vipd-plan-6months">
+              <div class="vipd-plan-select"></div>
+              <div class="vipd-plan-main">
+                <div class="vipd-plan-row-top">
+                  <div class="vipd-plan-name">6 Months</div>
+                  <div class="vipd-plan-save">44% off</div>
+                </div>
+                <div class="vipd-plan-price-line">
+                  <div class="vipd-plan-price">$499.00</div>
+                  <div class="vipd-plan-term">/ 6 months</div>
+                </div>
+              </div>
+              <div class="vipd-plan-meta">
+                <strong>Commit deeper</strong>
+              </div>
+            </label>
+
+            <input class="vipd-plan-input" type="radio" name="vipd-membership-plan" id="vipd-plan-annual" value="annual">
+            <label class="vipd-plan-card" for="vipd-plan-annual">
+              <div class="vipd-plan-select"></div>
+              <div class="vipd-plan-main">
+                <div class="vipd-plan-row-top">
+                  <div class="vipd-plan-name">Annual</div>
+                  <div class="vipd-plan-save">50% off</div>
+                </div>
+                <div class="vipd-plan-price-line">
+                  <div class="vipd-plan-price">$899.00</div>
+                  <div class="vipd-plan-term">/ year</div>
+                </div>
+              </div>
+              <div class="vipd-plan-meta">
+                <strong>Highest annual value</strong>
+              </div>
+            </label>
+
+            <input class="vipd-plan-input" type="radio" name="vipd-membership-plan" id="vipd-plan-lifetime" value="lifetime">
+            <label class="vipd-plan-card" for="vipd-plan-lifetime">
+              <div class="vipd-plan-select"></div>
+              <div class="vipd-plan-main">
+                <div class="vipd-plan-row-top">
+                  <div class="vipd-plan-name">Lifetime</div>
+                  <div class="vipd-plan-save">50% OFF</div>
+                </div>
+                <div class="vipd-plan-price-line">
+                  <div class="vipd-plan-price">$2,249.00</div>
+                  <div class="vipd-plan-term">one-time purchase</div>
+                </div>
+              </div>
+              <div class="vipd-plan-meta">
+                <strong>Permanent access</strong>
+              </div>
+            </label>
+
+            <div class="vipd-pricing-foot">
+              <p>
+                Membership length changes the rate, not the standard of access.
+                Every plan leads into the same premium environment — disciplined discussion, stronger context, and a cleaner community experience.
+              </p>
+
+              <a id="vipd-waitlist-btn" href="waitlist.html?path=VIP#form" class="btn btn-primary">Join the Waitlist</a>
+            </div>
+          </div>
+        </div>
       </div>
-      <p>
-        Membership length changes the rate, not the standard of access. Every plan leads into the same premium environment — disciplined discussion, stronger context, and a cleaner community experience.
-      </p>
-    </div>
-
-    <div class="vipd-card-grid">
-
-      <!-- Monthly -->
-      <div class="vipd-price-card">
-        <div class="vipd-price-card-name">Monthly</div>
-        <div class="vipd-price-card-price">$149</div>
-        <div class="vipd-price-card-term">/ month</div>
-        <div class="vipd-price-card-meta"><strong>Flexible entry.</strong> Start when you're ready, cancel any time.</div>
-        <a href="waitlist.html?path=VIP&plan=monthly" class="vipd-price-card-btn">Join Waitlist</a>
-      </div>
-
-      <!-- Quarterly -->
-      <div class="vipd-price-card">
-        <div class="vipd-price-card-name">Quarterly</div>
-        <div class="vipd-price-card-save">22% off</div>
-        <div class="vipd-price-card-price">$349</div>
-        <div class="vipd-price-card-term">/ 3 months</div>
-        <div class="vipd-price-card-meta"><strong>Lower monthly rate.</strong> ~$116/mo — commit to the quarter.</div>
-        <a href="waitlist.html?path=VIP&plan=quarterly" class="vipd-price-card-btn">Join Waitlist</a>
-      </div>
-
-      <!-- 6 Months — featured -->
-      <div class="vipd-price-card is-featured">
-        <div class="vipd-price-card-name">6 Months</div>
-        <div class="vipd-price-card-save">44% off</div>
-        <div class="vipd-price-card-price">$499</div>
-        <div class="vipd-price-card-term">/ 6 months</div>
-        <div class="vipd-price-card-meta"><strong>Commit deeper.</strong> ~$83/mo — the environment works when you stay in it.</div>
-        <a href="waitlist.html?path=VIP&plan=6months" class="vipd-price-card-btn">Join Waitlist</a>
-      </div>
-
-      <!-- Annual -->
-      <div class="vipd-price-card">
-        <div class="vipd-price-card-name">Annual</div>
-        <div class="vipd-price-card-save">50% off</div>
-        <div class="vipd-price-card-price">$899</div>
-        <div class="vipd-price-card-term">/ year</div>
-        <div class="vipd-price-card-meta"><strong>Highest annual value.</strong> ~$75/mo — one full year to compound the framework.</div>
-        <a href="waitlist.html?path=VIP&plan=annual" class="vipd-price-card-btn">Join Waitlist</a>
-      </div>
-
-      <!-- Lifetime -->
-      <div class="vipd-price-card">
-        <div class="vipd-price-card-name">Lifetime</div>
-        <div class="vipd-price-card-save">50% off</div>
-        <div class="vipd-price-card-price">$2,249</div>
-        <div class="vipd-price-card-term">one-time purchase</div>
-        <div class="vipd-price-card-meta"><strong>Permanent access.</strong> Pay once, stay in the environment for life.</div>
-        <a href="waitlist.html?path=VIP&plan=lifetime" class="vipd-price-card-btn">Join Waitlist</a>
-      </div>
-
-    </div>
-
-    <!-- footnote -->
-    <p class="vipd-pricing-footnote">
-      Membership length changes the rate, not the standard of access. Every plan leads into the same premium environment.
-    </p>
-
-  </div>
-</section>
-
-
-  /* Responsive */
-  @media (max-width: 1100px) {
-    .vipd-card-grid { grid-template-columns: repeat(3, 1fr); }
-  }
-  @media (max-width: 720px) {
-    .vipd-card-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 480px) {
-    .vipd-card-grid { grid-template-columns: 1fr; }
-  }
-</style>
+    </section>
 
   <div class="section-break"></div>
 
