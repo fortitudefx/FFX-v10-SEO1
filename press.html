@@ -240,6 +240,8 @@
     }
     .ptab-chip-ok  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
     .ptab-chip-err { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
+    .ptab-chip-edited { background: #2a1500; color: #e06b1a; border: 1px solid #4a2800; }
+.psb-chip-edited  { background: #2a1500; color: #e06b1a; border: 1px solid #4a2800; }
 
     .platform-panels { position: relative; }
     .ppanel { display: none; }
@@ -626,12 +628,25 @@ function buildExpandedContent(container, video) {
     const isErr      = pStatus.startsWith('Error');
     const publishedAt = platforms[p.platformKey]?.publishedAt || '';
 
-    // FIX 5: Clean tab chip — text label not dot
-    const chipHtml = isOk
-      ? `<span class="ptab-chip ptab-chip-ok">Posted</span>`
-      : isErr
-        ? `<span class="ptab-chip ptab-chip-err">Error</span>`
-        : '';
+    // Check if this platform has unsaved edits vs what was published
+    const platformFieldMap = {
+      blog:     ['body'],
+      x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
+      linkedin: ['linkedin'],
+      discord:  ['discord'],
+      tumblr:   ['tumblr'],
+    };
+    const editedFields = video.editedFields || [];
+    const platformFields = platformFieldMap[p.platformKey] || [];
+    const isEdited = isOk && platformFields.some(f => editedFields.includes(f));
+
+    const chipHtml = isEdited
+      ? `<span class="ptab-chip ptab-chip-edited">Edited — republish</span>`
+      : isOk
+        ? `<span class="ptab-chip ptab-chip-ok">Posted</span>`
+        : isErr
+          ? `<span class="ptab-chip ptab-chip-err">Error</span>`
+          : '';
 
     const tab = document.createElement('button');
     tab.className     = 'ptab' + (idx === 0 ? ' active' : '');
@@ -646,9 +661,10 @@ function buildExpandedContent(container, video) {
 
     // FIX 5: Clean status chip text
     let chipClass, chipText;
-    if (postUrl)       { chipClass = 'psb-chip-ok';   chipText = '✓ Posted'; }
-    else if (isErr)    { chipClass = 'psb-chip-err';   chipText = '✕ Error'; }
-    else               { chipClass = 'psb-chip-pend';  chipText = '○ Not posted'; }
+    if (isEdited)      { chipClass = 'psb-chip-edited'; chipText = '⚠ Edited — republish'; }
+    else if (postUrl)  { chipClass = 'psb-chip-ok';     chipText = '✓ Posted'; }
+    else if (isErr)    { chipClass = 'psb-chip-err';     chipText = '✕ Error'; }
+    else               { chipClass = 'psb-chip-pend';    chipText = '○ Not posted'; }
 
     // FIX 4: Published date display
     const dateHtml = publishedAt
