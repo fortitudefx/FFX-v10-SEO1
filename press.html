@@ -799,9 +799,9 @@ async function publishVideo(videoId, slug, actionRow, pubBtn, container, video) 
     const row = container.closest('.video-row');
     if (data.status) updatePills(row, data.status);
 
-    container.dataset.built = '';
     container.innerHTML = '';
-    buildExpandedContent(container, video);
+buildExpandedContent(container, video);
+container.dataset.built = '1';
     showPubResult(container, '✓ Published successfully', true);
     pubBtn.disabled = false; pubBtn.textContent = 'Publish';
 
