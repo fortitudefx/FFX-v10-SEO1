@@ -785,13 +785,16 @@ async function publishVideo(videoId, slug, actionRow, pubBtn, container, video) 
     }
 
     if (data.status) {
-      Object.keys(data.status).forEach(p => {
-        if (!video.platforms) video.platforms = {};
-        if (!video.platforms[p]) video.platforms[p] = {};
-        video.platforms[p].status = data.status[p];
-        video.platforms[p].publishedAt = new Date().toISOString();
-      });
-    }
+  if (!video.platforms) video.platforms = {};
+  Object.keys(data.status).forEach(p => {
+    const s = data.status[p];
+    // Only update platforms that actually ran — never overwrite with not_selected or pending
+    if (!s || s === 'not_selected' || s === 'pending') return;
+    if (!video.platforms[p]) video.platforms[p] = {};
+    video.platforms[p].status = s;
+    video.platforms[p].publishedAt = new Date().toISOString();
+  });
+}
 
     const row = container.closest('.video-row');
     if (data.status) updatePills(row, data.status);
