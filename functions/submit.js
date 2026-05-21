@@ -283,8 +283,23 @@ if (path === 'Free') {
     }),
     'support@fortitudefx.com', 'Salman | FortitudeFX'
   );
+  // Internal notification — Free signup
+    await sendEmail(
+      'salmankhanfx@fortitudefx.com', 'Salman',
+      '[FFX] New Member · ' + firstName + ' ' + email,
+      ' '
+    );
 }
 
+   // Internal notification — Waitlist signup
+  if (path === 'VIP' || path === 'Bootcamp') {
+    await sendEmail(
+      'salmankhanfx@fortitudefx.com', 'Salman',
+      '[FFX] ' + (path === 'VIP' ? 'VIP Waitlist' : 'Bootcamp Waitlist') + ' · ' + firstName + ' ' + email,
+      ' '
+    );
+  }
+  
   // Contact - ack to user + internal notification
   if (path === 'Contact') {
     const bodyHtml = `
