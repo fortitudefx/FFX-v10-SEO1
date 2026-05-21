@@ -234,38 +234,56 @@ export async function onRequestPost(context) {
   }
 
   // Join Free - welcome email
-  if (path === 'Free') {
-    const bodyHtml = `
-      <p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">Hi ${firstName},</p>
-      <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">You just joined a community built around one idea &mdash; that trading should be mechanical, not emotional. Structure over instinct. Execution over hope.</p>
-      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">The FortitudeFX&#8482; Discord is where that idea lives daily. Real markets. Real markups. The Catch The Wick&#8482; framework applied session by session, in real time.</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
-        <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
-      </table>
-      <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;">Your access is active. Click below to join.</p>`;
+if (path === 'Free') {
+  const bodyHtml = `
+    <p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">Hi ${firstName},</p>
+    <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">Glad to have you here.</p>
+    <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">FortitudeFX&#8482; was built around a simple idea &mdash; trading should feel structured, not stressful. Most traders trade emotionally because they don&rsquo;t have a clear plan or clear rules for entering. The Catch The Wick&#8482; framework fixes that. Mechanical execution. Wait for things to align, let the market come to you, and execute when the story is clear.</p>
+    <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">One candle sets the narrative. The next candle reveals intent through the wick. That&rsquo;s it. &ldquo;2 Candles. 1 Story.&rdquo;</p>
+    <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">You do not need to chase the market to make money from it. There is always another candle &mdash; and every candle is an opportunity. That alone removes most of the stress and emotional pressure. The goal is freedom of time, freedom of mind, and eventually financial freedom. Trading should fit into your life, not consume it.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+      <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
+    </table>
+    <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">START HERE</p>
+    <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340366861099073677" style="color:#7a5cff;text-decoration:none;">Road Map</a></p>
+    <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340307009018527747" style="color:#7a5cff;text-decoration:none;">FFX Trade Plan</a></p>
+    <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1365422976757010482" style="color:#7a5cff;text-decoration:none;">Acronyms</a></p>
+    <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">DAILY CHANNELS</p>
+    <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1364581791637307453" style="color:#7a5cff;text-decoration:none;">FortitudeFX&#8482; Markups</a></p>
+    <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1502065935639646459" style="color:#7a5cff;text-decoration:none;">Blog Updates</a></p>
+    <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340383941516988559" style="color:#7a5cff;text-decoration:none;">General Chat</a></p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+      <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
+    </table>
+    <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">MUST WATCH</p>
+    <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">&#8594; <a href="https://youtu.be/wDM__Q1aSNY?si=RbM2sfNnLJpom75I" style="color:#7a5cff;text-decoration:none;">Video</a></p>
+    <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">Take your time, explore the channels, and make yourself at home. If you need help getting started, feel free to reach out anytime.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+      <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
+    </table>`;
 
-    const afterCtaHtml = `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
-        <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
-      </table>
-      <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;line-height:1.7;">If you ever have a question, reply to this email directly. We read everything.</p>`;
+  const afterCtaHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+      <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
+    </table>
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;color:#9999aa;line-height:1.7;">If you ever have a question, reply to this email directly. We read everything.</p>`;
 
-    await sendEmail(
-      email, firstName,
-      "You're in. Welcome to FortitudeFX\u2122.",
-      ffxEmail({
-        kickerText:   'FREE COMMUNITY ACCESS',
-        heroTitle:    "You're in.",
-        heroSubtitle: 'Welcome to FortitudeFX\u2122.',
-        bodyHtml,
-        afterCtaHtml,
-        footerNote:   'You are receiving this because you joined the FortitudeFX\u2122 free community at <a href="https://fortitudefx.com/joinfree" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/joinfree</a>. Reply to this email anytime.',
-        ctaUrl:       'https://discord.com/invite/fWAPJdR8TR',
-        ctaLabel:     'Join Discord'
-      }),
-      'support@fortitudefx.com', 'Salman | FortitudeFX'
-    );
-  }
+  await sendEmail(
+    email, firstName,
+    "You're in. Welcome to FortitudeFX\u2122.",
+    ffxEmail({
+      kickerText:   'FREE COMMUNITY ACCESS',
+      heroTitle:    "You're in.",
+      heroSubtitle: 'Welcome to FortitudeFX\u2122.',
+      bodyHtml,
+      afterCtaHtml,
+      footerNote:   'You are receiving this because you joined the FortitudeFX\u2122 free community at <a href="https://fortitudefx.com/joinfree" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/joinfree</a>. Reply to this email anytime.',
+      ctaUrl:       'https://discord.com/invite/fWAPJdR8TR',
+      ctaLabel:     'Join Discord'
+    }),
+    'support@fortitudefx.com', 'Salman | FortitudeFX'
+  );
+}
 
   // Contact - ack to user + internal notification
   if (path === 'Contact') {
