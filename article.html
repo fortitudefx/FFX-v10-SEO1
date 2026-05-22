@@ -338,5 +338,285 @@
       });
   })();
   </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+     FFX JOIN FREE POPUP — INLINE SNIPPET
+     ═══════════════════════════════════════════════════════════════
+     Paste this entire block just before </body> on these pages:
+       index.html, vipdiscord.html, bootcamp.html, blog.html, article.html
+
+     BEHAVIOUR:
+     - Fires ONCE per session (sessionStorage flag: ffx_popup_shown)
+     - Trigger 1: 30-35 sec timer (random in range, feels natural)
+     - Trigger 2: Exit intent — mouse leaves top of viewport (desktop only)
+     - Whichever fires first shows the popup, the other is cancelled
+     - Two message variants: timer = "still here" message, exit = "before you go"
+     - One popup per session regardless of how many pages they visit
+     ═══════════════════════════════════════════════════════════════ -->
+
+<style>
+  /* ── FFX POPUP OVERLAY ── */
+  #ffx-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(6,6,10,0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+  }
+  #ffx-popup-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  #ffx-popup {
+    background: #0d0d14;
+    border: 1px solid rgba(224,107,26,0.25);
+    border-radius: 24px;
+    padding: 44px 40px 36px;
+    max-width: 520px;
+    width: 100%;
+    position: relative;
+    box-shadow:
+      0 0 80px rgba(224,107,26,0.18),
+      0 0 160px rgba(224,107,26,0.08),
+      0 32px 80px rgba(0,0,0,0.60);
+    transform: translateY(20px) scale(0.97);
+    transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+  }
+  #ffx-popup-overlay.is-open #ffx-popup {
+    transform: translateY(0) scale(1);
+  }
+
+  /* Glow top edge */
+  #ffx-popup::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(224,107,26,0.60), transparent);
+    border-radius: 999px;
+  }
+
+  /* Close button */
+  #ffx-popup-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.45);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+    flex-shrink: 0;
+  }
+  #ffx-popup-close:hover {
+    background: rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.80);
+  }
+
+  /* Signature line */
+  .ffx-popup-sig {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(224,107,26,0.70);
+    margin-bottom: 20px;
+  }
+
+  /* Message */
+  .ffx-popup-headline {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+  }
+  .ffx-popup-body {
+    font-size: 0.92rem;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.70;
+    margin: 0 0 10px;
+  }
+  .ffx-popup-sign {
+    font-size: 0.86rem;
+    color: rgba(255,255,255,0.35);
+    font-style: italic;
+    margin: 0 0 28px;
+  }
+
+  /* Divider */
+  .ffx-popup-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.07);
+    margin: 0 0 24px;
+  }
+
+  /* CTA buttons */
+  .ffx-popup-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ffx-popup-btn-primary {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 14px 24px;
+    border-radius: 999px;
+    background: #e06b1a;
+    border: 2px solid #e06b1a;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    transition: opacity 0.2s, transform 0.15s;
+    box-shadow: 0 0 24px rgba(224,107,26,0.40), 0 0 48px rgba(224,107,26,0.18);
+  }
+  .ffx-popup-btn-primary:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+  }
+  .ffx-popup-btn-secondary {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 13px 24px;
+    border-radius: 999px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.55);
+    font-size: 0.90rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s, transform 0.15s;
+  }
+  .ffx-popup-btn-secondary:hover {
+    border-color: rgba(255,255,255,0.30);
+    color: rgba(255,255,255,0.85);
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 560px) {
+    #ffx-popup { padding: 36px 24px 28px; }
+    .ffx-popup-headline { font-size: 1.05rem; }
+  }
+</style>
+
+<!-- Popup HTML -->
+<div id="ffx-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="ffx-popup-headline">
+  <div id="ffx-popup">
+    <button id="ffx-popup-close" aria-label="Close">&times;</button>
+    <div class="ffx-popup-sig">FortitudeFX™</div>
+    <h2 class="ffx-popup-headline" id="ffx-popup-headline"></h2>
+    <p class="ffx-popup-body" id="ffx-popup-body"></p>
+    <p class="ffx-popup-sign">— Salman Khan</p>
+    <div class="ffx-popup-divider"></div>
+    <div class="ffx-popup-actions">
+      <a href="joinfree.html" class="ffx-popup-btn-primary">Join Free →</a>
+      <a href="waitlist.html#form" class="ffx-popup-btn-secondary">Join the Waitlist →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // Already shown this session — do nothing
+  if (sessionStorage.getItem('ffx_popup_shown')) return;
+
+  var MESSAGES = {
+    timer: {
+      headline: 'Most traders spend years jumping between strategies, indicators, and opinions without ever building a real framework.',
+      body: 'FortitudeFX was built to simplify trading into something mechanical, repeatable, and mentally sustainable. If you\'re serious about learning how we approach the market through the Catch The Wick framework — join the free community below.'
+    },
+    exit: {
+      headline: 'Before you go —',
+      body: 'The goal here was never to create another signal group or "trade all day" community. FortitudeFX is built around structure, patience, and freeing traders from emotional decision-making and screen addiction. If that resonates with you, join the free Discord or the waitlist and stay connected.'
+    }
+  };
+
+  var overlay   = document.getElementById('ffx-popup-overlay');
+  var headline  = document.getElementById('ffx-popup-headline');
+  var body      = document.getElementById('ffx-popup-body');
+  var closeBtn  = document.getElementById('ffx-popup-close');
+  var shown     = false;
+  var timerRef  = null;
+  var exitBound = false;
+
+  function showPopup(variant) {
+    if (shown) return;
+    shown = true;
+    sessionStorage.setItem('ffx_popup_shown', '1');
+
+    // Clear the other trigger
+    if (timerRef) clearTimeout(timerRef);
+    if (exitBound) document.removeEventListener('mouseleave', onMouseLeave);
+
+    headline.textContent = MESSAGES[variant].headline;
+    body.textContent     = MESSAGES[variant].body;
+    overlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePopup() {
+    overlay.classList.remove('is-open');
+    document.body.style.overflow = '';
+  }
+
+  // Close on button
+  closeBtn.addEventListener('click', closePopup);
+
+  // Close on overlay click (outside popup)
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closePopup();
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closePopup();
+  });
+
+  // Trigger 1 — timer (30–35 sec random, feels natural not robotic)
+  var delay = 30000 + Math.random() * 5000;
+  timerRef = setTimeout(function() {
+    showPopup('timer');
+  }, delay);
+
+  // Trigger 2 — exit intent (desktop only, mouse leaves top of viewport)
+  function onMouseLeave(e) {
+    if (e.clientY <= 0) {
+      showPopup('exit');
+    }
+  }
+
+  if (window.innerWidth >= 768) {
+    exitBound = true;
+    document.addEventListener('mouseleave', onMouseLeave);
+  }
+
+})();
+</script>
+  
 </body>
 </html>
