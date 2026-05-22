@@ -883,7 +883,7 @@
 })();
 </script>
 
-  <!-- ═══════════════════════════════════════════════════════════════
+ <!-- ═══════════════════════════════════════════════════════════════
      FFX FLOATING SOCIAL ICONS — INLINE SNIPPET
      ═══════════════════════════════════════════════════════════════
      Paste this entire block just before </body> on all public pages:
@@ -926,36 +926,35 @@
     background: transparent;
   }
 
-  /* SVG icon colour */
+  /* SVG always on top, always crisp — no filter blur ever */
   .ffx-social-icon svg {
     width: 20px;
     height: 20px;
     position: relative;
-    z-index: 1;
-    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), filter 0.25s ease;
-    filter: drop-shadow(0 0 0px transparent);
+    z-index: 2;
+    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+    flex-shrink: 0;
   }
 
-  /* Ambient glow pseudo-element */
+  /* Glow lives entirely behind the icon via z-index: 1 */
   .ffx-social-icon::after {
     content: '';
     position: absolute;
-    inset: -4px;
+    inset: -6px;
     border-radius: 50%;
-    opacity: 0.35;
+    z-index: 1;
+    opacity: 0;
     transition: opacity 0.25s ease, transform 0.25s ease;
-    filter: blur(8px);
+    filter: blur(10px);
   }
 
-  .ffx-social-icon:hover {
-    transform: translateY(-3px) scale(1.12);
+  /* Hover — icon scales up sharp, glow expands behind it */
+  .ffx-social-icon:hover svg {
+    transform: scale(1.18);
   }
   .ffx-social-icon:hover::after {
-    opacity: 0.75;
-    transform: scale(1.2);
-  }
-  .ffx-social-icon:hover svg {
-    filter: drop-shadow(0 0 6px currentColor);
+    opacity: 0.45;
+    transform: scale(1.25);
   }
 
   /* ── YouTube — red ── */
@@ -1065,7 +1064,6 @@
   </a>
 
 </nav>
-
   
 </body>
 </html>
