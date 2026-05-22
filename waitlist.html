@@ -214,6 +214,29 @@
       border-color: var(--accent-orange);
       background: rgba(224,107,26,0.08);
     }
+    .wl-plan-card.is-featured {
+      background: rgba(201,168,76,0.07);
+      border-color: rgba(201,168,76,0.40);
+    }
+    .wl-plan-card.is-featured::before {
+      content: 'MOST POPULAR';
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-50%);
+      background: rgba(201,168,76,0.90);
+      color: #06060a;
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      padding: 3px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .wl-plan-input:checked + .wl-plan-card.is-featured {
+      border-color: rgba(201,168,76,0.80);
+      background: rgba(201,168,76,0.12);
+    }
 
     .wl-plan-dot {
       width: 10px;
@@ -305,9 +328,15 @@
 
     .wl-bootcamp-card {
       background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
       padding: 1.25rem 1.25rem;
+      transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .wl-bootcamp-card.is-selected {
+      border-color: var(--accent-orange);
+      background: rgba(224,107,26,0.06);
+      box-shadow: 0 0 0 1px rgba(224,107,26,0.20);
     }
     .wl-bootcamp-card .tiny {
       font-size: 0.94rem;
@@ -323,7 +352,7 @@
       gap: 0.6rem;
       margin-bottom: 0.75rem;
     }
-    .wl-bootcamp-price strong { font-size: 1.84rem; font-weight: 800; color: var(--text-primary); }
+    .wl-bootcamp-price strong { font-size: 2.2rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.03em; }
     .wl-bootcamp-price s { font-size: 1.09rem; color: var(--text-muted); }
     .wl-bootcamp-bonus {
       background: rgba(212,175,55,0.08);
@@ -582,7 +611,7 @@
                     </label>
 
                     <input class="wl-plan-input" type="radio" name="wlVipPlan" id="wl-plan-6months" value="6months" />
-                    <label class="wl-plan-card" for="wl-plan-6months">
+                    <label class="wl-plan-card is-featured" for="wl-plan-6months">
                       <div class="wl-plan-dot"></div>
                       <div class="wl-plan-name">6 Months</div>
                       <span class="wl-plan-save">44% off</span>
@@ -612,7 +641,7 @@
                     </label>
 
                   </div>
-                  <div class="wl-selection-output">Selected: <span id="wlVipSelText">Choose a plan</span></div>
+
                 </div>
 
                 <!-- Bootcamp panel — UNCHANGED -->
@@ -803,7 +832,7 @@
     const vipPlanInputs = Array.from(document.querySelectorAll('input[name="wlVipPlan"]'));
     const panelVip      = document.getElementById('panel-vip');
     const panelBootcamp = document.getElementById('panel-bootcamp');
-    const vipSelText    = document.getElementById('wlVipSelText');
+
     const discordIcon   = document.getElementById('wlDiscordIcon');
     const formTitle     = document.getElementById('wlFormTitle');
     const formSub       = document.getElementById('wlFormSub');
@@ -822,6 +851,8 @@
       const path = getPath();
       panelVip.classList.toggle('is-active', path === 'VIP');
       panelBootcamp.classList.toggle('is-active', path === 'Bootcamp');
+      const bootcampCard = document.querySelector('.wl-bootcamp-card');
+      if (bootcampCard) bootcampCard.classList.toggle('is-selected', path === 'Bootcamp');
       if (path === 'VIP') {
         discordIcon.style.display = 'block';
         formTitle.textContent = 'Secure My Spot \u2014 VIP Discord';
@@ -834,13 +865,7 @@
       hideError();
     }
 
-    function syncVipLabel() {
-      const plan = getVipPlan();
-      vipSelText.textContent = plan ? VIP_PLAN_LABELS[plan] : 'Choose a plan';
-    }
-
-    pathInputs.forEach(el    => el.addEventListener('change', syncPanels));
-    vipPlanInputs.forEach(el => el.addEventListener('change', syncVipLabel));
+    pathInputs.forEach(el => el.addEventListener('change', syncPanels));
 
     submitBtn.addEventListener('click', async () => {
       hideError();
@@ -951,7 +976,6 @@
     }
 
     syncPanels();
-    syncVipLabel();
 
   })();
   </script>
