@@ -883,7 +883,7 @@
 })();
 </script>
 
- <!-- ═══════════════════════════════════════════════════════════════
+<!-- ═══════════════════════════════════════════════════════════════
      FFX FLOATING SOCIAL ICONS — INLINE SNIPPET
      ═══════════════════════════════════════════════════════════════
      Paste this entire block just before </body> on all public pages:
@@ -1069,88 +1069,65 @@
 (function() {
   var float = document.getElementById('ffx-social-float');
   if (!float) return;
-
   var icons = Array.from(float.querySelectorAll('.ffx-social-icon'));
   if (!icons.length) return;
 
-  // Spring config per icon — bottom icon reacts first, top icon last
-  // staggerDelay: how many ms behind the scroll each icon lags
-  // stiffness: how snappy the spring is (higher = snappier)
-  // damping: how much it overshoots before settling (lower = more bounce)
-  var configs = [
-    { staggerDelay: 0,    stiffness: 0.055, damping: 0.72 }, // YouTube   — top,    last to react
-    { staggerDelay: 40,   stiffness: 0.060, damping: 0.70 }, // X
-    { staggerDelay: 80,   stiffness: 0.065, damping: 0.68 }, // Instagram
-    { staggerDelay: 120,  stiffness: 0.070, damping: 0.66 }, // TikTok
-    { staggerDelay: 160,  stiffness: 0.075, damping: 0.64 }, // Discord   — bottom, first to react
-  ];
-
-  // Reverse so Discord (last in DOM) reacts first
-  configs = configs.reverse();
-
-  var maxShift  = 42; // slightly more prominent than before
-  var states    = icons.map(function(_, i) {
-    return {
-      current:  0,
-      velocity: 0,
-      target:   0,
-      delayed:  0,
-      cfg:      configs[i] || configs[0]
-    };
+  // Each icon: stagger delay in ms (Discord=bottom reacts first)
+  var delays    = [200, 150, 100, 50, 0]; // YouTube, X, IG, TikTok, Discord
+  var states    = icons.map(function() {
+    return { pos: 0, vel: 0, target: 0 };
   });
 
-  var scrollTarget = 0;
-  var scrollQueue  = [];
+  var lastScrollY  = window.scrollY;
+  var scrollVel    = 0;
+  var iconTargets  = icons.map(function() { return 0; });
 
-  function getScrollRatio() {
-    var doc   = document.documentElement;
-    var total = doc.scrollHeight - doc.clientHeight;
-    if (total <= 0) return 0.5;
-    return window.scrollY / total;
-  }
+  // On scroll — capture velocity and push staggered targets
+  window.addEventListener('scroll', function() {
+    var current = window.scrollY;
+    scrollVel   = current - lastScrollY;
+    lastScrollY = current;
 
-  function onScroll() {
-    scrollTarget = (getScrollRatio() - 0.5) * maxShift;
-
-    // Feed delayed targets to each icon with stagger
+    // Push target to each icon with its stagger delay
     icons.forEach(function(_, i) {
-      var delay = states[i].cfg.staggerDelay;
+      var vel = scrollVel;
       setTimeout(function() {
-        states[i].target = scrollTarget;
-      }, delay);
+        // Clamp so it doesn't go wild on fast flick
+        var push = Math.max(-55, Math.min(55, vel * 2.2));
+        states[i].target = push;
+        // After a short hold, spring back to 0
+        setTimeout(function() {
+          states[i].target = 0;
+        }, 120);
+      }, delays[i]);
     });
-  }
 
-  window.addEventListener('scroll', onScroll, { passive: true });
+  }, { passive: true });
 
-  // Breathing offset — slow sine per icon, slightly different phase each
-  var startTime = performance.now();
+  // Breathing — each icon on different phase
+  var start = performance.now();
 
   function tick(now) {
-    var elapsed = (now - startTime) / 1000;
+    var elapsed = (now - start) / 1000;
 
     icons.forEach(function(el, i) {
-      var s   = states[i];
-      var cfg = s.cfg;
+      var s = states[i];
 
-      // Spring physics
-      var force    = (s.target - s.current) * cfg.stiffness;
-      s.velocity   = (s.velocity + force) * cfg.damping;
-      s.current   += s.velocity;
+      // Spring toward target
+      var force = (s.target - s.pos) * 0.18;
+      s.vel     = (s.vel + force) * 0.62;
+      s.pos    += s.vel;
 
-      // Individual breathing — each icon on slightly different phase
-      var breathPhase  = elapsed * 0.35 + i * 0.6;
-      var breath       = Math.sin(breathPhase) * 4;
+      // Individual idle breath — different phase per icon
+      var breath = Math.sin(elapsed * 0.45 + i * 0.75) * 5;
 
-      var total = s.current + breath;
-      el.style.transform = 'translateY(' + total.toFixed(2) + 'px)';
+      el.style.transform = 'translateY(' + (s.pos + breath).toFixed(2) + 'px)';
     });
 
     requestAnimationFrame(tick);
   }
 
   requestAnimationFrame(tick);
-
 })();
 </script>
   
