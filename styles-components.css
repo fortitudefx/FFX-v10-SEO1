@@ -1,0 +1,277 @@
+/* ============================================================
+   FORTITUDEFX — COMPONENTS STYLESHEET
+   
+   Reusable components that appear on multiple pages.
+   Loaded alongside styles-base.css on all public pages.
+   
+   Components:
+   - FFX Join Free Popup       (#ffx-popup-overlay)
+   - FFX Floating Social Icons (#ffx-social-float)
+   
+   Pages that use this file:
+   Popup:       index.html, vipdiscord.html, bootcamp.html, blog.html, article.html
+   Social float: all public pages
+   ============================================================ */
+
+
+/* ============================================================
+   FFX JOIN FREE POPUP
+   ============================================================ */
+
+#ffx-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6,6,10,0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+#ffx-popup-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+#ffx-popup {
+  background: #0d0d14;
+  border: 1px solid rgba(224,107,26,0.25);
+  border-radius: 24px;
+  padding: 44px 40px 36px;
+  max-width: 520px;
+  width: 100%;
+  position: relative;
+  box-shadow:
+    0 0 80px rgba(224,107,26,0.18),
+    0 0 160px rgba(224,107,26,0.08),
+    0 32px 80px rgba(0,0,0,0.60);
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+}
+
+#ffx-popup-overlay.is-open #ffx-popup {
+  transform: translateY(0) scale(1);
+}
+
+/* Glow top edge */
+#ffx-popup::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(224,107,26,0.60), transparent);
+  border-radius: 999px;
+}
+
+/* Close button */
+#ffx-popup-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.45);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+#ffx-popup-close:hover {
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.80);
+}
+
+.ffx-popup-sig {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(224,107,26,0.70);
+  margin-bottom: 20px;
+}
+
+.ffx-popup-headline {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  margin: 0 0 14px;
+}
+
+.ffx-popup-body {
+  font-size: 0.92rem;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.70;
+  margin: 0 0 10px;
+}
+
+.ffx-popup-sign {
+  font-size: 0.86rem;
+  color: rgba(255,255,255,0.35);
+  font-style: italic;
+  margin: 0 0 28px;
+}
+
+.ffx-popup-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+  margin: 0 0 24px;
+}
+
+.ffx-popup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ffx-popup-btn-primary {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 14px 24px;
+  border-radius: 999px;
+  background: #e06b1a;
+  border: 2px solid #e06b1a;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.15s;
+  box-shadow: 0 0 24px rgba(224,107,26,0.40), 0 0 48px rgba(224,107,26,0.18);
+}
+
+.ffx-popup-btn-primary:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.ffx-popup-btn-secondary {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 13px 24px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.55);
+  font-size: 0.90rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+.ffx-popup-btn-secondary:hover {
+  border-color: rgba(255,255,255,0.30);
+  color: rgba(255,255,255,0.85);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 560px) {
+  #ffx-popup { padding: 36px 24px 28px; }
+  .ffx-popup-headline { font-size: 1.05rem; }
+}
+
+
+/* ============================================================
+   FFX FLOATING SOCIAL ICONS
+   Desktop only — hidden below 1024px
+   Icons: YouTube · X · Instagram · TikTok · Discord
+   ============================================================ */
+
+#ffx-social-float {
+  position: fixed;
+  right: max(44px, calc((100vw - 1380px) / 2 + 20px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 900;
+  pointer-events: none;
+  will-change: transform;
+}
+
+@media (max-width: 1023px) {
+  #ffx-social-float { display: none; }
+}
+
+.ffx-social-icon {
+  pointer-events: all;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  position: relative;
+  will-change: transform;
+  background: transparent;
+}
+
+/* SVG always on top, always crisp */
+.ffx-social-icon svg {
+  width: 20px;
+  height: 20px;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+  flex-shrink: 0;
+}
+
+/* Glow behind the icon */
+.ffx-social-icon::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  filter: blur(10px);
+}
+
+/* Hover — icon scales up sharp, glow expands behind */
+.ffx-social-icon:hover svg {
+  transform: scale(1.40);
+}
+
+.ffx-social-icon:hover::after {
+  opacity: 0.45;
+  transform: scale(1.45);
+}
+
+/* ── Brand colours ── */
+.ffx-si-yt svg  { color: #FF0000; }
+.ffx-si-yt::after { background: #FF0000; }
+
+.ffx-si-x svg   { color: rgba(255,255,255,0.85); }
+.ffx-si-x::after { background: rgba(255,255,255,0.70); }
+
+.ffx-si-ig svg  { color: #E1306C; }
+.ffx-si-ig::after {
+  background: radial-gradient(circle, #F56040, #E1306C, #833AB4);
+}
+
+.ffx-si-tt svg  { color: #69C9D0; }
+.ffx-si-tt::after {
+  background: radial-gradient(circle, #69C9D0, #EE1D52);
+}
+
+.ffx-si-dc svg  { color: #5865F2; }
+.ffx-si-dc::after { background: #5865F2; }
