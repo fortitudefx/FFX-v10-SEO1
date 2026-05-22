@@ -57,7 +57,7 @@
       .pricing-hero-grid { grid-template-columns: 1fr; gap: 2.5rem; }
     }
 
-    /* ── ORANGE ANCHOR PILLS ── */
+    /* ── ORANGE ANCHOR PILLS — inherit btn sizing from styles-base.css ── */
     .pricing-pills {
       display: flex;
       gap: 14px;
@@ -65,36 +65,16 @@
       flex-wrap: wrap;
     }
     .pricing-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 28px;
-      border-radius: 999px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
       text-decoration: none;
-      border: 2px solid rgba(224,107,26,0.30);
-      color: rgba(255,255,255,0.45);
-      background: rgba(255,255,255,0.03);
       transition: all 0.2s ease;
     }
     .pricing-pill:hover {
-      border-color: rgba(224,107,26,0.70);
-      color: rgba(255,255,255,0.90);
-      background: rgba(224,107,26,0.08);
       transform: translateY(-2px);
     }
     .pricing-pill.is-orange {
-      background: #e06b1a;
-      border-color: #e06b1a;
-      color: #fff;
       box-shadow: 0 0 28px rgba(224,107,26,0.55), 0 0 56px rgba(224,107,26,0.25), 0 4px 16px rgba(224,107,26,0.40);
     }
     .pricing-pill.is-orange:hover {
-      background: #d46216;
-      border-color: #d46216;
       box-shadow: 0 0 36px rgba(224,107,26,0.65), 0 0 72px rgba(224,107,26,0.30), 0 6px 20px rgba(224,107,26,0.50);
       transform: translateY(-2px);
     }
@@ -104,6 +84,8 @@
       border-radius: 50%;
       background: rgba(255,255,255,0.40);
       flex-shrink: 0;
+      display: inline-block;
+      margin-right: 2px;
     }
     .pricing-pill.is-orange .pricing-pill-dot {
       background: rgba(255,255,255,1);
@@ -533,11 +515,11 @@
 
             <!-- Orange anchor pills -->
             <div class="pricing-pills">
-              <a href="#vip" class="pricing-pill is-orange">
+              <a href="#vip" class="btn btn-joinfree pricing-pill is-orange">
                 <span class="pricing-pill-dot"></span>
                 VIP Discord
               </a>
-              <a href="#bootcamp" class="pricing-pill">
+              <a href="#bootcamp" class="btn btn-secondary pricing-pill">
                 <span class="pricing-pill-dot"></span>
                 Bootcamp
               </a>
