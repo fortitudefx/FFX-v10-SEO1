@@ -899,8 +899,8 @@
   #ffx-social-float {
     position: fixed;
     right: max(44px, calc((100vw - 1380px) / 2 + 20px));
-    top: 50%;
-    transform: translateY(-50%);
+
+
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -1048,13 +1048,33 @@
 
   var current  = 0;
   var target   = 0;
-  var maxShift = 80; // visible but not aggressive
+  var maxShift = 50;
 
   function getScrollRatio() {
     var doc   = document.documentElement;
     var total = doc.scrollHeight - doc.clientHeight;
     if (total <= 0) return 0.5;
     return window.scrollY / total;
+  }
+
+  function getClampedTop() {
+    var container = document.querySelector('.page-container');
+    if (!container) return window.innerHeight / 2 - float.offsetHeight / 2;
+
+    var rect    = container.getBoundingClientRect();
+    var floatH  = float.offsetHeight;
+    var padding = 32;
+
+    // Centre of visible container portion
+    var visTop    = Math.max(rect.top, 0);
+    var visBottom = Math.min(rect.bottom, window.innerHeight);
+    var centre    = (visTop + visBottom) / 2 - floatH / 2;
+
+    // Clamp within container borders
+    var minTop = rect.top + padding;
+    var maxTop = rect.bottom - floatH - padding;
+
+    return Math.max(minTop, Math.min(maxTop, centre));
   }
 
   window.addEventListener('scroll', function() {
@@ -1065,14 +1085,12 @@
 
   function tick(now) {
     var elapsed = (now - start) / 1000;
+    current    += (target - current) * 0.06;
+    var breath  = Math.sin(elapsed * 0.4) * 3.5;
+    var top     = getClampedTop();
 
-    // Smooth lerp toward scroll target
-    current += (target - current) * 0.07;
-
-    // Gentle idle breath on top
-    var breath = Math.sin(elapsed * 0.4) * 5;
-
-    float.style.transform = 'translateY(calc(-50% + ' + (current + breath).toFixed(2) + 'px))';
+    float.style.top       = top + 'px';
+    float.style.transform = 'translateY(' + (current + breath).toFixed(2) + 'px)';
 
     requestAnimationFrame(tick);
   }
