@@ -906,6 +906,7 @@
     gap: 14px;
     z-index: 900;
     pointer-events: none;
+    will-change: transform;
   }
 
   @media (max-width: 1023px) {
@@ -1069,34 +1070,20 @@
 (function() {
   var float = document.getElementById('ffx-social-float');
   if (!float) return;
-  var icons = Array.from(float.querySelectorAll('.ffx-social-icon'));
-  if (!icons.length) return;
 
-  // Discord (bottom) reacts first, YouTube (top) last
-  var delays = [180, 130, 85, 40, 0]; // YouTube, X, IG, TikTok, Discord
+  var current  = 0;
+  var target   = 0;
+  var maxShift = 50; // visible but not aggressive
 
-  var states = icons.map(function() {
-    return { pos: 0, vel: 0, target: 0 };
-  });
-
-  var lastScrollY = window.scrollY;
+  function getScrollRatio() {
+    var doc   = document.documentElement;
+    var total = doc.scrollHeight - doc.clientHeight;
+    if (total <= 0) return 0.5;
+    return window.scrollY / total;
+  }
 
   window.addEventListener('scroll', function() {
-    var current = window.scrollY;
-    var vel     = current - lastScrollY;
-    lastScrollY = current;
-
-    icons.forEach(function(_, i) {
-      setTimeout(function() {
-        // Gentle push — clamped to ±18px max
-        states[i].target = Math.max(-18, Math.min(18, vel * 0.9));
-        // Spring back to rest
-        setTimeout(function() {
-          states[i].target = 0;
-        }, 100);
-      }, delays[i]);
-    });
-
+    target = (getScrollRatio() - 0.5) * maxShift;
   }, { passive: true });
 
   var start = performance.now();
@@ -1104,19 +1091,13 @@
   function tick(now) {
     var elapsed = (now - start) / 1000;
 
-    icons.forEach(function(el, i) {
-      var s = states[i];
+    // Smooth lerp toward scroll target
+    current += (target - current) * 0.06;
 
-      // Tight spring — snappy settle, minimal overshoot
-      var force = (s.target - s.pos) * 0.14;
-      s.vel     = (s.vel + force) * 0.72;
-      s.pos    += s.vel;
+    // Gentle idle breath on top
+    var breath = Math.sin(elapsed * 0.4) * 3.5;
 
-      // Very gentle breath — barely there, just alive
-      var breath = Math.sin(elapsed * 0.38 + i * 0.65) * 2.5;
-
-      el.style.transform = 'translateY(' + (s.pos + breath).toFixed(2) + 'px)';
-    });
+    float.style.transform = 'translateY(calc(-50% + ' + (current + breath).toFixed(2) + 'px))';
 
     requestAnimationFrame(tick);
   }
