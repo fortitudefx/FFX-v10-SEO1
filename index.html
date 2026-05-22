@@ -1072,39 +1072,33 @@
   var icons = Array.from(float.querySelectorAll('.ffx-social-icon'));
   if (!icons.length) return;
 
-  // Each icon: stagger delay in ms (Discord=bottom reacts first)
-  var delays    = [200, 150, 100, 50, 0]; // YouTube, X, IG, TikTok, Discord
-  var states    = icons.map(function() {
+  // Discord (bottom) reacts first, YouTube (top) last
+  var delays = [180, 130, 85, 40, 0]; // YouTube, X, IG, TikTok, Discord
+
+  var states = icons.map(function() {
     return { pos: 0, vel: 0, target: 0 };
   });
 
-  var lastScrollY  = window.scrollY;
-  var scrollVel    = 0;
-  var iconTargets  = icons.map(function() { return 0; });
+  var lastScrollY = window.scrollY;
 
-  // On scroll — capture velocity and push staggered targets
   window.addEventListener('scroll', function() {
     var current = window.scrollY;
-    scrollVel   = current - lastScrollY;
+    var vel     = current - lastScrollY;
     lastScrollY = current;
 
-    // Push target to each icon with its stagger delay
     icons.forEach(function(_, i) {
-      var vel = scrollVel;
       setTimeout(function() {
-        // Clamp so it doesn't go wild on fast flick
-        var push = Math.max(-55, Math.min(55, vel * 2.2));
-        states[i].target = push;
-        // After a short hold, spring back to 0
+        // Gentle push — clamped to ±18px max
+        states[i].target = Math.max(-18, Math.min(18, vel * 0.9));
+        // Spring back to rest
         setTimeout(function() {
           states[i].target = 0;
-        }, 120);
+        }, 100);
       }, delays[i]);
     });
 
   }, { passive: true });
 
-  // Breathing — each icon on different phase
   var start = performance.now();
 
   function tick(now) {
@@ -1113,13 +1107,13 @@
     icons.forEach(function(el, i) {
       var s = states[i];
 
-      // Spring toward target
-      var force = (s.target - s.pos) * 0.18;
-      s.vel     = (s.vel + force) * 0.62;
+      // Tight spring — snappy settle, minimal overshoot
+      var force = (s.target - s.pos) * 0.14;
+      s.vel     = (s.vel + force) * 0.72;
       s.pos    += s.vel;
 
-      // Individual idle breath — different phase per icon
-      var breath = Math.sin(elapsed * 0.45 + i * 0.75) * 5;
+      // Very gentle breath — barely there, just alive
+      var breath = Math.sin(elapsed * 0.38 + i * 0.65) * 2.5;
 
       el.style.transform = 'translateY(' + (s.pos + breath).toFixed(2) + 'px)';
     });
