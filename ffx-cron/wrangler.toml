@@ -1,0 +1,18 @@
+name = "ffx-cron"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+# Cron trigger — Mon-Fri 9am Dubai time (GST = UTC+4, so 5am UTC)
+[triggers]
+crons = ["0 5 * * 1,2,3,4,5"]
+
+[[kv_namespaces]]
+binding = "FFX_KV"
+id = "6660064783ba4b2fbe4f8a0031818e99"
+
+[[queues.producers]]
+queue = "ffx-generate-queue"
+binding = "FFX_QUEUE"
+
+[vars]
+YOUTUBE_CHANNEL_ID = "UConuNkzv83jBubkaQpXwXjQ"
