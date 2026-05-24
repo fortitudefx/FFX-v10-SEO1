@@ -1,14 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Regenerate Platform
 // POST /api/regenerate-platform
-// Pulls transcript:{videoId} from KV — no Supadata call
+// Pulls transcript:{videoId} from permanent KV — no Supadata call ever
 // Calls Claude for one platform only
-// Writes result to pendingEdits in published:{videoId} — never touches globalContent
+// Writes to regen:{videoId}:{platform} — 24hr TTL staging only
+// Never touches globalContent, pendingEdits, or any other platform
+// User must hit Save to move content into pendingEdits permanently
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PLATFORM_FIELDS = {
   article:  ['body'],
-  x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6','x_thread'],
+  x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
   linkedin: ['linkedin'],
   discord:  ['discord'],
   tumblr:   ['tumblr'],
@@ -21,7 +23,7 @@ export async function onRequestPost(context) {
     'Access-Control-Allow-Origin': '*',
   };
 
-  if (!env.FFX_KV)           return json({ error: 'FFX_KV not bound' }, 500, headers);
+  if (!env.FFX_KV)            return json({ error: 'FFX_KV not bound' }, 500, headers);
   if (!env.ANTHROPIC_API_KEY) return json({ error: 'ANTHROPIC_API_KEY not set' }, 500, headers);
 
   let body;
@@ -36,28 +38,29 @@ export async function onRequestPost(context) {
     return json({ error: `Unknown platform: ${platform}. Valid: ${Object.keys(PLATFORM_FIELDS).join(', ')}` }, 400, headers);
   }
 
-  // ── 1. Pull transcript — no Supadata call ────────────────────────────────
+  // ── 1. Pull transcript from permanent KV — no Supadata call ever ─────────
   const transcript = await env.FFX_KV.get(`transcript:${videoId}`, { type: 'text' }).catch(() => null);
   if (!transcript) {
-    return json({ error: 'Transcript not found in KV. This video was generated before transcript storage was added. Re-generate the full video to store the transcript.' }, 404, headers);
+    return json({
+      error: 'Transcript not found. This video was generated before transcript storage was added. Re-generate the full video first to store the transcript permanently.'
+    }, 404, headers);
   }
 
-  // ── 2. Pull published record for context ─────────────────────────────────
+  // ── 2. Pull published record for slug + youtubeUrl context only ──────────
   const published = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' }).catch(() => null);
   if (!published) {
     return json({ error: `No published record found for videoId: ${videoId}` }, 404, headers);
   }
 
-  const globalContent = published.globalContent || {};
-  const slug          = published.slug || '';
-  const youtubeUrl    = published.youtubeUrl || '';
-  const articleUrl    = `https://fortitudefx.com/article?slug=${slug}`;
+  const slug       = published.slug       || '';
+  const youtubeUrl = published.youtubeUrl || '';
+  const articleUrl = `https://fortitudefx.com/article?slug=${slug}`;
 
-  // ── 3. Call Claude for this platform only ────────────────────────────────
+  // ── 3. Call Claude — transcript is the only content input ────────────────
   let newFields;
   try {
     if (platform === 'article') {
-      newFields = await regenArticle(transcript, youtubeUrl, slug, env.ANTHROPIC_API_KEY);
+      newFields = await regenArticle(transcript, env.ANTHROPIC_API_KEY);
     } else {
       newFields = await regenPlatform(transcript, youtubeUrl, articleUrl, platform, env.ANTHROPIC_API_KEY);
     }
@@ -65,37 +68,31 @@ export async function onRequestPost(context) {
     return json({ error: formatClaudeError(err, platform) }, 500, headers);
   }
 
-  // ── 4. Write to pendingEdits — never touches globalContent ───────────────
-  const record = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' }).catch(() => null);
-  if (!record) return json({ error: 'Published record disappeared during processing' }, 500, headers);
+  // ── 4. Write to regen:{videoId}:{platform} — 24hr TTL, staging only ──────
+  const now       = new Date();
+  const expiresAt = new Date(now.getTime() + 86400000).toISOString();
 
-  if (!record.pendingEdits)  record.pendingEdits  = {};
-  if (!Array.isArray(record.editedFields)) record.editedFields = [];
+  await env.FFX_KV.put(
+    `regen:${videoId}:${platform}`,
+    JSON.stringify({
+      videoId,
+      platform,
+      fields:      newFields,
+      generatedAt: now.toISOString(),
+      expiresAt,
+    }),
+    { expirationTtl: 86400 }
+  );
 
-  // Write each field returned by Claude into pendingEdits
-  Object.entries(newFields).forEach(([field, value]) => {
-    record.pendingEdits[field] = value;
-    if (!record.editedFields.includes(field)) {
-      record.editedFields.push(field);
-    }
-  });
+  console.log('[FFX] regen staged:', videoId, platform, 'expires:', expiresAt);
 
-  // Keep x_thread in sync for X platform
-  if (platform === 'x') {
-    record.pendingEdits.x_thread = [1,2,3,4,5,6].map(i => {
-      const key = `tweet${i}`;
-      return record.pendingEdits[key] !== undefined
-        ? record.pendingEdits[key]
-        : (globalContent[key] || '');
-    });
-  }
-
-  record.updatedAt = new Date().toISOString();
-
-  await env.FFX_KV.put(`published:${videoId}`, JSON.stringify(record));
-  console.log('[FFX] Regenerated platform:', platform, 'for videoId:', videoId);
-
-  return json({ success: true, platform, fields: newFields }, 200, headers);
+  return json({
+    success:     true,
+    platform,
+    fields:      newFields,
+    generatedAt: now.toISOString(),
+    expiresAt,
+  }, 200, headers);
 }
 
 export async function onRequestOptions() {
@@ -113,7 +110,7 @@ export async function onRequestOptions() {
 // CLAUDE — ARTICLE REGEN
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function regenArticle(transcript, youtubeUrl, existingSlug, apiKey) {
+async function regenArticle(transcript, apiKey) {
   const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick™ mechanical entry system.
 
 TRADEMARK RULE: FortitudeFX™, Catch the Wick™, and 2 Candle. 1 Story.™ must always include the ™ symbol on first use.
@@ -147,30 +144,30 @@ The body field contains HTML — ensure all quotes inside HTML attributes use si
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CLAUDE — PLATFORM REGEN (x, linkedin, discord, tumblr)
+// CLAUDE — PLATFORM REGEN
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function regenPlatform(transcript, youtubeUrl, articleUrl, platform, apiKey) {
-  const platformInstructions = {
+  const configs = {
     x: {
       fields: ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
       instruction: `Regenerate the X thread. Return a JSON object with keys tweet1 through tweet6.
 THREAD RULES: tweet1 is the hook (no link). tweet2-3 end with https://fortitudefx.com. tweet4 ends with https://fortitudefx.com/vipdiscord. tweet5 ends with https://fortitudefx.com/bootcamp. tweet6 includes ${articleUrl} and ${youtubeUrl}.
-BANNED OPENING WORDS — NEVER start any tweet with: "Most traders", "The reality is", "One thing I've learned", "The market doesn't care", "This is why", "Here's the truth", "Trading is", "Many traders", "Many people".
+BANNED OPENING WORDS: Never start any tweet with "Most traders", "The reality is", "One thing I've learned", "The market doesn't care", "This is why", "Here's the truth", "Trading is", "Many traders", "Many people".
 Return: { "tweet1": "...", "tweet2": "...", "tweet3": "...", "tweet4": "...", "tweet5": "...", "tweet6": "..." }`,
     },
     linkedin: {
       fields: ['linkedin'],
       instruction: `Regenerate the LinkedIn post. Pick one format randomly: WALL (350-500w), SHORT (80-150w), SINGLE (60-100w), STORY (200-350w), or CONTRARIAN (150-300w).
 Human, intelligent, calm authority. Founder perspective. End with: 📖 Full breakdown: ${articleUrl}\n🌐 https://fortitudefx.com\n\nAdd 3-5 hashtags at end only.
-BANNED OPENING WORDS — NEVER start with: "Most traders", "The reality is", "One thing I've learned", "The market doesn't care", "This is why", "Here's the truth", "Trading is", "Many traders", "Many people".
+BANNED OPENING WORDS: Never start with "Most traders", "The reality is", "One thing I've learned", "The market doesn't care", "This is why", "Here's the truth", "Trading is", "Many traders", "Many people".
 Return: { "linkedin": "..." }`,
     },
     discord: {
       fields: ['discord'],
       instruction: `Regenerate the Discord post. Pick one format randomly: NUGGET (40-80w), DROP (100-200w), or QUESTION (80-150w).
 End with: Full breakdown 👉 ${articleUrl}\nWatch: ${youtubeUrl}\n[engagement question]\nhttps://fortitudefx.com
-BANNED OPENING WORDS — NEVER start with: "Most traders", "The reality is", "One thing I've learned", "The market doesn't care".
+BANNED OPENING WORDS: Never start with "Most traders", "The reality is", "One thing I've learned", "The market doesn't care".
 Return: { "discord": "..." }`,
     },
     tumblr: {
@@ -181,8 +178,8 @@ Return: { "tumblr": "..." }`,
     },
   };
 
-  const config = platformInstructions[platform];
-  if (!config) throw new Error(`No instruction config for platform: ${platform}`);
+  const config = configs[platform];
+  if (!config) throw new Error(`No config for platform: ${platform}`);
 
   const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick™ mechanical entry system.
 
@@ -216,7 +213,7 @@ CRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. No pream
 // ─────────────────────────────────────────────────────────────────────────────
 
 function parseClaudeJson(data, requiredFields) {
-  const rawText = data.content[0].text.trim();
+  const rawText    = data.content[0].text.trim();
   const firstBrace = rawText.indexOf('{');
   const lastBrace  = rawText.lastIndexOf('}');
   if (firstBrace === -1 || lastBrace === -1) throw new Error('No JSON object in Claude response');
