@@ -70,7 +70,7 @@ async function processJob(job, env) {
     return;
   }
 
-  // ── STEP 1b: Store transcript permanently ─────────────────────────────────
+  // ── STEP 1b: Store transcript permanently ────────────────────────────────
   try {
     await env.FFX_KV.put(`transcript:${videoId}`, transcript);
     console.log('[FFX] Transcript stored permanently — transcript:', videoId);
