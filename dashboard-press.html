@@ -48,12 +48,7 @@
     .nav-link.active { background: var(--surface2); color: var(--text); }
 
     /* ── SPLIT LAYOUT ── */
-    .split {
-      display: grid;
-      grid-template-columns: 300px 1fr;
-      height: calc(100vh - 56px);
-      overflow: hidden;
-    }
+    .split { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 56px); overflow: hidden; }
 
     /* ── QUEUE PANEL ── */
     .queue-panel { border-right: 2px solid var(--border2); overflow-y: auto; background: var(--bg2); display: flex; flex-direction: column; }
@@ -92,7 +87,6 @@
     .btn-generate { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; background: var(--text); color: var(--bg); border: none; border-radius: 3px; padding: 7px 16px; cursor: pointer; transition: opacity 0.15s; }
     .btn-generate:hover { opacity: 0.85; }
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px var(--green-bg); }
-
     #generatePanel { display: none; border-bottom: 1px solid var(--border); padding: 24px 32px; background: var(--bg2); }
     #generatePanel.open { display: block; }
     .gen-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
@@ -107,13 +101,12 @@
     .gen-status.active { display: block; color: var(--blue); }
     .gen-status.done   { display: block; color: var(--green); }
     .gen-status.err    { display: block; color: var(--red); }
-
     .press-content { padding: 0 32px 80px; }
     .table-header { display: grid; grid-template-columns: 180px 1fr 220px 130px; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 28px; }
     .video-row { border-bottom: 1px solid var(--border); transition: background 0.1s; }
     .video-row:hover { background: var(--bg2); }
     .row-summary { display: grid; grid-template-columns: 180px 1fr 220px 130px; gap: 16px; padding: 14px 0; cursor: pointer; align-items: center; }
-    .row-thumb-wrap { width: 180px; height: 101px; border-radius: 5px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); flex-shrink: 0; display: block; text-decoration: none; position: relative; }
+    .row-thumb-wrap { width: 180px; height: 101px; border-radius: 5px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); flex-shrink: 0; display: block; }
     .row-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
     .row-thumb-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; color: var(--dim); }
     .row-info {}
@@ -138,26 +131,28 @@
     .expanded-inner { padding-top: 24px; }
     .expanded-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
     .expanded-region-label { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
-    .expanded-yt-link { font-family: var(--mono); font-size: 12px; color: var(--blue); text-decoration: none; margin-left: auto; }
-    .expanded-yt-link:hover { text-decoration: underline; }
     .platform-tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
     .ptab { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 9px 16px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; background: none; border-top: none; border-left: none; border-right: none; }
     .ptab:hover { color: var(--text-mid); }
     .ptab.active { color: var(--text); border-bottom-color: var(--text); }
     .ptab-chip { display: inline-block; font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 2px; margin-left: 5px; vertical-align: middle; letter-spacing: 0.04em; }
-    .ptab-chip-ok     { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
-    .ptab-chip-err    { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
-    .ptab-chip-edited { background: #2a1500; color: #e06b1a; border: 1px solid #4a2800; }
+    .ptab-chip-ok      { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+    .ptab-chip-err     { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
+    /* State 1 & 3: saved/edited — not published */
+    .ptab-chip-edited  { background: #2a1500; color: #e06b1a; border: 1px solid #4a2800; }
+    /* State 2: regenerated unsaved — 24hr TTL warning */
+    .ptab-chip-regen   { background: #0e1a2a; color: #5b8fc4; border: 1px solid #1e2f40; }
     .platform-panels { position: relative; }
     .ppanel { display: none; }
     .ppanel.active { display: block; }
     .platform-status-bar { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 16px; border-radius: 5px; margin-bottom: 14px; border: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; gap: 8px; }
     .psb-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .psb-status-chip { font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 3px; }
-    .psb-chip-ok     { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
-    .psb-chip-err    { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
-    .psb-chip-pend   { background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); }
-    .psb-chip-edited { background: #2a1500; color: #e06b1a; border: 1px solid #4a2800; }
+    .psb-chip-ok      { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+    .psb-chip-err     { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
+    .psb-chip-pend    { background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); }
+    .psb-chip-edited  { background: #2a1500; color: #e06b1a; border: 1px solid #4a2800; }
+    .psb-chip-regen   { background: #0e1a2a; color: #5b8fc4; border: 1px solid #1e2f40; }
     .psb-link { font-family: var(--mono); font-size: 12px; color: var(--blue); text-decoration: none; }
     .psb-link:hover { text-decoration: underline; }
     .psb-date { font-family: var(--mono); font-size: 11px; color: var(--dim); }
@@ -232,8 +227,6 @@
 </nav>
 
 <div class="split">
-
-  <!-- ── LEFT: QUEUE ── -->
   <div class="queue-panel">
     <div class="queue-header">
       <div class="queue-header-top">
@@ -244,9 +237,7 @@
     <div id="queueList"><div class="queue-empty">Loading…</div></div>
   </div>
 
-  <!-- ── RIGHT: FULL PRESS ── -->
   <div class="press-panel">
-
     <div class="press-header">
       <div class="press-header-left">
         <div class="wordmark">FFX <span>Press</span></div>
@@ -281,7 +272,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -296,13 +286,32 @@ const PLATFORMS = [
   { key: 'discord',  label: 'Discord' },
 ];
 
-// Platform key → regenerate-platform platform name mapping
+// Maps platform tab key → regenerate-platform platform name
+// blog tab uses 'article' as the regen platform key
 const PLATFORM_REGEN_KEY = {
+  article:  'article',
+  x:        'x',
+  linkedin: 'linkedin',
+  discord:  'discord',
+  tumblr:   'tumblr',
+};
+
+// Maps press platformKey → regen platform key
+const PRESS_TO_REGEN = {
   blog:     'article',
   x:        'x',
   linkedin: 'linkedin',
   discord:  'discord',
   tumblr:   'tumblr',
+};
+
+// Fields per platform for pendingEdits/editedFields tracking
+const FIELD_MAP = {
+  blog:     ['body'],
+  x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
+  linkedin: ['linkedin'],
+  discord:  ['discord'],
+  tumblr:   ['tumblr'],
 };
 
 async function init() {
@@ -343,11 +352,11 @@ function renderQueue(queue) {
   badge.textContent = queue.length + ' items';
   if (!queue.length) { list.innerHTML = '<div class="queue-empty">Queue empty</div>'; return; }
   list.innerHTML = '';
-  queue.forEach((item, idx) => renderQueueItem(item, idx, list, queue));
-  initDragDrop(list, queue);
+  queue.forEach((item, idx) => renderQueueItem(item, idx, list));
+  initDragDrop(list);
 }
 
-function renderQueueItem(item, idx, list, queue) {
+function renderQueueItem(item, idx, list) {
   const videoId = item.videoId || '';
   const el      = document.createElement('div');
   el.className  = 'queue-item';
@@ -375,8 +384,7 @@ function renderQueueItem(item, idx, list, queue) {
     + '<div class="queue-info">'
     + '<div class="queue-item-title">' + escHtml(item.title || 'Untitled') + '</div>'
     + '<div class="queue-item-date">' + formatDate(item.addedAt) + '</div>'
-    + badgeHtml + actionHtml
-    + '</div>';
+    + badgeHtml + actionHtml + '</div>';
 
   if (item.state === 'orange') {
     el.addEventListener('click', (e) => {
@@ -390,17 +398,15 @@ function renderQueueItem(item, idx, list, queue) {
       }
     });
   }
-
   list.appendChild(el);
 }
 
-function initDragDrop(list, queue) {
-  let dragEl = null, dragIdx = null, placeholder = null;
+function initDragDrop(list) {
+  let dragEl = null, placeholder = null;
   list.querySelectorAll('.queue-item').forEach(item => {
     item.addEventListener('dragstart', e => {
-      dragEl = item; dragIdx = parseInt(item.dataset.idx);
-      item.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', dragIdx);
+      dragEl = item; item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
       placeholder = document.createElement('div');
       placeholder.className = 'queue-placeholder';
       placeholder.style.height = item.offsetHeight + 'px';
@@ -410,15 +416,12 @@ function initDragDrop(list, queue) {
       if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
       placeholder = null; dragEl = null;
       const newOrder = [...list.querySelectorAll('.queue-item')].map(el => el.dataset.videoid);
-      try {
-        await fetch('/queue/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: newOrder }) });
-      } catch (err) { console.error('[FFX Queue] Reorder failed:', err); }
+      try { await fetch('/queue/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: newOrder }) }); } catch {}
     });
     item.addEventListener('dragover', e => {
-      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      e.preventDefault();
       if (!dragEl || item === dragEl) return;
-      const rect = item.getBoundingClientRect();
-      const after = e.clientY > rect.top + rect.height / 2;
+      const after = e.clientY > item.getBoundingClientRect().top + item.offsetHeight / 2;
       if (after) { item.parentNode.insertBefore(placeholder, item.nextSibling); item.parentNode.insertBefore(dragEl, item.nextSibling); }
       else        { item.parentNode.insertBefore(placeholder, item); item.parentNode.insertBefore(dragEl, item); }
     });
@@ -436,7 +439,7 @@ async function generateQueueItem(e, videoId, youtubeUrl) {
     await fetch('/queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoId, youtubeUrl }) }).catch(() => {});
     btn.textContent = 'Queued…';
     setTimeout(() => loadAll(), 3000);
-  } catch (err) { btn.disabled = false; btn.textContent = 'Generate'; }
+  } catch { btn.disabled = false; btn.textContent = 'Generate'; }
 }
 
 function renderVideoList(videos) {
@@ -447,16 +450,16 @@ function renderVideoList(videos) {
 }
 
 function buildVideoRow(video) {
-  const row = document.createElement('div');
-  row.className = 'video-row';
+  const row        = document.createElement('div');
+  row.className    = 'video-row';
   const identifier = video.videoId || video.slug;
   row.dataset.videoid = identifier;
-  const videoId  = video.videoId || '';
-  const ytUrl    = video.youtubeUrl || video.globalContent?.youtubeUrl || video.content?.youtubeUrl || video.content?.yt_url || '';
-  const isRealId = videoId && videoId.length <= 12;
-  const thumbUrl = isRealId ? 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg' : '';
-  const date     = formatDate(video.updatedAt || '');
-  const region   = video.region || 'Global';
+  const videoId   = video.videoId || '';
+  const ytUrl     = video.youtubeUrl || video.globalContent?.youtubeUrl || video.content?.youtubeUrl || video.content?.yt_url || '';
+  const isRealId  = videoId && videoId.length <= 12;
+  const thumbUrl  = isRealId ? 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg' : '';
+  const date      = formatDate(video.updatedAt || '');
+  const region    = video.region || 'Global';
   const platforms = video.platforms || {};
 
   const summary = document.createElement('div');
@@ -488,37 +491,88 @@ function toggleRow(row, video) {
   if (!isOpen) {
     row.classList.add('open');
     const expanded = row.querySelector('.row-expanded');
-    if (!expanded.dataset.built) { buildExpandedContent(expanded, video); expanded.dataset.built = '1'; }
+    if (!expanded.dataset.built) {
+      // Fetch regen status lazily on row expand before building panels
+      fetchRegenStatusAndBuild(expanded, video);
+    }
   }
 }
 
-function buildExpandedContent(container, video) {
+// Fetch regen status for this video, then build expanded content
+async function fetchRegenStatusAndBuild(container, video) {
+  const videoId = video.videoId || null;
+  let regenMap  = {};
+
+  if (videoId) {
+    try {
+      const res  = await fetch('/api/regen-status?videoId=' + videoId);
+      const data = await res.json();
+      if (res.ok && data.regen) regenMap = data.regen;
+    } catch {
+      // Non-fatal — build without regen status
+    }
+  }
+
+  buildExpandedContent(container, video, regenMap);
+  container.dataset.built = '1';
+}
+
+function buildExpandedContent(container, video, regenMap) {
+  regenMap = regenMap || {};
+
   const content   = video.globalContent || video.content || video.platforms?.blog?.content || {};
   const pending   = video.pendingEdits  || {};
-  const platforms = video.platforms || {};
-  const videoId   = video.videoId || null;
-  const slug      = video.slug || null;
-  const region    = video.region || 'Global';
-  const ytUrl     = video.youtubeUrl || content.youtubeUrl || content.yt_url || '';
-  const tweets    = Array.isArray(pending.x_thread) && pending.x_thread.length
+  const platforms = video.platforms     || {};
+  const videoId   = video.videoId       || null;
+  const slug      = video.slug          || null;
+  const region    = video.region        || 'Global';
+
+  const tweets = Array.isArray(pending.x_thread) && pending.x_thread.length
     ? pending.x_thread
     : Array.isArray(content.x_thread) && content.x_thread.length
       ? content.x_thread
       : [1,2,3,4,5,6].map(i => pending['tweet'+i] || content['tweet'+i]).filter(Boolean);
 
+  // For X regen — use regen tweets if available
+  const regenX = regenMap['x'];
+  const regenTweets = regenX
+    ? [1,2,3,4,5,6].map(i => regenX.fields['tweet'+i]).filter(Boolean)
+    : null;
+
   const panelsData = [
-    { key:'article', label:'Article', platformKey:'blog',
-      html: () => '<div class="content-block article-body" data-field="body" data-edit-active="false">' + (pending.body || content.body || '<em>No article body found.</em>') + '</div>' },
-    { key:'x', label:'X', platformKey:'x',
-      html: () => tweets.length
-        ? '<div class="tweet-list">' + tweets.map((t,i) => '<div class="tweet-item" data-field="tweet'+(i+1)+'" data-edit-active="false"><span class="tweet-num">'+(i+1)+'</span><span class="tweet-text">'+escHtml(t)+'</span></div>').join('') + '</div>'
-        : '<div class="content-block"><em>No tweets found.</em></div>' },
-    { key:'linkedin', label:'LinkedIn', platformKey:'linkedin',
-      html: () => '<div class="content-block" data-field="linkedin" data-edit-active="false">' + (pending.linkedin || content.linkedin || '<em>No LinkedIn content found.</em>') + '</div>' },
-    { key:'discord',  label:'Discord',  platformKey:'discord',
-      html: () => '<div class="content-block" data-field="discord" data-edit-active="false">' + (pending.discord || content.discord || '<em>No Discord content found.</em>') + '</div>' },
-    { key:'tumblr',   label:'Tumblr',   platformKey:'tumblr',
-      html: () => '<div class="content-block" data-field="tumblr" data-edit-active="false">' + (pending.tumblr || content.tumblr || '<em>No Tumblr content found.</em>') + '</div>' },
+    { key:'article', label:'Article', platformKey:'blog', regenKey:'article',
+      html: () => {
+        const regenR = regenMap['article'];
+        const bodyContent = regenR ? regenR.fields.body : (pending.body || content.body || '<em>No article body found.</em>');
+        return '<div class="content-block article-body" data-field="body" data-edit-active="false">' + bodyContent + '</div>';
+      }
+    },
+    { key:'x', label:'X', platformKey:'x', regenKey:'x',
+      html: () => {
+        const displayTweets = regenTweets || tweets;
+        return displayTweets.length
+          ? '<div class="tweet-list">' + displayTweets.map((t,i) => '<div class="tweet-item" data-field="tweet'+(i+1)+'" data-edit-active="false"><span class="tweet-num">'+(i+1)+'</span><span class="tweet-text">'+escHtml(t)+'</span></div>').join('') + '</div>'
+          : '<div class="content-block"><em>No tweets found.</em></div>';
+      }
+    },
+    { key:'linkedin', label:'LinkedIn', platformKey:'linkedin', regenKey:'linkedin',
+      html: () => {
+        const regenR = regenMap['linkedin'];
+        return '<div class="content-block" data-field="linkedin" data-edit-active="false">' + (regenR ? regenR.fields.linkedin : (pending.linkedin || content.linkedin || '<em>No LinkedIn content found.</em>')) + '</div>';
+      }
+    },
+    { key:'discord', label:'Discord', platformKey:'discord', regenKey:'discord',
+      html: () => {
+        const regenR = regenMap['discord'];
+        return '<div class="content-block" data-field="discord" data-edit-active="false">' + (regenR ? regenR.fields.discord : (pending.discord || content.discord || '<em>No Discord content found.</em>')) + '</div>';
+      }
+    },
+    { key:'tumblr', label:'Tumblr', platformKey:'tumblr', regenKey:'tumblr',
+      html: () => {
+        const regenR = regenMap['tumblr'];
+        return '<div class="content-block" data-field="tumblr" data-edit-active="false">' + (regenR ? regenR.fields.tumblr : (pending.tumblr || content.tumblr || '<em>No Tumblr content found.</em>')) + '</div>';
+      }
+    },
   ];
 
   const tabBar         = document.createElement('div'); tabBar.className = 'platform-tabs';
@@ -531,11 +585,32 @@ function buildExpandedContent(container, video) {
     const isErr       = pStatus.startsWith('Error');
     const publishedAt = platforms[p.platformKey]?.publishedAt || '';
     const editedFields = video.editedFields || [];
-    const fieldMap    = { blog:['body'], x:['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'], linkedin:['linkedin'], discord:['discord'], tumblr:['tumblr'] };
-    const isEdited    = isOk && (fieldMap[p.platformKey]||[]).some(f => editedFields.includes(f));
-    const chipHtml    = isEdited ? '<span class="ptab-chip ptab-chip-edited">Edited</span>'
-      : isOk  ? '<span class="ptab-chip ptab-chip-ok">Posted</span>'
-      : isErr ? '<span class="ptab-chip ptab-chip-err">Error</span>' : '';
+    const regenData   = regenMap[p.regenKey] || null;
+
+    // Determine chip state
+    // State 2: regen exists in staging (24hr TTL) — not yet saved
+    // State 1/3: fields in pendingEdits — saved but not published
+    // (State 3 = regen was saved; visually same as State 1 from chip perspective)
+    const hasRegenStaging = !!regenData;
+    const hasEdited       = isOk && (FIELD_MAP[p.platformKey]||[]).some(f => editedFields.includes(f));
+    const hasPending      = (FIELD_MAP[p.platformKey]||[]).some(f => pending[f] !== undefined);
+
+    let chipHtml = '';
+    if (hasRegenStaging) {
+      // State 2 — regenerated, unsaved, 24hr TTL warning
+      const expiresAt  = new Date(regenData.expiresAt);
+      const msLeft     = expiresAt - Date.now();
+      const hrsLeft    = Math.max(0, Math.floor(msLeft / 3600000));
+      const minLeft    = Math.max(0, Math.floor((msLeft % 3600000) / 60000));
+      chipHtml = '<span class="ptab-chip ptab-chip-regen">⚡ Regen · ' + hrsLeft + 'h ' + minLeft + 'm</span>';
+    } else if (hasEdited || hasPending) {
+      // State 1 or 3 — saved in pendingEdits, not published
+      chipHtml = '<span class="ptab-chip ptab-chip-edited">⚠ Not published</span>';
+    } else if (isOk) {
+      chipHtml = '<span class="ptab-chip ptab-chip-ok">Posted</span>';
+    } else if (isErr) {
+      chipHtml = '<span class="ptab-chip ptab-chip-err">Error</span>';
+    }
 
     const tab = document.createElement('button');
     tab.className = 'ptab' + (idx===0?' active':''); tab.dataset.panel = p.key;
@@ -546,51 +621,63 @@ function buildExpandedContent(container, video) {
     const panel = document.createElement('div');
     panel.className = 'ppanel' + (idx===0?' active':''); panel.dataset.panel = p.key;
 
-    let chipCls, chipTxt;
-    if (isEdited)     { chipCls='psb-chip-edited'; chipTxt='⚠ Edited — republish'; }
-    else if (postUrl) { chipCls='psb-chip-ok';     chipTxt='✓ Posted'; }
-    else if (isErr)   { chipCls='psb-chip-err';    chipTxt='✕ Error'; }
-    else              { chipCls='psb-chip-pend';   chipTxt='○ Not posted'; }
+    // Status bar chip
+    let sbChipCls, sbChipTxt;
+    if (hasRegenStaging) {
+      const expiresAt = new Date(regenData.expiresAt);
+      const msLeft    = expiresAt - Date.now();
+      const hrsLeft   = Math.max(0, Math.floor(msLeft / 3600000));
+      const minLeft   = Math.max(0, Math.floor((msLeft % 3600000) / 60000));
+      sbChipCls = 'psb-chip-regen';
+      sbChipTxt = '⚡ Regenerated — save to keep (expires ' + hrsLeft + 'h ' + minLeft + 'm)';
+    } else if (hasEdited || hasPending) {
+      sbChipCls = 'psb-chip-edited';
+      sbChipTxt = '⚠ Edited — not published';
+    } else if (postUrl) {
+      sbChipCls = 'psb-chip-ok'; sbChipTxt = '✓ Posted';
+    } else if (isErr) {
+      sbChipCls = 'psb-chip-err'; sbChipTxt = '✕ Error';
+    } else {
+      sbChipCls = 'psb-chip-pend'; sbChipTxt = '○ Not posted';
+    }
 
     panel.innerHTML = '<div class="platform-status-bar"><div class="psb-left">'
-      + '<span class="psb-status-chip ' + chipCls + '">' + chipTxt + '</span>'
+      + '<span class="psb-status-chip ' + sbChipCls + '">' + sbChipTxt + '</span>'
       + (postUrl ? '<a href="' + postUrl + '" target="_blank" class="psb-link">View post →</a>' : '')
       + (publishedAt ? '<span class="psb-date">Published ' + formatDate(publishedAt) + '</span>' : '')
       + '</div></div>'
       + p.html();
 
-    // ── Per-platform action bar (Regenerate + Restore) ────────────────────
-    const regenKey = PLATFORM_REGEN_KEY[p.platformKey] || p.key;
-    const hasEdits = (fieldMap[p.platformKey]||[]).some(f => editedFields.includes(f));
+    // ── Per-platform action bar ───────────────────────────────────────────
+    const hasAnythingToRestore = hasRegenStaging || hasEdited || hasPending;
 
     const platActionBar = document.createElement('div');
     platActionBar.className = 'platform-action-bar';
 
     const regenBtn = document.createElement('button');
-    regenBtn.className = 'btn-plat-regen';
+    regenBtn.className   = 'btn-plat-regen';
     regenBtn.textContent = 'Regenerate';
-    regenBtn.title = videoId ? '' : 'No videoId — cannot regenerate';
-    if (!videoId) regenBtn.disabled = true;
-    regenBtn.addEventListener('click', () => regenPlatform(videoId, regenKey, regenBtn, restoreBtn, statusSpan, container, video));
+    if (!videoId) { regenBtn.disabled = true; regenBtn.title = 'No videoId'; }
+    regenBtn.addEventListener('click', () => onRegenClick(videoId, p.regenKey, regenBtn, restoreBtn, platStatusSpan, container, video));
 
     const restoreBtn = document.createElement('button');
-    restoreBtn.className = 'btn-plat-restore';
+    restoreBtn.className   = 'btn-plat-restore';
     restoreBtn.textContent = 'Restore Published';
-    restoreBtn.title = hasEdits ? '' : 'No pending edits to restore';
-    if (!hasEdits || !videoId) restoreBtn.disabled = true;
-    restoreBtn.addEventListener('click', () => restorePlatform(videoId, regenKey, regenBtn, restoreBtn, statusSpan, container, video));
+    if (!hasAnythingToRestore || !videoId) restoreBtn.disabled = true;
+    restoreBtn.addEventListener('click', () => onRestoreClick(videoId, p.regenKey, regenBtn, restoreBtn, platStatusSpan, container, video));
 
-    const statusSpan = document.createElement('span');
-    statusSpan.className = 'plat-action-status';
+    const platStatusSpan = document.createElement('span');
+    platStatusSpan.className = 'plat-action-status';
 
     platActionBar.appendChild(regenBtn);
     platActionBar.appendChild(restoreBtn);
-    platActionBar.appendChild(statusSpan);
+    platActionBar.appendChild(platStatusSpan);
     panel.appendChild(platActionBar);
 
     panelContainer.appendChild(panel);
   });
 
+  // ── Publish action row ────────────────────────────────────────────────────
   const actionRow = document.createElement('div'); actionRow.className = 'action-row';
   actionRow.innerHTML = '<span class="action-label">Publish to:</span>';
   PLATFORMS.forEach(p => {
@@ -598,7 +685,7 @@ function buildExpandedContent(container, video) {
     const postUrl  = extractPostUrl(pStatus);
     const isPosted = !!postUrl;
     const chk = document.createElement('div');
-    chk.className = 'platform-checkbox ' + (isPosted ? 'already-posted' : 'checked');
+    chk.className      = 'platform-checkbox ' + (isPosted ? 'already-posted' : 'checked');
     chk.dataset.platform  = p.key;
     chk.dataset.checked   = isPosted ? 'false' : 'true';
     chk.dataset.wasPosted = isPosted ? 'true' : 'false';
@@ -609,7 +696,7 @@ function buildExpandedContent(container, video) {
       const c = chk.dataset.checked === 'true';
       chk.dataset.checked = c ? 'false' : 'true';
       const wasPosted = chk.dataset.wasPosted === 'true';
-      const url = chk.dataset.postUrl;
+      const url  = chk.dataset.postUrl;
       const link = url ? ' <a href="' + url + '" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View prev</a>' : '';
       if (!c) { chk.classList.add('checked'); chk.classList.remove('already-posted'); chk.innerHTML = '<span class="chk-dot"></span>' + p.label + (wasPosted ? ' ↻' : '') + link; }
       else    { chk.classList.remove('checked','already-posted'); chk.innerHTML = '<span class="chk-dot"></span>' + p.label + ' —' + link; }
@@ -622,6 +709,7 @@ function buildExpandedContent(container, video) {
   actionRow.appendChild(pubBtn);
 
   const pubResult = document.createElement('div'); pubResult.className = 'pub-result';
+
   const inner = document.createElement('div'); inner.className = 'expanded-inner';
   inner.innerHTML = '<div class="expanded-header"><span class="region-tag ' + regionClass(region) + '">' + region + '</span>'
     + '<span class="expanded-region-label">Article</span></div>';
@@ -629,11 +717,15 @@ function buildExpandedContent(container, video) {
   inner.appendChild(tabBar);
   inner.appendChild(panelContainer);
 
+  // Wire inline edit clicks — only on non-regen content
   panelContainer.querySelectorAll('.content-block[data-field]').forEach(el => {
-    el.addEventListener('click', () => makeEditable(el, video, el.dataset.field));
+    el.addEventListener('click', () => makeEditable(el, video, el.dataset.field, regenMap));
   });
   panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(el => {
-    el.addEventListener('click', () => { const ts = el.querySelector('.tweet-text'); if (ts) makeEditable(ts, video, el.dataset.field); });
+    el.addEventListener('click', () => {
+      const ts = el.querySelector('.tweet-text');
+      if (ts) makeEditable(ts, video, el.dataset.field, regenMap);
+    });
   });
 
   inner.appendChild(actionRow);
@@ -641,110 +733,100 @@ function buildExpandedContent(container, video) {
   container.appendChild(inner);
 }
 
-// ── Per-platform Regenerate ───────────────────────────────────────────────────
-async function regenPlatform(videoId, platform, regenBtn, restoreBtn, statusSpan, container, video) {
+// ── Per-platform Regenerate click handler ────────────────────────────────────
+async function onRegenClick(videoId, platform, regenBtn, restoreBtn, statusSpan, container, video) {
   if (!videoId) return;
-  regenBtn.disabled = true;
+  regenBtn.disabled  = true;
   restoreBtn.disabled = true;
-  statusSpan.className = 'plat-action-status active';
+  statusSpan.className   = 'plat-action-status active';
   statusSpan.textContent = 'Regenerating…';
 
   try {
     const res  = await fetch('/api/regenerate-platform', {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoId, platform }),
+      body:    JSON.stringify({ videoId, platform }),
     });
     const data = await res.json();
 
     if (!res.ok) {
-      statusSpan.className = 'plat-action-status err';
+      statusSpan.className   = 'plat-action-status err';
       statusSpan.textContent = data.error || 'Regeneration failed';
-      regenBtn.disabled = false;
+      regenBtn.disabled  = false;
+      restoreBtn.disabled = false;
       return;
     }
 
-    // Merge new fields into video.pendingEdits so rebuild reflects them
-    if (!video.pendingEdits) video.pendingEdits = {};
-    Object.assign(video.pendingEdits, data.fields);
-
-    // Track editedFields
-    if (!Array.isArray(video.editedFields)) video.editedFields = [];
-    Object.keys(data.fields).forEach(f => {
-      if (!video.editedFields.includes(f)) video.editedFields.push(f);
-    });
-
-    // Rebuild expanded content to reflect new pendingEdits
-    // statusSpan is destroyed by innerHTML='' so we find the active panel's status span after rebuild
-    container.innerHTML = '';
-    buildExpandedContent(container, video);
-    container.dataset.built = '1';
-    // Switch to the regenerated tab so user sees the result
-    const platformTabKey = Object.keys(PLATFORM_REGEN_KEY).find(k => PLATFORM_REGEN_KEY[k] === platform) || platform;
-    const tabKeyForSwitch = platformTabKey === 'blog' ? 'article' : platformTabKey;
-    const newTabBar = container.querySelector('.platform-tabs');
-    const newPanelContainer = container.querySelector('.platform-panels');
-    if (newTabBar && newPanelContainer) switchTab(newPanelContainer, newTabBar, tabKeyForSwitch);
+    // Rebuild with fresh regen status so chip + content update correctly
+    await rebuildExpanded(container, video);
 
   } catch (err) {
-    statusSpan.className = 'plat-action-status err';
+    statusSpan.className   = 'plat-action-status err';
     statusSpan.textContent = 'Network error: ' + err.message;
-    regenBtn.disabled = false;
+    regenBtn.disabled  = false;
+    restoreBtn.disabled = false;
   }
 }
 
-// ── Per-platform Restore ──────────────────────────────────────────────────────
-async function restorePlatform(videoId, platform, regenBtn, restoreBtn, statusSpan, container, video) {
+// ── Per-platform Restore click handler ───────────────────────────────────────
+async function onRestoreClick(videoId, platform, regenBtn, restoreBtn, statusSpan, container, video) {
   if (!videoId) return;
-  if (!confirm('Restore this platform to published content? Any pending edits for this platform will be cleared.')) return;
+  if (!confirm('Restore this platform to published content? Regenerated and saved edits for this platform will be cleared.')) return;
 
   restoreBtn.disabled = true;
-  regenBtn.disabled = true;
-  statusSpan.className = 'plat-action-status active';
+  regenBtn.disabled   = true;
+  statusSpan.className   = 'plat-action-status active';
   statusSpan.textContent = 'Restoring…';
 
   try {
     const res  = await fetch('/api/restore-platform', {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoId, platform }),
+      body:    JSON.stringify({ videoId, platform }),
     });
     const data = await res.json();
 
     if (!res.ok) {
-      statusSpan.className = 'plat-action-status err';
+      statusSpan.className   = 'plat-action-status err';
       statusSpan.textContent = data.error || 'Restore failed';
       restoreBtn.disabled = false;
-      regenBtn.disabled = false;
+      regenBtn.disabled   = false;
       return;
     }
 
-    // Remove restored fields from video.pendingEdits and video.editedFields
-    if (video.pendingEdits) {
+    // Update local video object to reflect cleared state
+    if (video.pendingEdits && data.restoredFields) {
       Object.keys(data.restoredFields).forEach(f => delete video.pendingEdits[f]);
     }
-    if (Array.isArray(video.editedFields)) {
+    if (Array.isArray(video.editedFields) && data.restoredFields) {
       video.editedFields = video.editedFields.filter(f => !(f in data.restoredFields));
     }
 
-    // Rebuild expanded content to reflect restored state
-    // statusSpan is destroyed by innerHTML='' — find the active tab after rebuild
-    container.innerHTML = '';
-    buildExpandedContent(container, video);
-    container.dataset.built = '1';
-    // Switch to the restored tab so user sees the result
-    const platformTabKey2 = Object.keys(PLATFORM_REGEN_KEY).find(k => PLATFORM_REGEN_KEY[k] === platform) || platform;
-    const tabKeyForSwitch2 = platformTabKey2 === 'blog' ? 'article' : platformTabKey2;
-    const newTabBar2 = container.querySelector('.platform-tabs');
-    const newPanelContainer2 = container.querySelector('.platform-panels');
-    if (newTabBar2 && newPanelContainer2) switchTab(newPanelContainer2, newTabBar2, tabKeyForSwitch2);
+    // Rebuild — regen key is now deleted so chip clears automatically
+    await rebuildExpanded(container, video);
 
   } catch (err) {
-    statusSpan.className = 'plat-action-status err';
+    statusSpan.className   = 'plat-action-status err';
     statusSpan.textContent = 'Network error: ' + err.message;
     restoreBtn.disabled = false;
-    regenBtn.disabled = false;
+    regenBtn.disabled   = false;
   }
+}
+
+// Refetch regen status and rebuild expanded content
+async function rebuildExpanded(container, video) {
+  const videoId = video.videoId || null;
+  let regenMap  = {};
+  if (videoId) {
+    try {
+      const res  = await fetch('/api/regen-status?videoId=' + videoId);
+      const data = await res.json();
+      if (res.ok && data.regen) regenMap = data.regen;
+    } catch {}
+  }
+  container.innerHTML = '';
+  buildExpandedContent(container, video, regenMap);
+  container.dataset.built = '1';
 }
 
 function switchTab(pc, tb, key) {
@@ -762,24 +844,29 @@ async function publishVideo(videoId, slug, actionRow, pubBtn, container, video) 
   const platforms = {};
   actionRow.querySelectorAll('.platform-checkbox').forEach(el => { platforms[el.dataset.platform] = el.dataset.checked === 'true'; });
   if (!Object.values(platforms).some(v => v)) { showPubResult(container, 'Select at least one platform.', false); return; }
+
   pubBtn.disabled = true; pubBtn.textContent = 'Publishing…';
   try {
     const res  = await fetch('/press-publish', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ videoId, slug, platforms }) });
     const data = await res.json();
     if (!res.ok) { showPubResult(container, data.error || 'Publish failed.', false); pubBtn.disabled=false; pubBtn.textContent='Publish'; return; }
+
     if (data.status) {
       if (!video.platforms) video.platforms = {};
       Object.keys(data.status).forEach(p => {
         const s = data.status[p];
         if (!s || s==='not_selected' || s==='pending') return;
         if (!video.platforms[p]) video.platforms[p] = {};
-        video.platforms[p].status = s;
+        video.platforms[p].status      = s;
         video.platforms[p].publishedAt = new Date().toISOString();
       });
     }
+
     const row = container.closest('.video-row');
     if (data.status) updatePills(row, data.status);
-    container.innerHTML = ''; buildExpandedContent(container, video); container.dataset.built = '1';
+
+    // Rebuild — publish clears pendingEdits + regen keys server-side
+    await rebuildExpanded(container, video);
     showPubResult(container, '✓ Published successfully', true);
     pubBtn.disabled = false; pubBtn.textContent = 'Publish';
   } catch (err) {
@@ -790,7 +877,9 @@ async function publishVideo(videoId, slug, actionRow, pubBtn, container, video) 
 
 function showPubResult(container, msg, ok) {
   const el = container.querySelector('.pub-result');
-  if (!el) return; el.textContent = msg; el.className = 'pub-result ' + (ok ? 'ok' : 'err');
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = 'pub-result ' + (ok ? 'ok' : 'err');
 }
 
 function updatePills(row, status) {
@@ -798,7 +887,7 @@ function updatePills(row, status) {
   PLATFORMS.forEach((p, i) => { if (!pills[i]) return; pills[i].className = 'pill ' + pillClass(status[p.key] || ''); });
 }
 
-function makeEditable(el, video, field) {
+function makeEditable(el, video, field, regenMap) {
   if (el.dataset.editActive === 'true') return;
   el.dataset.editActive = 'true';
   const original = el.innerText;
@@ -810,28 +899,84 @@ function makeEditable(el, video, field) {
     el.parentNode.insertBefore(bar, el.nextSibling);
   }
   bar.classList.add('visible');
-  bar.querySelector('.btn-edit-save').onclick    = () => saveEdit(el, bar, video, field, original);
-  bar.querySelector('.btn-edit-discard').onclick = () => { el.setAttribute('contenteditable','false'); el.innerText=original; el.dataset.editActive='false'; bar.classList.remove('visible'); };
+  bar.querySelector('.btn-edit-save').onclick    = () => saveEdit(el, bar, video, field, original, regenMap);
+  bar.querySelector('.btn-edit-discard').onclick = () => {
+    el.setAttribute('contenteditable','false'); el.innerText=original;
+    el.dataset.editActive='false'; bar.classList.remove('visible');
+  };
 }
 
-async function saveEdit(el, bar, video, field, original) {
+async function saveEdit(el, bar, video, field, original, regenMap) {
   const saveBtn = bar.querySelector('.btn-edit-save');
   saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
-  const value = el.innerText.trim(); const videoId = video.videoId||null; const slug = video.slug||null;
+  const value   = el.innerText.trim();
+  const videoId = video.videoId || null;
+  const slug    = video.slug    || null;
+
+  // Determine which regen platform this field belongs to (for cleanup)
+  const regenPlatformForField = getRegenPlatformForField(field);
+
   try {
-    const res  = await fetch('/save-edits', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ videoId, slug, kvType:'published', field, value }) });
+    const res  = await fetch('/save-edits', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ videoId, slug, kvType: 'published', field, value }),
+    });
     const data = await res.json();
-    if (!res.ok) { saveBtn.disabled=false; saveBtn.textContent='Save'; bar.querySelector('.edit-save-bar-label').textContent='Error: '+(data.error||'Save failed'); return; }
-    if (!video.globalContent) video.globalContent = {};
-    video.globalContent[field] = value;
+
+    if (!res.ok) {
+      saveBtn.disabled = false; saveBtn.textContent = 'Save';
+      bar.querySelector('.edit-save-bar-label').textContent = 'Error: ' + (data.error || 'Save failed');
+      return;
+    }
+
+    // Update local video object
+    if (!video.pendingEdits) video.pendingEdits = {};
+    video.pendingEdits[field] = value;
     const tm = field.match(/^tweet([1-6])$/);
-    if (tm && Array.isArray(video.globalContent.x_thread)) video.globalContent.x_thread[parseInt(tm[1])-1] = value;
+    if (tm) {
+      if (!Array.isArray(video.pendingEdits.x_thread)) video.pendingEdits.x_thread = [];
+      video.pendingEdits.x_thread[parseInt(tm[1])-1] = value;
+    }
     if (!Array.isArray(video.editedFields)) video.editedFields = [];
     if (!video.editedFields.includes(field)) video.editedFields.push(field);
+
+    // If this field came from a regen staging key, delete the regen key now
+    // Content is now in pendingEdits permanently — staging key no longer needed
+    if (regenPlatformForField && regenMap && regenMap[regenPlatformForField] && videoId) {
+      try {
+        await fetch('/api/regen-status?videoId=' + videoId + '&platform=' + regenPlatformForField, {
+          method: 'DELETE',
+        });
+      } catch {}
+      // Remove from local regenMap so chip updates on rebuild
+      delete regenMap[regenPlatformForField];
+    }
+
+    // Rebuild expanded to reflect new chip state
     const ec = el.closest('.row-expanded');
-    if (ec) { ec.innerHTML=''; buildExpandedContent(ec, video); ec.dataset.built='1'; }
-    else { el.setAttribute('contenteditable','false'); el.dataset.editActive='false'; bar.classList.remove('visible'); saveBtn.disabled=false; saveBtn.textContent='Save'; }
-  } catch (err) { saveBtn.disabled=false; saveBtn.textContent='Save'; bar.querySelector('.edit-save-bar-label').textContent='Network error — try again'; }
+    if (ec) {
+      await rebuildExpanded(ec, video);
+    } else {
+      el.setAttribute('contenteditable','false');
+      el.dataset.editActive='false';
+      bar.classList.remove('visible');
+      saveBtn.disabled = false; saveBtn.textContent = 'Save';
+    }
+  } catch (err) {
+    saveBtn.disabled = false; saveBtn.textContent = 'Save';
+    bar.querySelector('.edit-save-bar-label').textContent = 'Network error — try again';
+  }
+}
+
+// Maps a field name to its regen platform key
+function getRegenPlatformForField(field) {
+  if (field === 'body')    return 'article';
+  if (/^tweet[1-6]$/.test(field)) return 'x';
+  if (field === 'linkedin') return 'linkedin';
+  if (field === 'discord')  return 'discord';
+  if (field === 'tumblr')   return 'tumblr';
+  return null;
 }
 
 function toggleGeneratePanel() { document.getElementById('generatePanel').classList.toggle('open'); }
@@ -898,7 +1043,7 @@ function extractPostUrl(status) {
   return null;
 }
 function pillClass(status) { if (!status) return 'pill-pend'; if (extractPostUrl(status)) return 'pill-ok'; if (status.startsWith('Error')) return 'pill-error'; return 'pill-pend'; }
-function regionClass(region) { if (!region||region==='Global') return 'region-global'; if (region.includes('GCC')) return 'region-gcc'; if (region.includes('US')||region.includes('Canada')) return 'region-us'; return 'region-global'; }
+function regionClass(r) { if (!r||r==='Global') return 'region-global'; if (r.includes('GCC')) return 'region-gcc'; if (r.includes('US')||r.includes('Canada')) return 'region-us'; return 'region-global'; }
 function formatDate(str) { if (!str) return '—'; try { return new Date(str).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}); } catch { return str; } }
 function escHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
