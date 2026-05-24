@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFX Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #1a1c21;
+      --bg2:       #20232a;
+      --surface:   #252830;
+      --surface2:  #2c2f38;
+      --border:    #32353f;
+      --border2:   #3d4150;
+      --text:      #e2e0db;
+      --text-mid:  #b8b5ae;
+      --muted:     #7a7870;
+      --dim:       #4a4845;
+      --green:     #4d9e72;
+      --green-bg:  #0e1f17;
+      --green-bd:  #1e3f2e;
+      --red:       #c45c5c;
+      --red-bg:    #1f0e0e;
+      --red-bd:    #3f1e1e;
+      --amber:     #c49a3c;
+      --amber-bg:  #1f1800;
+      --amber-bd:  #3f3000;
+      --blue:      #5b8fc4;
+      --blue-bg:   #0e1620;
+      --blue-bd:   #1e2f40;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 16px; line-height: 1.7; }
+
+    /* ── NAV ── */
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+      gap: 0;
+    }
+    .nav-wordmark { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); margin-right: 36px; flex-shrink: 0; }
+    .nav-wordmark span { color: var(--muted); font-weight: 400; }
+    .nav-links { display: flex; gap: 2px; flex: 1; }
+    .nav-link { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 14px; border-radius: 3px; color: var(--muted); text-decoration: none; transition: background 0.15s, color 0.15s; }
+    .nav-link:hover { background: var(--surface); color: var(--text-mid); }
+    .nav-link.active { background: var(--surface2); color: var(--text); }
+
+    /* ── MAIN ── */
+    main { max-width: 1200px; margin: 0 auto; padding: 36px 32px 80px; }
+
+    /* ── PAGE HEADER ── */
+    .page-header { margin-bottom: 32px; }
+    .page-title { font-family: var(--mono); font-size: 18px; font-weight: 600; letter-spacing: 0.02em; color: var(--text); margin-bottom: 4px; }
+    .page-sub { font-size: 14px; color: var(--muted); }
+
+    /* ── KPI GRID ── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 32px; }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 22px 22px 18px;
+      text-decoration: none;
+      display: block;
+      position: relative;
+      transition: border-color 0.15s, background 0.15s;
+      cursor: pointer;
+    }
+    .kpi-card:hover { border-color: var(--border2); background: var(--surface2); }
+    .kpi-card::after { content: '→'; position: absolute; top: 20px; right: 18px; font-family: var(--mono); font-size: 13px; color: var(--dim); transition: color 0.15s; }
+    .kpi-card:hover::after { color: var(--muted); }
+    .kpi-label { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    .kpi-value { font-family: var(--mono); font-size: 2.6rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1; margin-bottom: 8px; color: var(--text); }
+    .kpi-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+    .kpi-stat { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .kpi-stat strong { color: var(--text-mid); font-weight: 600; }
+    .kpi-goal { font-family: var(--mono); font-size: 12px; margin-top: 4px; }
+    .kpi-goal.behind { color: var(--amber); }
+    .kpi-goal.on-track { color: var(--green); }
+    .kpi-card.accent-green .kpi-value { color: var(--green); }
+    .kpi-card.accent-amber  .kpi-value { color: var(--amber); }
+    .kpi-card.accent-blue   .kpi-value { color: var(--blue); }
+    .kpi-card.accent-dim    .kpi-value { font-size: 1rem; color: var(--dim); letter-spacing: 0; }
+
+    /* ── LOADING ── */
+    .loading-state { padding: 60px 0; text-align: center; }
+    .loading-spin { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border2); border-top-color: var(--text-mid); animation: spin 0.7s linear infinite; margin: 0 auto 14px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-wordmark">FFX <span>Internal</span></div>
+  <div class="nav-links">
+    <a href="/dashboard.html"            class="nav-link active">Dashboard</a>
+    <a href="/dashboard-press.html"      class="nav-link">Press + Queue</a>
+    <a href="/generate.html"             class="nav-link">Generate</a>
+    <a href="/dashboard-knowledge.html"  class="nav-link">Knowledge</a>
+    <a href="/dashboard-seo.html"        class="nav-link">SEO</a>
+    <a href="/dashboard-audience.html"   class="nav-link">Audience</a>
+    <a href="/dashboard-youtube.html"    class="nav-link">YouTube</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div class="page-title">Dashboard</div>
+    <div class="page-sub">FortitudeFX™ — Internal Operations Centre</div>
+  </div>
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="loading-state" style="grid-column:1/-1">
+      <div class="loading-spin"></div>
+      <div class="loading-text">Loading…</div>
+    </div>
+  </div>
+</main>
+
+<script>
+const GOAL_WEEK = 5;
+
+function weekStart() {
+  const d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - d.getDay()); return d;
+}
+function monthStart() {
+  const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d;
+}
+function isThisWeek(str)  { return str && new Date(str) >= weekStart(); }
+function isThisMonth(str) { return str && new Date(str) >= monthStart(); }
+
+(async () => {
+  try {
+    const res     = await fetch('/press-data');
+    const data    = await res.json();
+    const records = data.videos || [];
+
+    let total=0, week=0, month=0;
+    let blog=0, blogW=0, x=0, xW=0, linkedin=0, linkedinW=0, discord=0, discordW=0;
+    let ready=0;
+
+    // Count video: keys from raw KV — press-data returns published videos
+    // We also need to check for videos in queue (video: keys)
+    records.forEach(v => {
+      total++;
+      const d = v.updatedAt;
+      if (isThisWeek(d))  week++;
+      if (isThisMonth(d)) month++;
+      const p = v.platforms || {};
+      if (p.blog?.status)     { blog++;     if (isThisWeek(p.blog.publishedAt))     blogW++; }
+      if (p.x?.status)        { x++;        if (isThisWeek(p.x.publishedAt))        xW++; }
+      if (p.linkedin?.status) { linkedin++; if (isThisWeek(p.linkedin.publishedAt)) linkedinW++; }
+      if (p.discord?.status)  { discord++;  if (isThisWeek(p.discord.publishedAt))  discordW++; }
+    });
+
+    const behind   = Math.max(0, GOAL_WEEK - week);
+    const goalHtml = behind > 0
+      ? '<div class="kpi-goal behind">▼ ' + behind + ' behind goal this week</div>'
+      : '<div class="kpi-goal on-track">✓ On track this week</div>';
+
+    document.getElementById('kpiGrid').innerHTML = `
+      <a href="/dashboard-press.html" class="kpi-card ${behind > 0 ? 'accent-amber' : 'accent-green'}">
+        <div class="kpi-label">Videos Published</div>
+        <div class="kpi-value">${week}</div>
+        <div class="kpi-row">
+          <span class="kpi-stat">Week <strong>${week}/${GOAL_WEEK}</strong></span>
+          <span class="kpi-stat">Month <strong>${month}</strong></span>
+          <span class="kpi-stat">Total <strong>${total}</strong></span>
+        </div>
+        ${goalHtml}
+      </a>
+      <a href="/dashboard-press.html" class="kpi-card">
+        <div class="kpi-label">Blog Posts</div>
+        <div class="kpi-value accent-blue">${blogW}</div>
+        <div class="kpi-row">
+          <span class="kpi-stat">This week <strong>${blogW}</strong></span>
+          <span class="kpi-stat">Total <strong>${blog}</strong></span>
+        </div>
+      </a>
+      <a href="/dashboard-press.html" class="kpi-card">
+        <div class="kpi-label">X Threads</div>
+        <div class="kpi-value">${xW}</div>
+        <div class="kpi-row">
+          <span class="kpi-stat">This week <strong>${xW}</strong></span>
+          <span class="kpi-stat">Total <strong>${x}</strong></span>
+        </div>
+      </a>
+      <a href="/dashboard-press.html" class="kpi-card">
+        <div class="kpi-label">LinkedIn Posts</div>
+        <div class="kpi-value">${linkedinW}</div>
+        <div class="kpi-row">
+          <span class="kpi-stat">This week <strong>${linkedinW}</strong></span>
+          <span class="kpi-stat">Total <strong>${linkedin}</strong></span>
+        </div>
+      </a>
+      <a href="/dashboard-press.html" class="kpi-card">
+        <div class="kpi-label">Discord Posts</div>
+        <div class="kpi-value">${discordW}</div>
+        <div class="kpi-row">
+          <span class="kpi-stat">This week <strong>${discordW}</strong></span>
+          <span class="kpi-stat">Total <strong>${discord}</strong></span>
+        </div>
+      </a>
+      <a href="/dashboard-knowledge.html" class="kpi-card accent-blue">
+        <div class="kpi-label">Knowledge Library</div>
+        <div class="kpi-value">${total}</div>
+        <div class="kpi-row"><span class="kpi-stat">Videos indexed</span></div>
+      </a>
+      <a href="/dashboard-seo.html" class="kpi-card accent-dim">
+        <div class="kpi-label">SEO & Search Console</div>
+        <div class="kpi-value">Coming soon</div>
+        <div class="kpi-row"><span class="kpi-stat">Awaiting API setup</span></div>
+      </a>
+      <a href="/dashboard-youtube.html" class="kpi-card accent-dim">
+        <div class="kpi-label">YouTube Performance</div>
+        <div class="kpi-value">Coming soon</div>
+        <div class="kpi-row"><span class="kpi-stat">Awaiting API setup</span></div>
+      </a>
+      <a href="/dashboard-audience.html" class="kpi-card accent-dim">
+        <div class="kpi-label">Audience</div>
+        <div class="kpi-value">Coming soon</div>
+        <div class="kpi-row"><span class="kpi-stat">Brevo + Discord + Waitlist</span></div>
+      </a>
+    `;
+  } catch(e) {
+    document.getElementById('kpiGrid').innerHTML = '<div class="loading-text">Failed to load — check /press-data.</div>';
+  }
+})();
+</script>
+</body>
+</html>

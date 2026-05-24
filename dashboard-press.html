@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFX Press + Queue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #1a1c21;
+      --bg2:       #20232a;
+      --surface:   #252830;
+      --surface2:  #2c2f38;
+      --border:    #32353f;
+      --border2:   #3d4150;
+      --text:      #e2e0db;
+      --text-mid:  #b8b5ae;
+      --muted:     #7a7870;
+      --dim:       #4a4845;
+      --green:     #4d9e72;
+      --green-bg:  #0e1f17;
+      --green-bd:  #1e3f2e;
+      --red:       #c45c5c;
+      --red-bg:    #1f0e0e;
+      --red-bd:    #3f1e1e;
+      --amber:     #c49a3c;
+      --amber-bg:  #1f1800;
+      --amber-bd:  #3f3000;
+      --blue:      #5b8fc4;
+      --blue-bg:   #0e1620;
+      --blue-bd:   #1e2f40;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 16px; line-height: 1.7; overflow: hidden; }
+
+    /* ── NAV ── */
+    .nav { border-bottom: 1px solid var(--border); padding: 0 32px; height: 56px; display: flex; align-items: center; position: sticky; top: 0; background: var(--bg); z-index: 100; gap: 0; }
+    .nav-wordmark { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); margin-right: 36px; flex-shrink: 0; }
+    .nav-wordmark span { color: var(--muted); font-weight: 400; }
+    .nav-links { display: flex; gap: 2px; flex: 1; }
+    .nav-link { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 14px; border-radius: 3px; color: var(--muted); text-decoration: none; transition: background 0.15s, color 0.15s; }
+    .nav-link:hover { background: var(--surface); color: var(--text-mid); }
+    .nav-link.active { background: var(--surface2); color: var(--text); }
+
+    /* ── SPLIT LAYOUT ── */
+    .split {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      height: calc(100vh - 56px);
+      overflow: hidden;
+    }
+
+    /* ── QUEUE PANEL ── */
+    .queue-panel {
+      border-right: 2px solid var(--border2);
+      overflow-y: auto;
+      background: var(--bg2);
+      display: flex;
+      flex-direction: column;
+    }
+    .queue-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg2);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .queue-header-top { display: flex; align-items: center; justify-content: space-between; }
+    .queue-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .queue-badge { font-family: var(--mono); font-size: 11px; color: var(--dim); background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px; }
+    .queue-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .queue-item:hover { background: var(--surface); }
+    .queue-item.active { background: var(--surface); border-left: 2px solid var(--blue); padding-left: 18px; }
+    .queue-thumb {
+      width: 96px;
+      height: 54px;
+      border-radius: 4px;
+      object-fit: cover;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      display: block;
+    }
+    .queue-info { flex: 1; min-width: 0; }
+    .queue-item-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .queue-item-date { font-family: var(--mono); font-size: 11px; color: var(--dim); margin-bottom: 6px; }
+    .queue-item-badge { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 2px; background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); letter-spacing: 0.05em; }
+    .queue-empty { padding: 40px 20px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--dim); }
+
+    /* ── PRESS PANEL — exact press.html styles ── */
+    .press-panel { overflow-y: auto; background: var(--bg); }
+
+    /* Exact press.html header */
+    .press-header {
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 50;
+    }
+    .press-header-left { display: flex; align-items: center; gap: 20px; }
+    .wordmark { font-family: var(--mono); font-size: 14px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); }
+    .wordmark span { color: var(--muted); font-weight: 400; }
+    .header-count { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 3px 10px; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .btn-generate { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; background: var(--text); color: var(--bg); border: none; border-radius: 3px; padding: 7px 16px; cursor: pointer; transition: opacity 0.15s; }
+    .btn-generate:hover { opacity: 0.85; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px var(--green-bg); }
+
+    #generatePanel { display: none; border-bottom: 1px solid var(--border); padding: 24px 32px; background: var(--bg2); }
+    #generatePanel.open { display: block; }
+    .gen-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+    .gen-row { display: flex; gap: 10px; align-items: center; }
+    .gen-input { flex: 1; background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 13px; padding: 11px 14px; outline: none; transition: border-color 0.15s; }
+    .gen-input:focus { border-color: var(--blue); }
+    .gen-input::placeholder { color: var(--dim); }
+    .btn-run { font-family: var(--mono); font-size: 13px; font-weight: 600; background: var(--text); color: var(--bg); border: none; border-radius: 4px; padding: 11px 22px; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
+    .btn-run:hover:not(:disabled) { opacity: 0.85; }
+    .btn-run:disabled { opacity: 0.3; cursor: not-allowed; }
+    .gen-status { margin-top: 12px; font-family: var(--mono); font-size: 13px; color: var(--muted); display: none; }
+    .gen-status.active { display: block; color: var(--blue); }
+    .gen-status.done   { display: block; color: var(--green); }
+    .gen-status.err    { display: block; color: var(--red); }
+
+    .press-content { padding: 0 32px 80px; }
+
+    /* Exact press.html table styles */
+    .table-header { display: grid; grid-template-columns: 180px 1fr 220px 130px; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 28px; }
+    .video-row { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .video-row:hover { background: var(--bg2); }
+    .row-summary { display: grid; grid-template-columns: 180px 1fr 220px 130px; gap: 16px; padding: 14px 0; cursor: pointer; align-items: center; }
+    .row-thumb-wrap { width: 180px; height: 101px; border-radius: 5px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); flex-shrink: 0; display: block; text-decoration: none; position: relative; }
+    .row-thumb-wrap:hover .thumb-overlay { opacity: 1; }
+    .thumb-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s; font-size: 28px; }
+    .row-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .row-thumb-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+    .row-info {}
+    .row-title { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.35; margin-bottom: 8px; }
+    .row-meta { font-family: var(--mono); font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+    .row-yt-url { font-family: var(--mono); font-size: 11px; color: var(--blue); text-decoration: none; display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .row-yt-url:hover { text-decoration: underline; }
+    .region-tag { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+    .region-global { background: var(--surface2); color: var(--text-mid); border: 1px solid var(--border2); }
+    .region-gcc { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); }
+    .region-us { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-bd); }
+    .platform-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+    .pill { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; border: 1px solid; }
+    .pill-ok    { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
+    .pill-error { background: var(--red-bg);   color: var(--red);   border-color: var(--red-bd); }
+    .pill-pend  { background: var(--surface2); color: var(--dim);   border-color: var(--border); }
+    .row-date { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; }
+    .row-chevron { font-size: 11px; color: var(--dim); transition: transform 0.2s; margin-left: 6px; display: block; margin-top: 4px; }
+    .video-row.open .row-chevron { transform: rotate(180deg); }
+    .row-expanded { display: none; padding: 0 0 28px; border-top: 1px solid var(--border); }
+    .video-row.open .row-expanded { display: block; }
+    .expanded-inner { padding-top: 24px; }
+    .expanded-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .expanded-region-label { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+    .expanded-yt-link { font-family: var(--mono); font-size: 12px; color: var(--blue); text-decoration: none; margin-left: auto; }
+    .expanded-yt-link:hover { text-decoration: underline; }
+    .platform-tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .ptab { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 9px 16px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; background: none; border-top: none; border-left: none; border-right: none; }
+    .ptab:hover { color: var(--text-mid); }
+    .ptab.active { color: var(--text); border-bottom-color: var(--text); }
+    .ptab-chip { display: inline-block; font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 2px; margin-left: 5px; vertical-align: middle; letter-spacing: 0.04em; }
+    .ptab-chip-ok     { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+    .ptab-chip-err    { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
+    .ptab-chip-edited { background: #2a1500; color: #e06b1a; border: 1px solid #4a2800; }
+    .platform-panels { position: relative; }
+    .ppanel { display: none; }
+    .ppanel.active { display: block; }
+    .platform-status-bar { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 16px; border-radius: 5px; margin-bottom: 14px; border: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; gap: 8px; }
+    .psb-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .psb-status-chip { font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 3px; }
+    .psb-chip-ok     { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+    .psb-chip-err    { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
+    .psb-chip-pend   { background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); }
+    .psb-chip-edited { background: #2a1500; color: #e06b1a; border: 1px solid #4a2800; }
+    .psb-link { font-family: var(--mono); font-size: 12px; color: var(--blue); text-decoration: none; }
+    .psb-link:hover { text-decoration: underline; }
+    .psb-date { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+    .content-block { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 18px 20px; font-size: 15px; line-height: 1.8; color: var(--text-mid); white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto; }
+    .content-block.article-body { white-space: normal; }
+    .content-block.article-body h2 { font-size: 16px; font-weight: 700; color: var(--text); margin: 18px 0 9px; }
+    .content-block.article-body h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 14px 0 7px; }
+    .content-block.article-body p  { margin-bottom: 12px; }
+    .content-block.article-body a  { color: var(--blue); }
+    .tweet-list { display: flex; flex-direction: column; gap: 10px; }
+    .tweet-item { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 14px 16px; display: flex; gap: 14px; font-size: 15px; line-height: 1.75; color: var(--text-mid); }
+    .tweet-num { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--dim); min-width: 18px; padding-top: 3px; }
+    .action-row { display: flex; align-items: center; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .action-label { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+    .platform-checkbox { display: flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; user-select: none; font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface); }
+    .platform-checkbox:hover { border-color: var(--border2); color: var(--text-mid); }
+    .platform-checkbox.checked { border-color: var(--blue-bd); background: var(--blue-bg); color: var(--blue); }
+    .platform-checkbox.already-posted { border-color: var(--green-bd); background: var(--green-bg); color: var(--green); }
+    .chk-dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; flex-shrink: 0; }
+    .platform-checkbox.checked .chk-dot, .platform-checkbox.already-posted .chk-dot { background: currentColor; }
+    .btn-publish { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; background: var(--green); color: #fff; border: none; border-radius: 4px; padding: 9px 24px; cursor: pointer; margin-left: auto; transition: opacity 0.15s; }
+    .btn-publish:hover:not(:disabled) { opacity: 0.85; }
+    .btn-publish:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn-regen { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 8px 16px; cursor: pointer; transition: all 0.15s; }
+    .btn-regen:hover { border-color: var(--border2); color: var(--text-mid); }
+    .pub-result { font-family: var(--mono); font-size: 12px; margin-top: 12px; padding: 10px 14px; border-radius: 4px; display: none; }
+    .pub-result.ok  { background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green); display: block; }
+    .pub-result.err { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: var(--red);   display: block; }
+    .content-block[contenteditable="true"], .tweet-item[contenteditable="true"] { outline: 1px solid var(--blue); cursor: text; border-color: var(--blue-bd); background: var(--blue-bg); }
+    .edit-save-bar { display: none; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 14px; background: var(--blue-bg); border: 1px solid var(--blue-bd); border-radius: 4px; }
+    .edit-save-bar.visible { display: flex; }
+    .edit-save-bar-label { font-family: var(--mono); font-size: 11px; color: var(--blue); flex: 1; }
+    .btn-edit-save { font-family: var(--mono); font-size: 12px; font-weight: 600; background: var(--blue); color: #fff; border: none; border-radius: 3px; padding: 7px 18px; cursor: pointer; transition: opacity 0.15s; }
+    .btn-edit-save:hover:not(:disabled) { opacity: 0.85; }
+    .btn-edit-save:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-edit-discard { font-family: var(--mono); font-size: 12px; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 7px 14px; cursor: pointer; }
+    .btn-edit-discard:hover { color: var(--text-mid); border-color: var(--border2); }
+    .loading-state { text-align: center; padding: 80px 0; }
+    .loading-spin { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border2); border-top-color: var(--text-mid); animation: spin 0.7s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+    .empty-state { text-align: center; padding: 80px 0; }
+    .empty-state p { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+    ::-webkit-scrollbar { width: 5px; height: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-wordmark">FFX <span>Internal</span></div>
+  <div class="nav-links">
+    <a href="/dashboard.html"            class="nav-link">Dashboard</a>
+    <a href="/dashboard-press.html"      class="nav-link active">Press + Queue</a>
+    <a href="/generate.html"             class="nav-link">Generate</a>
+    <a href="/dashboard-knowledge.html"  class="nav-link">Knowledge</a>
+    <a href="/dashboard-seo.html"        class="nav-link">SEO</a>
+    <a href="/dashboard-audience.html"   class="nav-link">Audience</a>
+    <a href="/dashboard-youtube.html"    class="nav-link">YouTube</a>
+  </div>
+</nav>
+
+<div class="split">
+
+  <!-- ── LEFT: QUEUE ── -->
+  <div class="queue-panel">
+    <div class="queue-header">
+      <div class="queue-header-top">
+        <span class="queue-title">Queue</span>
+        <span class="queue-badge" id="queueBadge">—</span>
+      </div>
+    </div>
+    <div id="queueList"><div class="queue-empty">Loading…</div></div>
+  </div>
+
+  <!-- ── RIGHT: FULL PRESS ── -->
+  <div class="press-panel">
+
+    <div class="press-header">
+      <div class="press-header-left">
+        <div class="wordmark">FFX <span>Press</span></div>
+        <div class="header-count" id="headerCount">—</div>
+      </div>
+      <div class="header-right">
+        <div class="status-dot"></div>
+        <button class="btn-generate" onclick="toggleGeneratePanel()">+ Generate</button>
+      </div>
+    </div>
+
+    <div id="generatePanel">
+      <div class="gen-title">New Content Generation</div>
+      <div class="gen-row">
+        <input type="url" class="gen-input" id="genUrl" placeholder="https://youtu.be/..." autocomplete="off" spellcheck="false">
+        <button class="btn-run" id="genBtn" onclick="startGeneration()">Generate</button>
+      </div>
+      <div class="gen-status" id="genStatus"></div>
+    </div>
+
+    <div class="press-content">
+      <div class="table-header">
+        <div>Video</div>
+        <div>Title &amp; Details</div>
+        <div>Platforms</div>
+        <div style="text-align:right;">Date</div>
+      </div>
+      <div id="videoList">
+        <div class="loading-state">
+          <div class="loading-spin"></div>
+          <div class="loading-text">Loading FFX Press…</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let allVideos = [];
+
+const PLATFORMS = [
+  { key: 'blog',     label: 'Blog' },
+  { key: 'x',        label: 'X' },
+  { key: 'linkedin', label: 'LinkedIn' },
+  { key: 'tumblr',   label: 'Tumblr' },
+  { key: 'discord',  label: 'Discord' },
+];
+
+async function init() {
+  const params     = new URLSearchParams(window.location.search);
+  const preVideoId = params.get('video');
+  await loadAll();
+  if (preVideoId) {
+    setTimeout(() => {
+      const row = document.querySelector('[data-videoid="' + preVideoId + '"]');
+      if (row && !row.classList.contains('open')) {
+        row.querySelector('.row-summary').click();
+        row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 300);
+  }
+}
+
+async function loadAll() {
+  try {
+    const res  = await fetch('/press-data');
+    const data = await res.json();
+    if (!res.ok) {
+      document.getElementById('videoList').innerHTML = '<div class="empty-state"><p>Error: ' + (data.error||'Unknown') + '</p></div>';
+      return;
+    }
+
+    // Separate queue items (video:) from published (published:)
+    // press-data returns published videos — we also check for queued via kv-status
+    // For now render published in Press and show queue separately
+    allVideos = data.videos || [];
+    document.getElementById('headerCount').textContent = allVideos.length + ' videos';
+    renderVideoList(allVideos);
+    renderQueue(data.queued || []);
+
+  } catch (err) {
+    document.getElementById('videoList').innerHTML = '<div class="empty-state"><p>Network error: ' + err.message + '</p></div>';
+  }
+}
+
+function renderQueue(queued) {
+  const badge = document.getElementById('queueBadge');
+  const list  = document.getElementById('queueList');
+  badge.textContent = queued.length + ' waiting';
+
+  if (!queued.length) {
+    list.innerHTML = '<div class="queue-empty">Queue empty — all videos processed</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  queued.forEach(v => {
+    const videoId = v.videoId || '';
+    const item    = document.createElement('div');
+    item.className = 'queue-item';
+    const img = document.createElement('img');
+    img.className = 'queue-thumb';
+    img.src = 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg';
+    img.onerror = function() { this.style.display = 'none'; };
+    img.alt = '';
+    const info = document.createElement('div');
+    info.className = 'queue-info';
+    info.innerHTML = '<div class="queue-item-title">' + escHtml(v.title || 'Processing…') + '</div>'
+      + '<div class="queue-item-date">' + (v.generatedAt ? new Date(v.generatedAt).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : 'In queue') + '</div>'
+      + '<span class="queue-item-badge">Ready to review</span>';
+    item.appendChild(img);
+    item.appendChild(info);
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.queue-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      // Scroll press panel to this video if it's already there
+      const row = document.querySelector('[data-videoid="' + videoId + '"]');
+      if (row) {
+        if (!row.classList.contains('open')) row.querySelector('.row-summary').click();
+        row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+    list.appendChild(item);
+  });
+}
+
+function renderVideoList(videos) {
+  const list = document.getElementById('videoList');
+  if (!videos.length) { list.innerHTML = '<div class="empty-state"><p>No published videos yet.</p></div>'; return; }
+  list.innerHTML = '';
+  videos.forEach(v => list.appendChild(buildVideoRow(v)));
+}
+
+function buildVideoRow(video) {
+  const row = document.createElement('div');
+  row.className = 'video-row';
+  const identifier = video.videoId || video.slug;
+  row.dataset.videoid = identifier;
+  const videoId   = video.videoId || '';
+  const ytUrl     = video.youtubeUrl || video.globalContent?.youtubeUrl || '';
+  const isRealId  = videoId && videoId.length <= 12 && !videoId.includes('-fx-') && !videoId.includes('trading') && !videoId.includes('strategy') && !videoId.includes('fails') && !videoId.includes('timeframe');
+  const thumbUrl  = isRealId ? 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg' : '';
+  const date      = formatDate(video.updatedAt || '');
+  const region    = video.region || 'Global';
+  const platforms = video.platforms || {};
+
+  const summary = document.createElement('div');
+  summary.className = 'row-summary';
+  const thumbHtml = thumbUrl
+    ? '<a class="row-thumb-wrap" href="' + escHtml(ytUrl) + '" target="_blank" onclick="event.stopPropagation()">'
+      + '<img class="row-thumb" src="' + thumbUrl + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'">'
+      + '<div class="thumb-overlay">▶</div></a>'
+    : '<div class="row-thumb-wrap"><div class="row-thumb-placeholder">No thumb</div></div>';
+
+  summary.innerHTML = thumbHtml
+    + '<div class="row-info">'
+    + '<div class="row-title">' + escHtml(video.title || 'Untitled') + '</div>'
+    + '<div class="row-meta"><span class="region-tag ' + regionClass(region) + '">' + region + '</span><span>' + escHtml(video.slug || '') + '</span></div>'
+    + (ytUrl ? '<a class="row-yt-url" href="' + escHtml(ytUrl) + '" target="_blank" onclick="event.stopPropagation()">' + escHtml(ytUrl) + '</a>' : '')
+    + '</div>'
+    + '<div class="platform-pills">' + PLATFORMS.map(p => '<span class="pill ' + pillClass(platforms[p.key]?.status || '') + '">' + p.label + '</span>').join('') + '</div>'
+    + '<div class="row-date">' + date + '<span class="row-chevron">▼</span></div>';
+
+  summary.addEventListener('click', () => toggleRow(row, video));
+  row.appendChild(summary);
+  const expanded = document.createElement('div');
+  expanded.className = 'row-expanded';
+  row.appendChild(expanded);
+  return row;
+}
+
+function toggleRow(row, video) {
+  const isOpen = row.classList.contains('open');
+  document.querySelectorAll('.video-row.open').forEach(r => r.classList.remove('open'));
+  if (!isOpen) {
+    row.classList.add('open');
+    const expanded = row.querySelector('.row-expanded');
+    if (!expanded.dataset.built) { buildExpandedContent(expanded, video); expanded.dataset.built = '1'; }
+  }
+}
+
+function buildExpandedContent(container, video) {
+  const content   = video.globalContent || video.content || {};
+  const platforms = video.platforms || {};
+  const videoId   = video.videoId || null;
+  const slug      = video.slug || null;
+  const region    = video.region || 'Global';
+  const ytUrl     = video.youtubeUrl || content.youtubeUrl || content.yt_url || '';
+  const tweets    = Array.isArray(content.x_thread) && content.x_thread.length
+    ? content.x_thread
+    : [1,2,3,4,5,6].map(i => content['tweet'+i]).filter(Boolean);
+
+  const panelsData = [
+    { key:'article', label:'Article', platformKey:'blog',
+      html: () => '<div class="content-block article-body" data-field="body" data-edit-active="false">' + (content.body || '<em>No article body found.</em>') + '</div>' },
+    { key:'x', label:'X', platformKey:'x',
+      html: () => tweets.length
+        ? '<div class="tweet-list">' + tweets.map((t,i) => '<div class="tweet-item" data-field="tweet'+(i+1)+'" data-edit-active="false"><span class="tweet-num">'+(i+1)+'</span><span class="tweet-text">'+escHtml(t)+'</span></div>').join('') + '</div>'
+        : '<div class="content-block"><em>No tweets found.</em></div>' },
+    { key:'linkedin', label:'LinkedIn', platformKey:'linkedin',
+      html: () => '<div class="content-block" data-field="linkedin" data-edit-active="false">' + (content.linkedin || '<em>No LinkedIn content found.</em>') + '</div>' },
+    { key:'discord',  label:'Discord',  platformKey:'discord',
+      html: () => '<div class="content-block" data-field="discord" data-edit-active="false">' + (content.discord || '<em>No Discord content found.</em>') + '</div>' },
+    { key:'tumblr',   label:'Tumblr',   platformKey:'tumblr',
+      html: () => '<div class="content-block" data-field="tumblr" data-edit-active="false">' + (content.tumblr || '<em>No Tumblr content found.</em>') + '</div>' },
+  ];
+
+  const tabBar         = document.createElement('div'); tabBar.className = 'platform-tabs';
+  const panelContainer = document.createElement('div'); panelContainer.className = 'platform-panels';
+
+  panelsData.forEach((p, idx) => {
+    const pStatus    = platforms[p.platformKey]?.status || '';
+    const postUrl    = extractPostUrl(pStatus);
+    const isOk       = !!postUrl;
+    const isErr      = pStatus.startsWith('Error');
+    const publishedAt = platforms[p.platformKey]?.publishedAt || '';
+    const editedFields    = video.editedFields || [];
+    const fieldMap    = { blog:['body'], x:['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'], linkedin:['linkedin'], discord:['discord'], tumblr:['tumblr'] };
+    const isEdited    = isOk && (fieldMap[p.platformKey]||[]).some(f => editedFields.includes(f));
+    const chipHtml    = isEdited ? '<span class="ptab-chip ptab-chip-edited">Edited</span>'
+      : isOk  ? '<span class="ptab-chip ptab-chip-ok">Posted</span>'
+      : isErr ? '<span class="ptab-chip ptab-chip-err">Error</span>' : '';
+
+    const tab = document.createElement('button');
+    tab.className = 'ptab' + (idx===0?' active':''); tab.dataset.panel = p.key;
+    tab.innerHTML = p.label + chipHtml;
+    tab.addEventListener('click', () => switchTab(panelContainer, tabBar, p.key));
+    tabBar.appendChild(tab);
+
+    const panel = document.createElement('div');
+    panel.className = 'ppanel' + (idx===0?' active':''); panel.dataset.panel = p.key;
+    let chipCls, chipTxt;
+    if (isEdited)     { chipCls='psb-chip-edited'; chipTxt='⚠ Edited — republish'; }
+    else if (postUrl) { chipCls='psb-chip-ok';     chipTxt='✓ Posted'; }
+    else if (isErr)   { chipCls='psb-chip-err';    chipTxt='✕ Error'; }
+    else              { chipCls='psb-chip-pend';   chipTxt='○ Not posted'; }
+    panel.innerHTML = '<div class="platform-status-bar"><div class="psb-left">'
+      + '<span class="psb-status-chip ' + chipCls + '">' + chipTxt + '</span>'
+      + (postUrl ? '<a href="' + postUrl + '" target="_blank" class="psb-link">View post →</a>' : '')
+      + (publishedAt ? '<span class="psb-date">Published ' + formatDate(publishedAt) + '</span>' : '')
+      + '</div></div>' + p.html();
+    panelContainer.appendChild(panel);
+  });
+
+  const actionRow = document.createElement('div'); actionRow.className = 'action-row';
+  actionRow.innerHTML = '<span class="action-label">Publish to:</span>';
+  PLATFORMS.forEach(p => {
+    const pStatus  = platforms[p.key]?.status || '';
+    const postUrl  = extractPostUrl(pStatus);
+    const isPosted = !!postUrl;
+    const chk = document.createElement('div');
+    chk.className = 'platform-checkbox ' + (isPosted ? 'already-posted' : 'checked');
+    chk.dataset.platform  = p.key;
+    chk.dataset.checked   = isPosted ? 'false' : 'true';
+    chk.dataset.wasPosted = isPosted ? 'true' : 'false';
+    chk.dataset.postUrl   = postUrl || '';
+    const linkHtml = postUrl ? ' <a href="' + postUrl + '" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View</a>' : '';
+    chk.innerHTML = '<span class="chk-dot"></span>' + p.label + (isPosted ? ' ✓' : '') + linkHtml;
+    chk.addEventListener('click', () => {
+      const c = chk.dataset.checked === 'true';
+      chk.dataset.checked = c ? 'false' : 'true';
+      const wasPosted = chk.dataset.wasPosted === 'true';
+      const url = chk.dataset.postUrl;
+      const link = url ? ' <a href="' + url + '" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View prev</a>' : '';
+      if (!c) { chk.classList.add('checked'); chk.classList.remove('already-posted'); chk.innerHTML = '<span class="chk-dot"></span>' + p.label + (wasPosted ? ' ↻' : '') + link; }
+      else    { chk.classList.remove('checked','already-posted'); chk.innerHTML = '<span class="chk-dot"></span>' + p.label + ' —' + link; }
+    });
+    actionRow.appendChild(chk);
+  });
+
+  const regenBtn = document.createElement('button'); regenBtn.className = 'btn-regen'; regenBtn.textContent = 'Regenerate';
+  regenBtn.onclick = () => regenVideo(video);
+  actionRow.appendChild(regenBtn);
+
+  const pubBtn = document.createElement('button'); pubBtn.className = 'btn-publish'; pubBtn.textContent = 'Publish';
+  pubBtn.onclick = () => publishVideo(videoId, slug, actionRow, pubBtn, container, video);
+  actionRow.appendChild(pubBtn);
+
+  const pubResult = document.createElement('div'); pubResult.className = 'pub-result';
+  const inner = document.createElement('div'); inner.className = 'expanded-inner';
+  inner.innerHTML = '<div class="expanded-header"><span class="region-tag ' + regionClass(region) + '">' + region + '</span>'
+    + '<span class="expanded-region-label">Article</span>'
+    + (ytUrl ? '<a class="expanded-yt-link" href="' + escHtml(ytUrl) + '" target="_blank">▶ ' + escHtml(ytUrl) + '</a>' : '')
+    + '</div>';
+
+  inner.appendChild(tabBar);
+  inner.appendChild(panelContainer);
+  panelContainer.querySelectorAll('.content-block[data-field]').forEach(el => {
+    el.addEventListener('click', () => makeEditable(el, video, el.dataset.field));
+  });
+  panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(el => {
+    el.addEventListener('click', () => { const ts = el.querySelector('.tweet-text'); if (ts) makeEditable(ts, video, el.dataset.field); });
+  });
+  inner.appendChild(actionRow);
+  inner.appendChild(pubResult);
+  container.appendChild(inner);
+}
+
+function switchTab(pc, tb, key) {
+  tb.querySelectorAll('.ptab').forEach(t => t.classList.toggle('active', t.dataset.panel === key));
+  pc.querySelectorAll('.ppanel').forEach(p => p.classList.toggle('active', p.dataset.panel === key));
+}
+
+async function publishVideo(videoId, slug, actionRow, pubBtn, container, video) {
+  const platforms = {};
+  actionRow.querySelectorAll('.platform-checkbox').forEach(el => { platforms[el.dataset.platform] = el.dataset.checked === 'true'; });
+  if (!Object.values(platforms).some(v => v)) { showPubResult(container, 'Select at least one platform.', false); return; }
+  pubBtn.disabled = true; pubBtn.textContent = 'Publishing…';
+  try {
+    const res  = await fetch('/press-publish', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ videoId, slug, platforms }) });
+    const data = await res.json();
+    if (!res.ok) { showPubResult(container, data.error || 'Publish failed.', false); pubBtn.disabled=false; pubBtn.textContent='Publish'; return; }
+    if (data.status) {
+      if (!video.platforms) video.platforms = {};
+      Object.keys(data.status).forEach(p => {
+        const s = data.status[p];
+        if (!s || s==='not_selected' || s==='pending') return;
+        if (!video.platforms[p]) video.platforms[p] = {};
+        video.platforms[p].status = s;
+        video.platforms[p].publishedAt = new Date().toISOString();
+      });
+    }
+    const row = container.closest('.video-row');
+    if (data.status) updatePills(row, data.status);
+    container.innerHTML = ''; buildExpandedContent(container, video); container.dataset.built = '1';
+    showPubResult(container, '✓ Published successfully', true);
+    pubBtn.disabled = false; pubBtn.textContent = 'Publish';
+  } catch (err) {
+    showPubResult(container, 'Network error: ' + err.message, false);
+    pubBtn.disabled = false; pubBtn.textContent = 'Publish';
+  }
+}
+
+function showPubResult(container, msg, ok) {
+  const el = container.querySelector('.pub-result');
+  if (!el) return; el.textContent = msg; el.className = 'pub-result ' + (ok ? 'ok' : 'err');
+}
+
+function updatePills(row, status) {
+  const pills = row.querySelectorAll('.pill');
+  PLATFORMS.forEach((p, i) => { if (!pills[i]) return; pills[i].className = 'pill ' + pillClass(status[p.key] || ''); });
+}
+
+function regenVideo(video) {
+  const ytUrl = video.youtubeUrl || video.globalContent?.youtubeUrl || video.content?.youtubeUrl || video.content?.yt_url || '';
+  if (!ytUrl) { alert('No YouTube URL found.'); return; }
+  window.location.href = '/generate.html?url=' + encodeURIComponent(ytUrl);
+}
+
+function makeEditable(el, video, field) {
+  if (el.dataset.editActive === 'true') return;
+  el.dataset.editActive = 'true';
+  const original = el.innerText;
+  el.setAttribute('contenteditable', 'true'); el.focus();
+  let bar = el.nextElementSibling;
+  if (!bar || !bar.classList.contains('edit-save-bar')) {
+    bar = document.createElement('div'); bar.className = 'edit-save-bar';
+    bar.innerHTML = '<span class="edit-save-bar-label">Editing ' + field + ' — unsaved</span><button class="btn-edit-discard">Discard</button><button class="btn-edit-save">Save</button>';
+    el.parentNode.insertBefore(bar, el.nextSibling);
+  }
+  bar.classList.add('visible');
+  bar.querySelector('.btn-edit-save').onclick    = () => saveEdit(el, bar, video, field, original);
+  bar.querySelector('.btn-edit-discard').onclick = () => { el.setAttribute('contenteditable','false'); el.innerText=original; el.dataset.editActive='false'; bar.classList.remove('visible'); };
+}
+
+async function saveEdit(el, bar, video, field, original) {
+  const saveBtn = bar.querySelector('.btn-edit-save');
+  saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+  const value = el.innerText.trim(); const videoId = video.videoId||null; const slug = video.slug||null;
+  try {
+    const res  = await fetch('/save-edits', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ videoId, slug, kvType:'published', field, value }) });
+    const data = await res.json();
+    if (!res.ok) { saveBtn.disabled=false; saveBtn.textContent='Save'; bar.querySelector('.edit-save-bar-label').textContent='Error: '+(data.error||'Save failed'); return; }
+    if (!video.globalContent) video.globalContent = {};
+    video.globalContent[field] = value;
+    const tm = field.match(/^tweet([1-6])$/);
+    if (tm && Array.isArray(video.globalContent.x_thread)) video.globalContent.x_thread[parseInt(tm[1])-1] = value;
+    if (!Array.isArray(video.editedFields)) video.editedFields = [];
+    if (!video.editedFields.includes(field)) video.editedFields.push(field);
+    const ec = el.closest('.row-expanded');
+    if (ec) { ec.innerHTML=''; buildExpandedContent(ec, video); ec.dataset.built='1'; }
+    else { el.setAttribute('contenteditable','false'); el.dataset.editActive='false'; bar.classList.remove('visible'); saveBtn.disabled=false; saveBtn.textContent='Save'; }
+  } catch (err) { saveBtn.disabled=false; saveBtn.textContent='Save'; bar.querySelector('.edit-save-bar-label').textContent='Network error — try again'; }
+}
+
+function toggleGeneratePanel() { document.getElementById('generatePanel').classList.toggle('open'); }
+
+async function startGeneration() {
+  const url = document.getElementById('genUrl').value.trim();
+  const btn = document.getElementById('genBtn');
+  if (!url) { setGenStatus('Paste a YouTube URL first.', 'err'); return; }
+  btn.disabled = true; btn.textContent = 'Generating…';
+  setGenStatus('Sending to queue…', 'active');
+  try {
+    const res  = await fetch('/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ youtubeUrl: url }) });
+    const data = await res.json();
+    if (!res.ok) { setGenStatus('Error: ' + (data.error||res.status), 'err'); btn.disabled=false; btn.textContent='Generate'; return; }
+    setGenStatus('Queued. Check back in 2–3 minutes.', 'done');
+    btn.disabled=false; btn.textContent='Generate';
+    document.getElementById('generatePanel').classList.remove('open');
+    document.getElementById('genUrl').value = '';
+    setGenStatus('', '');
+  } catch (err) { setGenStatus('Network error: ' + err.message, 'err'); btn.disabled=false; btn.textContent='Generate'; }
+}
+
+function setGenStatus(msg, cls) {
+  const el = document.getElementById('genStatus');
+  el.textContent = msg; el.className = 'gen-status' + (cls ? ' ' + cls : '');
+}
+
+function extractPostUrl(status) {
+  if (!status) return null;
+  if (status.startsWith('http')) return status;
+  if (status.startsWith('=HYPERLINK(')) { const m = status.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
+  return null;
+}
+function pillClass(status) { if (!status) return 'pill-pend'; if (extractPostUrl(status)) return 'pill-ok'; if (status.startsWith('Error')) return 'pill-error'; return 'pill-pend'; }
+function regionClass(region) { if (!region||region==='Global') return 'region-global'; if (region.includes('GCC')) return 'region-gcc'; if (region.includes('US')||region.includes('Canada')) return 'region-us'; return 'region-global'; }
+function formatDate(str) { if (!str) return '—'; try { return new Date(str).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}); } catch { return str; } }
+function escHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+document.addEventListener('DOMContentLoaded', init);
+document.getElementById('genUrl').addEventListener('keydown', e => { if (e.key === 'Enter') startGeneration(); });
+</script>
+</body>
+</html>
