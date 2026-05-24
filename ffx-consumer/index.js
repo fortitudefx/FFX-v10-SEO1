@@ -174,24 +174,43 @@ async function processJob(job, env) {
     console.error('[FFX] Library extraction failed (non-fatal):', err.message);
   }
 
-  // Write library items permanently
-  for (let i = 0; i < libraryItems.length; i++) {
-    const item = libraryItems[i];
+  // Write nuggets permanently — nugget:{id} + nuggets:index
+  if (libraryItems.length > 0) {
     try {
-      await env.FFX_KV.put(
-        `library:${videoId}:${item.category}:${i}`,
-        JSON.stringify({
-          ...item,
-          videoId,
-          youtubeUrl,
-          videoTitle: globalArticle.title,
-          createdAt: new Date().toISOString(),
-          platforms: [],
-          usedAt: null,
-        })
-      );
+      const indexRaw = await env.FFX_KV.get('nuggets:index');
+      const index = indexRaw ? JSON.parse(indexRaw) : [];
+      const now = new Date().toISOString();
+
+      for (let i = 0; i < libraryItems.length; i++) {
+        const item = libraryItems[i];
+        try {
+          const nuggetId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${i}`;
+          const nugget = {
+            id:            nuggetId,
+            text:          item.content,
+            category:      item.category,
+            tags:          Array.isArray(item.tags) ? item.tags : [],
+            hook:          item.hook || null,
+            format:        item.format || null,
+            sourceVideoId: videoId,
+            sourceTitle:   globalArticle.title,
+            youtubeUrl,
+            publishedTo:   {},
+            createdAt:     now,
+            updatedAt:     now,
+          };
+          await env.FFX_KV.put(`nugget:${nuggetId}`, JSON.stringify(nugget));
+          index.unshift(nuggetId);
+          console.log('[FFX] Nugget written:', nuggetId);
+        } catch (err) {
+          console.error('[FFX] Nugget write failed:', i, err.message);
+        }
+      }
+
+      await env.FFX_KV.put('nuggets:index', JSON.stringify(index));
+      console.log('[FFX] nuggets:index updated, total:', index.length);
     } catch (err) {
-      console.error('[FFX] Library item write failed:', i, err.message);
+      console.error('[FFX] Nuggets index update failed (non-fatal):', err.message);
     }
   }
 
@@ -579,7 +598,7 @@ Only extract an item if it passes ALL THREE tests:
 If it does not pass all three — do not extract it. Quality over quantity. Never pad with filler.
 
 CATEGORIES (assign exactly one):
-Psychology, Execution, CTW Framework, Risk Management, Market Structure, Entries, Professional Mindset, Life and Identity, Work Life Balance, Mental Health, Community, Fundamentals, Beginner Mistakes
+CTW Framework, Market Psychology, Execution Discipline, Professional Thinking, Trading Reality, Lifestyle & Philosophy, Founder Observation, Hook/Viral
 
 FORMATS (assign exactly one):
 question, insight, contrarian, story, chart_game
