@@ -556,7 +556,7 @@ function toggleRow(row, video) {
 }
 
 function buildExpandedContent(container, video) {
-  const content   = video.globalContent || video.content || {};
+  const content   = video.globalContent || video.content || video.platforms?.blog?.content || {};
   // pendingEdits overlays globalContent for display — these are saved edits awaiting republish
   // globalContent remains untouched — it is the source of truth for what is actually live
   const pending   = video.pendingEdits  || {};
