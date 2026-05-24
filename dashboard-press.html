@@ -867,7 +867,8 @@ function updateTabChips(container, video, regenMap) {
     const hasPending  = (FIELD_MAP[platformKey]||[]).some(f => pending[f] !== undefined);
 
     // Rebuild chip only — preserve tab label text
-    const label = tab.textContent.replace(/[⚡⚠✓✕].*$/, '').trim();
+    const keyToLabel = { article:'Article', x:'X', linkedin:'LinkedIn', discord:'Discord', tumblr:'Tumblr' };
+const label = keyToLabel[key] || key;
     let chipHtml = '';
     if (hasRegenStaging) {
       const msLeft  = new Date(regenData.expiresAt) - Date.now();
