@@ -1,99 +1,292 @@
-// Cloudflare Pages Function
-// File: /functions/save-edits.js
-// Saves inline edits back to KV — video:{videoId} (staging) or published:{videoId} (permanent)
-// For published records: edits go to pendingEdits — never overwrites globalContent
-// globalContent = source of truth = what is actually live on platforms
-// pendingEdits = staged edits awaiting republish
-// publish-confirm.js merges pendingEdits into globalContent on successful publish
+// ─────────────────────────────────────────────────────────────────────────────
+// FFX Publish Confirm — Master Orchestrator
+// Calls platform Workers, writes published status to published:{videoId} permanently
+// Stores FULL globalContent + regionalContent for Press republishing
+// video:{videoId} is written by consumer Worker only — never touched here
+// published:{videoId} is written here only — permanent, no TTL
+// Clean separation — no race conditions ever
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestPost(context) {
-  const KV = context.env.FFX_KV;
-  if (!KV) return json({ error: 'KV not bound.' }, 500);
+  const { request, env } = context;
 
-  let payload;
-  try { payload = await context.request.json(); }
-  catch { return json({ error: 'Invalid JSON.' }, 400); }
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+  };
 
-  const { videoId, slug, kvType, field, value } = payload;
-  if (!field || value === undefined) return json({ error: 'Missing field or value.' }, 400);
-  if (!kvType || !['video', 'published'].includes(kvType)) return json({ error: 'Invalid kvType.' }, 400);
+  console.log('[FFX] publish-confirm received');
 
-  let kvKey;
-  if (kvType === 'video') {
-    if (!videoId) return json({ error: 'videoId required for video kvType.' }, 400);
-    kvKey = `video:${videoId}`;
-  } else {
-    if (!videoId && !slug) return json({ error: 'videoId or slug required for published kvType.' }, 400);
-    kvKey = videoId ? `published:${videoId}` : `published:slug:${slug}`;
+  let body;
+  try { body = await request.json(); } catch {
+    return resp({ error: 'Invalid JSON body' }, 400, headers);
   }
 
-  const raw = await KV.get(kvKey, { type: 'text' }).catch(() => null);
-  if (!raw) return json({ error: `KV record not found: ${kvKey}` }, 404);
+  const { content, regionalContent, platforms } = body;
 
-  let record;
-  try { record = JSON.parse(raw); }
-  catch { return json({ error: 'KV record is malformed JSON.' }, 500); }
+  if (!content || !content.slug) {
+    return resp({ error: 'content with slug is required' }, 400, headers);
+  }
 
-  const isTweet = /^tweet[1-6]$/.test(field);
+  const slug = content.slug;
+  const userSelected = platforms || { blog: true, x: true, linkedin: true, discord: true };
 
-  if (kvType === 'video') {
-    // video: KV — staging record, write directly as before
-    if (field === 'body') {
-      if (!record.platforms) record.platforms = {};
-      if (!record.platforms.blog_global) record.platforms.blog_global = {};
-      record.platforms.blog_global.body = value;
-    } else if (isTweet) {
-      if (!record.platforms) record.platforms = {};
-      if (!record.platforms.x) record.platforms.x = {};
-      record.platforms.x[field] = value;
-      const tweetIndex = parseInt(field.replace('tweet', '')) - 1;
-      if (Array.isArray(record.platforms?.x_thread)) {
-        record.platforms.x_thread[tweetIndex] = value;
-      }
-    } else {
-      if (!record.platforms) record.platforms = {};
-      if (!record.platforms[field]) record.platforms[field] = {};
-      record.platforms[field][field] = value;
-    }
+  const platformUrls = {
+    blog:     `https://fortitudefx.com/article?slug=${slug}`,
+    x:        'https://x.com/fortitudefx',
+    linkedin: 'https://www.linkedin.com/in/salman-khan-fortitudefx',
+    tumblr:   'https://fortitudefx.tumblr.com',
+    discord:  'https://fortitudefx.com/vipdiscord',
+  };
 
-  } else {
-    // published: KV — write to pendingEdits ONLY
-    // globalContent is never touched here — it stays as the source of truth
-    if (!record.pendingEdits) record.pendingEdits = {};
-    record.pendingEdits[field] = value;
+  console.log('[FFX] slug:', slug, 'platforms:', userSelected);
+  if (regionalContent) console.log('[FFX] regionalContent slug:', regionalContent.slug);
 
-    // Keep x_thread in sync within pendingEdits
-    if (isTweet) {
-      const tweetIndex = parseInt(field.replace('tweet', '')) - 1;
-      // Build x_thread from pendingEdits tweets, falling back to globalContent
-      const gc = record.globalContent || {};
-      const pe = record.pendingEdits;
-      record.pendingEdits.x_thread = [1,2,3,4,5,6].map(i => {
-        const key = `tweet${i}`;
-        return pe[key] !== undefined ? pe[key] : (gc[key] || '');
+  const baseUrl = new URL(request.url).origin;
+
+  const status = {
+    blog:         userSelected.blog     ? 'pending' : 'not_selected',
+    blogRegional: (userSelected.blog && regionalContent) ? 'pending' : 'not_selected',
+    x:            userSelected.x        ? 'pending' : 'not_selected',
+    linkedin:     userSelected.linkedin ? 'pending' : 'not_selected',
+    tumblr:       userSelected.tumblr   ? 'pending' : 'not_selected',
+    discord:      userSelected.discord  ? 'pending' : 'not_selected',
+  };
+
+  // ── Blog Global ───────────────────────────────────────────────────────────
+  if (userSelected.blog) {
+    try {
+      const res = await callWorker(`${baseUrl}/publish`, {
+        ...content,
+        skipSitemapAndIndex: false,
       });
+      status.blog = res.ok
+        ? platformUrls.blog
+        : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
+      console.log('[FFX] Blog Global:', status.blog);
+    } catch (err) {
+      status.blog = `Error: ${err.message}`;
+      console.log('[FFX] Blog Global error:', err.message);
     }
-
-    record.updatedAt = new Date().toISOString();
-
-    // Track edited fields — press.html uses this to show orange "Edited — republish" chip
-    // publish-confirm.js clears relevant fields from this array on successful publish
-    if (!Array.isArray(record.editedFields)) record.editedFields = [];
-    if (!record.editedFields.includes(field)) record.editedFields.push(field);
   }
 
-  if (kvType === 'video') {
-    await KV.put(kvKey, JSON.stringify(record), { expirationTtl: 86400 });
-  } else {
-    await KV.put(kvKey, JSON.stringify(record));
+  // ── Blog Regional ─────────────────────────────────────────────────────────
+  if (userSelected.blog && regionalContent && regionalContent.slug) {
+    try {
+      const res = await callWorker(`${baseUrl}/publish`, {
+        ...regionalContent,
+        skipSitemapAndIndex: false,
+      });
+      const regionalUrl = `https://fortitudefx.com/article?slug=${regionalContent.slug}`;
+      status.blogRegional = res.ok
+        ? regionalUrl
+        : `Error: ${(await res.json().catch(() => ({}))).error || res.status}`;
+      console.log('[FFX] Blog Regional:', status.blogRegional);
+    } catch (err) {
+      status.blogRegional = `Error: ${err.message}`;
+      console.log('[FFX] Blog Regional error:', err.message);
+    }
   }
 
-  return json({ success: true, kvKey, field });
+  // ── X ────────────────────────────────────────────────────────────────────
+  if (userSelected.x) {
+    try {
+      const res = await callWorker(`${baseUrl}/tweet`, {
+        slug,
+        tweet1: content.tweet1, tweet2: content.tweet2,
+        tweet3: content.tweet3, tweet4: content.tweet4,
+        tweet5: content.tweet5, tweet6: content.tweet6,
+      });
+      if (res.ok) {
+        const xData = await res.json().catch(() => ({}));
+        const firstTweetId = xData.results?.[0]?.tweet_id || '';
+        status.x = firstTweetId
+          ? `https://x.com/fortitudefx/status/${firstTweetId}`
+          : platformUrls.x;
+      } else {
+        status.x = `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      }
+      console.log('[FFX] X:', status.x);
+    } catch (err) {
+      status.x = `Error: ${err.message}`;
+    }
+  }
+
+  // ── LinkedIn ──────────────────────────────────────────────────────────────
+  if (userSelected.linkedin) {
+    try {
+      const res = await callWorker(`${baseUrl}/linkedin`, {
+        slug, linkedin: content.linkedin,
+      });
+      if (res.ok) {
+        const liData = await res.json().catch(() => ({}));
+        const postId = liData.post_id || '';
+        status.linkedin = postId
+          ? `https://www.linkedin.com/feed/update/${encodeURIComponent(postId)}`
+          : platformUrls.linkedin;
+      } else {
+        const liData = await res.json().catch(() => ({}));
+        status.linkedin = `Error: ${liData.message || res.status}`;
+      }
+      console.log('[FFX] LinkedIn:', status.linkedin);
+    } catch (err) {
+      status.linkedin = `Error: ${err.message}`;
+    }
+  }
+
+  // ── Tumblr ────────────────────────────────────────────────────────────────
+  if (userSelected.tumblr) {
+    try {
+      const res = await callWorker(`${baseUrl}/tumblr`, {
+        slug, tumblr: content.tumblr,
+      });
+      status.tumblr = res.ok
+        ? platformUrls.tumblr
+        : `Error: ${(await res.json().catch(() => ({}))).message || res.status}`;
+      console.log('[FFX] Tumblr:', status.tumblr);
+    } catch (err) {
+      status.tumblr = `Error: ${err.message}`;
+    }
+  }
+
+  // ── Discord ───────────────────────────────────────────────────────────────
+  if (userSelected.discord) {
+    try {
+      const res = await callWorker(`${baseUrl}/discord`, {
+        slug, discord: content.discord,
+      });
+      if (res.ok) {
+        const discordData = await res.json().catch(() => ({}));
+        status.discord = discordData.messageLink || platformUrls.discord;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        status.discord = `Error: ${errData.message || res.status}`;
+      }
+      console.log('[FFX] Discord:', status.discord);
+    } catch (err) {
+      status.discord = `Error: ${err.message}`;
+    }
+  }
+
+  // ── Write to published:{videoId} — PERMANENT, no TTL ─────────────────────
+  try {
+    if (env.FFX_KV) {
+      const extractVideoId = (url) => {
+        try {
+          const u = new URL(url || '');
+          if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+          if (u.hostname.includes('youtube.com')) {
+            const v = u.searchParams.get('v');
+            if (v) return v;
+            const parts = u.pathname.split('/');
+            const si = parts.indexOf('shorts');
+            if (si !== -1) return parts[si + 1];
+          }
+        } catch {}
+        return null;
+      };
+
+      const videoId = extractVideoId(content.youtubeUrl || content.yt_url || '');
+      const now = new Date();
+      const dubaiTime = new Date(now.getTime() + (4 * 60 * 60 * 1000));
+      const timestamp = dubaiTime.toISOString().replace('T', ' ').substring(0, 19);
+
+      if (videoId) {
+        const existingPublished = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' }) || {};
+        const existingPlatforms = existingPublished.platforms || {};
+        const updatedPlatforms = { ...existingPlatforms };
+
+        // Write per-platform status — only platforms that ran and succeeded
+        if (userSelected.blog && status.blog && !status.blog.startsWith('Error') && status.blog !== 'not_selected') {
+          updatedPlatforms.blog = { status: status.blog, publishedAt: timestamp };
+        }
+        if (userSelected.blog && regionalContent && status.blogRegional && !status.blogRegional.startsWith('Error') && status.blogRegional !== 'not_selected') {
+          updatedPlatforms.blogRegional = { status: status.blogRegional, publishedAt: timestamp };
+        }
+        if (userSelected.x && status.x && !status.x.startsWith('Error') && status.x !== 'not_selected') {
+          updatedPlatforms.x = { status: status.x, publishedAt: timestamp };
+        }
+        if (userSelected.linkedin && status.linkedin && !status.linkedin.startsWith('Error') && status.linkedin !== 'not_selected') {
+          updatedPlatforms.linkedin = { status: status.linkedin, publishedAt: timestamp };
+        }
+        if (userSelected.tumblr && status.tumblr && !status.tumblr.startsWith('Error') && status.tumblr !== 'not_selected') {
+          updatedPlatforms.tumblr = { status: status.tumblr, publishedAt: timestamp };
+        }
+        if (userSelected.discord && status.discord && !status.discord.startsWith('Error') && status.discord !== 'not_selected') {
+          updatedPlatforms.discord = { status: status.discord, publishedAt: timestamp };
+        }
+
+        // Clear editedFields for platforms that just published successfully
+        const fieldsToCheck = {
+          blog:     ['body'],
+          x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
+          linkedin: ['linkedin'],
+          discord:  ['discord'],
+          tumblr:   ['tumblr'],
+        };
+        let remainingEditedFields = Array.isArray(existingPublished.editedFields)
+          ? [...existingPublished.editedFields]
+          : [];
+
+        Object.entries(fieldsToCheck).forEach(([platform, fields]) => {
+          const s = status[platform];
+          const published = s && !s.startsWith('Error') && s !== 'not_selected' && s !== 'pending';
+          if (published) {
+            remainingEditedFields = remainingEditedFields.filter(f => !fields.includes(f));
+          }
+        });
+
+        const publishedEntry = {
+          videoId,
+          youtubeUrl: content.youtubeUrl || content.yt_url || '',
+          slug: content.slug,
+          title: content.title || '',
+          region: content.region || 'Global',
+          updatedAt: timestamp,
+          globalContent: content,
+          regionalContent: regionalContent || null,
+          platforms: updatedPlatforms,
+          editedFields: remainingEditedFields,
+        };
+
+        // No TTL — published content is permanent
+        await env.FFX_KV.put(`published:${videoId}`, JSON.stringify(publishedEntry));
+        console.log('[FFX] published: KV written permanently for videoId:', videoId);
+
+        // Clear video:{videoId} immediately — content is now permanent in published:{videoId}
+        // Non-fatal — publish already succeeded if this fails
+        try { await env.FFX_KV.delete(`video:${videoId}`); console.log('[FFX] video: KV cleared for videoId:', videoId); } catch {}
+
+      } else {
+        console.log('[FFX] No videoId found in content — published: KV not written');
+      }
+    }
+  } catch (kvErr) {
+    console.log('[FFX] KV write failed (non-fatal):', kvErr.message);
+  }
+
+  return resp({ success: true, slug, status }, 200, headers);
 }
 
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
   });
+}
+
+async function callWorker(url, payload) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+function resp(data, status, headers) {
+  return new Response(JSON.stringify(data), { status, headers });
 }
