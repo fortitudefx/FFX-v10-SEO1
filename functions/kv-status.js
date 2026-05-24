@@ -94,6 +94,7 @@ export async function onRequestPost(context) {
   };
 
   // Build articles array from video:{videoId} generated content
+  // video: KV stores content under platforms.blog_global.content
   const platforms = videoEntry?.platforms || {};
   const globalContent = platforms.blog_global?.content || null;
   const regionalContent = platforms.blog_regional?.content || null;
@@ -120,30 +121,31 @@ export async function onRequestPost(context) {
     }
   }
 
-  // If no generated content but published content exists — build from published
+  // If no generated content but published content exists
+  // published: KV stores content in globalContent at top level
   if (!articles && publishedEntry) {
-    const pubBlog = publishedPlatforms.blog?.content;
-    if (pubBlog) {
+    const pubContent = publishedEntry.globalContent || publishedPlatforms.blog?.content;
+    if (pubContent) {
       articles = [{
-        ...pubBlog,
-        region: 'Global',
-        regionLabel: 'Global',
+        ...pubContent,
+        region: publishedEntry.region || 'Global',
+        regionLabel: publishedEntry.region || 'Global',
         youtubeUrl: publishedEntry.youtubeUrl || '',
-        videoId: publishedEntry.videoId || '',
+        videoId: publishedEntry.videoId || videoId || '',
       }];
     }
   }
 
-  const resolvedSlug = videoEntry?.slug || publishedEntry?.slug || slug || '';
-  const resolvedTitle = videoEntry?.title || publishedEntry?.title || globalContent?.title || '';
-  const resolvedYoutubeUrl = videoEntry?.youtubeUrl || publishedEntry?.youtubeUrl || youtubeUrl || '';
+  const resolvedSlug       = videoEntry?.slug       || publishedEntry?.slug       || slug        || '';
+  const resolvedTitle      = videoEntry?.title      || publishedEntry?.title      || globalContent?.title || '';
+  const resolvedYoutubeUrl = videoEntry?.youtubeUrl || publishedEntry?.youtubeUrl || youtubeUrl  || '';
 
   console.log('[FFX Status] Found — slug:', resolvedSlug, 'published platforms:', Object.keys(publishedPlatforms).join(','));
 
   return new Response(JSON.stringify({
-    found: true,
-    slug: resolvedSlug,
-    title: resolvedTitle,
+    found:      true,
+    slug:       resolvedSlug,
+    title:      resolvedTitle,
     youtubeUrl: resolvedYoutubeUrl,
     status: {
       blog:     getStatus('blog'),
@@ -153,7 +155,7 @@ export async function onRequestPost(context) {
       discord:  getStatus('discord'),
     },
     articles,
-    content: globalContent,
+    content: globalContent || publishedEntry?.globalContent || null,
   }), { status: 200, headers });
 }
 
