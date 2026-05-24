@@ -1,6 +1,10 @@
 // Cloudflare Pages Function
 // File: /functions/save-edits.js
 // Saves inline edits back to KV — video:{videoId} (staging) or published:{videoId} (permanent)
+// For published records: edits go to pendingEdits — never overwrites globalContent
+// globalContent = source of truth = what is actually live on platforms
+// pendingEdits = staged edits awaiting republish
+// publish-confirm.js merges pendingEdits into globalContent on successful publish
 
 export async function onRequestPost(context) {
   const KV = context.env.FFX_KV;
@@ -11,7 +15,6 @@ export async function onRequestPost(context) {
   catch { return json({ error: 'Invalid JSON.' }, 400); }
 
   const { videoId, slug, kvType, field, value } = payload;
-
   if (!field || value === undefined) return json({ error: 'Missing field or value.' }, 400);
   if (!kvType || !['video', 'published'].includes(kvType)) return json({ error: 'Invalid kvType.' }, 400);
 
@@ -34,6 +37,7 @@ export async function onRequestPost(context) {
   const isTweet = /^tweet[1-6]$/.test(field);
 
   if (kvType === 'video') {
+    // video: KV — staging record, write directly as before
     if (field === 'body') {
       if (!record.platforms) record.platforms = {};
       if (!record.platforms.blog_global) record.platforms.blog_global = {};
@@ -51,25 +55,28 @@ export async function onRequestPost(context) {
       if (!record.platforms[field]) record.platforms[field] = {};
       record.platforms[field][field] = value;
     }
-  } else {
-    // Published record
-    if (!record.globalContent) record.globalContent = {};
 
-    if (field === 'body') {
-      record.globalContent.body = value;
-    } else if (isTweet) {
-      record.globalContent[field] = value;
+  } else {
+    // published: KV — write to pendingEdits ONLY
+    // globalContent is never touched here — it stays as the source of truth
+    if (!record.pendingEdits) record.pendingEdits = {};
+    record.pendingEdits[field] = value;
+
+    // Keep x_thread in sync within pendingEdits
+    if (isTweet) {
       const tweetIndex = parseInt(field.replace('tweet', '')) - 1;
-      if (Array.isArray(record.globalContent.x_thread)) {
-        record.globalContent.x_thread[tweetIndex] = value;
-      }
-    } else {
-      record.globalContent[field] = value;
+      // Build x_thread from pendingEdits tweets, falling back to globalContent
+      const gc = record.globalContent || {};
+      const pe = record.pendingEdits;
+      record.pendingEdits.x_thread = [1,2,3,4,5,6].map(i => {
+        const key = `tweet${i}`;
+        return pe[key] !== undefined ? pe[key] : (gc[key] || '');
+      });
     }
 
     record.updatedAt = new Date().toISOString();
 
-    // Track edited fields — so Press can show orange "Edited — republish" chip
+    // Track edited fields — press.html uses this to show orange "Edited — republish" chip
     // publish-confirm.js clears relevant fields from this array on successful publish
     if (!Array.isArray(record.editedFields)) record.editedFields = [];
     if (!record.editedFields.includes(field)) record.editedFields.push(field);
