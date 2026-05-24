@@ -1,9 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Restore Platform
 // POST /api/restore-platform
-// Clears pendingEdits for one platform only — reverts that platform to globalContent
+// Clears ALL staging for one platform — regen:{videoId}:{platform} deleted
+// AND pendingEdits cleared for that platform in published:{videoId}
+// AND editedFields updated
 // Never touches globalContent — source of truth remains intact
-// Never affects other platforms' pendingEdits
+// Never affects any other platform
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PLATFORM_FIELDS = {
@@ -35,7 +37,15 @@ export async function onRequestPost(context) {
     return json({ error: `Unknown platform: ${platform}. Valid: ${Object.keys(PLATFORM_FIELDS).join(', ')}` }, 400, headers);
   }
 
-  // ── Pull published record ─────────────────────────────────────────────────
+  // ── 1. Delete regen:{videoId}:{platform} staging key ─────────────────────
+  try {
+    await env.FFX_KV.delete(`regen:${videoId}:${platform}`);
+    console.log('[FFX] regen key deleted:', videoId, platform);
+  } catch (err) {
+    console.error('[FFX] regen key delete failed (non-fatal):', err.message);
+  }
+
+  // ── 2. Clear pendingEdits + editedFields for this platform ────────────────
   const record = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' }).catch(() => null);
   if (!record) {
     return json({ error: `No published record found for videoId: ${videoId}` }, 404, headers);
@@ -43,25 +53,20 @@ export async function onRequestPost(context) {
 
   const fieldsToRemove = PLATFORM_FIELDS[platform];
 
-  // ── Remove only this platform's fields from pendingEdits ─────────────────
   if (record.pendingEdits) {
-    fieldsToRemove.forEach(field => {
-      delete record.pendingEdits[field];
-    });
+    fieldsToRemove.forEach(field => delete record.pendingEdits[field]);
   }
 
-  // ── Remove only this platform's fields from editedFields ─────────────────
   if (Array.isArray(record.editedFields)) {
     record.editedFields = record.editedFields.filter(f => !fieldsToRemove.includes(f));
   }
 
   record.updatedAt = new Date().toISOString();
-
   await env.FFX_KV.put(`published:${videoId}`, JSON.stringify(record));
-  console.log('[FFX] Restored platform:', platform, 'for videoId:', videoId);
+  console.log('[FFX] pendingEdits cleared for platform:', platform, 'videoId:', videoId);
 
-  // ── Return globalContent fields for this platform so UI can snap back ─────
-  const globalContent = record.globalContent || {};
+  // ── 3. Return globalContent fields so UI snaps back to live content ───────
+  const globalContent  = record.globalContent || {};
   const restoredFields = {};
   fieldsToRemove.forEach(field => {
     if (globalContent[field] !== undefined) {
