@@ -711,8 +711,7 @@ function buildExpandedContent(container, video, regenMap) {
   const pubResult = document.createElement('div'); pubResult.className = 'pub-result';
 
   const inner = document.createElement('div'); inner.className = 'expanded-inner';
-  inner.innerHTML = '<div class="expanded-header"><span class="region-tag ' + regionClass(region) + '">' + region + '</span>'
-    + '<span class="expanded-region-label">Article</span></div>';
+  inner.innerHTML = '';
 
   inner.appendChild(tabBar);
   inner.appendChild(panelContainer);
