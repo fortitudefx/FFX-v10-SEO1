@@ -711,7 +711,8 @@ function buildExpandedContent(container, video, regenMap) {
   const pubResult = document.createElement('div'); pubResult.className = 'pub-result';
 
   const inner = document.createElement('div'); inner.className = 'expanded-inner';
-  inner.innerHTML = '';
+  inner.innerHTML = '<div class="expanded-header"><span class="region-tag ' + regionClass(region) + '">' + region + '</span>'
+    + '<span class="expanded-region-label">Article</span></div>';
 
   inner.appendChild(tabBar);
   inner.appendChild(panelContainer);
@@ -813,7 +814,15 @@ async function onRestoreClick(videoId, platform, regenBtn, restoreBtn, statusSpa
 }
 
 // Refetch regen status and rebuild expanded content
-async function rebuildExpanded(container, video) {
+// Captures active tab before rebuild and restores it after
+async function rebuildExpanded(container, video, forceTab) {
+  // Capture which tab is currently active before destroying DOM
+  let activeTab = forceTab || null;
+  if (!activeTab) {
+    const activeTabEl = container.querySelector('.ptab.active');
+    if (activeTabEl) activeTab = activeTabEl.dataset.panel;
+  }
+
   const videoId = video.videoId || null;
   let regenMap  = {};
   if (videoId) {
@@ -826,6 +835,55 @@ async function rebuildExpanded(container, video) {
   container.innerHTML = '';
   buildExpandedContent(container, video, regenMap);
   container.dataset.built = '1';
+
+  // Restore the previously active tab
+  if (activeTab) {
+    const newTabBar         = container.querySelector('.platform-tabs');
+    const newPanelContainer = container.querySelector('.platform-panels');
+    if (newTabBar && newPanelContainer) switchTab(newPanelContainer, newTabBar, activeTab);
+  }
+}
+
+
+// Updates tab chips only — called after inline save to avoid full rebuild
+// Full rebuild would re-render content from pendingEdits and lose formatting
+function updateTabChips(container, video, regenMap) {
+  regenMap = regenMap || {};
+  const pending      = video.pendingEdits || {};
+  const editedFields = video.editedFields || [];
+  const platforms    = video.platforms    || {};
+
+  container.querySelectorAll('.ptab').forEach(tab => {
+    const key = tab.dataset.panel;
+    // Map tab key to platformKey
+    const platformKey = key === 'article' ? 'blog' : key;
+    const pStatus     = platforms[platformKey]?.status || '';
+    const postUrl     = extractPostUrl(pStatus);
+    const isOk        = !!postUrl;
+    const isErr       = pStatus.startsWith('Error');
+    const regenKey    = key === 'article' ? 'article' : key;
+    const regenData   = regenMap[regenKey] || null;
+    const hasRegenStaging = !!regenData;
+    const hasEdited   = isOk && (FIELD_MAP[platformKey]||[]).some(f => editedFields.includes(f));
+    const hasPending  = (FIELD_MAP[platformKey]||[]).some(f => pending[f] !== undefined);
+
+    // Rebuild chip only — preserve tab label text
+    const label = tab.textContent.replace(/[⚡⚠✓✕].*$/, '').trim();
+    let chipHtml = '';
+    if (hasRegenStaging) {
+      const msLeft  = new Date(regenData.expiresAt) - Date.now();
+      const hrsLeft = Math.max(0, Math.floor(msLeft / 3600000));
+      const minLeft = Math.max(0, Math.floor((msLeft % 3600000) / 60000));
+      chipHtml = '<span class="ptab-chip ptab-chip-regen">\u26a1 Regen \u00b7 ' + hrsLeft + 'h ' + minLeft + 'm</span>';
+    } else if (hasEdited || hasPending) {
+      chipHtml = '<span class="ptab-chip ptab-chip-edited">\u26a0 Not published</span>';
+    } else if (isOk) {
+      chipHtml = '<span class="ptab-chip ptab-chip-ok">Posted</span>';
+    } else if (isErr) {
+      chipHtml = '<span class="ptab-chip ptab-chip-err">Error</span>';
+    }
+    tab.innerHTML = label + chipHtml;
+  });
 }
 
 function switchTab(pc, tb, key) {
@@ -940,6 +998,12 @@ async function saveEdit(el, bar, video, field, original, regenMap) {
     if (!Array.isArray(video.editedFields)) video.editedFields = [];
     if (!video.editedFields.includes(field)) video.editedFields.push(field);
 
+    // Close edit bar — content already correct in DOM as typed, no rebuild needed
+    el.setAttribute('contenteditable', 'false');
+    el.dataset.editActive = 'false';
+    bar.classList.remove('visible');
+    saveBtn.disabled = false; saveBtn.textContent = 'Save';
+
     // If this field came from a regen staging key, delete the regen key now
     // Content is now in pendingEdits permanently — staging key no longer needed
     if (regenPlatformForField && regenMap && regenMap[regenPlatformForField] && videoId) {
@@ -948,20 +1012,12 @@ async function saveEdit(el, bar, video, field, original, regenMap) {
           method: 'DELETE',
         });
       } catch {}
-      // Remove from local regenMap so chip updates on rebuild
       delete regenMap[regenPlatformForField];
     }
 
-    // Rebuild expanded to reflect new chip state
+    // Update tab chips only — no full rebuild, preserves formatted content in DOM
     const ec = el.closest('.row-expanded');
-    if (ec) {
-      await rebuildExpanded(ec, video);
-    } else {
-      el.setAttribute('contenteditable','false');
-      el.dataset.editActive='false';
-      bar.classList.remove('visible');
-      saveBtn.disabled = false; saveBtn.textContent = 'Save';
-    }
+    if (ec) updateTabChips(ec, video, regenMap);
   } catch (err) {
     saveBtn.disabled = false; saveBtn.textContent = 'Save';
     bar.querySelector('.edit-save-bar-label').textContent = 'Network error — try again';
