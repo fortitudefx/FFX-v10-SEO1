@@ -405,11 +405,11 @@ function renderQueueItem(item, idx, list, queue) {
 
   // Generate button for grey/red states
   const actionHtml = (item.state === 'grey' || item.state === 'red')
-    ? '<button class="queue-gen-btn" onclick="generateQueueItem(event,'' + videoId + '','' + escHtml(item.youtubeUrl) + '')">Generate</button>'
+    ? '<button class="queue-gen-btn" onclick="generateQueueItem(event,\'' + videoId + '\',\'' + escHtml(item.youtubeUrl) + '\')">Generate</button>'
     : '';
 
   el.innerHTML = '<div class="queue-drag-handle" title="Drag to reorder">⠿</div>'
-    + '<img class="queue-thumb" src="https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg" onerror="this.style.display='none'" alt="">'
+    + '<img class="queue-thumb" src="https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg" onerror="this.style.display=\'none\'" alt="">'
     + '<div class="queue-info">'
     + '<div class="queue-item-title">' + escHtml(item.title || 'Untitled') + '</div>'
     + '<div class="queue-item-date">' + formatDate(item.addedAt) + '</div>'
