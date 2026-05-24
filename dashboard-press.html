@@ -101,6 +101,16 @@
     .queue-item-date { font-family: var(--mono); font-size: 11px; color: var(--dim); margin-bottom: 6px; }
     .queue-item-badge { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 2px; background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); letter-spacing: 0.05em; }
     .queue-empty { padding: 40px 20px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--dim); }
+    .queue-drag-handle { font-size: 16px; color: var(--dim); cursor: grab; padding: 2px 4px; flex-shrink: 0; user-select: none; line-height: 1; margin-top: 2px; }
+    .queue-drag-handle:active { cursor: grabbing; }
+    .queue-item.dragging { opacity: 0.4; background: var(--surface2); }
+    .queue-placeholder { background: var(--blue-bg); border: 1px dashed var(--blue-bd); border-radius: 4px; margin: 2px 0; transition: height 0.15s; }
+    .queue-gen-btn { margin-top: 6px; display: block; font-family: var(--mono); font-size: 11px; font-weight: 600; background: var(--surface2); border: 1px solid var(--border2); border-radius: 3px; color: var(--text-mid); padding: 4px 12px; cursor: pointer; transition: all 0.15s; }
+    .queue-gen-btn:hover:not(:disabled) { border-color: var(--blue-bd); color: var(--blue); }
+    .queue-gen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .badge-ready   { background: var(--amber-bg); color: var(--amber);    border: 1px solid var(--amber-bd); }
+    .badge-expired { background: var(--red-bg);   color: var(--red);      border: 1px solid var(--red-bd); }
+    .badge-queued  { background: var(--surface2); color: var(--muted);    border: 1px solid var(--border); }
 
     /* ── PRESS PANEL — exact press.html styles ── */
     .press-panel { overflow-y: auto; background: var(--bg); }
@@ -249,7 +259,6 @@
   <div class="nav-links">
     <a href="/dashboard.html"            class="nav-link">Dashboard</a>
     <a href="/dashboard-press.html"      class="nav-link active">Press + Queue</a>
-    <a href="/dashboard-generate.html"             class="nav-link">Generate</a>
     <a href="/dashboard-knowledge.html"  class="nav-link">Knowledge</a>
     <a href="/dashboard-seo.html"        class="nav-link">SEO</a>
     <a href="/dashboard-audience.html"   class="nav-link">Audience</a>
@@ -352,54 +361,146 @@ async function loadAll() {
     allVideos = data.videos || [];
     document.getElementById('headerCount').textContent = allVideos.length + ' videos';
     renderVideoList(allVideos);
-    renderQueue(data.queued || []);
+    renderQueue(data.queue || []);
 
   } catch (err) {
     document.getElementById('videoList').innerHTML = '<div class="empty-state"><p>Network error: ' + err.message + '</p></div>';
   }
 }
 
-function renderQueue(queued) {
+function renderQueue(queue) {
   const badge = document.getElementById('queueBadge');
   const list  = document.getElementById('queueList');
-  badge.textContent = queued.length + ' waiting';
+  badge.textContent = queue.length + ' items';
 
-  if (!queued.length) {
-    list.innerHTML = '<div class="queue-empty">Queue empty — all videos processed</div>';
+  if (!queue.length) {
+    list.innerHTML = '<div class="queue-empty">Queue empty</div>';
     return;
   }
 
   list.innerHTML = '';
-  queued.forEach(v => {
-    const videoId = v.videoId || '';
-    const item    = document.createElement('div');
-    item.className = 'queue-item';
-    const img = document.createElement('img');
-    img.className = 'queue-thumb';
-    img.src = 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg';
-    img.onerror = function() { this.style.display = 'none'; };
-    img.alt = '';
-    const info = document.createElement('div');
-    info.className = 'queue-info';
-    info.innerHTML = '<div class="queue-item-title">' + escHtml(v.title || 'Processing…') + '</div>'
-      + '<div class="queue-item-date">' + (v.generatedAt ? new Date(v.generatedAt).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : 'In queue') + '</div>'
-      + '<span class="queue-item-badge">Ready to review</span>';
-    item.appendChild(img);
-    item.appendChild(info);
-    item.addEventListener('click', () => {
+  queue.forEach((item, idx) => renderQueueItem(item, idx, list, queue));
+  initDragDrop(list, queue);
+}
+
+function renderQueueItem(item, idx, list, queue) {
+  const videoId = item.videoId || '';
+  const el      = document.createElement('div');
+  el.className  = 'queue-item';
+  el.dataset.videoid = videoId;
+  el.dataset.idx     = idx;
+  el.draggable       = true;
+
+  // State badge
+  let badgeHtml = '';
+  if (item.state === 'orange') {
+    const hrs = item.expiresInMs ? Math.max(0, Math.floor(item.expiresInMs / 3600000)) : 0;
+    const min = item.expiresInMs ? Math.max(0, Math.floor((item.expiresInMs % 3600000) / 60000)) : 0;
+    badgeHtml = '<span class="queue-item-badge badge-ready">Ready · ' + hrs + 'h ' + min + 'm</span>';
+  } else if (item.state === 'red') {
+    badgeHtml = '<span class="queue-item-badge badge-expired">Expired — regenerate</span>';
+  } else {
+    badgeHtml = '<span class="queue-item-badge badge-queued">' + (item.addedBy === 'cron' ? 'Cron' : 'Manual') + '</span>';
+  }
+
+  // Generate button for grey/red states
+  const actionHtml = (item.state === 'grey' || item.state === 'red')
+    ? '<button class="queue-gen-btn" onclick="generateQueueItem(event,'' + videoId + '','' + escHtml(item.youtubeUrl) + '')">Generate</button>'
+    : '';
+
+  el.innerHTML = '<div class="queue-drag-handle" title="Drag to reorder">⠿</div>'
+    + '<img class="queue-thumb" src="https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg" onerror="this.style.display='none'" alt="">'
+    + '<div class="queue-info">'
+    + '<div class="queue-item-title">' + escHtml(item.title || 'Untitled') + '</div>'
+    + '<div class="queue-item-date">' + formatDate(item.addedAt) + '</div>'
+    + badgeHtml + actionHtml
+    + '</div>';
+
+  // Click to expand in Press if content ready
+  if (item.state === 'orange') {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.queue-gen-btn') || e.target.closest('.queue-drag-handle')) return;
       document.querySelectorAll('.queue-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      // Scroll press panel to this video if it's already there
+      el.classList.add('active');
       const row = document.querySelector('[data-videoid="' + videoId + '"]');
       if (row) {
         if (!row.classList.contains('open')) row.querySelector('.row-summary').click();
         row.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
-    list.appendChild(item);
+  }
+
+  list.appendChild(el);
+}
+
+function initDragDrop(list, queue) {
+  let dragEl   = null;
+  let dragIdx  = null;
+  let placeholder = null;
+
+  list.querySelectorAll('.queue-item').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragEl  = item;
+      dragIdx = parseInt(item.dataset.idx);
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragIdx);
+      placeholder = document.createElement('div');
+      placeholder.className = 'queue-placeholder';
+      placeholder.style.height = item.offsetHeight + 'px';
+    });
+
+    item.addEventListener('dragend', async () => {
+      item.classList.remove('dragging');
+      if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+      placeholder = null;
+      dragEl      = null;
+
+      // Collect new order from DOM
+      const newOrder = [...list.querySelectorAll('.queue-item')].map(el => el.dataset.videoid);
+      try {
+        await fetch('/queue/reorder', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ order: newOrder }),
+        });
+      } catch (err) { console.error('[FFX Queue] Reorder failed:', err); }
+    });
+
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (!dragEl || item === dragEl) return;
+      const rect    = item.getBoundingClientRect();
+      const midY    = rect.top + rect.height / 2;
+      const after   = e.clientY > midY;
+      if (after) {
+        item.parentNode.insertBefore(placeholder, item.nextSibling);
+        item.parentNode.insertBefore(dragEl, item.nextSibling);
+      } else {
+        item.parentNode.insertBefore(placeholder, item);
+        item.parentNode.insertBefore(dragEl, item);
+      }
+    });
   });
 }
 
+async function generateQueueItem(e, videoId, youtubeUrl) {
+  e.stopPropagation();
+  const btn = e.target;
+  btn.disabled = true; btn.textContent = 'Generating…';
+  try {
+    const res  = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl }) });
+    const data = await res.json();
+    if (!res.ok) { btn.disabled = false; btn.textContent = 'Generate'; alert('Error: ' + (data.error || res.status)); return; }
+    // Mark as wasGenerated in queue
+    await fetch('/queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoId, youtubeUrl }) }).catch(() => {});
+    btn.textContent = 'Queued…';
+    setTimeout(() => loadAll(), 3000);
+  } catch (err) { btn.disabled = false; btn.textContent = 'Generate'; }
+}
+
+function renderVideoList
 function renderVideoList(videos) {
   const list = document.getElementById('videoList');
   if (!videos.length) { list.innerHTML = '<div class="empty-state"><p>No published videos yet.</p></div>'; return; }
@@ -561,7 +662,6 @@ function buildExpandedContent(container, video) {
   const inner = document.createElement('div'); inner.className = 'expanded-inner';
   inner.innerHTML = '<div class="expanded-header"><span class="region-tag ' + regionClass(region) + '">' + region + '</span>'
     + '<span class="expanded-region-label">Article</span>'
-    + (ytUrl ? '<a class="expanded-yt-link" href="' + escHtml(ytUrl) + '" target="_blank">▶ ' + escHtml(ytUrl) + '</a>' : '')
     + '</div>';
 
   inner.appendChild(tabBar);
@@ -629,10 +729,16 @@ function updatePills(row, status) {
   PLATFORMS.forEach((p, i) => { if (!pills[i]) return; pills[i].className = 'pill ' + pillClass(status[p.key] || ''); });
 }
 
-function regenVideo(video) {
+async function regenVideo(video) {
   const ytUrl = video.youtubeUrl || video.globalContent?.youtubeUrl || video.content?.youtubeUrl || video.content?.yt_url || '';
   if (!ytUrl) { alert('No YouTube URL found.'); return; }
-  window.location.href = '/generate.html?url=' + encodeURIComponent(ytUrl);
+  if (!confirm('Regenerate content for this video? This will queue a new generation job.')) return;
+  try {
+    const res  = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl: ytUrl }) });
+    const data = await res.json();
+    if (!res.ok) { alert('Error: ' + (data.error || res.status)); return; }
+    alert('Queued — content ready in 2–3 minutes. Refresh to see updated Queue.');
+  } catch (err) { alert('Network error: ' + err.message); }
 }
 
 function makeEditable(el, video, field) {
@@ -677,18 +783,54 @@ async function startGeneration() {
   const url = document.getElementById('genUrl').value.trim();
   const btn = document.getElementById('genBtn');
   if (!url) { setGenStatus('Paste a YouTube URL first.', 'err'); return; }
-  btn.disabled = true; btn.textContent = 'Generating…';
-  setGenStatus('Sending to queue…', 'active');
+  btn.disabled = true; btn.textContent = 'Checking…';
+  setGenStatus('Checking records…', 'active');
   try {
-    const res  = await fetch('/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ youtubeUrl: url }) });
-    const data = await res.json();
-    if (!res.ok) { setGenStatus('Error: ' + (data.error||res.status), 'err'); btn.disabled=false; btn.textContent='Generate'; return; }
-    setGenStatus('Queued. Check back in 2–3 minutes.', 'done');
-    btn.disabled=false; btn.textContent='Generate';
+    // Check if already published — if so scroll to it in Press
+    const statusRes  = await fetch('/kv-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl: url }) });
+    const statusData = await statusRes.json();
+    if (statusData.found) {
+      // Scroll to existing video in Press
+      btn.disabled = false; btn.textContent = 'Generate';
+      document.getElementById('generatePanel').classList.remove('open');
+      document.getElementById('genUrl').value = '';
+      setGenStatus('', '');
+      const videoId = statusData.videoId || extractVideoIdFromUrl(url);
+      const row = document.querySelector('[data-videoid="' + videoId + '"]');
+      if (row) {
+        if (!row.classList.contains('open')) row.querySelector('.row-summary').click();
+        row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        setGenStatus('Already published — not found in current list.', 'done');
+      }
+      return;
+    }
+    // Not published — queue for generation and add to queue panel
+    btn.textContent = 'Generating…';
+    setGenStatus('Sending to queue…', 'active');
+    const genRes  = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl: url }) });
+    const genData = await genRes.json();
+    if (!genRes.ok) { setGenStatus('Error: ' + (genData.error || genRes.status), 'err'); btn.disabled = false; btn.textContent = 'Generate'; return; }
+    // Add to queue:index
+    const videoId = genData.videoId || extractVideoIdFromUrl(url);
+    if (videoId) {
+      await fetch('/queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoId, youtubeUrl: url }) }).catch(() => {});
+    }
+    setGenStatus('Queued — content ready in 2–3 minutes.', 'done');
+    btn.disabled = false; btn.textContent = 'Generate';
     document.getElementById('generatePanel').classList.remove('open');
     document.getElementById('genUrl').value = '';
-    setGenStatus('', '');
-  } catch (err) { setGenStatus('Network error: ' + err.message, 'err'); btn.disabled=false; btn.textContent='Generate'; }
+    setTimeout(() => { setGenStatus('', ''); loadAll(); }, 3000);
+  } catch (err) { setGenStatus('Network error: ' + err.message, 'err'); btn.disabled = false; btn.textContent = 'Generate'; }
+}
+
+function extractVideoIdFromUrl(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v') || null;
+  } catch {}
+  return null;
 }
 
 function setGenStatus(msg, cls) {
