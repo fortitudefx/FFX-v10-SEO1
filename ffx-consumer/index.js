@@ -70,6 +70,14 @@ async function processJob(job, env) {
     return;
   }
 
+  // ── STEP 1b: Store transcript permanently ─────────────────────────────────
+  try {
+    await env.FFX_KV.put(`transcript:${videoId}`, transcript);
+    console.log('[FFX] Transcript stored permanently — transcript:', videoId);
+  } catch (err) {
+    console.error('[FFX] Transcript KV write failed (non-fatal):', err.message);
+  }
+
   // ── STEP 2: Select random formats ────────────────────────────────────────
   const linkedinFormats = ['WALL', 'SHORT', 'SINGLE', 'STORY', 'CONTRARIAN'];
   const discordFormats  = ['NUGGET', 'DROP', 'QUESTION'];
