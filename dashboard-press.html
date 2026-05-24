@@ -249,7 +249,7 @@
   <div class="nav-links">
     <a href="/dashboard.html"            class="nav-link">Dashboard</a>
     <a href="/dashboard-press.html"      class="nav-link active">Press + Queue</a>
-    <a href="/dashboard-generate.html"             class="nav-link">Generate</a>
+    <a href="/generate.html"             class="nav-link">Generate</a>
     <a href="/dashboard-knowledge.html"  class="nav-link">Knowledge</a>
     <a href="/dashboard-seo.html"        class="nav-link">SEO</a>
     <a href="/dashboard-audience.html"   class="nav-link">Audience</a>
@@ -457,28 +457,33 @@ function toggleRow(row, video) {
 
 function buildExpandedContent(container, video) {
   const content   = video.globalContent || video.content || {};
+  // pendingEdits overlays globalContent for display — these are saved edits awaiting republish
+  // globalContent remains untouched — it is the source of truth for what is actually live
+  const pending   = video.pendingEdits  || {};
   const platforms = video.platforms || {};
   const videoId   = video.videoId || null;
   const slug      = video.slug || null;
   const region    = video.region || 'Global';
   const ytUrl     = video.youtubeUrl || content.youtubeUrl || content.yt_url || '';
-  const tweets    = Array.isArray(content.x_thread) && content.x_thread.length
-    ? content.x_thread
-    : [1,2,3,4,5,6].map(i => content['tweet'+i]).filter(Boolean);
+  const tweets    = Array.isArray(pending.x_thread) && pending.x_thread.length
+    ? pending.x_thread
+    : Array.isArray(content.x_thread) && content.x_thread.length
+      ? content.x_thread
+      : [1,2,3,4,5,6].map(i => pending['tweet'+i] || content['tweet'+i]).filter(Boolean);
 
   const panelsData = [
     { key:'article', label:'Article', platformKey:'blog',
-      html: () => '<div class="content-block article-body" data-field="body" data-edit-active="false">' + (content.body || '<em>No article body found.</em>') + '</div>' },
+      html: () => '<div class="content-block article-body" data-field="body" data-edit-active="false">' + (pending.body || content.body || '<em>No article body found.</em>') + '</div>' },
     { key:'x', label:'X', platformKey:'x',
       html: () => tweets.length
         ? '<div class="tweet-list">' + tweets.map((t,i) => '<div class="tweet-item" data-field="tweet'+(i+1)+'" data-edit-active="false"><span class="tweet-num">'+(i+1)+'</span><span class="tweet-text">'+escHtml(t)+'</span></div>').join('') + '</div>'
         : '<div class="content-block"><em>No tweets found.</em></div>' },
     { key:'linkedin', label:'LinkedIn', platformKey:'linkedin',
-      html: () => '<div class="content-block" data-field="linkedin" data-edit-active="false">' + (content.linkedin || '<em>No LinkedIn content found.</em>') + '</div>' },
+      html: () => '<div class="content-block" data-field="linkedin" data-edit-active="false">' + (pending.linkedin || content.linkedin || '<em>No LinkedIn content found.</em>') + '</div>' },
     { key:'discord',  label:'Discord',  platformKey:'discord',
-      html: () => '<div class="content-block" data-field="discord" data-edit-active="false">' + (content.discord || '<em>No Discord content found.</em>') + '</div>' },
+      html: () => '<div class="content-block" data-field="discord" data-edit-active="false">' + (pending.discord || content.discord || '<em>No Discord content found.</em>') + '</div>' },
     { key:'tumblr',   label:'Tumblr',   platformKey:'tumblr',
-      html: () => '<div class="content-block" data-field="tumblr" data-edit-active="false">' + (content.tumblr || '<em>No Tumblr content found.</em>') + '</div>' },
+      html: () => '<div class="content-block" data-field="tumblr" data-edit-active="false">' + (pending.tumblr || content.tumblr || '<em>No Tumblr content found.</em>') + '</div>' },
   ];
 
   const tabBar         = document.createElement('div'); tabBar.className = 'platform-tabs';
