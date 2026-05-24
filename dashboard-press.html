@@ -711,7 +711,8 @@ function buildExpandedContent(container, video, regenMap) {
   const pubResult = document.createElement('div'); pubResult.className = 'pub-result';
 
   const inner = document.createElement('div'); inner.className = 'expanded-inner';
-  inner.innerHTML = '';
+  inner.innerHTML = '<div class="expanded-header"><span class="region-tag ' + regionClass(region) + '">' + region + '</span>'
+    + '<span class="expanded-region-label">Article</span></div>';
 
   inner.appendChild(tabBar);
   inner.appendChild(panelContainer);
@@ -1016,7 +1017,20 @@ async function saveEdit(el, bar, video, field, original, regenMap) {
 
     // Update tab chips only — no full rebuild, preserves formatted content in DOM
     const ec = el.closest('.row-expanded');
-    if (ec) updateTabChips(ec, video, regenMap);
+    if (ec) {
+      updateTabChips(ec, video, regenMap);
+      // Re-enable Restore button for the affected platform panel
+      // It may have been disabled at build time before any edits existed
+      const regenPlt = regenPlatformForField || getRegenPlatformForField(field);
+      const tabKey   = regenPlt === 'article' ? 'article' : regenPlt;
+      if (tabKey) {
+        const affectedPanel = ec.querySelector('.ppanel[data-panel="' + tabKey + '"]');
+        if (affectedPanel) {
+          const rb = affectedPanel.querySelector('.btn-plat-restore');
+          if (rb) { rb.disabled = false; rb.title = ''; }
+        }
+      }
+    }
   } catch (err) {
     saveBtn.disabled = false; saveBtn.textContent = 'Save';
     bar.querySelector('.edit-save-bar-label').textContent = 'Network error — try again';
