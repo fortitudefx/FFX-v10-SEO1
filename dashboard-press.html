@@ -514,7 +514,7 @@ function buildVideoRow(video) {
   row.dataset.videoid = identifier;
   const videoId   = video.videoId || '';
   const ytUrl     = video.youtubeUrl || video.globalContent?.youtubeUrl || video.content?.youtubeUrl || video.content?.yt_url || '';
-  const isRealId  = videoId && videoId.length <= 12 && !videoId.includes('-fx-') && !videoId.includes('trading') && !videoId.includes('strategy') && !videoId.includes('fails') && !videoId.includes('timeframe');
+  const isRealId  = videoId && videoId.length <= 12;
   const thumbUrl  = isRealId ? 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg' : '';
   const date      = formatDate(video.updatedAt || '');
   const region    = video.region || 'Global';
