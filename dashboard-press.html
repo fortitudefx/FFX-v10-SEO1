@@ -500,7 +500,6 @@ async function generateQueueItem(e, videoId, youtubeUrl) {
   } catch (err) { btn.disabled = false; btn.textContent = 'Generate'; }
 }
 
-function renderVideoList
 function renderVideoList(videos) {
   const list = document.getElementById('videoList');
   if (!videos.length) { list.innerHTML = '<div class="empty-state"><p>No published videos yet.</p></div>'; return; }
