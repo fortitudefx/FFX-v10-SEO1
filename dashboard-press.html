@@ -56,46 +56,15 @@
     }
 
     /* ── QUEUE PANEL ── */
-    .queue-panel {
-      border-right: 2px solid var(--border2);
-      overflow-y: auto;
-      background: var(--bg2);
-      display: flex;
-      flex-direction: column;
-    }
-    .queue-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      background: var(--bg2);
-      z-index: 10;
-      flex-shrink: 0;
-    }
+    .queue-panel { border-right: 2px solid var(--border2); overflow-y: auto; background: var(--bg2); display: flex; flex-direction: column; }
+    .queue-header { padding: 16px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg2); z-index: 10; flex-shrink: 0; }
     .queue-header-top { display: flex; align-items: center; justify-content: space-between; }
     .queue-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
     .queue-badge { font-family: var(--mono); font-size: 11px; color: var(--dim); background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px; }
-    .queue-item {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      transition: background 0.1s;
-    }
+    .queue-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px 20px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
     .queue-item:hover { background: var(--surface); }
     .queue-item.active { background: var(--surface); border-left: 2px solid var(--blue); padding-left: 18px; }
-    .queue-thumb {
-      width: 96px;
-      height: 54px;
-      border-radius: 4px;
-      object-fit: cover;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      flex-shrink: 0;
-      display: block;
-    }
+    .queue-thumb { width: 96px; height: 54px; border-radius: 4px; object-fit: cover; background: var(--surface2); border: 1px solid var(--border); flex-shrink: 0; display: block; }
     .queue-info { flex: 1; min-width: 0; }
     .queue-item-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .queue-item-date { font-family: var(--mono); font-size: 11px; color: var(--dim); margin-bottom: 6px; }
@@ -108,26 +77,13 @@
     .queue-gen-btn { margin-top: 6px; display: block; font-family: var(--mono); font-size: 11px; font-weight: 600; background: var(--surface2); border: 1px solid var(--border2); border-radius: 3px; color: var(--text-mid); padding: 4px 12px; cursor: pointer; transition: all 0.15s; }
     .queue-gen-btn:hover:not(:disabled) { border-color: var(--blue-bd); color: var(--blue); }
     .queue-gen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .badge-ready   { background: var(--amber-bg); color: var(--amber);    border: 1px solid var(--amber-bd); }
-    .badge-expired { background: var(--red-bg);   color: var(--red);      border: 1px solid var(--red-bd); }
-    .badge-queued  { background: var(--surface2); color: var(--muted);    border: 1px solid var(--border); }
+    .badge-ready   { background: var(--amber-bg); color: var(--amber);  border: 1px solid var(--amber-bd); }
+    .badge-expired { background: var(--red-bg);   color: var(--red);    border: 1px solid var(--red-bd); }
+    .badge-queued  { background: var(--surface2); color: var(--muted);  border: 1px solid var(--border); }
 
-    /* ── PRESS PANEL — exact press.html styles ── */
+    /* ── PRESS PANEL ── */
     .press-panel { overflow-y: auto; background: var(--bg); }
-
-    /* Exact press.html header */
-    .press-header {
-      border-bottom: 1px solid var(--border);
-      padding: 0 32px;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      background: var(--bg);
-      z-index: 50;
-    }
+    .press-header { border-bottom: 1px solid var(--border); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); z-index: 50; }
     .press-header-left { display: flex; align-items: center; gap: 20px; }
     .wordmark { font-family: var(--mono); font-size: 14px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); }
     .wordmark span { color: var(--muted); font-weight: 400; }
@@ -153,15 +109,11 @@
     .gen-status.err    { display: block; color: var(--red); }
 
     .press-content { padding: 0 32px 80px; }
-
-    /* Exact press.html table styles */
     .table-header { display: grid; grid-template-columns: 180px 1fr 220px 130px; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 28px; }
     .video-row { border-bottom: 1px solid var(--border); transition: background 0.1s; }
     .video-row:hover { background: var(--bg2); }
     .row-summary { display: grid; grid-template-columns: 180px 1fr 220px 130px; gap: 16px; padding: 14px 0; cursor: pointer; align-items: center; }
     .row-thumb-wrap { width: 180px; height: 101px; border-radius: 5px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); flex-shrink: 0; display: block; text-decoration: none; position: relative; }
-    .row-thumb-wrap:hover .thumb-overlay { opacity: 1; }
-    .thumb-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s; font-size: 28px; }
     .row-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
     .row-thumb-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; color: var(--dim); }
     .row-info {}
@@ -171,8 +123,8 @@
     .row-yt-url:hover { text-decoration: underline; }
     .region-tag { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
     .region-global { background: var(--surface2); color: var(--text-mid); border: 1px solid var(--border2); }
-    .region-gcc { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); }
-    .region-us { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-bd); }
+    .region-gcc    { background: var(--amber-bg); color: var(--amber);    border: 1px solid var(--amber-bd); }
+    .region-us     { background: var(--blue-bg);  color: var(--blue);     border: 1px solid var(--blue-bd); }
     .platform-pills { display: flex; gap: 5px; flex-wrap: wrap; }
     .pill { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; border: 1px solid; }
     .pill-ok    { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
@@ -218,6 +170,21 @@
     .tweet-list { display: flex; flex-direction: column; gap: 10px; }
     .tweet-item { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 14px 16px; display: flex; gap: 14px; font-size: 15px; line-height: 1.75; color: var(--text-mid); }
     .tweet-num { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--dim); min-width: 18px; padding-top: 3px; }
+
+    /* ── PER-PLATFORM ACTION BAR ── */
+    .platform-action-bar { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+    .btn-plat-regen { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 6px 14px; cursor: pointer; transition: all 0.15s; }
+    .btn-plat-regen:hover:not(:disabled) { border-color: var(--blue-bd); color: var(--blue); }
+    .btn-plat-regen:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-plat-restore { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 6px 14px; cursor: pointer; transition: all 0.15s; }
+    .btn-plat-restore:hover:not(:disabled) { border-color: var(--amber-bd); color: var(--amber); }
+    .btn-plat-restore:disabled { opacity: 0.4; cursor: not-allowed; }
+    .plat-action-status { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 4px; }
+    .plat-action-status.active { color: var(--blue); }
+    .plat-action-status.done   { color: var(--green); }
+    .plat-action-status.err    { color: var(--red); }
+
+    /* ── PUBLISH ACTION ROW ── */
     .action-row { display: flex; align-items: center; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); flex-wrap: wrap; }
     .action-label { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
     .platform-checkbox { display: flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; user-select: none; font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface); }
@@ -229,8 +196,6 @@
     .btn-publish { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; background: var(--green); color: #fff; border: none; border-radius: 4px; padding: 9px 24px; cursor: pointer; margin-left: auto; transition: opacity 0.15s; }
     .btn-publish:hover:not(:disabled) { opacity: 0.85; }
     .btn-publish:disabled { opacity: 0.3; cursor: not-allowed; }
-    .btn-regen { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 8px 16px; cursor: pointer; transition: all 0.15s; }
-    .btn-regen:hover { border-color: var(--border2); color: var(--text-mid); }
     .pub-result { font-family: var(--mono); font-size: 12px; margin-top: 12px; padding: 10px 14px; border-radius: 4px; display: none; }
     .pub-result.ok  { background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green); display: block; }
     .pub-result.err { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: var(--red);   display: block; }
@@ -331,6 +296,15 @@ const PLATFORMS = [
   { key: 'discord',  label: 'Discord' },
 ];
 
+// Platform key → regenerate-platform platform name mapping
+const PLATFORM_REGEN_KEY = {
+  blog:     'article',
+  x:        'x',
+  linkedin: 'linkedin',
+  discord:  'discord',
+  tumblr:   'tumblr',
+};
+
 async function init() {
   const params     = new URLSearchParams(window.location.search);
   const preVideoId = params.get('video');
@@ -354,15 +328,10 @@ async function loadAll() {
       document.getElementById('videoList').innerHTML = '<div class="empty-state"><p>Error: ' + (data.error||'Unknown') + '</p></div>';
       return;
     }
-
-    // Separate queue items (video:) from published (published:)
-    // press-data returns published videos — we also check for queued via kv-status
-    // For now render published in Press and show queue separately
     allVideos = data.videos || [];
     document.getElementById('headerCount').textContent = allVideos.length + ' videos';
     renderVideoList(allVideos);
     renderQueue(data.queue || []);
-
   } catch (err) {
     document.getElementById('videoList').innerHTML = '<div class="empty-state"><p>Network error: ' + err.message + '</p></div>';
   }
@@ -372,12 +341,7 @@ function renderQueue(queue) {
   const badge = document.getElementById('queueBadge');
   const list  = document.getElementById('queueList');
   badge.textContent = queue.length + ' items';
-
-  if (!queue.length) {
-    list.innerHTML = '<div class="queue-empty">Queue empty</div>';
-    return;
-  }
-
+  if (!queue.length) { list.innerHTML = '<div class="queue-empty">Queue empty</div>'; return; }
   list.innerHTML = '';
   queue.forEach((item, idx) => renderQueueItem(item, idx, list, queue));
   initDragDrop(list, queue);
@@ -391,7 +355,6 @@ function renderQueueItem(item, idx, list, queue) {
   el.dataset.idx     = idx;
   el.draggable       = true;
 
-  // State badge
   let badgeHtml = '';
   if (item.state === 'orange') {
     const hrs = item.expiresInMs ? Math.max(0, Math.floor(item.expiresInMs / 3600000)) : 0;
@@ -403,7 +366,6 @@ function renderQueueItem(item, idx, list, queue) {
     badgeHtml = '<span class="queue-item-badge badge-queued">' + (item.addedBy === 'cron' ? 'Cron' : 'Manual') + '</span>';
   }
 
-  // Generate button for grey/red states
   const actionHtml = (item.state === 'grey' || item.state === 'red')
     ? '<button class="queue-gen-btn" onclick="generateQueueItem(event,\'' + videoId + '\',\'' + escHtml(item.youtubeUrl) + '\')">Generate</button>'
     : '';
@@ -416,7 +378,6 @@ function renderQueueItem(item, idx, list, queue) {
     + badgeHtml + actionHtml
     + '</div>';
 
-  // Click to expand in Press if content ready
   if (item.state === 'orange') {
     el.addEventListener('click', (e) => {
       if (e.target.closest('.queue-gen-btn') || e.target.closest('.queue-drag-handle')) return;
@@ -434,53 +395,32 @@ function renderQueueItem(item, idx, list, queue) {
 }
 
 function initDragDrop(list, queue) {
-  let dragEl   = null;
-  let dragIdx  = null;
-  let placeholder = null;
-
+  let dragEl = null, dragIdx = null, placeholder = null;
   list.querySelectorAll('.queue-item').forEach(item => {
     item.addEventListener('dragstart', e => {
-      dragEl  = item;
-      dragIdx = parseInt(item.dataset.idx);
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
+      dragEl = item; dragIdx = parseInt(item.dataset.idx);
+      item.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', dragIdx);
       placeholder = document.createElement('div');
       placeholder.className = 'queue-placeholder';
       placeholder.style.height = item.offsetHeight + 'px';
     });
-
     item.addEventListener('dragend', async () => {
       item.classList.remove('dragging');
       if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
-      placeholder = null;
-      dragEl      = null;
-
-      // Collect new order from DOM
+      placeholder = null; dragEl = null;
       const newOrder = [...list.querySelectorAll('.queue-item')].map(el => el.dataset.videoid);
       try {
-        await fetch('/queue/reorder', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ order: newOrder }),
-        });
+        await fetch('/queue/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: newOrder }) });
       } catch (err) { console.error('[FFX Queue] Reorder failed:', err); }
     });
-
     item.addEventListener('dragover', e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
       if (!dragEl || item === dragEl) return;
-      const rect    = item.getBoundingClientRect();
-      const midY    = rect.top + rect.height / 2;
-      const after   = e.clientY > midY;
-      if (after) {
-        item.parentNode.insertBefore(placeholder, item.nextSibling);
-        item.parentNode.insertBefore(dragEl, item.nextSibling);
-      } else {
-        item.parentNode.insertBefore(placeholder, item);
-        item.parentNode.insertBefore(dragEl, item);
-      }
+      const rect = item.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      if (after) { item.parentNode.insertBefore(placeholder, item.nextSibling); item.parentNode.insertBefore(dragEl, item.nextSibling); }
+      else        { item.parentNode.insertBefore(placeholder, item); item.parentNode.insertBefore(dragEl, item); }
     });
   });
 }
@@ -493,7 +433,6 @@ async function generateQueueItem(e, videoId, youtubeUrl) {
     const res  = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl }) });
     const data = await res.json();
     if (!res.ok) { btn.disabled = false; btn.textContent = 'Generate'; alert('Error: ' + (data.error || res.status)); return; }
-    // Mark as wasGenerated in queue
     await fetch('/queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoId, youtubeUrl }) }).catch(() => {});
     btn.textContent = 'Queued…';
     setTimeout(() => loadAll(), 3000);
@@ -512,20 +451,18 @@ function buildVideoRow(video) {
   row.className = 'video-row';
   const identifier = video.videoId || video.slug;
   row.dataset.videoid = identifier;
-  const videoId   = video.videoId || '';
-  const ytUrl     = video.youtubeUrl || video.globalContent?.youtubeUrl || video.content?.youtubeUrl || video.content?.yt_url || '';
-  const isRealId  = videoId && videoId.length <= 12;
-  const thumbUrl  = isRealId ? 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg' : '';
-  const date      = formatDate(video.updatedAt || '');
-  const region    = video.region || 'Global';
+  const videoId  = video.videoId || '';
+  const ytUrl    = video.youtubeUrl || video.globalContent?.youtubeUrl || video.content?.youtubeUrl || video.content?.yt_url || '';
+  const isRealId = videoId && videoId.length <= 12;
+  const thumbUrl = isRealId ? 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg' : '';
+  const date     = formatDate(video.updatedAt || '');
+  const region   = video.region || 'Global';
   const platforms = video.platforms || {};
 
   const summary = document.createElement('div');
   summary.className = 'row-summary';
   const thumbHtml = thumbUrl
-    ? '<div class="row-thumb-wrap">'
-      + '<img class="row-thumb" src="' + thumbUrl + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'">'
-      + '</div>'
+    ? '<div class="row-thumb-wrap"><img class="row-thumb" src="' + thumbUrl + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'"></div>'
     : '<div class="row-thumb-wrap"><div class="row-thumb-placeholder">No thumb</div></div>';
 
   summary.innerHTML = thumbHtml
@@ -557,8 +494,6 @@ function toggleRow(row, video) {
 
 function buildExpandedContent(container, video) {
   const content   = video.globalContent || video.content || video.platforms?.blog?.content || {};
-  // pendingEdits overlays globalContent for display — these are saved edits awaiting republish
-  // globalContent remains untouched — it is the source of truth for what is actually live
   const pending   = video.pendingEdits  || {};
   const platforms = video.platforms || {};
   const videoId   = video.videoId || null;
@@ -590,12 +525,12 @@ function buildExpandedContent(container, video) {
   const panelContainer = document.createElement('div'); panelContainer.className = 'platform-panels';
 
   panelsData.forEach((p, idx) => {
-    const pStatus    = platforms[p.platformKey]?.status || '';
-    const postUrl    = extractPostUrl(pStatus);
-    const isOk       = !!postUrl;
-    const isErr      = pStatus.startsWith('Error');
+    const pStatus     = platforms[p.platformKey]?.status || '';
+    const postUrl     = extractPostUrl(pStatus);
+    const isOk        = !!postUrl;
+    const isErr       = pStatus.startsWith('Error');
     const publishedAt = platforms[p.platformKey]?.publishedAt || '';
-    const editedFields    = video.editedFields || [];
+    const editedFields = video.editedFields || [];
     const fieldMap    = { blog:['body'], x:['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'], linkedin:['linkedin'], discord:['discord'], tumblr:['tumblr'] };
     const isEdited    = isOk && (fieldMap[p.platformKey]||[]).some(f => editedFields.includes(f));
     const chipHtml    = isEdited ? '<span class="ptab-chip ptab-chip-edited">Edited</span>'
@@ -610,16 +545,49 @@ function buildExpandedContent(container, video) {
 
     const panel = document.createElement('div');
     panel.className = 'ppanel' + (idx===0?' active':''); panel.dataset.panel = p.key;
+
     let chipCls, chipTxt;
     if (isEdited)     { chipCls='psb-chip-edited'; chipTxt='⚠ Edited — republish'; }
     else if (postUrl) { chipCls='psb-chip-ok';     chipTxt='✓ Posted'; }
     else if (isErr)   { chipCls='psb-chip-err';    chipTxt='✕ Error'; }
     else              { chipCls='psb-chip-pend';   chipTxt='○ Not posted'; }
+
     panel.innerHTML = '<div class="platform-status-bar"><div class="psb-left">'
       + '<span class="psb-status-chip ' + chipCls + '">' + chipTxt + '</span>'
       + (postUrl ? '<a href="' + postUrl + '" target="_blank" class="psb-link">View post →</a>' : '')
       + (publishedAt ? '<span class="psb-date">Published ' + formatDate(publishedAt) + '</span>' : '')
-      + '</div></div>' + p.html();
+      + '</div></div>'
+      + p.html();
+
+    // ── Per-platform action bar (Regenerate + Restore) ────────────────────
+    const regenKey = PLATFORM_REGEN_KEY[p.platformKey] || p.key;
+    const hasEdits = (fieldMap[p.platformKey]||[]).some(f => editedFields.includes(f));
+
+    const platActionBar = document.createElement('div');
+    platActionBar.className = 'platform-action-bar';
+
+    const regenBtn = document.createElement('button');
+    regenBtn.className = 'btn-plat-regen';
+    regenBtn.textContent = 'Regenerate';
+    regenBtn.title = videoId ? '' : 'No videoId — cannot regenerate';
+    if (!videoId) regenBtn.disabled = true;
+    regenBtn.addEventListener('click', () => regenPlatform(videoId, regenKey, regenBtn, restoreBtn, statusSpan, container, video));
+
+    const restoreBtn = document.createElement('button');
+    restoreBtn.className = 'btn-plat-restore';
+    restoreBtn.textContent = 'Restore Published';
+    restoreBtn.title = hasEdits ? '' : 'No pending edits to restore';
+    if (!hasEdits || !videoId) restoreBtn.disabled = true;
+    restoreBtn.addEventListener('click', () => restorePlatform(videoId, regenKey, regenBtn, restoreBtn, statusSpan, container, video));
+
+    const statusSpan = document.createElement('span');
+    statusSpan.className = 'plat-action-status';
+
+    platActionBar.appendChild(regenBtn);
+    platActionBar.appendChild(restoreBtn);
+    platActionBar.appendChild(statusSpan);
+    panel.appendChild(platActionBar);
+
     panelContainer.appendChild(panel);
   });
 
@@ -649,10 +617,6 @@ function buildExpandedContent(container, video) {
     actionRow.appendChild(chk);
   });
 
-  const regenBtn = document.createElement('button'); regenBtn.className = 'btn-regen'; regenBtn.textContent = 'Regenerate';
-  regenBtn.onclick = () => regenVideo(video);
-  actionRow.appendChild(regenBtn);
-
   const pubBtn = document.createElement('button'); pubBtn.className = 'btn-publish'; pubBtn.textContent = 'Publish';
   pubBtn.onclick = () => publishVideo(videoId, slug, actionRow, pubBtn, container, video);
   actionRow.appendChild(pubBtn);
@@ -660,20 +624,127 @@ function buildExpandedContent(container, video) {
   const pubResult = document.createElement('div'); pubResult.className = 'pub-result';
   const inner = document.createElement('div'); inner.className = 'expanded-inner';
   inner.innerHTML = '<div class="expanded-header"><span class="region-tag ' + regionClass(region) + '">' + region + '</span>'
-    + '<span class="expanded-region-label">Article</span>'
-    + '</div>';
+    + '<span class="expanded-region-label">Article</span></div>';
 
   inner.appendChild(tabBar);
   inner.appendChild(panelContainer);
+
   panelContainer.querySelectorAll('.content-block[data-field]').forEach(el => {
     el.addEventListener('click', () => makeEditable(el, video, el.dataset.field));
   });
   panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(el => {
     el.addEventListener('click', () => { const ts = el.querySelector('.tweet-text'); if (ts) makeEditable(ts, video, el.dataset.field); });
   });
+
   inner.appendChild(actionRow);
   inner.appendChild(pubResult);
   container.appendChild(inner);
+}
+
+// ── Per-platform Regenerate ───────────────────────────────────────────────────
+async function regenPlatform(videoId, platform, regenBtn, restoreBtn, statusSpan, container, video) {
+  if (!videoId) return;
+  regenBtn.disabled = true;
+  restoreBtn.disabled = true;
+  statusSpan.className = 'plat-action-status active';
+  statusSpan.textContent = 'Regenerating…';
+
+  try {
+    const res  = await fetch('/api/regenerate-platform', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId, platform }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      statusSpan.className = 'plat-action-status err';
+      statusSpan.textContent = data.error || 'Regeneration failed';
+      regenBtn.disabled = false;
+      return;
+    }
+
+    // Merge new fields into video.pendingEdits so rebuild reflects them
+    if (!video.pendingEdits) video.pendingEdits = {};
+    Object.assign(video.pendingEdits, data.fields);
+
+    // Track editedFields
+    if (!Array.isArray(video.editedFields)) video.editedFields = [];
+    Object.keys(data.fields).forEach(f => {
+      if (!video.editedFields.includes(f)) video.editedFields.push(f);
+    });
+
+    // Rebuild expanded content to reflect new pendingEdits
+    // statusSpan is destroyed by innerHTML='' so we find the active panel's status span after rebuild
+    container.innerHTML = '';
+    buildExpandedContent(container, video);
+    container.dataset.built = '1';
+    // Switch to the regenerated tab so user sees the result
+    const platformTabKey = Object.keys(PLATFORM_REGEN_KEY).find(k => PLATFORM_REGEN_KEY[k] === platform) || platform;
+    const tabKeyForSwitch = platformTabKey === 'blog' ? 'article' : platformTabKey;
+    const newTabBar = container.querySelector('.platform-tabs');
+    const newPanelContainer = container.querySelector('.platform-panels');
+    if (newTabBar && newPanelContainer) switchTab(newPanelContainer, newTabBar, tabKeyForSwitch);
+
+  } catch (err) {
+    statusSpan.className = 'plat-action-status err';
+    statusSpan.textContent = 'Network error: ' + err.message;
+    regenBtn.disabled = false;
+  }
+}
+
+// ── Per-platform Restore ──────────────────────────────────────────────────────
+async function restorePlatform(videoId, platform, regenBtn, restoreBtn, statusSpan, container, video) {
+  if (!videoId) return;
+  if (!confirm('Restore this platform to published content? Any pending edits for this platform will be cleared.')) return;
+
+  restoreBtn.disabled = true;
+  regenBtn.disabled = true;
+  statusSpan.className = 'plat-action-status active';
+  statusSpan.textContent = 'Restoring…';
+
+  try {
+    const res  = await fetch('/api/restore-platform', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId, platform }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      statusSpan.className = 'plat-action-status err';
+      statusSpan.textContent = data.error || 'Restore failed';
+      restoreBtn.disabled = false;
+      regenBtn.disabled = false;
+      return;
+    }
+
+    // Remove restored fields from video.pendingEdits and video.editedFields
+    if (video.pendingEdits) {
+      Object.keys(data.restoredFields).forEach(f => delete video.pendingEdits[f]);
+    }
+    if (Array.isArray(video.editedFields)) {
+      video.editedFields = video.editedFields.filter(f => !(f in data.restoredFields));
+    }
+
+    // Rebuild expanded content to reflect restored state
+    // statusSpan is destroyed by innerHTML='' — find the active tab after rebuild
+    container.innerHTML = '';
+    buildExpandedContent(container, video);
+    container.dataset.built = '1';
+    // Switch to the restored tab so user sees the result
+    const platformTabKey2 = Object.keys(PLATFORM_REGEN_KEY).find(k => PLATFORM_REGEN_KEY[k] === platform) || platform;
+    const tabKeyForSwitch2 = platformTabKey2 === 'blog' ? 'article' : platformTabKey2;
+    const newTabBar2 = container.querySelector('.platform-tabs');
+    const newPanelContainer2 = container.querySelector('.platform-panels');
+    if (newTabBar2 && newPanelContainer2) switchTab(newPanelContainer2, newTabBar2, tabKeyForSwitch2);
+
+  } catch (err) {
+    statusSpan.className = 'plat-action-status err';
+    statusSpan.textContent = 'Network error: ' + err.message;
+    restoreBtn.disabled = false;
+    regenBtn.disabled = false;
+  }
 }
 
 function switchTab(pc, tb, key) {
@@ -682,7 +753,6 @@ function switchTab(pc, tb, key) {
 }
 
 async function publishVideo(videoId, slug, actionRow, pubBtn, container, video) {
-  // Discard any active unsaved edits before publishing
   container.querySelectorAll('[data-edit-active="true"]').forEach(el => {
     el.setAttribute('contenteditable', 'false');
     el.dataset.editActive = 'false';
@@ -726,18 +796,6 @@ function showPubResult(container, msg, ok) {
 function updatePills(row, status) {
   const pills = row.querySelectorAll('.pill');
   PLATFORMS.forEach((p, i) => { if (!pills[i]) return; pills[i].className = 'pill ' + pillClass(status[p.key] || ''); });
-}
-
-async function regenVideo(video) {
-  const ytUrl = video.youtubeUrl || video.globalContent?.youtubeUrl || video.content?.youtubeUrl || video.content?.yt_url || '';
-  if (!ytUrl) { alert('No YouTube URL found.'); return; }
-  if (!confirm('Regenerate content for this video? This will queue a new generation job.')) return;
-  try {
-    const res  = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl: ytUrl }) });
-    const data = await res.json();
-    if (!res.ok) { alert('Error: ' + (data.error || res.status)); return; }
-    alert('Queued — content ready in 2–3 minutes. Refresh to see updated Queue.');
-  } catch (err) { alert('Network error: ' + err.message); }
 }
 
 function makeEditable(el, video, field) {
@@ -785,11 +843,9 @@ async function startGeneration() {
   btn.disabled = true; btn.textContent = 'Checking…';
   setGenStatus('Checking records…', 'active');
   try {
-    // Check if already published — if so scroll to it in Press
     const statusRes  = await fetch('/kv-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl: url }) });
     const statusData = await statusRes.json();
     if (statusData.found) {
-      // Scroll to existing video in Press
       btn.disabled = false; btn.textContent = 'Generate';
       document.getElementById('generatePanel').classList.remove('open');
       document.getElementById('genUrl').value = '';
@@ -804,13 +860,11 @@ async function startGeneration() {
       }
       return;
     }
-    // Not published — queue for generation and add to queue panel
     btn.textContent = 'Generating…';
     setGenStatus('Sending to queue…', 'active');
     const genRes  = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl: url }) });
     const genData = await genRes.json();
     if (!genRes.ok) { setGenStatus('Error: ' + (genData.error || genRes.status), 'err'); btn.disabled = false; btn.textContent = 'Generate'; return; }
-    // Add to queue:index
     const videoId = genData.videoId || extractVideoIdFromUrl(url);
     if (videoId) {
       await fetch('/queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoId, youtubeUrl: url }) }).catch(() => {});
