@@ -567,21 +567,24 @@ function toggleRow(row, video) {
 function buildExpandedContent(container, video) {
   // FIX 2: Check both globalContent (new) and content (old structure) for body
   const content   = video.globalContent || video.content || {};
+  const pending = video.pendingEdits || {};
   const platforms = video.platforms || {};
   const videoId   = video.videoId || null;
   const slug      = video.slug || null;
   const region    = video.region || 'Global';
   const ytUrl     = video.youtubeUrl || content.youtubeUrl || content.yt_url || '';
 
-  const tweets = Array.isArray(content.x_thread) && content.x_thread.length
+  const tweets = Array.isArray(pending.x_thread) && pending.x_thread.length
+  ? pending.x_thread
+  : Array.isArray(content.x_thread) && content.x_thread.length
     ? content.x_thread
-    : [1,2,3,4,5,6].map(i => content[`tweet${i}`]).filter(Boolean);
+    : [1,2,3,4,5,6].map(i => pending['tweet'+i] || content['tweet'+i]).filter(Boolean);
 
   const panelsData = [
     {
       key: 'article', label: 'Article', platformKey: 'blog',
       html: () => {
-        const text = content.body ? stripHtml(content.body) : '';
+        const text = pending.body || content.body ? stripHtml(content.body) : '';
         return `<div class="content-block" data-field="body" data-edit-active="false">${escHtml(text) || '<em>No article body found.</em>'}</div>`;
       },
     },
@@ -596,21 +599,21 @@ function buildExpandedContent(container, video) {
     {
       key: 'linkedin', label: 'LinkedIn', platformKey: 'linkedin',
       html: () => {
-        const text = content.linkedin || platforms.linkedin?.content?.linkedin || platforms.linkedin?.content?.text || '';
+        const text = pending.linkedin || content.linkedin || platforms.linkedin?.content?.linkedin || platforms.linkedin?.content?.text || '';
         return `<div class="content-block" data-field="linkedin" data-edit-active="false">${text ? escHtml(text) : '<em>No LinkedIn content found.</em>'}</div>`;
       },
     },
     {
       key: 'discord', label: 'Discord', platformKey: 'discord',
       html: () => {
-        const text = content.discord || platforms.discord?.content?.discord || platforms.discord?.content?.text || '';
+        const text = pending.discord || content.discord || platforms.discord?.content?.discord || platforms.discord?.content?.text || '';
         return `<div class="content-block" data-field="discord" data-edit-active="false">${text ? escHtml(text) : '<em>No Discord content found.</em>'}</div>`;
       },
     },
     {
       key: 'tumblr', label: 'Tumblr', platformKey: 'tumblr',
       html: () => {
-        const text = content.tumblr || platforms.tumblr?.content?.tumblr || platforms.tumblr?.content?.text || '';
+        const text = pending.tumblr || content.tumblr || platforms.tumblr?.content?.tumblr || platforms.tumblr?.content?.text || '';
         return `<div class="content-block" data-field="tumblr" data-edit-active="false">${text ? escHtml(text) : '<em>No Tumblr content found.</em>'}</div>`;
       },
     },
