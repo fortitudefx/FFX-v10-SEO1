@@ -583,6 +583,13 @@ function switchTab(pc, tb, key) {
 }
 
 async function publishVideo(videoId, slug, actionRow, pubBtn, container, video) {
+  // Discard any active unsaved edits before publishing
+  container.querySelectorAll('[data-edit-active="true"]').forEach(el => {
+    el.setAttribute('contenteditable', 'false');
+    el.dataset.editActive = 'false';
+  });
+  container.querySelectorAll('.edit-save-bar').forEach(bar => bar.classList.remove('visible'));
+
   const platforms = {};
   actionRow.querySelectorAll('.platform-checkbox').forEach(el => { platforms[el.dataset.platform] = el.dataset.checked === 'true'; });
   if (!Object.values(platforms).some(v => v)) { showPubResult(container, 'Select at least one platform.', false); return; }
