@@ -194,7 +194,7 @@ export async function onRequestPost(context) {
       if (videoId) {
         const existingPublished = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' }) || {};
         const existingPlatforms = existingPublished.platforms || {};
-        const updatedPlatforms = { ...existingPlatforms };
+        const updatedPlatforms  = { ...existingPlatforms };
 
         // Write per-platform status — only platforms that ran and succeeded
         if (userSelected.blog && status.blog && !status.blog.startsWith('Error') && status.blog !== 'not_selected') {
@@ -216,7 +216,7 @@ export async function onRequestPost(context) {
           updatedPlatforms.discord = { status: status.discord, publishedAt: timestamp };
         }
 
-        // Clear editedFields for platforms that just published successfully
+        // Fields per platform — used for editedFields and pendingEdits cleanup
         const fieldsToCheck = {
           blog:     ['body'],
           x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
@@ -224,6 +224,8 @@ export async function onRequestPost(context) {
           discord:  ['discord'],
           tumblr:   ['tumblr'],
         };
+
+        // Clear editedFields for platforms that just published successfully
         let remainingEditedFields = Array.isArray(existingPublished.editedFields)
           ? [...existingPublished.editedFields]
           : [];
@@ -236,17 +238,33 @@ export async function onRequestPost(context) {
           }
         });
 
+        // Clear pendingEdits for platforms that just published successfully
+        const existingPendingEdits = existingPublished.pendingEdits || {};
+        const updatedPendingEdits  = { ...existingPendingEdits };
+        Object.entries(fieldsToCheck).forEach(([platform, fields]) => {
+          const s = status[platform];
+          const published = s && !s.startsWith('Error') && s !== 'not_selected' && s !== 'pending';
+          if (published) {
+            fields.forEach(f => delete updatedPendingEdits[f]);
+          }
+        });
+        // Also clear x_thread from pendingEdits if x published successfully
+        if (status.x && !status.x.startsWith('Error') && status.x !== 'not_selected' && status.x !== 'pending') {
+          delete updatedPendingEdits.x_thread;
+        }
+
         const publishedEntry = {
           videoId,
-          youtubeUrl: content.youtubeUrl || content.yt_url || '',
-          slug: content.slug,
-          title: content.title || '',
-          region: content.region || 'Global',
-          updatedAt: timestamp,
-          globalContent: content,
+          youtubeUrl:      content.youtubeUrl || content.yt_url || '',
+          slug:            content.slug,
+          title:           content.title || '',
+          region:          content.region || 'Global',
+          updatedAt:       timestamp,
+          globalContent:   content,
           regionalContent: regionalContent || null,
-          platforms: updatedPlatforms,
-          editedFields: remainingEditedFields,
+          platforms:       updatedPlatforms,
+          editedFields:    remainingEditedFields,
+          pendingEdits:    updatedPendingEdits,
         };
 
         // No TTL — published content is permanent
@@ -256,6 +274,18 @@ export async function onRequestPost(context) {
         // Clear video:{videoId} immediately — content is now permanent in published:{videoId}
         // Non-fatal — publish already succeeded if this fails
         try { await env.FFX_KV.delete(`video:${videoId}`); console.log('[FFX] video: KV cleared for videoId:', videoId); } catch {}
+
+        // Delete regen:{videoId}:{platform} staging keys for all successfully published platforms
+        // Non-fatal — regen keys are 24hr TTL anyway but we clean immediately on publish
+        const regenPlatformMap = { blog: 'article', x: 'x', linkedin: 'linkedin', tumblr: 'tumblr', discord: 'discord' };
+        for (const [platform, regenKey] of Object.entries(regenPlatformMap)) {
+          const s = status[platform];
+          const succeeded = s && !s.startsWith('Error') && s !== 'not_selected' && s !== 'pending';
+          if (succeeded) {
+            try { await env.FFX_KV.delete(`regen:${videoId}:${regenKey}`); } catch {}
+          }
+        }
+        console.log('[FFX] regen staging keys cleared for published platforms');
 
       } else {
         console.log('[FFX] No videoId found in content — published: KV not written');
