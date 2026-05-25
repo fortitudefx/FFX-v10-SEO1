@@ -270,7 +270,7 @@ async function sendCompletionEmail(env, youtubeUrl, videoId, videoTitle) {
   if (!env.BREVO_API_KEY) throw new Error('BREVO_API_KEY not set on consumer Worker');
   if (!env.APPROVAL_EMAIL) throw new Error('APPROVAL_EMAIL not set on consumer Worker');
 
-  const pressLink = `https://fortitudefx.com/press?video=${videoId}`;
+  const pressLink = `https://fortitudefx.com/dashboard-queue.html?video=${videoId}`;
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
   const expiry = new Date(Date.now() + 86400000);
