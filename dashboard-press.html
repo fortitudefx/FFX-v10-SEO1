@@ -10,6 +10,7 @@
 <body>
 
 <nav class="nav">
+  <div class="nav-inner">
   <div class="nav-wordmark">FFX <span>·</span> Internal</div>
   <div class="nav-links">
     <a href="/dashboard.html"           class="nav-link">Dashboard</a>
@@ -20,9 +21,11 @@
     <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
     <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
   </div>
+  </div>
 </nav>
 
 <div class="page-header">
+  <div class="page-header-inner">
   <div class="page-header-left">
     <div class="wordmark">FFX <span>Press</span></div>
     <div class="header-count" id="headerCount">—</div>
@@ -31,15 +34,18 @@
     <div class="status-dot"></div>
     <button class="btn-generate" onclick="toggleGeneratePanel()">+ Generate</button>
   </div>
+  </div>
 </div>
 
 <div class="generate-panel" id="generatePanel">
+  <div class="generate-panel-inner">
   <div class="gen-title">New Content Generation</div>
   <div class="gen-row">
     <input type="url" class="gen-input" id="genUrl" placeholder="https://youtu.be/..." autocomplete="off" spellcheck="false">
     <button class="btn-primary" id="genBtn" onclick="startGeneration()">Generate</button>
   </div>
   <div class="gen-status" id="genStatus"></div>
+  </div>
 </div>
 
 <div class="content-wrap">
@@ -126,7 +132,13 @@ function buildVideoRow(video) {
     + '<div class="platform-pills">'+PLATFORMS.map(p=>'<span class="pill '+pillClass(platforms[p.key]?.status||'')+'">'+p.label+'</span>').join('')+'</div>'
     + '<div class="row-date">'+date+'<span class="row-chevron">▼</span></div>';
 
-  summary.addEventListener('click', () => toggleRow(row, video));
+  // Only the info area and date are clickable — not thumbnail or empty space
+  const clickableInfo = summary.querySelector('.row-info');
+  const clickableDate = summary.querySelector('.row-date');
+  if (clickableInfo) clickableInfo.style.cursor = 'pointer';
+  if (clickableDate) clickableDate.style.cursor = 'pointer';
+  if (clickableInfo) clickableInfo.addEventListener('click', () => toggleRow(row, video));
+  if (clickableDate) clickableDate.addEventListener('click', () => toggleRow(row, video));
   row.appendChild(summary);
   const expanded = document.createElement('div'); expanded.className='row-expanded';
   row.appendChild(expanded);
