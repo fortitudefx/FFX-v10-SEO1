@@ -53,7 +53,7 @@
     <div>Video</div>
     <div>Title &amp; Details</div>
     <div>Platforms</div>
-    <div style="text-align:right;">Date</div>
+    <div>Date</div>
   </div>
   <div id="videoList">
     <div class="loading-state">
@@ -118,7 +118,7 @@ function buildVideoRow(video) {
   const region   = video.region||'Global';
   const platforms= video.platforms||{};
 
-  const summary = document.createElement('div'); summary.className='row-summary';
+  const summary = document.createElement('div'); summary.className='row-summary'; summary.style.cursor='default';
   const thumbHtml = thumbUrl
     ? '<div class="row-thumb-wrap"><img class="row-thumb" src="'+thumbUrl+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'"></div>'
     : '<div class="row-thumb-wrap"><div class="row-thumb-placeholder">No thumb</div></div>';
@@ -132,13 +132,11 @@ function buildVideoRow(video) {
     + '<div class="platform-pills">'+PLATFORMS.map(p=>'<span class="pill '+pillClass(platforms[p.key]?.status||'')+'">'+p.label+'</span>').join('')+'</div>'
     + '<div class="row-date">'+date+'<span class="row-chevron">▼</span></div>';
 
-  // Only the info area and date are clickable — not thumbnail or empty space
-  const clickableInfo = summary.querySelector('.row-info');
-  const clickableDate = summary.querySelector('.row-date');
-  if (clickableInfo) clickableInfo.style.cursor = 'pointer';
-  if (clickableDate) clickableDate.style.cursor = 'pointer';
-  if (clickableInfo) clickableInfo.addEventListener('click', () => toggleRow(row, video));
-  if (clickableDate) clickableDate.addEventListener('click', () => toggleRow(row, video));
+  // Only title/info text and date are clickable — thumbnail and empty space are inert
+  summary.querySelector('.row-info').style.cursor = 'pointer';
+  summary.querySelector('.row-date').style.cursor = 'pointer';
+  summary.querySelector('.row-info').addEventListener('click', (e) => { if(e.target.closest('.row-yt-url'))return; toggleRow(row, video); });
+  summary.querySelector('.row-date').addEventListener('click', () => toggleRow(row, video));
   row.appendChild(summary);
   const expanded = document.createElement('div'); expanded.className='row-expanded';
   row.appendChild(expanded);
