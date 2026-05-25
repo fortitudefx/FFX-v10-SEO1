@@ -341,7 +341,7 @@ body::before {
   font-size: 12px;        /* ↑ increased */
   color: var(--blue);
   text-decoration: none;
-  display: block; margin-top: 4px;
+  display: inline-block; margin-top: 4px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   transition: color 0.1s;
 }
