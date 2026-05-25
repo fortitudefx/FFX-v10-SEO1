@@ -1,8 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Press Publish
-// POST /press-publish → republishes selected platforms for a published video
-// Reads globalContent + regionalContent from published:{videoId}
-// Full content always available — migrated permanently on first publish
+// POST /press-publish → publishes selected platforms
+//
+// Two modes:
+// 1. source:'queue' — content passed in body directly (first publish from queue)
+//    Cleans up queue-edits:{videoId} and removes from queue:index on success
+// 2. (default) — reads globalContent from published:{videoId} (republish from Press)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestPost(context) {
@@ -22,59 +25,67 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
   }
 
-  const { videoId, slug, platforms } = body;
+  const { videoId, slug, platforms, source, content: bodyContent, regionalContent: bodyRegional } = body;
 
   if (!videoId && !slug) {
     return new Response(JSON.stringify({ error: 'videoId or slug is required' }), { status: 400, headers });
   }
-
   if (!platforms || typeof platforms !== 'object') {
     return new Response(JSON.stringify({ error: 'platforms object is required' }), { status: 400, headers });
   }
 
-  console.log('[FFX Press Publish] videoId:', videoId || 'none', 'slug:', slug || 'none', 'platforms:', platforms);
+  console.log('[FFX Press Publish] source:', source || 'press', 'videoId:', videoId, 'platforms:', platforms);
 
-  // ── Read from published:* — permanent, always available ───────────────────
-  let publishedEntry;
-  try {
-    if (videoId) {
-      publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
+  let globalContent, regionalContent;
+
+  if (source === 'queue') {
+    // ── Queue publish — content passed directly in body ───────────────────
+    // bodyContent is already merged (gc + queueEdits) by the dashboard
+    if (!bodyContent || !bodyContent.slug) {
+      return new Response(JSON.stringify({ error: 'content with slug is required for queue publish' }), { status: 400, headers });
     }
-    // Fall back to slug-keyed entry for legacy entries
-    if (!publishedEntry && slug) {
-      publishedEntry = await env.FFX_KV.get(`published:slug:${slug}`, { type: 'json' });
+    globalContent   = bodyContent;
+    regionalContent = bodyRegional || null;
+    console.log('[FFX Press Publish] Queue publish — slug:', globalContent.slug);
+
+  } else {
+    // ── Press republish — read from published:{videoId} ───────────────────
+    let publishedEntry;
+    try {
+      if (videoId) {
+        publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
+      }
+      if (!publishedEntry && slug) {
+        publishedEntry = await env.FFX_KV.get(`published:slug:${slug}`, { type: 'json' });
+      }
+      if (!publishedEntry && videoId) {
+        publishedEntry = await env.FFX_KV.get(`published:slug:${videoId}`, { type: 'json' });
+      }
+      if (!publishedEntry) {
+        return new Response(JSON.stringify({ error: 'Video not found in published records.' }), { status: 404, headers });
+      }
+    } catch (err) {
+      return new Response(JSON.stringify({ error: `KV read failed: ${err.message}` }), { status: 500, headers });
     }
-    if (!publishedEntry && videoId) {
-      publishedEntry = await env.FFX_KV.get(`published:slug:${videoId}`, { type: 'json' });
+
+    globalContent   = publishedEntry.globalContent;
+    regionalContent = publishedEntry.regionalContent || null;
+
+    if (!globalContent || !globalContent.slug) {
+      return new Response(JSON.stringify({ error: 'Full content not found in published record. Please regenerate.' }), { status: 400, headers });
     }
-    if (!publishedEntry) {
-      return new Response(JSON.stringify({ error: 'Video not found in published records.' }), { status: 404, headers });
-    }
-  } catch (err) {
-    return new Response(JSON.stringify({ error: `KV read failed: ${err.message}` }), { status: 500, headers });
+
+    console.log('[FFX Press Publish] Press republish — slug:', globalContent.slug);
   }
-
-  const globalContent   = publishedEntry.globalContent;
-  const regionalContent = publishedEntry.regionalContent || null;
-
-  if (!globalContent || !globalContent.slug) {
-    return new Response(JSON.stringify({ error: 'Full content not found in published record. Please regenerate from generate.html.' }), { status: 400, headers });
-  }
-
-  console.log('[FFX Press Publish] slug:', globalContent.slug, 'regional:', regionalContent?.slug || 'none');
 
   // ── Call publish-confirm ───────────────────────────────────────────────────
   const baseUrl = new URL(request.url).origin;
   let publishResult;
   try {
     const res = await fetch(`${baseUrl}/publish-confirm`, {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: globalContent,
-        regionalContent,
-        platforms,
-      }),
+      body: JSON.stringify({ content: globalContent, regionalContent, platforms }),
     });
 
     publishResult = await res.json();
@@ -91,11 +102,28 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: `publish-confirm error: ${err.message}` }), { status: 500, headers });
   }
 
+  // ── Queue cleanup on successful publish ───────────────────────────────────
+  if (source === 'queue' && videoId) {
+    // Delete queue-edits permanent staging key
+    try { await env.FFX_KV.delete(`queue-edits:${videoId}`); } catch {}
+
+    // Remove from queue:index
+    try {
+      const queueRaw = await env.FFX_KV.get('queue:index', { type: 'json' });
+      if (Array.isArray(queueRaw)) {
+        const updated = queueRaw.filter(q => q.videoId !== videoId);
+        await env.FFX_KV.put('queue:index', JSON.stringify(updated));
+      }
+    } catch {}
+
+    console.log('[FFX Press Publish] Queue cleanup done for videoId:', videoId);
+  }
+
   return new Response(JSON.stringify({
     success: true,
     videoId: videoId || slug,
-    slug: globalContent.slug,
-    status: publishResult.status,
+    slug:    globalContent.slug,
+    status:  publishResult.status,
   }), { status: 200, headers });
 }
 
