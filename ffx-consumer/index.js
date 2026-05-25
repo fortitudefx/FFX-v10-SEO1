@@ -241,6 +241,22 @@ async function processJob(job, env) {
     return;
   }
 
+  // Update queue:index — set title and wasGenerated so Queue dashboard reflects correct state
+  try {
+    const queueRaw = await env.FFX_KV.get('queue:index', { type: 'json' });
+    if (Array.isArray(queueRaw)) {
+      const qIdx = queueRaw.findIndex(q => q.videoId === videoId);
+      if (qIdx !== -1) {
+        queueRaw[qIdx].title        = globalContent.title || queueRaw[qIdx].title;
+        queueRaw[qIdx].wasGenerated = true;
+        await env.FFX_KV.put('queue:index', JSON.stringify(queueRaw));
+        console.log('[FFX] queue:index updated — title and wasGenerated set for:', videoId);
+      }
+    }
+  } catch (err) {
+    console.error('[FFX] queue:index update failed (non-fatal):', err.message);
+  }
+
   // ── STEP 10: Complete ─────────────────────────────────────────────────────
   await kvPut(env, `job:${jobId}`, JSON.stringify({
     status: 'complete',
