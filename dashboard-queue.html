@@ -41,7 +41,7 @@
     <div>Video</div>
     <div>Title &amp; URL</div>
     <div>State</div>
-    <div style="text-align:right;">Added</div>
+    <div>Added</div>
   </div>
   <div id="queueRows">
     <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading queue&hellip;</div></div>
@@ -134,7 +134,7 @@ function buildQueueRow(item) {
 
   const summary = document.createElement('div');
   summary.className = 'row-summary';
-  summary.style.gridTemplateColumns = '200px 1fr 180px 140px';
+  summary.style.gridTemplateColumns = '200px 1fr 180px 140px'; summary.style.cursor = 'default';
   summary.innerHTML = thumbHtml
     + '<div class="row-info">'
     + '<div class="row-title">'+(title ? escHtml(title) : '<span style="color:var(--dim);font-style:italic;font-size:14px;">Title loads after generation</span>')+'</div>'
@@ -289,7 +289,8 @@ function makeQueueEditable(el,videoId,field,editsData,tabBar){
 
 async function saveQueueEdit(el,bar,videoId,field,editsData,tabBar){
   const saveBtn=bar.querySelector('.btn-edit-save'); saveBtn.disabled=true; saveBtn.textContent='Saving\u2026';
-  const value=el.innerText.trim();
+  // Use innerHTML for body to preserve HTML; innerText for plain text fields
+  const value = (field==='body') ? el.innerHTML : el.innerText.trim();
   try{
     const res=await fetch('/api/queue-edits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,field,value})});
     const data=await res.json();
