@@ -10,6 +10,7 @@
 <body>
 
 <nav class="nav">
+  <div class="nav-inner">
   <div class="nav-wordmark">FFX <span>·</span> Internal</div>
   <div class="nav-links">
     <a href="/dashboard.html"           class="nav-link">Dashboard</a>
@@ -20,15 +21,18 @@
     <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
     <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
   </div>
+  </div>
 </nav>
 
 <div class="page-header">
+  <div class="page-header-inner">
   <div class="page-header-left">
     <div class="wordmark">FFX <span>Queue</span></div>
     <div class="header-count" id="headerCount">—</div>
   </div>
   <div style="display:flex;align-items:center;gap:14px;">
     <div class="status-dot"></div>
+  </div>
   </div>
 </div>
 
@@ -134,6 +138,7 @@ function buildQueueRow(item) {
   summary.innerHTML = thumbHtml
     + '<div class="row-info">'
     + '<div class="row-title">'+(title ? escHtml(title) : '<span style="color:var(--dim);font-style:italic;font-size:14px;">Title loads after generation</span>')+'</div>'
+    + '<div class="row-meta"><span class="region-tag region-global">Global</span><span class="row-slug">'+escHtml(videoId)+'</span></div>'
     + (ytUrl ? '<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '')
     + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:6px;justify-content:flex-start;padding-top:4px;">'
@@ -143,11 +148,11 @@ function buildQueueRow(item) {
     + '<div class="row-date">'+formatDate(item.addedAt)+(isOrange?'<span class="row-chevron">\u25bc</span>':'')+'</div>';
 
   if (isOrange) {
-    summary.style.cursor = 'pointer';
-    summary.addEventListener('click', (e) => {
-      if (e.target.closest('.btn-gen-row')||e.target.closest('.row-yt-url')) return;
-      toggleRow(row, item);
-    });
+    // Only title, slug, meta area and date are clickable — not thumbnail or empty space
+    const infoEl = summary.querySelector('.row-info');
+    const dateEl = summary.querySelector('.row-date');
+    if (infoEl) { infoEl.style.cursor='pointer'; infoEl.addEventListener('click', (e) => { if(e.target.closest('.row-yt-url'))return; toggleRow(row,item); }); }
+    if (dateEl) { dateEl.style.cursor='pointer'; dateEl.addEventListener('click', () => toggleRow(row,item)); }
   }
 
   row.appendChild(summary);
@@ -292,6 +297,7 @@ async function saveQueueEdit(el,bar,videoId,field,editsData,tabBar){
     editsData.edits=editsData.edits||{}; editsData.edits[field]=value;
     if(!editsData.editedFields)editsData.editedFields=[];
     if(!editsData.editedFields.includes(field))editsData.editedFields.push(field);
+    // Close bar — do NOT reset el.innerText, content stays as typed in DOM
     el.setAttribute('contenteditable','false');el.dataset.editActive='false';bar.classList.remove('visible');saveBtn.disabled=false;saveBtn.textContent='Save';
     const tabKey=field==='body'?'article':(/^tweet/.test(field)?'x':field);
     const tabEl=tabBar.querySelector('.ptab[data-panel="'+tabKey+'"]');
@@ -381,6 +387,39 @@ function startPolling(jobId,videoId,summaryEl){
     }catch{}
   };
   poll(); pollTimers[jobId]=setInterval(poll,4000);
+}
+
+// Queue per-platform regenerate — regenerates from transcript, updates panel content
+async function onQueueRegenClick(videoId, platform, regenBtn, statusSpan, panel, videoRecord, editsData, tabBar) {
+  if(!videoId){statusSpan.textContent='No videoId';statusSpan.className='plat-action-status err';return;}
+  regenBtn.disabled=true;
+  statusSpan.className='plat-action-status active'; statusSpan.textContent='Regenerating…';
+  try {
+    const res = await fetch('/api/regenerate-platform',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,platform})});
+    const data = await res.json();
+    if(!res.ok){statusSpan.className='plat-action-status err';statusSpan.textContent=data.error||'Failed';regenBtn.disabled=false;return;}
+    // Update content in panel from regen staging
+    const regenRes = await fetch('/api/regen-status?videoId='+videoId);
+    const regenData = regenRes.ok ? await regenRes.json() : {};
+    const regenMap = regenData.regen || {};
+    const regenEntry = regenMap[platform] || null;
+    if(regenEntry && regenEntry.fields) {
+      const cb = panel.querySelector('.content-block[data-field]');
+      if(cb && regenEntry.fields[cb.dataset.field]) {
+        cb.innerHTML = regenEntry.fields[cb.dataset.field];
+        cb.dataset.editActive = 'false';
+      }
+      // Update status bar chip
+      const chip = panel.querySelector('.psb-status-chip');
+      if(chip){chip.className='psb-status-chip psb-chip-regen';chip.textContent='⚡ Regenerated — review and publish';}
+      // Update tab chip
+      const tabEl = tabBar.querySelector('.ptab[data-panel="'+platform+'"]');
+      if(tabEl){const lbl={article:'Article',x:'X',linkedin:'LinkedIn',discord:'Discord',tumblr:'Tumblr'}[platform]||platform;tabEl.innerHTML=lbl+'<span class="ptab-chip ptab-chip-regen">⚡ Regen</span>';}
+    }
+    statusSpan.className='plat-action-status done'; statusSpan.textContent='✓ Done';
+    regenBtn.disabled=false;
+    setTimeout(()=>{statusSpan.textContent='';statusSpan.className='plat-action-status';},3000);
+  } catch(err){statusSpan.className='plat-action-status err';statusSpan.textContent='Error';regenBtn.disabled=false;}
 }
 
 function switchTab(pc,tb,key){
