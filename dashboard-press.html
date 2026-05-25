@@ -10,224 +10,211 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg:        #1a1c21;
-      --bg2:       #20232a;
-      --surface:   #252830;
-      --surface2:  #2c2f38;
-      --border:    #32353f;
-      --border2:   #3d4150;
-      --text:      #e2e0db;
-      --text-mid:  #b8b5ae;
-      --muted:     #7a7870;
-      --dim:       #4a4845;
-      --green:     #4d9e72;
-      --green-bg:  #0e1f17;
-      --green-bd:  #1e3f2e;
-      --red:       #c45c5c;
-      --red-bg:    #1f0e0e;
-      --red-bd:    #3f1e1e;
-      --amber:     #c49a3c;
-      --amber-bg:  #1f1800;
-      --amber-bd:  #3f3000;
-      --blue:      #5b8fc4;
-      --blue-bg:   #0e1620;
-      --blue-bd:   #1e2f40;
-      --mono: 'IBM Plex Mono', monospace;
-      --sans: 'IBM Plex Sans', sans-serif;
+      --bg:#1a1c21;--bg2:#20232a;--surface:#252830;--surface2:#2c2f38;--border:#32353f;--border2:#3d4150;
+      --text:#e2e0db;--text-mid:#b8b5ae;--muted:#7a7870;--dim:#4a4845;
+      --green:#4d9e72;--green-bg:#0e1f17;--green-bd:#1e3f2e;
+      --red:#c45c5c;--red-bg:#1f0e0e;--red-bd:#3f1e1e;
+      --amber:#c49a3c;--amber-bg:#1f1800;--amber-bd:#3f3000;
+      --blue:#5b8fc4;--blue-bg:#0e1620;--blue-bd:#1e2f40;
+      --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
     }
-    html { scroll-behavior: smooth; }
-    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 16px; line-height: 1.7; overflow: hidden; }
-
-    /* ── NAV ── */
-    .nav { border-bottom: 1px solid var(--border); padding: 0 32px; height: 56px; display: flex; align-items: center; position: sticky; top: 0; background: var(--bg); z-index: 100; gap: 0; }
-    .nav-wordmark { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); margin-right: 36px; flex-shrink: 0; }
-    .nav-wordmark span { color: var(--muted); font-weight: 400; }
-    .nav-links { display: flex; gap: 2px; flex: 1; }
-    .nav-link { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 14px; border-radius: 3px; color: var(--muted); text-decoration: none; transition: background 0.15s, color 0.15s; }
-    .nav-link:hover { background: var(--surface); color: var(--text-mid); }
-    .nav-link.active { background: var(--surface2); color: var(--text); }
-
-    /* ── SPLIT LAYOUT ── */
-    .split { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 56px); overflow: hidden; }
-
-    /* ── QUEUE PANEL ── */
-    .queue-panel { border-right: 2px solid var(--border2); overflow-y: auto; background: var(--bg2); display: flex; flex-direction: column; }
-    .queue-header { padding: 16px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg2); z-index: 10; flex-shrink: 0; }
-    .queue-header-top { display: flex; align-items: center; justify-content: space-between; }
-    .queue-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-    .queue-badge { font-family: var(--mono); font-size: 11px; color: var(--dim); background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px; }
-    .queue-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px 20px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
-    .queue-item:hover { background: var(--surface); }
-    .queue-item.active { background: var(--surface); border-left: 2px solid var(--blue); padding-left: 18px; }
-    .queue-thumb { width: 96px; height: 54px; border-radius: 4px; object-fit: cover; background: var(--surface2); border: 1px solid var(--border); flex-shrink: 0; display: block; }
-    .queue-info { flex: 1; min-width: 0; }
-    .queue-item-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .queue-item-date { font-family: var(--mono); font-size: 11px; color: var(--dim); margin-bottom: 6px; }
-    .queue-item-badge { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 2px; background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); letter-spacing: 0.05em; }
-    .queue-empty { padding: 40px 20px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--dim); }
-    .queue-drag-handle { font-size: 16px; color: var(--dim); cursor: grab; padding: 2px 4px; flex-shrink: 0; user-select: none; line-height: 1; margin-top: 2px; }
-    .queue-drag-handle:active { cursor: grabbing; }
-    .queue-item.dragging { opacity: 0.4; background: var(--surface2); }
-    .queue-placeholder { background: var(--blue-bg); border: 1px dashed var(--blue-bd); border-radius: 4px; margin: 2px 0; transition: height 0.15s; }
-    .queue-gen-btn { margin-top: 6px; display: block; font-family: var(--mono); font-size: 11px; font-weight: 600; background: var(--surface2); border: 1px solid var(--border2); border-radius: 3px; color: var(--text-mid); padding: 4px 12px; cursor: pointer; transition: all 0.15s; }
-    .queue-gen-btn:hover:not(:disabled) { border-color: var(--blue-bd); color: var(--blue); }
-    .queue-gen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .badge-ready   { background: var(--amber-bg); color: var(--amber);  border: 1px solid var(--amber-bd); }
-    .badge-expired { background: var(--red-bg);   color: var(--red);    border: 1px solid var(--red-bd); }
-    .badge-queued  { background: var(--surface2); color: var(--muted);  border: 1px solid var(--border); }
-
-    /* ── PRESS PANEL ── */
-    .press-panel { overflow-y: auto; background: var(--bg); }
-    .press-header { border-bottom: 1px solid var(--border); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); z-index: 50; }
-    .press-header-left { display: flex; align-items: center; gap: 20px; }
-    .wordmark { font-family: var(--mono); font-size: 14px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); }
-    .wordmark span { color: var(--muted); font-weight: 400; }
-    .header-count { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 3px 10px; }
-    .header-right { display: flex; align-items: center; gap: 12px; }
-    .btn-generate { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; background: var(--text); color: var(--bg); border: none; border-radius: 3px; padding: 7px 16px; cursor: pointer; transition: opacity 0.15s; }
-    .btn-generate:hover { opacity: 0.85; }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px var(--green-bg); }
-    #generatePanel { display: none; border-bottom: 1px solid var(--border); padding: 24px 32px; background: var(--bg2); }
-    #generatePanel.open { display: block; }
-    .gen-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
-    .gen-row { display: flex; gap: 10px; align-items: center; }
-    .gen-input { flex: 1; background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 13px; padding: 11px 14px; outline: none; transition: border-color 0.15s; }
-    .gen-input:focus { border-color: var(--blue); }
-    .gen-input::placeholder { color: var(--dim); }
-    .btn-run { font-family: var(--mono); font-size: 13px; font-weight: 600; background: var(--text); color: var(--bg); border: none; border-radius: 4px; padding: 11px 22px; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
-    .btn-run:hover:not(:disabled) { opacity: 0.85; }
-    .btn-run:disabled { opacity: 0.3; cursor: not-allowed; }
-    .gen-status { margin-top: 12px; font-family: var(--mono); font-size: 13px; color: var(--muted); display: none; }
-    .gen-status.active { display: block; color: var(--blue); }
-    .gen-status.done   { display: block; color: var(--green); }
-    .gen-status.err    { display: block; color: var(--red); }
-    .press-content { padding: 0 32px 80px; }
-    .table-header { display: grid; grid-template-columns: 180px 1fr 220px 130px; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 28px; }
-    .video-row { border-bottom: 1px solid var(--border); transition: background 0.1s; }
-    .video-row:hover { background: var(--bg2); }
-    .row-summary { display: grid; grid-template-columns: 180px 1fr 220px 130px; gap: 16px; padding: 14px 0; cursor: pointer; align-items: center; }
-    .row-thumb-wrap { width: 180px; height: 101px; border-radius: 5px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); flex-shrink: 0; display: block; }
-    .row-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .row-thumb-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; color: var(--dim); }
-    .row-info {}
-    .row-title { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.35; margin-bottom: 8px; }
-    .row-meta { font-family: var(--mono); font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
-    .row-yt-url { font-family: var(--mono); font-size: 11px; color: var(--blue); text-decoration: none; display: inline-block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-    .row-yt-url:hover { text-decoration: underline; }
-    .region-tag { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
-    .region-global { background: var(--surface2); color: var(--text-mid); border: 1px solid var(--border2); }
-    .region-gcc    { background: var(--amber-bg); color: var(--amber);    border: 1px solid var(--amber-bd); }
-    .region-us     { background: var(--blue-bg);  color: var(--blue);     border: 1px solid var(--blue-bd); }
-    .platform-pills { display: flex; gap: 5px; flex-wrap: wrap; }
-    .pill { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; border: 1px solid; }
-    .pill-ok    { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
-    .pill-error { background: var(--red-bg);   color: var(--red);   border-color: var(--red-bd); }
-    .pill-pend  { background: var(--surface2); color: var(--dim);   border-color: var(--border); }
-    .row-date { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; }
-    .row-chevron { font-size: 11px; color: var(--dim); transition: transform 0.2s; margin-left: 6px; display: block; margin-top: 4px; }
-    .video-row.open .row-chevron { transform: rotate(180deg); }
-    .row-expanded { display: none; padding: 0 0 28px; border-top: 1px solid var(--border); }
-    .video-row.open .row-expanded { display: block; }
-    .expanded-inner { padding-top: 24px; }
-    .expanded-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-    .expanded-region-label { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
-    .platform-tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
-    .ptab { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 9px 16px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; background: none; border-top: none; border-left: none; border-right: none; }
-    .ptab:hover { color: var(--text-mid); }
-    .ptab.active { color: var(--text); border-bottom-color: var(--text); }
-    .ptab-chip { display: inline-block; font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 2px; margin-left: 5px; vertical-align: middle; letter-spacing: 0.04em; }
-    .ptab-chip-ok      { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
-    .ptab-chip-err     { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
-    /* State 1 & 3: saved/edited — not published */
-    .ptab-chip-edited  { background: #2a1500; color: #e06b1a; border: 1px solid #4a2800; }
-    /* State 2: regenerated unsaved — 24hr TTL warning */
-    .ptab-chip-regen   { background: #0e1a2a; color: #5b8fc4; border: 1px solid #1e2f40; }
-    .platform-panels { position: relative; }
-    .ppanel { display: none; }
-    .ppanel.active { display: block; }
-    .platform-status-bar { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 16px; border-radius: 5px; margin-bottom: 14px; border: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; gap: 8px; }
-    .psb-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .psb-status-chip { font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 3px; }
-    .psb-chip-ok      { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
-    .psb-chip-err     { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
-    .psb-chip-pend    { background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); }
-    .psb-chip-edited  { background: #2a1500; color: #e06b1a; border: 1px solid #4a2800; }
-    .psb-chip-regen   { background: #0e1a2a; color: #5b8fc4; border: 1px solid #1e2f40; }
-    .psb-link { font-family: var(--mono); font-size: 12px; color: var(--blue); text-decoration: none; }
-    .psb-link:hover { text-decoration: underline; }
-    .psb-date { font-family: var(--mono); font-size: 11px; color: var(--dim); }
-    .content-block { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 18px 20px; font-size: 15px; line-height: 1.8; color: var(--text-mid); white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto; }
-    .content-block.article-body { white-space: normal; }
-    .content-block.article-body h2 { font-size: 16px; font-weight: 700; color: var(--text); margin: 18px 0 9px; }
-    .content-block.article-body h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 14px 0 7px; }
-    .content-block.article-body p  { margin-bottom: 12px; }
-    .content-block.article-body a  { color: var(--blue); }
-    .tweet-list { display: flex; flex-direction: column; gap: 10px; }
-    .tweet-item { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 14px 16px; display: flex; gap: 14px; font-size: 15px; line-height: 1.75; color: var(--text-mid); }
-    .tweet-num { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--dim); min-width: 18px; padding-top: 3px; }
-
-    /* ── PER-PLATFORM ACTION BAR ── */
-    .platform-action-bar { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
-    .btn-plat-regen { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 6px 14px; cursor: pointer; transition: all 0.15s; }
-    .btn-plat-regen:hover:not(:disabled) { border-color: var(--blue-bd); color: var(--blue); }
-    .btn-plat-regen:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-plat-restore { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 6px 14px; cursor: pointer; transition: all 0.15s; }
-    .btn-plat-restore:hover:not(:disabled) { border-color: var(--amber-bd); color: var(--amber); }
-    .btn-plat-restore:disabled { opacity: 0.4; cursor: not-allowed; }
-    .plat-action-status { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 4px; }
-    .plat-action-status.active { color: var(--blue); }
-    .plat-action-status.done   { color: var(--green); }
-    .plat-action-status.err    { color: var(--red); }
-
-    /* ── PUBLISH ACTION ROW ── */
-    .action-row { display: flex; align-items: center; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); flex-wrap: wrap; }
-    .action-label { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
-    .platform-checkbox { display: flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; user-select: none; font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface); }
-    .platform-checkbox:hover { border-color: var(--border2); color: var(--text-mid); }
-    .platform-checkbox.checked { border-color: var(--blue-bd); background: var(--blue-bg); color: var(--blue); }
-    .platform-checkbox.already-posted { border-color: var(--green-bd); background: var(--green-bg); color: var(--green); }
-    .chk-dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; flex-shrink: 0; }
-    .platform-checkbox.checked .chk-dot, .platform-checkbox.already-posted .chk-dot { background: currentColor; }
-    .btn-publish { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; background: var(--green); color: #fff; border: none; border-radius: 4px; padding: 9px 24px; cursor: pointer; margin-left: auto; transition: opacity 0.15s; }
-    .btn-publish:hover:not(:disabled) { opacity: 0.85; }
-    .btn-publish:disabled { opacity: 0.3; cursor: not-allowed; }
-    .pub-result { font-family: var(--mono); font-size: 12px; margin-top: 12px; padding: 10px 14px; border-radius: 4px; display: none; }
-    .pub-result.ok  { background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green); display: block; }
-    .pub-result.err { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: var(--red);   display: block; }
-    .content-block[contenteditable="true"], .tweet-item[contenteditable="true"] { outline: 1px solid var(--blue); cursor: text; border-color: var(--blue-bd); background: var(--blue-bg); }
-    .edit-save-bar { display: none; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 14px; background: var(--blue-bg); border: 1px solid var(--blue-bd); border-radius: 4px; }
-    .edit-save-bar.visible { display: flex; }
-    .edit-save-bar-label { font-family: var(--mono); font-size: 11px; color: var(--blue); flex: 1; }
-    .btn-edit-save { font-family: var(--mono); font-size: 12px; font-weight: 600; background: var(--blue); color: #fff; border: none; border-radius: 3px; padding: 7px 18px; cursor: pointer; transition: opacity 0.15s; }
-    .btn-edit-save:hover:not(:disabled) { opacity: 0.85; }
-    .btn-edit-save:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-edit-discard { font-family: var(--mono); font-size: 12px; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 7px 14px; cursor: pointer; }
-    .btn-edit-discard:hover { color: var(--text-mid); border-color: var(--border2); }
-    .loading-state { text-align: center; padding: 80px 0; }
-    .loading-spin { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border2); border-top-color: var(--text-mid); animation: spin 0.7s linear infinite; margin: 0 auto 16px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-family: var(--mono); font-size: 13px; color: var(--muted); }
-    .empty-state { text-align: center; padding: 80px 0; }
-    .empty-state p { font-family: var(--mono); font-size: 13px; color: var(--muted); }
-    ::-webkit-scrollbar { width: 5px; height: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+    html{scroll-behavior:smooth;}
+    body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;line-height:1.7;overflow:hidden;}
+    .nav{border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;position:sticky;top:0;background:var(--bg);z-index:100;gap:0;}
+    .nav-wordmark{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.08em;color:var(--text);margin-right:36px;flex-shrink:0;}
+    .nav-wordmark span{color:var(--muted);font-weight:400;}
+    .nav-links{display:flex;gap:2px;flex:1;}
+    .nav-link{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:7px 14px;border-radius:3px;color:var(--muted);text-decoration:none;transition:background 0.15s,color 0.15s;}
+    .nav-link:hover{background:var(--surface);color:var(--text-mid);}
+    .nav-link.active{background:var(--surface2);color:var(--text);}
+    .main-layout{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 56px);overflow:hidden;transition:grid-template-columns 0.25s ease;}
+    .main-layout.queue-expanded{grid-template-columns:0px 1fr;}
+    .main-layout.queue-expanded .queue-panel{overflow:hidden;border-right:none;pointer-events:none;}
+    .queue-panel{border-right:2px solid var(--border2);overflow-y:auto;background:var(--bg2);display:flex;flex-direction:column;min-width:0;}
+    .queue-header{padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:10;flex-shrink:0;}
+    .queue-header-top{display:flex;align-items:center;justify-content:space-between;}
+    .queue-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);}
+    .queue-badge{font-family:var(--mono);font-size:11px;color:var(--dim);background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:2px 8px;}
+    .queue-empty{padding:40px 20px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--dim);}
+    .queue-item{display:grid;grid-template-columns:180px 1fr 20px;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;align-items:start;position:relative;}
+    .queue-item:hover{background:var(--surface);}
+    .queue-item.active{background:var(--surface);border-left:2px solid var(--blue);padding-left:14px;}
+    .queue-item.dragging{opacity:0.4;background:var(--surface2);}
+    .queue-thumb-wrap{width:180px;height:101px;border-radius:5px;overflow:hidden;background:var(--surface);border:1px solid var(--border);flex-shrink:0;}
+    .queue-thumb{width:100%;height:100%;object-fit:cover;display:block;}
+    .queue-thumb-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--dim);}
+    .queue-info{min-width:0;display:flex;flex-direction:column;gap:4px;padding-top:2px;}
+    .queue-item-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .queue-item-url{font-family:var(--mono);font-size:11px;color:var(--blue);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
+    .queue-item-url:hover{text-decoration:underline;}
+    .queue-item-date{font-family:var(--mono);font-size:11px;color:var(--dim);}
+    .queue-item-badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:2px;letter-spacing:0.05em;display:inline-block;margin-top:2px;}
+    .badge-ready{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd);}
+    .badge-expired{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd);}
+    .badge-queued{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+    .badge-generating{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);}
+    .badge-edited{background:#2a1500;color:#e06b1a;border:1px solid #4a2800;}
+    .queue-gen-btn{margin-top:6px;display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;background:var(--surface2);border:1px solid var(--border2);border-radius:3px;color:var(--text-mid);padding:4px 12px;cursor:pointer;transition:all 0.15s;}
+    .queue-gen-btn:hover:not(:disabled){border-color:var(--blue-bd);color:var(--blue);}
+    .queue-gen-btn:disabled{opacity:0.4;cursor:not-allowed;}
+    .queue-progress{margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7;}
+    .queue-progress .step{display:flex;align-items:center;gap:6px;}
+    .queue-progress .step.done{color:var(--green);}
+    .queue-progress .step.active{color:var(--blue);}
+    .queue-progress .step.pending{color:var(--dim);}
+    .queue-drag-handle{font-size:14px;color:var(--dim);cursor:grab;user-select:none;padding-top:4px;}
+    .queue-drag-handle:active{cursor:grabbing;}
+    .queue-placeholder{background:var(--blue-bg);border:1px dashed var(--blue-bd);border-radius:4px;margin:2px 0;}
+    .press-panel{overflow:hidden;background:var(--bg);display:flex;flex-direction:column;}
+    .queue-review-panel{display:none;flex-direction:column;height:100%;overflow:hidden;}
+    .queue-review-panel.visible{display:flex;}
+    .queue-review-header{border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;background:var(--bg);flex-shrink:0;}
+    .queue-review-back{font-family:var(--mono);font-size:12px;font-weight:600;background:none;border:1px solid var(--border);border-radius:3px;color:var(--muted);padding:6px 14px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+    .queue-review-back:hover{border-color:var(--border2);color:var(--text-mid);}
+    .queue-review-title{font-size:15px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .queue-review-body{flex:1;overflow-y:auto;padding:24px 32px 80px;}
+    #pressView{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+    .press-header{border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:50;flex-shrink:0;}
+    .press-header-left{display:flex;align-items:center;gap:20px;}
+    .wordmark{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:0.08em;color:var(--text);}
+    .wordmark span{color:var(--muted);font-weight:400;}
+    .header-count{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:3px 10px;}
+    .header-right{display:flex;align-items:center;gap:12px;}
+    .btn-generate{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.06em;background:var(--text);color:var(--bg);border:none;border-radius:3px;padding:7px 16px;cursor:pointer;transition:opacity 0.15s;}
+    .btn-generate:hover{opacity:0.85;}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px var(--green-bg);}
+    #generatePanel{display:none;border-bottom:1px solid var(--border);padding:24px 32px;background:var(--bg2);flex-shrink:0;}
+    #generatePanel.open{display:block;}
+    .gen-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+    .gen-row{display:flex;gap:10px;align-items:center;}
+    .gen-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:13px;padding:11px 14px;outline:none;transition:border-color 0.15s;}
+    .gen-input:focus{border-color:var(--blue);}
+    .gen-input::placeholder{color:var(--dim);}
+    .btn-run{font-family:var(--mono);font-size:13px;font-weight:600;background:var(--text);color:var(--bg);border:none;border-radius:4px;padding:11px 22px;cursor:pointer;white-space:nowrap;transition:opacity 0.15s;}
+    .btn-run:hover:not(:disabled){opacity:0.85;}
+    .btn-run:disabled{opacity:0.3;cursor:not-allowed;}
+    .gen-status{margin-top:12px;font-family:var(--mono);font-size:13px;color:var(--muted);display:none;}
+    .gen-status.active{display:block;color:var(--blue);}
+    .gen-status.done{display:block;color:var(--green);}
+    .gen-status.err{display:block;color:var(--red);}
+    .press-content{padding:0 32px 80px;flex:1;overflow-y:auto;}
+    .table-header{display:grid;grid-template-columns:180px 1fr 220px 130px;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-top:28px;}
+    .video-row{border-bottom:1px solid var(--border);transition:background 0.1s;}
+    .video-row:hover{background:var(--bg2);}
+    .row-summary{display:grid;grid-template-columns:180px 1fr 220px 130px;gap:16px;padding:14px 0;cursor:pointer;align-items:center;}
+    .row-thumb-wrap{width:180px;height:101px;border-radius:5px;overflow:hidden;background:var(--surface);border:1px solid var(--border);flex-shrink:0;display:block;}
+    .row-thumb{width:100%;height:100%;object-fit:cover;display:block;}
+    .row-thumb-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--dim);}
+    .row-info{}
+    .row-title{font-size:16px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:8px;}
+    .row-meta{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}
+    .row-yt-url{font-family:var(--mono);font-size:11px;color:var(--blue);text-decoration:none;display:inline-block;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+    .row-yt-url:hover{text-decoration:underline;}
+    .region-tag{display:inline-block;padding:2px 8px;border-radius:2px;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;}
+    .region-global{background:var(--surface2);color:var(--text-mid);border:1px solid var(--border2);}
+    .region-gcc{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd);}
+    .region-us{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);}
+    .platform-pills{display:flex;gap:5px;flex-wrap:wrap;}
+    .pill{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:3px 8px;border-radius:3px;border:1px solid;}
+    .pill-ok{background:var(--green-bg);color:var(--green);border-color:var(--green-bd);}
+    .pill-error{background:var(--red-bg);color:var(--red);border-color:var(--red-bd);}
+    .pill-pend{background:var(--surface2);color:var(--dim);border-color:var(--border);}
+    .row-date{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;}
+    .row-chevron{font-size:11px;color:var(--dim);transition:transform 0.2s;margin-left:6px;display:block;margin-top:4px;}
+    .video-row.open .row-chevron{transform:rotate(180deg);}
+    .row-expanded{display:none;padding:0 0 28px;border-top:1px solid var(--border);}
+    .video-row.open .row-expanded{display:block;}
+    .expanded-inner{padding-top:24px;}
+    .platform-tabs{display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--border);}
+    .ptab{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:9px 16px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color 0.15s,border-color 0.15s;background:none;border-top:none;border-left:none;border-right:none;}
+    .ptab:hover{color:var(--text-mid);}
+    .ptab.active{color:var(--text);border-bottom-color:var(--text);}
+    .ptab-chip{display:inline-block;font-size:9px;font-weight:600;padding:1px 5px;border-radius:2px;margin-left:5px;vertical-align:middle;letter-spacing:0.04em;}
+    .ptab-chip-ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);}
+    .ptab-chip-err{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd);}
+    .ptab-chip-edited{background:#2a1500;color:#e06b1a;border:1px solid #4a2800;}
+    .ptab-chip-regen{background:#0e1a2a;color:#5b8fc4;border:1px solid #1e2f40;}
+    .platform-panels{position:relative;}
+    .ppanel{display:none;}
+    .ppanel.active{display:block;}
+    .platform-status-bar{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 16px;border-radius:5px;margin-bottom:14px;border:1px solid var(--border);background:var(--surface);flex-wrap:wrap;gap:8px;}
+    .psb-left{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+    .psb-status-chip{font-family:var(--mono);font-size:12px;font-weight:600;padding:3px 10px;border-radius:3px;}
+    .psb-chip-ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);}
+    .psb-chip-err{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd);}
+    .psb-chip-pend{background:var(--surface2);color:var(--muted);border:1px solid var(--border2);}
+    .psb-chip-edited{background:#2a1500;color:#e06b1a;border:1px solid #4a2800;}
+    .psb-chip-regen{background:#0e1a2a;color:#5b8fc4;border:1px solid #1e2f40;}
+    .psb-link{font-family:var(--mono);font-size:12px;color:var(--blue);text-decoration:none;}
+    .psb-link:hover{text-decoration:underline;}
+    .psb-date{font-family:var(--mono);font-size:11px;color:var(--dim);}
+    .content-block{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:18px 20px;font-size:15px;line-height:1.8;color:var(--text-mid);white-space:pre-wrap;word-break:break-word;max-height:400px;overflow-y:auto;}
+    .content-block.article-body{white-space:normal;}
+    .content-block.article-body h2{font-size:16px;font-weight:700;color:var(--text);margin:18px 0 9px;}
+    .content-block.article-body h3{font-size:14px;font-weight:600;color:var(--text);margin:14px 0 7px;}
+    .content-block.article-body p{margin-bottom:12px;}
+    .content-block.article-body a{color:var(--blue);}
+    .tweet-list{display:flex;flex-direction:column;gap:10px;}
+    .tweet-item{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:14px 16px;display:flex;gap:14px;font-size:15px;line-height:1.75;color:var(--text-mid);}
+    .tweet-num{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--dim);min-width:18px;padding-top:3px;}
+    .platform-action-bar{display:flex;align-items:center;gap:8px;margin-top:14px;}
+    .btn-plat-regen{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.04em;background:none;color:var(--muted);border:1px solid var(--border);border-radius:3px;padding:6px 14px;cursor:pointer;transition:all 0.15s;}
+    .btn-plat-regen:hover:not(:disabled){border-color:var(--blue-bd);color:var(--blue);}
+    .btn-plat-regen:disabled{opacity:0.4;cursor:not-allowed;}
+    .btn-plat-restore{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.04em;background:none;color:var(--muted);border:1px solid var(--border);border-radius:3px;padding:6px 14px;cursor:pointer;transition:all 0.15s;}
+    .btn-plat-restore:hover:not(:disabled){border-color:var(--amber-bd);color:var(--amber);}
+    .btn-plat-restore:disabled{opacity:0.4;cursor:not-allowed;}
+    .plat-action-status{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:4px;}
+    .plat-action-status.active{color:var(--blue);}
+    .plat-action-status.done{color:var(--green);}
+    .plat-action-status.err{color:var(--red);}
+    .action-row{display:flex;align-items:center;gap:10px;margin-top:24px;padding-top:18px;border-top:1px solid var(--border);flex-wrap:wrap;}
+    .action-label{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-right:4px;}
+    .platform-checkbox{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:4px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s;user-select:none;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--muted);background:var(--surface);}
+    .platform-checkbox:hover{border-color:var(--border2);color:var(--text-mid);}
+    .platform-checkbox.checked{border-color:var(--blue-bd);background:var(--blue-bg);color:var(--blue);}
+    .platform-checkbox.already-posted{border-color:var(--green-bd);background:var(--green-bg);color:var(--green);}
+    .chk-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor;flex-shrink:0;}
+    .platform-checkbox.checked .chk-dot,.platform-checkbox.already-posted .chk-dot{background:currentColor;}
+    .btn-publish{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.06em;background:var(--green);color:#fff;border:none;border-radius:4px;padding:9px 24px;cursor:pointer;margin-left:auto;transition:opacity 0.15s;}
+    .btn-publish:hover:not(:disabled){opacity:0.85;}
+    .btn-publish:disabled{opacity:0.3;cursor:not-allowed;}
+    .pub-result{font-family:var(--mono);font-size:12px;margin-top:12px;padding:10px 14px;border-radius:4px;display:none;}
+    .pub-result.ok{background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green);display:block;}
+    .pub-result.err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red);display:block;}
+    .content-block[contenteditable="true"]{outline:1px solid var(--blue);cursor:text;border-color:var(--blue-bd);background:var(--blue-bg);}
+    .edit-save-bar{display:none;align-items:center;gap:10px;margin-top:10px;padding:10px 14px;background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:4px;}
+    .edit-save-bar.visible{display:flex;}
+    .edit-save-bar-label{font-family:var(--mono);font-size:11px;color:var(--blue);flex:1;}
+    .btn-edit-save{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--blue);color:#fff;border:none;border-radius:3px;padding:7px 18px;cursor:pointer;transition:opacity 0.15s;}
+    .btn-edit-save:hover:not(:disabled){opacity:0.85;}
+    .btn-edit-save:disabled{opacity:0.4;cursor:not-allowed;}
+    .btn-edit-discard{font-family:var(--mono);font-size:12px;background:none;color:var(--muted);border:1px solid var(--border);border-radius:3px;padding:7px 14px;cursor:pointer;}
+    .btn-edit-discard:hover{color:var(--text-mid);border-color:var(--border2);}
+    .loading-state{text-align:center;padding:80px 0;}
+    .loading-spin{width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);border-top-color:var(--text-mid);animation:spin 0.7s linear infinite;margin:0 auto 16px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .loading-text{font-family:var(--mono);font-size:13px;color:var(--muted);}
+    .empty-state{text-align:center;padding:80px 0;}
+    .empty-state p{font-family:var(--mono);font-size:13px;color:var(--muted);}
+    ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
   </style>
 </head>
 <body>
-
 <nav class="nav">
   <div class="nav-wordmark">FFX <span>Internal</span></div>
   <div class="nav-links">
-    <a href="/dashboard.html"            class="nav-link">Dashboard</a>
-    <a href="/dashboard-press.html"      class="nav-link active">Press + Queue</a>
-    <a href="/dashboard-knowledge.html"  class="nav-link">Knowledge</a>
-    <a href="/dashboard-seo.html"        class="nav-link">SEO</a>
-    <a href="/dashboard-audience.html"   class="nav-link">Audience</a>
-    <a href="/dashboard-youtube.html"    class="nav-link">YouTube</a>
+    <a href="/dashboard.html" class="nav-link">Dashboard</a>
+    <a href="/dashboard-press.html" class="nav-link active">Press + Queue</a>
+    <a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a>
+    <a href="/dashboard-seo.html" class="nav-link">SEO</a>
+    <a href="/dashboard-audience.html" class="nav-link">Audience</a>
+    <a href="/dashboard-youtube.html" class="nav-link">YouTube</a>
   </div>
 </nav>
 
-<div class="split">
-  <div class="queue-panel">
+<div class="main-layout" id="mainLayout">
+  <div class="queue-panel" id="queuePanel">
     <div class="queue-header">
       <div class="queue-header-top">
         <span class="queue-title">Queue</span>
@@ -237,38 +224,42 @@
     <div id="queueList"><div class="queue-empty">Loading…</div></div>
   </div>
 
-  <div class="press-panel">
-    <div class="press-header">
-      <div class="press-header-left">
-        <div class="wordmark">FFX <span>Press</span></div>
-        <div class="header-count" id="headerCount">—</div>
+  <div class="press-panel" id="pressPanel">
+    <div class="queue-review-panel" id="queueReviewPanel">
+      <div class="queue-review-header">
+        <button class="queue-review-back" onclick="closeQueueReview()">← Back</button>
+        <div class="queue-review-title" id="queueReviewTitle">—</div>
       </div>
-      <div class="header-right">
-        <div class="status-dot"></div>
-        <button class="btn-generate" onclick="toggleGeneratePanel()">+ Generate</button>
+      <div class="queue-review-body" id="queueReviewBody">
+        <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading content…</div></div>
       </div>
     </div>
 
-    <div id="generatePanel">
-      <div class="gen-title">New Content Generation</div>
-      <div class="gen-row">
-        <input type="url" class="gen-input" id="genUrl" placeholder="https://youtu.be/..." autocomplete="off" spellcheck="false">
-        <button class="btn-run" id="genBtn" onclick="startGeneration()">Generate</button>
+    <div id="pressView">
+      <div class="press-header">
+        <div class="press-header-left">
+          <div class="wordmark">FFX <span>Press</span></div>
+          <div class="header-count" id="headerCount">—</div>
+        </div>
+        <div class="header-right">
+          <div class="status-dot"></div>
+          <button class="btn-generate" onclick="toggleGeneratePanel()">+ Generate</button>
+        </div>
       </div>
-      <div class="gen-status" id="genStatus"></div>
-    </div>
-
-    <div class="press-content">
-      <div class="table-header">
-        <div>Video</div>
-        <div>Title &amp; Details</div>
-        <div>Platforms</div>
-        <div style="text-align:right;">Date</div>
+      <div id="generatePanel">
+        <div class="gen-title">New Content Generation</div>
+        <div class="gen-row">
+          <input type="url" class="gen-input" id="genUrl" placeholder="https://youtu.be/..." autocomplete="off" spellcheck="false">
+          <button class="btn-run" id="genBtn" onclick="startGeneration()">Generate</button>
+        </div>
+        <div class="gen-status" id="genStatus"></div>
       </div>
-      <div id="videoList">
-        <div class="loading-state">
-          <div class="loading-spin"></div>
-          <div class="loading-text">Loading FFX Press…</div>
+      <div class="press-content">
+        <div class="table-header">
+          <div>Video</div><div>Title &amp; Details</div><div>Platforms</div><div style="text-align:right;">Date</div>
+        </div>
+        <div id="videoList">
+          <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading FFX Press…</div></div>
         </div>
       </div>
     </div>
@@ -276,847 +267,645 @@
 </div>
 
 <script>
+// ── STATE ────────────────────────────────────────────────────────────────────
 let allVideos = [];
+let pollTimers = {};
 
 const PLATFORMS = [
-  { key: 'blog',     label: 'Blog' },
-  { key: 'x',        label: 'X' },
-  { key: 'linkedin', label: 'LinkedIn' },
-  { key: 'tumblr',   label: 'Tumblr' },
-  { key: 'discord',  label: 'Discord' },
+  {key:'blog',label:'Blog'},{key:'x',label:'X'},{key:'linkedin',label:'LinkedIn'},
+  {key:'tumblr',label:'Tumblr'},{key:'discord',label:'Discord'}
 ];
-
-// Maps platform tab key → regenerate-platform platform name
-// blog tab uses 'article' as the regen platform key
-const PLATFORM_REGEN_KEY = {
-  article:  'article',
-  x:        'x',
-  linkedin: 'linkedin',
-  discord:  'discord',
-  tumblr:   'tumblr',
-};
-
-// Maps press platformKey → regen platform key
-const PRESS_TO_REGEN = {
-  blog:     'article',
-  x:        'x',
-  linkedin: 'linkedin',
-  discord:  'discord',
-  tumblr:   'tumblr',
-};
-
-// Fields per platform for pendingEdits/editedFields tracking
 const FIELD_MAP = {
-  blog:     ['body'],
-  x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
-  linkedin: ['linkedin'],
-  discord:  ['discord'],
-  tumblr:   ['tumblr'],
+  blog:['body'],x:['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
+  linkedin:['linkedin'],discord:['discord'],tumblr:['tumblr']
+};
+const STEP_LABELS = {
+  transcript:'① Fetching transcript',global_article:'② Writing global article',
+  global_platforms:'③ Writing global platforms',regional_article:'④ Writing regional article',
+  regional_platforms:'⑤ Writing regional platforms',library:'⑥ Extracting knowledge'
 };
 
+// ── INIT ─────────────────────────────────────────────────────────────────────
 async function init() {
-  const params     = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(window.location.search);
   const preVideoId = params.get('video');
+  const preQueue   = params.get('queue');
   await loadAll();
   if (preVideoId) {
     setTimeout(() => {
-      const row = document.querySelector('[data-videoid="' + preVideoId + '"]');
-      if (row && !row.classList.contains('open')) {
-        row.querySelector('.row-summary').click();
-        row.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      const row = document.querySelector('[data-videoid="'+preVideoId+'"]');
+      if (row && !row.classList.contains('open')) { row.querySelector('.row-summary').click(); row.scrollIntoView({behavior:'smooth',block:'start'}); }
     }, 300);
+  }
+  if (preQueue) {
+    setTimeout(() => {
+      const qEl = document.querySelector('.queue-item[data-videoid="'+preQueue+'"]');
+      if (qEl && !qEl.querySelector('.queue-gen-btn')) qEl.click();
+    }, 500);
   }
 }
 
+// ── LOAD ALL ─────────────────────────────────────────────────────────────────
 async function loadAll() {
   try {
     const res  = await fetch('/press-data');
     const data = await res.json();
-    if (!res.ok) {
-      document.getElementById('videoList').innerHTML = '<div class="empty-state"><p>Error: ' + (data.error||'Unknown') + '</p></div>';
-      return;
-    }
+    if (!res.ok) { document.getElementById('videoList').innerHTML='<div class="empty-state"><p>Error: '+(data.error||'Unknown')+'</p></div>'; return; }
     allVideos = data.videos || [];
     document.getElementById('headerCount').textContent = allVideos.length + ' videos';
     renderVideoList(allVideos);
     renderQueue(data.queue || []);
   } catch (err) {
-    document.getElementById('videoList').innerHTML = '<div class="empty-state"><p>Network error: ' + err.message + '</p></div>';
+    document.getElementById('videoList').innerHTML='<div class="empty-state"><p>Network error: '+err.message+'</p></div>';
   }
 }
 
+// ── QUEUE RENDER ─────────────────────────────────────────────────────────────
 function renderQueue(queue) {
   const badge = document.getElementById('queueBadge');
   const list  = document.getElementById('queueList');
   badge.textContent = queue.length + ' items';
-  if (!queue.length) { list.innerHTML = '<div class="queue-empty">Queue empty</div>'; return; }
+  if (!queue.length) { list.innerHTML='<div class="queue-empty">Queue empty</div>'; return; }
   list.innerHTML = '';
-  queue.forEach((item, idx) => renderQueueItem(item, idx, list));
+  queue.forEach((item,idx) => renderQueueItem(item,idx,list));
   initDragDrop(list);
 }
 
 function renderQueueItem(item, idx, list) {
   const videoId = item.videoId || '';
+  const ytUrl   = item.youtubeUrl || '';
   const el      = document.createElement('div');
   el.className  = 'queue-item';
   el.dataset.videoid = videoId;
   el.dataset.idx     = idx;
   el.draggable       = true;
 
+  const thumbHtml = '<div class="queue-thumb-wrap"><img class="queue-thumb" src="https://img.youtube.com/vi/'+videoId+'/mqdefault.jpg" onerror="this.parentElement.innerHTML=\'<div class=\\\'queue-thumb-placeholder\\\'>No thumb</div>\'" alt=""></div>';
+
   let badgeHtml = '';
   if (item.state === 'orange') {
-    const hrs = item.expiresInMs ? Math.max(0, Math.floor(item.expiresInMs / 3600000)) : 0;
-    const min = item.expiresInMs ? Math.max(0, Math.floor((item.expiresInMs % 3600000) / 60000)) : 0;
-    badgeHtml = '<span class="queue-item-badge badge-ready">Ready · ' + hrs + 'h ' + min + 'm</span>';
+    const hrs = item.expiresInMs ? Math.max(0,Math.floor(item.expiresInMs/3600000)) : 0;
+    const min = item.expiresInMs ? Math.max(0,Math.floor((item.expiresInMs%3600000)/60000)) : 0;
+    badgeHtml = '<span class="queue-item-badge badge-ready">Ready &middot; '+hrs+'h '+min+'m</span>';
+    if (item.hasQueueEdits) badgeHtml += ' <span class="queue-item-badge badge-edited">Edited</span>';
   } else if (item.state === 'red') {
-    badgeHtml = '<span class="queue-item-badge badge-expired">Expired — regenerate</span>';
+    badgeHtml = '<span class="queue-item-badge badge-expired">Expired &mdash; regenerate</span>';
+  } else if (item.state === 'generating') {
+    badgeHtml = '<span class="queue-item-badge badge-generating">Generating&hellip;</span>';
   } else {
-    badgeHtml = '<span class="queue-item-badge badge-queued">' + (item.addedBy === 'cron' ? 'Cron' : 'Manual') + '</span>';
+    badgeHtml = '<span class="queue-item-badge badge-queued">'+(item.addedBy==='cron'||item.addedBy==='cron-new'?'Cron':'Manual')+'</span>';
   }
 
-  const actionHtml = (item.state === 'grey' || item.state === 'red')
-    ? '<button class="queue-gen-btn" onclick="generateQueueItem(event,\'' + videoId + '\',\'' + escHtml(item.youtubeUrl) + '\')">Generate</button>'
+  const genBtnHtml = (item.state==='grey'||item.state==='red')
+    ? '<button class="queue-gen-btn" onclick="generateQueueItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Generate</button>'
     : '';
 
-  el.innerHTML = '<div class="queue-drag-handle" title="Drag to reorder">⠿</div>'
-    + '<img class="queue-thumb" src="https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg" onerror="this.style.display=\'none\'" alt="">'
-    + '<div class="queue-info">'
-    + '<div class="queue-item-title">' + escHtml(item.title || 'Untitled') + '</div>'
-    + '<div class="queue-item-date">' + formatDate(item.addedAt) + '</div>'
-    + badgeHtml + actionHtml + '</div>';
+  const infoHtml = '<div class="queue-info">'
+    + '<div class="queue-item-title">'+escHtml(item.title||'Untitled')+'</div>'
+    + (ytUrl ? '<a class="queue-item-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '')
+    + '<div class="queue-item-date">'+formatDate(item.addedAt)+'</div>'
+    + badgeHtml + genBtnHtml
+    + (item.state==='generating'&&item.jobId ? '<div class="queue-progress" id="progress-'+videoId+'">Starting&hellip;</div>' : '')
+    + '</div>';
 
+  el.innerHTML = thumbHtml + infoHtml + '<div class="queue-drag-handle" title="Drag to reorder">\u2807</div>';
+
+  // Click to open review for ready items
   if (item.state === 'orange') {
     el.addEventListener('click', (e) => {
-      if (e.target.closest('.queue-gen-btn') || e.target.closest('.queue-drag-handle')) return;
-      document.querySelectorAll('.queue-item').forEach(i => i.classList.remove('active'));
-      el.classList.add('active');
-      const row = document.querySelector('[data-videoid="' + videoId + '"]');
-      if (row) {
-        if (!row.classList.contains('open')) row.querySelector('.row-summary').click();
-        row.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      if (e.target.closest('.queue-gen-btn')||e.target.closest('.queue-drag-handle')||e.target.closest('.queue-item-url')) return;
+      openQueueReview(item);
     });
   }
+
+  // Resume polling if generating
+  if (item.state==='generating' && item.jobId) startPolling(item.jobId, videoId, el);
+
   list.appendChild(el);
 }
 
-function initDragDrop(list) {
-  let dragEl = null, placeholder = null;
-  list.querySelectorAll('.queue-item').forEach(item => {
-    item.addEventListener('dragstart', e => {
-      dragEl = item; item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      placeholder = document.createElement('div');
-      placeholder.className = 'queue-placeholder';
-      placeholder.style.height = item.offsetHeight + 'px';
-    });
-    item.addEventListener('dragend', async () => {
-      item.classList.remove('dragging');
-      if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
-      placeholder = null; dragEl = null;
-      const newOrder = [...list.querySelectorAll('.queue-item')].map(el => el.dataset.videoid);
-      try { await fetch('/queue/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: newOrder }) }); } catch {}
-    });
-    item.addEventListener('dragover', e => {
-      e.preventDefault();
-      if (!dragEl || item === dragEl) return;
-      const after = e.clientY > item.getBoundingClientRect().top + item.offsetHeight / 2;
-      if (after) { item.parentNode.insertBefore(placeholder, item.nextSibling); item.parentNode.insertBefore(dragEl, item.nextSibling); }
-      else        { item.parentNode.insertBefore(placeholder, item); item.parentNode.insertBefore(dragEl, item); }
-    });
-  });
-}
+// ── QUEUE REVIEW ─────────────────────────────────────────────────────────────
+async function openQueueReview(item) {
+  document.getElementById('mainLayout').classList.add('queue-expanded');
+  document.getElementById('pressView').style.display = 'none';
+  document.getElementById('queueReviewPanel').classList.add('visible');
+  document.getElementById('queueReviewTitle').textContent = item.title || 'Untitled';
+  document.querySelectorAll('.queue-item').forEach(i=>i.classList.remove('active'));
+  const qEl = document.querySelector('.queue-item[data-videoid="'+item.videoId+'"]');
+  if (qEl) qEl.classList.add('active');
 
-async function generateQueueItem(e, videoId, youtubeUrl) {
-  e.stopPropagation();
-  const btn = e.target;
-  btn.disabled = true; btn.textContent = 'Generating…';
+  const body = document.getElementById('queueReviewBody');
+  body.innerHTML = '<div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading content&hellip;</div></div>';
+
   try {
-    const res  = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl }) });
-    const data = await res.json();
-    if (!res.ok) { btn.disabled = false; btn.textContent = 'Generate'; alert('Error: ' + (data.error || res.status)); return; }
-    await fetch('/queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoId, youtubeUrl }) }).catch(() => {});
-    btn.textContent = 'Queued…';
-    setTimeout(() => loadAll(), 3000);
-  } catch { btn.disabled = false; btn.textContent = 'Generate'; }
-}
+    const [videoRes, editsRes] = await Promise.all([
+      fetch('/press-data?video='+item.videoId),
+      fetch('/api/queue-edits?videoId='+item.videoId)
+    ]);
 
-function renderVideoList(videos) {
-  const list = document.getElementById('videoList');
-  if (!videos.length) { list.innerHTML = '<div class="empty-state"><p>No published videos yet.</p></div>'; return; }
-  list.innerHTML = '';
-  videos.forEach(v => list.appendChild(buildVideoRow(v)));
-}
+    const editsData   = editsRes.ok  ? await editsRes.json()  : {edits:{},editedFields:[]};
+    const videoData   = videoRes.ok  ? await videoRes.json()  : null;
+    const videoRecord = videoData?.video || null;
 
-function buildVideoRow(video) {
-  const row        = document.createElement('div');
-  row.className    = 'video-row';
-  const identifier = video.videoId || video.slug;
-  row.dataset.videoid = identifier;
-  const videoId   = video.videoId || '';
-  const ytUrl     = video.youtubeUrl || video.globalContent?.youtubeUrl || video.content?.youtubeUrl || video.content?.yt_url || '';
-  const isRealId  = videoId && videoId.length <= 12;
-  const thumbUrl  = isRealId ? 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg' : '';
-  const date      = formatDate(video.updatedAt || '');
-  const region    = video.region || 'Global';
-  const platforms = video.platforms || {};
-
-  const summary = document.createElement('div');
-  summary.className = 'row-summary';
-  const thumbHtml = thumbUrl
-    ? '<div class="row-thumb-wrap"><img class="row-thumb" src="' + thumbUrl + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'"></div>'
-    : '<div class="row-thumb-wrap"><div class="row-thumb-placeholder">No thumb</div></div>';
-
-  summary.innerHTML = thumbHtml
-    + '<div class="row-info">'
-    + '<div class="row-title">' + escHtml(video.title || 'Untitled') + '</div>'
-    + '<div class="row-meta"><span class="region-tag ' + regionClass(region) + '">' + region + '</span><span>' + escHtml(video.slug || '') + '</span></div>'
-    + (ytUrl ? '<a class="row-yt-url" href="' + escHtml(ytUrl) + '" target="_blank" onclick="event.stopPropagation()">' + escHtml(ytUrl) + '</a>' : '')
-    + '</div>'
-    + '<div class="platform-pills">' + PLATFORMS.map(p => '<span class="pill ' + pillClass(platforms[p.key]?.status || '') + '">' + p.label + '</span>').join('') + '</div>'
-    + '<div class="row-date">' + date + '<span class="row-chevron">▼</span></div>';
-
-  summary.addEventListener('click', () => toggleRow(row, video));
-  row.appendChild(summary);
-  const expanded = document.createElement('div');
-  expanded.className = 'row-expanded';
-  row.appendChild(expanded);
-  return row;
-}
-
-function toggleRow(row, video) {
-  const isOpen = row.classList.contains('open');
-  document.querySelectorAll('.video-row.open').forEach(r => r.classList.remove('open'));
-  if (!isOpen) {
-    row.classList.add('open');
-    const expanded = row.querySelector('.row-expanded');
-    if (!expanded.dataset.built) {
-      // Fetch regen status lazily on row expand before building panels
-      fetchRegenStatusAndBuild(expanded, video);
+    if (!videoRecord) {
+      body.innerHTML = '<div class="empty-state"><p>Content not found. Video may still be generating or has expired (24hr TTL).</p></div>';
+      return;
     }
+    buildQueueReviewContent(body, videoRecord, editsData, item);
+  } catch (err) {
+    body.innerHTML = '<div class="empty-state"><p>Error: '+escHtml(err.message)+'</p></div>';
   }
 }
 
-// Fetch regen status for this video, then build expanded content
-async function fetchRegenStatusAndBuild(container, video) {
-  const videoId = video.videoId || null;
-  let regenMap  = {};
-
-  if (videoId) {
-    try {
-      const res  = await fetch('/api/regen-status?videoId=' + videoId);
-      const data = await res.json();
-      if (res.ok && data.regen) regenMap = data.regen;
-    } catch {
-      // Non-fatal — build without regen status
-    }
-  }
-
-  buildExpandedContent(container, video, regenMap);
-  container.dataset.built = '1';
+function closeQueueReview() {
+  document.getElementById('mainLayout').classList.remove('queue-expanded');
+  document.getElementById('pressView').style.display = '';
+  document.getElementById('queueReviewPanel').classList.remove('visible');
+  document.querySelectorAll('.queue-item').forEach(i=>i.classList.remove('active'));
 }
 
-function buildExpandedContent(container, video, regenMap) {
-  regenMap = regenMap || {};
+function buildQueueReviewContent(container, videoRecord, editsData, queueItem) {
+  const platforms    = videoRecord.platforms || {};
+  const videoId      = videoRecord.videoId   || queueItem.videoId;
+  const slug         = videoRecord.slug      || '';
+  const queueEdits   = editsData.edits       || {};
+  const editedFields = editsData.editedFields || [];
 
-  const content   = video.globalContent || video.content || video.platforms?.blog?.content || {};
-  const pending   = video.pendingEdits  || {};
-  const platforms = video.platforms     || {};
-  const videoId   = video.videoId       || null;
-  const slug      = video.slug          || null;
-  const region    = video.region        || 'Global';
-
-  const tweets = Array.isArray(pending.x_thread) && pending.x_thread.length
-    ? pending.x_thread
-    : Array.isArray(content.x_thread) && content.x_thread.length
-      ? content.x_thread
-      : [1,2,3,4,5,6].map(i => pending['tweet'+i] || content['tweet'+i]).filter(Boolean);
-
-  // For X regen — use regen tweets if available
-  const regenX = regenMap['x'];
-  const regenTweets = regenX
-    ? [1,2,3,4,5,6].map(i => regenX.fields['tweet'+i]).filter(Boolean)
-    : null;
+  // Extract content — consumer writes to platforms.blog_global.content
+  const gc = platforms.blog_global?.content || {};
+  const tweets = [1,2,3,4,5,6].map(i => queueEdits['tweet'+i] || gc['tweet'+i]).filter(Boolean);
 
   const panelsData = [
-    { key:'article', label:'Article', platformKey:'blog', regenKey:'article',
-      html: () => {
-        const regenR = regenMap['article'];
-        const bodyContent = regenR ? regenR.fields.body : (pending.body || content.body || '<em>No article body found.</em>');
-        return '<div class="content-block article-body" data-field="body" data-edit-active="false">' + bodyContent + '</div>';
-      }
+    { key:'article', label:'Article', platformKey:'blog',
+      html: () => '<div class="content-block article-body" data-field="body" data-edit-active="false">'+(queueEdits.body||gc.body||'<em>No article body found.</em>')+'</div>'
     },
-    { key:'x', label:'X', platformKey:'x', regenKey:'x',
-      html: () => {
-        const displayTweets = regenTweets || tweets;
-        return displayTweets.length
-          ? '<div class="tweet-list">' + displayTweets.map((t,i) => '<div class="tweet-item" data-field="tweet'+(i+1)+'" data-edit-active="false"><span class="tweet-num">'+(i+1)+'</span><span class="tweet-text">'+escHtml(t)+'</span></div>').join('') + '</div>'
-          : '<div class="content-block"><em>No tweets found.</em></div>';
-      }
+    { key:'x', label:'X', platformKey:'x',
+      html: () => tweets.length
+        ? '<div class="tweet-list">'+tweets.map((t,i)=>'<div class="tweet-item" data-field="tweet'+(i+1)+'" data-edit-active="false"><span class="tweet-num">'+(i+1)+'</span><span class="tweet-text">'+escHtml(t)+'</span></div>').join('')+'</div>'
+        : '<div class="content-block"><em>No tweets found.</em></div>'
     },
-    { key:'linkedin', label:'LinkedIn', platformKey:'linkedin', regenKey:'linkedin',
-      html: () => {
-        const regenR = regenMap['linkedin'];
-        return '<div class="content-block" data-field="linkedin" data-edit-active="false">' + (regenR ? regenR.fields.linkedin : (pending.linkedin || content.linkedin || '<em>No LinkedIn content found.</em>')) + '</div>';
-      }
+    { key:'linkedin', label:'LinkedIn', platformKey:'linkedin',
+      html: () => '<div class="content-block" data-field="linkedin" data-edit-active="false">'+(queueEdits.linkedin||platforms.linkedin?.content?.text||gc.linkedin||'<em>No LinkedIn content found.</em>')+'</div>'
     },
-    { key:'discord', label:'Discord', platformKey:'discord', regenKey:'discord',
-      html: () => {
-        const regenR = regenMap['discord'];
-        return '<div class="content-block" data-field="discord" data-edit-active="false">' + (regenR ? regenR.fields.discord : (pending.discord || content.discord || '<em>No Discord content found.</em>')) + '</div>';
-      }
+    { key:'discord', label:'Discord', platformKey:'discord',
+      html: () => '<div class="content-block" data-field="discord" data-edit-active="false">'+(queueEdits.discord||platforms.discord?.content?.text||gc.discord||'<em>No Discord content found.</em>')+'</div>'
     },
-    { key:'tumblr', label:'Tumblr', platformKey:'tumblr', regenKey:'tumblr',
-      html: () => {
-        const regenR = regenMap['tumblr'];
-        return '<div class="content-block" data-field="tumblr" data-edit-active="false">' + (regenR ? regenR.fields.tumblr : (pending.tumblr || content.tumblr || '<em>No Tumblr content found.</em>')) + '</div>';
-      }
-    },
+    { key:'tumblr', label:'Tumblr', platformKey:'tumblr',
+      html: () => '<div class="content-block" data-field="tumblr" data-edit-active="false">'+(queueEdits.tumblr||platforms.tumblr?.content?.text||gc.tumblr||'<em>No Tumblr content found.</em>')+'</div>'
+    }
   ];
 
   const tabBar         = document.createElement('div'); tabBar.className = 'platform-tabs';
   const panelContainer = document.createElement('div'); panelContainer.className = 'platform-panels';
 
   panelsData.forEach((p, idx) => {
-    const pStatus     = platforms[p.platformKey]?.status || '';
-    const postUrl     = extractPostUrl(pStatus);
-    const isOk        = !!postUrl;
-    const isErr       = pStatus.startsWith('Error');
-    const publishedAt = platforms[p.platformKey]?.publishedAt || '';
-    const editedFields = video.editedFields || [];
-    const regenData   = regenMap[p.regenKey] || null;
-
-    // Determine chip state
-    // State 2: regen exists in staging (24hr TTL) — not yet saved
-    // State 1/3: fields in pendingEdits — saved but not published
-    // (State 3 = regen was saved; visually same as State 1 from chip perspective)
-    const hasRegenStaging = !!regenData;
-    const hasEdited       = isOk && (FIELD_MAP[p.platformKey]||[]).some(f => editedFields.includes(f));
-    const hasPending      = (FIELD_MAP[p.platformKey]||[]).some(f => pending[f] !== undefined);
-
-    let chipHtml = '';
-    if (hasRegenStaging) {
-      // State 2 — regenerated, unsaved, 24hr TTL warning
-      const expiresAt  = new Date(regenData.expiresAt);
-      const msLeft     = expiresAt - Date.now();
-      const hrsLeft    = Math.max(0, Math.floor(msLeft / 3600000));
-      const minLeft    = Math.max(0, Math.floor((msLeft % 3600000) / 60000));
-      chipHtml = '<span class="ptab-chip ptab-chip-regen">⚡ Regen · ' + hrsLeft + 'h ' + minLeft + 'm</span>';
-    } else if (hasEdited || hasPending) {
-      // State 1 or 3 — saved in pendingEdits, not published
-      chipHtml = '<span class="ptab-chip ptab-chip-edited">⚠ Not published</span>';
-    } else if (isOk) {
-      chipHtml = '<span class="ptab-chip ptab-chip-ok">Posted</span>';
-    } else if (isErr) {
-      chipHtml = '<span class="ptab-chip ptab-chip-err">Error</span>';
-    }
-
+    const isEdited = editedFields.some(f => (FIELD_MAP[p.platformKey]||[p.key]).includes(f));
     const tab = document.createElement('button');
-    tab.className = 'ptab' + (idx===0?' active':''); tab.dataset.panel = p.key;
-    tab.innerHTML = p.label + chipHtml;
+    tab.className = 'ptab'+(idx===0?' active':''); tab.dataset.panel = p.key;
+    tab.innerHTML = p.label + (isEdited ? '<span class="ptab-chip ptab-chip-edited">\u26a0 Edited</span>' : '');
     tab.addEventListener('click', () => switchTab(panelContainer, tabBar, p.key));
     tabBar.appendChild(tab);
 
     const panel = document.createElement('div');
-    panel.className = 'ppanel' + (idx===0?' active':''); panel.dataset.panel = p.key;
-
-    // Status bar chip
-    let sbChipCls, sbChipTxt;
-    if (hasRegenStaging) {
-      const expiresAt = new Date(regenData.expiresAt);
-      const msLeft    = expiresAt - Date.now();
-      const hrsLeft   = Math.max(0, Math.floor(msLeft / 3600000));
-      const minLeft   = Math.max(0, Math.floor((msLeft % 3600000) / 60000));
-      sbChipCls = 'psb-chip-regen';
-      sbChipTxt = '⚡ Regenerated — save to keep (expires ' + hrsLeft + 'h ' + minLeft + 'm)';
-    } else if (hasEdited || hasPending) {
-      sbChipCls = 'psb-chip-edited';
-      sbChipTxt = '⚠ Edited — not published';
-    } else if (postUrl) {
-      sbChipCls = 'psb-chip-ok'; sbChipTxt = '✓ Posted';
-    } else if (isErr) {
-      sbChipCls = 'psb-chip-err'; sbChipTxt = '✕ Error';
-    } else {
-      sbChipCls = 'psb-chip-pend'; sbChipTxt = '○ Not posted';
-    }
-
-    panel.innerHTML = '<div class="platform-status-bar"><div class="psb-left">'
-      + '<span class="psb-status-chip ' + sbChipCls + '">' + sbChipTxt + '</span>'
-      + (postUrl ? '<a href="' + postUrl + '" target="_blank" class="psb-link">View post →</a>' : '')
-      + (publishedAt ? '<span class="psb-date">Published ' + formatDate(publishedAt) + '</span>' : '')
-      + '</div></div>'
-      + p.html();
-
-    // ── Per-platform action bar ───────────────────────────────────────────
-    const hasAnythingToRestore = hasRegenStaging || hasEdited || hasPending;
-
-    const platActionBar = document.createElement('div');
-    platActionBar.className = 'platform-action-bar';
-
-    const regenBtn = document.createElement('button');
-    regenBtn.className   = 'btn-plat-regen';
-    regenBtn.textContent = 'Regenerate';
-    if (!videoId) { regenBtn.disabled = true; regenBtn.title = 'No videoId'; }
-    regenBtn.addEventListener('click', () => onRegenClick(videoId, p.regenKey, regenBtn, restoreBtn, platStatusSpan, container, video));
-
-    const restoreBtn = document.createElement('button');
-    restoreBtn.className   = 'btn-plat-restore';
-    restoreBtn.textContent = 'Restore Published';
-    if (!hasAnythingToRestore || !videoId) restoreBtn.disabled = true;
-    restoreBtn.addEventListener('click', () => onRestoreClick(videoId, p.regenKey, regenBtn, restoreBtn, platStatusSpan, container, video));
-
-    const platStatusSpan = document.createElement('span');
-    platStatusSpan.className = 'plat-action-status';
-
-    platActionBar.appendChild(regenBtn);
-    platActionBar.appendChild(restoreBtn);
-    platActionBar.appendChild(platStatusSpan);
-    panel.appendChild(platActionBar);
-
+    panel.className = 'ppanel'+(idx===0?' active':''); panel.dataset.panel = p.key;
+    const sbChipCls = isEdited ? 'psb-chip-edited' : 'psb-chip-pend';
+    const sbChipTxt = isEdited ? '\u26a0 Edited \u2014 not published' : '\u25cb Not published';
+    panel.innerHTML = '<div class="platform-status-bar"><div class="psb-left"><span class="psb-status-chip '+sbChipCls+'">'+sbChipTxt+'</span></div></div>'+p.html();
     panelContainer.appendChild(panel);
   });
 
-  // ── Publish action row ────────────────────────────────────────────────────
+  // Action row
   const actionRow = document.createElement('div'); actionRow.className = 'action-row';
   actionRow.innerHTML = '<span class="action-label">Publish to:</span>';
   PLATFORMS.forEach(p => {
-    const pStatus  = platforms[p.key]?.status || '';
-    const postUrl  = extractPostUrl(pStatus);
-    const isPosted = !!postUrl;
     const chk = document.createElement('div');
-    chk.className      = 'platform-checkbox ' + (isPosted ? 'already-posted' : 'checked');
-    chk.dataset.platform  = p.key;
-    chk.dataset.checked   = isPosted ? 'false' : 'true';
-    chk.dataset.wasPosted = isPosted ? 'true' : 'false';
-    chk.dataset.postUrl   = postUrl || '';
-    const linkHtml = postUrl ? ' <a href="' + postUrl + '" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View</a>' : '';
-    chk.innerHTML = '<span class="chk-dot"></span>' + p.label + (isPosted ? ' ✓' : '') + linkHtml;
+    chk.className = 'platform-checkbox checked'; chk.dataset.platform=p.key; chk.dataset.checked='true';
+    chk.innerHTML = '<span class="chk-dot"></span>'+p.label;
     chk.addEventListener('click', () => {
-      const c = chk.dataset.checked === 'true';
-      chk.dataset.checked = c ? 'false' : 'true';
-      const wasPosted = chk.dataset.wasPosted === 'true';
-      const url  = chk.dataset.postUrl;
-      const link = url ? ' <a href="' + url + '" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View prev</a>' : '';
-      if (!c) { chk.classList.add('checked'); chk.classList.remove('already-posted'); chk.innerHTML = '<span class="chk-dot"></span>' + p.label + (wasPosted ? ' ↻' : '') + link; }
-      else    { chk.classList.remove('checked','already-posted'); chk.innerHTML = '<span class="chk-dot"></span>' + p.label + ' —' + link; }
+      const c = chk.dataset.checked==='true'; chk.dataset.checked=c?'false':'true';
+      if (!c) { chk.classList.add('checked'); chk.innerHTML='<span class="chk-dot"></span>'+p.label; }
+      else    { chk.classList.remove('checked'); chk.innerHTML='<span class="chk-dot"></span>'+p.label+' \u2014'; }
     });
     actionRow.appendChild(chk);
   });
-
-  const pubBtn = document.createElement('button'); pubBtn.className = 'btn-publish'; pubBtn.textContent = 'Publish';
-  pubBtn.onclick = () => publishVideo(videoId, slug, actionRow, pubBtn, container, video);
+  const pubBtn = document.createElement('button'); pubBtn.className='btn-publish'; pubBtn.textContent='Publish';
+  pubBtn.onclick = () => publishQueueItem(videoId, slug, actionRow, pubBtn, container, videoRecord, editsData);
   actionRow.appendChild(pubBtn);
 
-  const pubResult = document.createElement('div'); pubResult.className = 'pub-result';
+  const pubResult = document.createElement('div'); pubResult.className='pub-result';
+  container.innerHTML = '';
 
-  const inner = document.createElement('div'); inner.className = 'expanded-inner';
-  inner.innerHTML = '';
-
-  inner.appendChild(tabBar);
-  inner.appendChild(panelContainer);
-
-  // Wire inline edit clicks — only on non-regen content
+  // Wire edits — saves to queue-edits:{videoId}
   panelContainer.querySelectorAll('.content-block[data-field]').forEach(el => {
-    el.addEventListener('click', () => makeEditable(el, video, el.dataset.field, regenMap));
+    el.addEventListener('click', () => makeQueueEditable(el, videoId, el.dataset.field, editsData, tabBar, panelContainer));
   });
   panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(el => {
-    el.addEventListener('click', () => {
-      const ts = el.querySelector('.tweet-text');
-      if (ts) makeEditable(ts, video, el.dataset.field, regenMap);
-    });
+    el.addEventListener('click', () => { const ts=el.querySelector('.tweet-text'); if(ts) makeQueueEditable(ts, videoId, el.dataset.field, editsData, tabBar, panelContainer); });
   });
 
-  inner.appendChild(actionRow);
-  inner.appendChild(pubResult);
-  container.appendChild(inner);
+  container.appendChild(tabBar);
+  container.appendChild(panelContainer);
+  container.appendChild(actionRow);
+  container.appendChild(pubResult);
 }
 
-// ── Per-platform Regenerate click handler ────────────────────────────────────
-async function onRegenClick(videoId, platform, regenBtn, restoreBtn, statusSpan, container, video) {
-  if (!videoId) return;
-  regenBtn.disabled  = true;
-  restoreBtn.disabled = true;
-  statusSpan.className   = 'plat-action-status active';
-  statusSpan.textContent = 'Regenerating…';
-
-  try {
-    const res  = await fetch('/api/regenerate-platform', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ videoId, platform }),
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      statusSpan.className   = 'plat-action-status err';
-      statusSpan.textContent = data.error || 'Regeneration failed';
-      regenBtn.disabled  = false;
-      restoreBtn.disabled = false;
-      return;
-    }
-
-    // Rebuild with fresh regen status so chip + content update correctly
-    await rebuildExpanded(container, video);
-
-  } catch (err) {
-    statusSpan.className   = 'plat-action-status err';
-    statusSpan.textContent = 'Network error: ' + err.message;
-    regenBtn.disabled  = false;
-    restoreBtn.disabled = false;
-  }
-}
-
-// ── Per-platform Restore click handler ───────────────────────────────────────
-async function onRestoreClick(videoId, platform, regenBtn, restoreBtn, statusSpan, container, video) {
-  if (!videoId) return;
-  if (!confirm('Restore this platform to published content? Regenerated and saved edits for this platform will be cleared.')) return;
-
-  restoreBtn.disabled = true;
-  regenBtn.disabled   = true;
-  statusSpan.className   = 'plat-action-status active';
-  statusSpan.textContent = 'Restoring…';
-
-  try {
-    const res  = await fetch('/api/restore-platform', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ videoId, platform }),
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      statusSpan.className   = 'plat-action-status err';
-      statusSpan.textContent = data.error || 'Restore failed';
-      restoreBtn.disabled = false;
-      regenBtn.disabled   = false;
-      return;
-    }
-
-    // Update local video object to reflect cleared state
-    if (video.pendingEdits && data.restoredFields) {
-      Object.keys(data.restoredFields).forEach(f => delete video.pendingEdits[f]);
-    }
-    if (Array.isArray(video.editedFields) && data.restoredFields) {
-      video.editedFields = video.editedFields.filter(f => !(f in data.restoredFields));
-    }
-
-    // Rebuild — regen key is now deleted so chip clears automatically
-    await rebuildExpanded(container, video);
-
-  } catch (err) {
-    statusSpan.className   = 'plat-action-status err';
-    statusSpan.textContent = 'Network error: ' + err.message;
-    restoreBtn.disabled = false;
-    regenBtn.disabled   = false;
-  }
-}
-
-// Refetch regen status and rebuild expanded content
-// Captures active tab before rebuild and restores it after
-async function rebuildExpanded(container, video, forceTab) {
-  // Capture which tab is currently active before destroying DOM
-  let activeTab = forceTab || null;
-  if (!activeTab) {
-    const activeTabEl = container.querySelector('.ptab.active');
-    if (activeTabEl) activeTab = activeTabEl.dataset.panel;
-  }
-
-  const videoId = video.videoId || null;
-  let regenMap  = {};
-  if (videoId) {
-    try {
-      const res  = await fetch('/api/regen-status?videoId=' + videoId);
-      const data = await res.json();
-      if (res.ok && data.regen) regenMap = data.regen;
-    } catch {}
-  }
-  container.innerHTML = '';
-  buildExpandedContent(container, video, regenMap);
-  container.dataset.built = '1';
-
-  // Restore the previously active tab
-  if (activeTab) {
-    const newTabBar         = container.querySelector('.platform-tabs');
-    const newPanelContainer = container.querySelector('.platform-panels');
-    if (newTabBar && newPanelContainer) switchTab(newPanelContainer, newTabBar, activeTab);
-  }
-}
-
-
-// Updates tab chips only — called after inline save to avoid full rebuild
-// Full rebuild would re-render content from pendingEdits and lose formatting
-function updateTabChips(container, video, regenMap) {
-  regenMap = regenMap || {};
-  const pending      = video.pendingEdits || {};
-  const editedFields = video.editedFields || [];
-  const platforms    = video.platforms    || {};
-
-  container.querySelectorAll('.ptab').forEach(tab => {
-    const key = tab.dataset.panel;
-    // Map tab key to platformKey
-    const platformKey = key === 'article' ? 'blog' : key;
-    const pStatus     = platforms[platformKey]?.status || '';
-    const postUrl     = extractPostUrl(pStatus);
-    const isOk        = !!postUrl;
-    const isErr       = pStatus.startsWith('Error');
-    const regenKey    = key === 'article' ? 'article' : key;
-    const regenData   = regenMap[regenKey] || null;
-    const hasRegenStaging = !!regenData;
-    const hasEdited   = isOk && (FIELD_MAP[platformKey]||[]).some(f => editedFields.includes(f));
-    const hasPending  = (FIELD_MAP[platformKey]||[]).some(f => pending[f] !== undefined);
-
-    // Rebuild chip only — preserve tab label text
-    const keyToLabel = { article:'Article', x:'X', linkedin:'LinkedIn', discord:'Discord', tumblr:'Tumblr' };
-const label = keyToLabel[key] || key;
-    let chipHtml = '';
-    if (hasRegenStaging) {
-      const msLeft  = new Date(regenData.expiresAt) - Date.now();
-      const hrsLeft = Math.max(0, Math.floor(msLeft / 3600000));
-      const minLeft = Math.max(0, Math.floor((msLeft % 3600000) / 60000));
-      chipHtml = '<span class="ptab-chip ptab-chip-regen">\u26a1 Regen \u00b7 ' + hrsLeft + 'h ' + minLeft + 'm</span>';
-    } else if (hasEdited || hasPending) {
-      chipHtml = '<span class="ptab-chip ptab-chip-edited">\u26a0 Not published</span>';
-    } else if (isOk) {
-      chipHtml = '<span class="ptab-chip ptab-chip-ok">Posted</span>';
-    } else if (isErr) {
-      chipHtml = '<span class="ptab-chip ptab-chip-err">Error</span>';
-    }
-    tab.innerHTML = label + chipHtml;
-  });
-}
-
-function switchTab(pc, tb, key) {
-  tb.querySelectorAll('.ptab').forEach(t => t.classList.toggle('active', t.dataset.panel === key));
-  pc.querySelectorAll('.ppanel').forEach(p => p.classList.toggle('active', p.dataset.panel === key));
-}
-
-async function publishVideo(videoId, slug, actionRow, pubBtn, container, video) {
-  container.querySelectorAll('[data-edit-active="true"]').forEach(el => {
-    el.setAttribute('contenteditable', 'false');
-    el.dataset.editActive = 'false';
-  });
-  container.querySelectorAll('.edit-save-bar').forEach(bar => bar.classList.remove('visible'));
-
-  const platforms = {};
-  actionRow.querySelectorAll('.platform-checkbox').forEach(el => { platforms[el.dataset.platform] = el.dataset.checked === 'true'; });
-  if (!Object.values(platforms).some(v => v)) { showPubResult(container, 'Select at least one platform.', false); return; }
-
-  pubBtn.disabled = true; pubBtn.textContent = 'Publishing…';
-  try {
-    const res  = await fetch('/press-publish', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ videoId, slug, platforms }) });
-    const data = await res.json();
-    if (!res.ok) { showPubResult(container, data.error || 'Publish failed.', false); pubBtn.disabled=false; pubBtn.textContent='Publish'; return; }
-
-    if (data.status) {
-      if (!video.platforms) video.platforms = {};
-      Object.keys(data.status).forEach(p => {
-        const s = data.status[p];
-        if (!s || s==='not_selected' || s==='pending') return;
-        if (!video.platforms[p]) video.platforms[p] = {};
-        video.platforms[p].status      = s;
-        video.platforms[p].publishedAt = new Date().toISOString();
-      });
-    }
-
-    const row = container.closest('.video-row');
-    if (data.status) updatePills(row, data.status);
-
-    // Rebuild — publish clears pendingEdits + regen keys server-side
-    await rebuildExpanded(container, video);
-    showPubResult(container, '✓ Published successfully', true);
-    pubBtn.disabled = false; pubBtn.textContent = 'Publish';
-  } catch (err) {
-    showPubResult(container, 'Network error: ' + err.message, false);
-    pubBtn.disabled = false; pubBtn.textContent = 'Publish';
-  }
-}
-
-function showPubResult(container, msg, ok) {
-  const el = container.querySelector('.pub-result');
-  if (!el) return;
-  el.textContent = msg;
-  el.className   = 'pub-result ' + (ok ? 'ok' : 'err');
-}
-
-function updatePills(row, status) {
-  const pills = row.querySelectorAll('.pill');
-  PLATFORMS.forEach((p, i) => { if (!pills[i]) return; pills[i].className = 'pill ' + pillClass(status[p.key] || ''); });
-}
-
-function makeEditable(el, video, field, regenMap) {
-  if (el.dataset.editActive === 'true') return;
-  el.dataset.editActive = 'true';
+// ── QUEUE INLINE EDIT ─────────────────────────────────────────────────────────
+function makeQueueEditable(el, videoId, field, editsData, tabBar, panelContainer) {
+  if (el.dataset.editActive==='true') return;
+  el.dataset.editActive='true';
   const original = el.innerText;
-  el.setAttribute('contenteditable', 'true'); el.focus();
+  el.setAttribute('contenteditable','true'); el.focus();
   let bar = el.nextElementSibling;
-  if (!bar || !bar.classList.contains('edit-save-bar')) {
-    bar = document.createElement('div'); bar.className = 'edit-save-bar';
-    bar.innerHTML = '<span class="edit-save-bar-label">Editing ' + field + ' — unsaved</span><button class="btn-edit-discard">Discard</button><button class="btn-edit-save">Save</button>';
+  if (!bar||!bar.classList.contains('edit-save-bar')) {
+    bar = document.createElement('div'); bar.className='edit-save-bar';
+    bar.innerHTML='<span class="edit-save-bar-label">Editing '+field+' \u2014 unsaved</span><button class="btn-edit-discard">Discard</button><button class="btn-edit-save">Save</button>';
     el.parentNode.insertBefore(bar, el.nextSibling);
   }
   bar.classList.add('visible');
-  bar.querySelector('.btn-edit-save').onclick    = () => saveEdit(el, bar, video, field, original, regenMap);
-  bar.querySelector('.btn-edit-discard').onclick = () => {
-    el.setAttribute('contenteditable','false'); el.innerText=original;
-    el.dataset.editActive='false'; bar.classList.remove('visible');
-  };
+  bar.querySelector('.btn-edit-save').onclick    = () => saveQueueEdit(el, bar, videoId, field, editsData, tabBar, panelContainer);
+  bar.querySelector('.btn-edit-discard').onclick = () => { el.setAttribute('contenteditable','false'); el.innerText=original; el.dataset.editActive='false'; bar.classList.remove('visible'); };
 }
 
-async function saveEdit(el, bar, video, field, original, regenMap) {
+async function saveQueueEdit(el, bar, videoId, field, editsData, tabBar, panelContainer) {
   const saveBtn = bar.querySelector('.btn-edit-save');
-  saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
-  const value   = el.innerText.trim();
-  const videoId = video.videoId || null;
-  const slug    = video.slug    || null;
-
-  // Determine which regen platform this field belongs to (for cleanup)
-  const regenPlatformForField = getRegenPlatformForField(field);
-
+  saveBtn.disabled=true; saveBtn.textContent='Saving\u2026';
+  const value = el.innerText.trim();
   try {
-    const res  = await fetch('/save-edits', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ videoId, slug, kvType: 'published', field, value }),
-    });
+    const res  = await fetch('/api/queue-edits', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({videoId,field,value}) });
     const data = await res.json();
-
-    if (!res.ok) {
-      saveBtn.disabled = false; saveBtn.textContent = 'Save';
-      bar.querySelector('.edit-save-bar-label').textContent = 'Error: ' + (data.error || 'Save failed');
-      return;
+    if (!res.ok) { saveBtn.disabled=false; saveBtn.textContent='Save'; bar.querySelector('.edit-save-bar-label').textContent='Error: '+(data.error||'Save failed'); return; }
+    editsData.edits=editsData.edits||{}; editsData.edits[field]=value;
+    if (!editsData.editedFields) editsData.editedFields=[];
+    if (!editsData.editedFields.includes(field)) editsData.editedFields.push(field);
+    el.setAttribute('contenteditable','false'); el.dataset.editActive='false'; bar.classList.remove('visible'); saveBtn.disabled=false; saveBtn.textContent='Save';
+    // Update tab chip
+    const tabKey = field==='body'?'article':(/^tweet/.test(field)?'x':field);
+    const tabEl  = tabBar.querySelector('.ptab[data-panel="'+tabKey+'"]');
+    if (tabEl && !tabEl.innerHTML.includes('ptab-chip-edited')) {
+      const lbl = {article:'Article',x:'X',linkedin:'LinkedIn',discord:'Discord',tumblr:'Tumblr'}[tabKey]||tabKey;
+      tabEl.innerHTML = lbl+'<span class="ptab-chip ptab-chip-edited">\u26a0 Edited</span>';
     }
-
-    // Update local video object
-    if (!video.pendingEdits) video.pendingEdits = {};
-    video.pendingEdits[field] = value;
-    const tm = field.match(/^tweet([1-6])$/);
-    if (tm) {
-      if (!Array.isArray(video.pendingEdits.x_thread)) video.pendingEdits.x_thread = [];
-      video.pendingEdits.x_thread[parseInt(tm[1])-1] = value;
+    // Update queue item badge in sidebar
+    const qEl = document.querySelector('.queue-item[data-videoid="'+videoId+'"]');
+    if (qEl && !qEl.querySelector('.badge-edited')) {
+      const eb = document.createElement('span'); eb.className='queue-item-badge badge-edited'; eb.style.marginLeft='4px'; eb.textContent='Edited';
+      const rb = qEl.querySelector('.queue-item-badge'); if(rb) rb.parentNode.insertBefore(eb, rb.nextSibling);
     }
-    if (!Array.isArray(video.editedFields)) video.editedFields = [];
-    if (!video.editedFields.includes(field)) video.editedFields.push(field);
+  } catch (err) { saveBtn.disabled=false; saveBtn.textContent='Save'; bar.querySelector('.edit-save-bar-label').textContent='Network error \u2014 try again'; }
+}
 
-    // Close edit bar — content already correct in DOM as typed, no rebuild needed
-    el.setAttribute('contenteditable', 'false');
-    el.dataset.editActive = 'false';
-    bar.classList.remove('visible');
-    saveBtn.disabled = false; saveBtn.textContent = 'Save';
+// ── PUBLISH FROM QUEUE ────────────────────────────────────────────────────────
+async function publishQueueItem(videoId, slug, actionRow, pubBtn, container, videoRecord, editsData) {
+  const platforms = {};
+  actionRow.querySelectorAll('.platform-checkbox').forEach(el => { platforms[el.dataset.platform]=el.dataset.checked==='true'; });
+  if (!Object.values(platforms).some(v=>v)) { showPubResult(container,'Select at least one platform.',false); return; }
+  pubBtn.disabled=true; pubBtn.textContent='Publishing\u2026';
+  const gc      = videoRecord.platforms?.blog_global?.content || {};
+  const qEdits  = editsData.edits || {};
+  const merged  = {...gc,...qEdits};
+  const regional = videoRecord.platforms?.blog_regional?.content || null;
+  try {
+    const res  = await fetch('/press-publish', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({videoId,slug,platforms,content:merged,regionalContent:regional,source:'queue'}) });
+    const data = await res.json();
+    if (!res.ok) { showPubResult(container,data.error||'Publish failed.',false); pubBtn.disabled=false; pubBtn.textContent='Publish'; return; }
+    showPubResult(container,'\u2713 Published \u2014 moving to Press',true);
+    pubBtn.disabled=false; pubBtn.textContent='Publish';
+    setTimeout(async () => { closeQueueReview(); await loadAll(); }, 1500);
+  } catch (err) { showPubResult(container,'Network error: '+err.message,false); pubBtn.disabled=false; pubBtn.textContent='Publish'; }
+}
 
-    // If this field came from a regen staging key, delete the regen key now
-    // Content is now in pendingEdits permanently — staging key no longer needed
-    if (regenPlatformForField && regenMap && regenMap[regenPlatformForField] && videoId) {
-      try {
-        await fetch('/api/regen-status?videoId=' + videoId + '&platform=' + regenPlatformForField, {
-          method: 'DELETE',
-        });
-      } catch {}
-      delete regenMap[regenPlatformForField];
-    }
+// ── GENERATE FROM QUEUE ITEM ──────────────────────────────────────────────────
+async function generateQueueItem(e, videoId, youtubeUrl) {
+  e.stopPropagation();
+  const btn   = e.target;
+  const qItem = btn.closest('.queue-item');
+  btn.disabled=true; btn.textContent='Queuing\u2026';
+  try {
+    const res  = await fetch('/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({youtubeUrl}) });
+    const data = await res.json();
+    if (!res.ok) { btn.disabled=false; btn.textContent='Generate'; alert('Error: '+(data.error||res.status)); return; }
+    const jobId = data.jobId;
+    btn.style.display = 'none';
+    let progressEl = qItem.querySelector('.queue-progress');
+    if (!progressEl) { progressEl=document.createElement('div'); progressEl.className='queue-progress'; progressEl.id='progress-'+videoId; btn.parentNode.appendChild(progressEl); }
+    const badgeEl = qItem.querySelector('.queue-item-badge');
+    if (badgeEl) { badgeEl.className='queue-item-badge badge-generating'; badgeEl.textContent='Generating\u2026'; }
+    await fetch('/queue', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({videoId,youtubeUrl}) }).catch(()=>{});
+    startPolling(jobId, videoId, qItem);
+  } catch { btn.disabled=false; btn.textContent='Generate'; }
+}
 
-    // Update tab chips only — no full rebuild, preserves formatted content in DOM
-    const ec = el.closest('.row-expanded');
-    if (ec) {
-      updateTabChips(ec, video, regenMap);
-      // Re-enable Restore button for the affected platform panel
-      // It may have been disabled at build time before any edits existed
-      const regenPlt = regenPlatformForField || getRegenPlatformForField(field);
-      const tabKey   = regenPlt === 'article' ? 'article' : regenPlt;
-      if (tabKey) {
-        const affectedPanel = ec.querySelector('.ppanel[data-panel="' + tabKey + '"]');
-        if (affectedPanel) {
-          const rb = affectedPanel.querySelector('.btn-plat-restore');
-          if (rb) { rb.disabled = false; rb.title = ''; }
+function startPolling(jobId, videoId, qItemEl) {
+  if (pollTimers[jobId]) return;
+  const progressEl = qItemEl?.querySelector('.queue-progress');
+  const steps = ['transcript','global_article','global_platforms','regional_article','regional_platforms','library'];
+  const poll = async () => {
+    try {
+      const res  = await fetch('/generate-status?jobId='+jobId);
+      const data = await res.json();
+      const step=data.step||''; const status=data.status||'';
+      if (progressEl) {
+        if (status==='complete') {
+          progressEl.innerHTML='<div class="step done">\u2713 Content ready \u2014 click to review</div>';
+        } else if (status==='error') {
+          progressEl.innerHTML='<div class="step" style="color:var(--red)">\u2715 '+escHtml(data.reason||'Generation failed')+'</div>';
+        } else {
+          const ci = steps.indexOf(step);
+          progressEl.innerHTML = steps.map((s,i) => {
+            const cls=i<ci?'done':i===ci?'active':'pending';
+            const icon=i<ci?'\u2713':i===ci?'\u2192':'\u25cb';
+            return '<div class="step '+cls+'">'+icon+' '+(STEP_LABELS[s]||s)+'</div>';
+          }).join('');
         }
       }
-    }
-  } catch (err) {
-    saveBtn.disabled = false; saveBtn.textContent = 'Save';
-    bar.querySelector('.edit-save-bar-label').textContent = 'Network error — try again';
+      if (status==='complete') {
+        clearInterval(pollTimers[jobId]); delete pollTimers[jobId];
+        const badgeEl=qItemEl?.querySelector('.queue-item-badge');
+        if (badgeEl) { badgeEl.className='queue-item-badge badge-ready'; badgeEl.textContent='Ready'; }
+        setTimeout(()=>loadAll(), 500);
+      } else if (status==='error') {
+        clearInterval(pollTimers[jobId]); delete pollTimers[jobId];
+        const badgeEl=qItemEl?.querySelector('.queue-item-badge');
+        if (badgeEl) { badgeEl.className='queue-item-badge badge-expired'; badgeEl.textContent='Error'; }
+      }
+    } catch {}
+  };
+  poll();
+  pollTimers[jobId] = setInterval(poll, 4000);
+}
+
+// ── DRAG AND DROP ─────────────────────────────────────────────────────────────
+function initDragDrop(list) {
+  let dragEl=null, placeholder=null;
+  list.querySelectorAll('.queue-item').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragEl=item; item.classList.add('dragging'); e.dataTransfer.effectAllowed='move';
+      placeholder=document.createElement('div'); placeholder.className='queue-placeholder'; placeholder.style.height=item.offsetHeight+'px';
+    });
+    item.addEventListener('dragend', async () => {
+      item.classList.remove('dragging');
+      if (placeholder&&placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+      placeholder=null; dragEl=null;
+      const newOrder=[...list.querySelectorAll('.queue-item')].map(el=>el.dataset.videoid);
+      try { await fetch('/queue/reorder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order:newOrder})}); } catch {}
+    });
+    item.addEventListener('dragover', e => {
+      e.preventDefault(); if(!dragEl||item===dragEl)return;
+      const after=e.clientY>item.getBoundingClientRect().top+item.offsetHeight/2;
+      if(after){item.parentNode.insertBefore(placeholder,item.nextSibling);item.parentNode.insertBefore(dragEl,item.nextSibling);}
+      else{item.parentNode.insertBefore(placeholder,item);item.parentNode.insertBefore(dragEl,item);}
+    });
+  });
+}
+
+// ── PRESS VIDEO LIST ──────────────────────────────────────────────────────────
+function renderVideoList(videos) {
+  const list=document.getElementById('videoList');
+  if (!videos.length) { list.innerHTML='<div class="empty-state"><p>No published videos yet.</p></div>'; return; }
+  list.innerHTML='';
+  videos.forEach(v=>list.appendChild(buildVideoRow(v)));
+}
+
+function buildVideoRow(video) {
+  const row=document.createElement('div'); row.className='video-row';
+  const identifier=video.videoId||video.slug; row.dataset.videoid=identifier;
+  const videoId=video.videoId||'';
+  const ytUrl=video.youtubeUrl||video.globalContent?.youtubeUrl||video.content?.youtubeUrl||video.content?.yt_url||'';
+  const isRealId=videoId&&videoId.length<=12;
+  const thumbUrl=isRealId?'https://img.youtube.com/vi/'+videoId+'/mqdefault.jpg':'';
+  const date=formatDate(video.updatedAt||''); const region=video.region||'Global'; const platforms=video.platforms||{};
+  const summary=document.createElement('div'); summary.className='row-summary';
+  const thumbHtml=thumbUrl
+    ?'<div class="row-thumb-wrap"><img class="row-thumb" src="'+thumbUrl+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'"></div>'
+    :'<div class="row-thumb-wrap"><div class="row-thumb-placeholder">No thumb</div></div>';
+  summary.innerHTML=thumbHtml
+    +'<div class="row-info">'
+    +'<div class="row-title">'+escHtml(video.title||'Untitled')+'</div>'
+    +'<div class="row-meta"><span class="region-tag '+regionClass(region)+'">'+region+'</span><span>'+escHtml(video.slug||'')+'</span></div>'
+    +(ytUrl?'<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>':'')
+    +'</div>'
+    +'<div class="platform-pills">'+PLATFORMS.map(p=>'<span class="pill '+pillClass(platforms[p.key]?.status||'')+'">'+p.label+'</span>').join('')+'</div>'
+    +'<div class="row-date">'+date+'<span class="row-chevron">&#9660;</span></div>';
+  summary.addEventListener('click',()=>toggleRow(row,video));
+  row.appendChild(summary);
+  const expanded=document.createElement('div'); expanded.className='row-expanded'; row.appendChild(expanded);
+  return row;
+}
+
+function toggleRow(row,video) {
+  const isOpen=row.classList.contains('open');
+  document.querySelectorAll('.video-row.open').forEach(r=>r.classList.remove('open'));
+  if (!isOpen) {
+    row.classList.add('open');
+    const expanded=row.querySelector('.row-expanded');
+    if (!expanded.dataset.built) fetchRegenStatusAndBuild(expanded,video);
   }
 }
 
-// Maps a field name to its regen platform key
-function getRegenPlatformForField(field) {
-  if (field === 'body')    return 'article';
-  if (/^tweet[1-6]$/.test(field)) return 'x';
-  if (field === 'linkedin') return 'linkedin';
-  if (field === 'discord')  return 'discord';
-  if (field === 'tumblr')   return 'tumblr';
-  return null;
+async function fetchRegenStatusAndBuild(container,video) {
+  const videoId=video.videoId||null; let regenMap={};
+  if (videoId) { try { const res=await fetch('/api/regen-status?videoId='+videoId); const data=await res.json(); if(res.ok&&data.regen)regenMap=data.regen; } catch {} }
+  buildExpandedContent(container,video,regenMap); container.dataset.built='1';
 }
 
-function toggleGeneratePanel() { document.getElementById('generatePanel').classList.toggle('open'); }
+function buildExpandedContent(container,video,regenMap) {
+  regenMap=regenMap||{};
+  const content=video.globalContent||video.content||video.platforms?.blog?.content||{};
+  const pending=video.pendingEdits||{}; const platforms=video.platforms||{};
+  const videoId=video.videoId||null; const slug=video.slug||null;
+  const tweets=Array.isArray(pending.x_thread)&&pending.x_thread.length?pending.x_thread:Array.isArray(content.x_thread)&&content.x_thread.length?content.x_thread:[1,2,3,4,5,6].map(i=>pending['tweet'+i]||content['tweet'+i]).filter(Boolean);
+  const regenX=regenMap['x']; const regenTweets=regenX?[1,2,3,4,5,6].map(i=>regenX.fields['tweet'+i]).filter(Boolean):null;
 
-async function startGeneration() {
-  const url = document.getElementById('genUrl').value.trim();
-  const btn = document.getElementById('genBtn');
-  if (!url) { setGenStatus('Paste a YouTube URL first.', 'err'); return; }
-  btn.disabled = true; btn.textContent = 'Checking…';
-  setGenStatus('Checking records…', 'active');
-  try {
-    const statusRes  = await fetch('/kv-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl: url }) });
-    const statusData = await statusRes.json();
-    if (statusData.found) {
-      btn.disabled = false; btn.textContent = 'Generate';
-      document.getElementById('generatePanel').classList.remove('open');
-      document.getElementById('genUrl').value = '';
-      setGenStatus('', '');
-      const videoId = statusData.videoId || extractVideoIdFromUrl(url);
-      const row = document.querySelector('[data-videoid="' + videoId + '"]');
-      if (row) {
-        if (!row.classList.contains('open')) row.querySelector('.row-summary').click();
-        row.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        setGenStatus('Already published — not found in current list.', 'done');
-      }
-      return;
-    }
-    btn.textContent = 'Generating…';
-    setGenStatus('Sending to queue…', 'active');
-    const genRes  = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ youtubeUrl: url }) });
-    const genData = await genRes.json();
-    if (!genRes.ok) { setGenStatus('Error: ' + (genData.error || genRes.status), 'err'); btn.disabled = false; btn.textContent = 'Generate'; return; }
-    const videoId = genData.videoId || extractVideoIdFromUrl(url);
-    if (videoId) {
-      await fetch('/queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoId, youtubeUrl: url }) }).catch(() => {});
-    }
-    setGenStatus('Queued — content ready in 2–3 minutes.', 'done');
-    btn.disabled = false; btn.textContent = 'Generate';
-    document.getElementById('generatePanel').classList.remove('open');
-    document.getElementById('genUrl').value = '';
-    setTimeout(() => { setGenStatus('', ''); loadAll(); }, 3000);
-  } catch (err) { setGenStatus('Network error: ' + err.message, 'err'); btn.disabled = false; btn.textContent = 'Generate'; }
+  const panelsData=[
+    {key:'article',label:'Article',platformKey:'blog',regenKey:'article',html:()=>{const rR=regenMap['article'];return'<div class="content-block article-body" data-field="body" data-edit-active="false">'+(rR?rR.fields.body:(pending.body||content.body||'<em>No article body found.</em>'))+'</div>';}},
+    {key:'x',label:'X',platformKey:'x',regenKey:'x',html:()=>{const dt=regenTweets||tweets;return dt.length?'<div class="tweet-list">'+dt.map((t,i)=>'<div class="tweet-item" data-field="tweet'+(i+1)+'" data-edit-active="false"><span class="tweet-num">'+(i+1)+'</span><span class="tweet-text">'+escHtml(t)+'</span></div>').join('')+'</div>':'<div class="content-block"><em>No tweets found.</em></div>';}},
+    {key:'linkedin',label:'LinkedIn',platformKey:'linkedin',regenKey:'linkedin',html:()=>{const rR=regenMap['linkedin'];return'<div class="content-block" data-field="linkedin" data-edit-active="false">'+(rR?rR.fields.linkedin:(pending.linkedin||content.linkedin||'<em>No LinkedIn content found.</em>'))+'</div>';}},
+    {key:'discord',label:'Discord',platformKey:'discord',regenKey:'discord',html:()=>{const rR=regenMap['discord'];return'<div class="content-block" data-field="discord" data-edit-active="false">'+(rR?rR.fields.discord:(pending.discord||content.discord||'<em>No Discord content found.</em>'))+'</div>';}},
+    {key:'tumblr',label:'Tumblr',platformKey:'tumblr',regenKey:'tumblr',html:()=>{const rR=regenMap['tumblr'];return'<div class="content-block" data-field="tumblr" data-edit-active="false">'+(rR?rR.fields.tumblr:(pending.tumblr||content.tumblr||'<em>No Tumblr content found.</em>'))+'</div>';}}
+  ];
+
+  const tabBar=document.createElement('div'); tabBar.className='platform-tabs';
+  const panelContainer=document.createElement('div'); panelContainer.className='platform-panels';
+
+  panelsData.forEach((p,idx)=>{
+    const pStatus=platforms[p.platformKey]?.status||''; const postUrl=extractPostUrl(pStatus);
+    const isOk=!!postUrl; const isErr=pStatus.startsWith('Error'); const publishedAt=platforms[p.platformKey]?.publishedAt||'';
+    const editedFields=video.editedFields||[]; const regenData=regenMap[p.regenKey]||null;
+    const hasRegenStaging=!!regenData;
+    const hasEdited=isOk&&(FIELD_MAP[p.platformKey]||[]).some(f=>editedFields.includes(f));
+    const hasPending=(FIELD_MAP[p.platformKey]||[]).some(f=>pending[f]!==undefined);
+    let chipHtml='';
+    if(hasRegenStaging){const msLeft=new Date(regenData.expiresAt)-Date.now();const hrsLeft=Math.max(0,Math.floor(msLeft/3600000));const minLeft=Math.max(0,Math.floor((msLeft%3600000)/60000));chipHtml='<span class="ptab-chip ptab-chip-regen">\u26a1 Regen \u00b7 '+hrsLeft+'h '+minLeft+'m</span>';}
+    else if(hasEdited||hasPending){chipHtml='<span class="ptab-chip ptab-chip-edited">\u26a0 Not published</span>';}
+    else if(isOk){chipHtml='<span class="ptab-chip ptab-chip-ok">Posted</span>';}
+    else if(isErr){chipHtml='<span class="ptab-chip ptab-chip-err">Error</span>';}
+    const tab=document.createElement('button'); tab.className='ptab'+(idx===0?' active':''); tab.dataset.panel=p.key;
+    tab.innerHTML=p.label+chipHtml; tab.addEventListener('click',()=>switchTab(panelContainer,tabBar,p.key)); tabBar.appendChild(tab);
+
+    const panel=document.createElement('div'); panel.className='ppanel'+(idx===0?' active':''); panel.dataset.panel=p.key;
+    let sbChipCls,sbChipTxt;
+    if(hasRegenStaging){const msLeft=new Date(regenData.expiresAt)-Date.now();const hrsLeft=Math.max(0,Math.floor(msLeft/3600000));const minLeft=Math.max(0,Math.floor((msLeft%3600000)/60000));sbChipCls='psb-chip-regen';sbChipTxt='\u26a1 Regenerated \u2014 save to keep (expires '+hrsLeft+'h '+minLeft+'m)';}
+    else if(hasEdited||hasPending){sbChipCls='psb-chip-edited';sbChipTxt='\u26a0 Edited \u2014 not published';}
+    else if(postUrl){sbChipCls='psb-chip-ok';sbChipTxt='\u2713 Posted';}
+    else if(isErr){sbChipCls='psb-chip-err';sbChipTxt='\u2715 Error';}
+    else{sbChipCls='psb-chip-pend';sbChipTxt='\u25cb Not posted';}
+    panel.innerHTML='<div class="platform-status-bar"><div class="psb-left"><span class="psb-status-chip '+sbChipCls+'">'+sbChipTxt+'</span>'+(postUrl?'<a href="'+postUrl+'" target="_blank" class="psb-link">View post \u2192</a>':'')+(publishedAt?'<span class="psb-date">Published '+formatDate(publishedAt)+'</span>':'')+'</div></div>'+p.html();
+
+    const hasAnythingToRestore=hasRegenStaging||hasEdited||hasPending;
+    const platActionBar=document.createElement('div'); platActionBar.className='platform-action-bar';
+    const regenBtn=document.createElement('button'); regenBtn.className='btn-plat-regen'; regenBtn.textContent='Regenerate';
+    if(!videoId){regenBtn.disabled=true;regenBtn.title='No videoId';}
+    regenBtn.addEventListener('click',()=>onRegenClick(videoId,p.regenKey,regenBtn,restoreBtn,platStatusSpan,container,video));
+    const restoreBtn=document.createElement('button'); restoreBtn.className='btn-plat-restore'; restoreBtn.textContent='Restore Published';
+    if(!hasAnythingToRestore||!videoId)restoreBtn.disabled=true;
+    restoreBtn.addEventListener('click',()=>onRestoreClick(videoId,p.regenKey,regenBtn,restoreBtn,platStatusSpan,container,video));
+    const platStatusSpan=document.createElement('span'); platStatusSpan.className='plat-action-status';
+    platActionBar.appendChild(regenBtn); platActionBar.appendChild(restoreBtn); platActionBar.appendChild(platStatusSpan);
+    panel.appendChild(platActionBar); panelContainer.appendChild(panel);
+  });
+
+  const actionRow=document.createElement('div'); actionRow.className='action-row'; actionRow.innerHTML='<span class="action-label">Publish to:</span>';
+  PLATFORMS.forEach(p=>{
+    const pStatus=platforms[p.key]?.status||''; const postUrl=extractPostUrl(pStatus); const isPosted=!!postUrl;
+    const chk=document.createElement('div'); chk.className='platform-checkbox '+(isPosted?'already-posted':'checked');
+    chk.dataset.platform=p.key; chk.dataset.checked=isPosted?'false':'true'; chk.dataset.wasPosted=isPosted?'true':'false'; chk.dataset.postUrl=postUrl||'';
+    const linkHtml=postUrl?' <a href="'+postUrl+'" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View</a>':'';
+    chk.innerHTML='<span class="chk-dot"></span>'+p.label+(isPosted?' \u2713':'')+linkHtml;
+    chk.addEventListener('click',()=>{
+      const c=chk.dataset.checked==='true'; chk.dataset.checked=c?'false':'true';
+      const wasPosted=chk.dataset.wasPosted==='true'; const url=chk.dataset.postUrl;
+      const link=url?' <a href="'+url+'" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View prev</a>':'';
+      if(!c){chk.classList.add('checked');chk.classList.remove('already-posted');chk.innerHTML='<span class="chk-dot"></span>'+p.label+(wasPosted?' \u21bb':'')+link;}
+      else{chk.classList.remove('checked','already-posted');chk.innerHTML='<span class="chk-dot"></span>'+p.label+' \u2014'+link;}
+    });
+    actionRow.appendChild(chk);
+  });
+  const pubBtn=document.createElement('button'); pubBtn.className='btn-publish'; pubBtn.textContent='Publish';
+  pubBtn.onclick=()=>publishVideo(videoId,slug,actionRow,pubBtn,container,video); actionRow.appendChild(pubBtn);
+  const pubResult=document.createElement('div'); pubResult.className='pub-result';
+  const inner=document.createElement('div'); inner.className='expanded-inner'; inner.innerHTML='';
+  inner.appendChild(tabBar); inner.appendChild(panelContainer);
+  panelContainer.querySelectorAll('.content-block[data-field]').forEach(el=>el.addEventListener('click',()=>makeEditable(el,video,el.dataset.field,regenMap)));
+  panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(el=>el.addEventListener('click',()=>{const ts=el.querySelector('.tweet-text');if(ts)makeEditable(ts,video,el.dataset.field,regenMap);}));
+  inner.appendChild(actionRow); inner.appendChild(pubResult); container.appendChild(inner);
 }
 
-function extractVideoIdFromUrl(url) {
-  try {
-    const u = new URL(url);
-    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
-    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v') || null;
-  } catch {}
-  return null;
+// ── PRESS REGEN + RESTORE (unchanged) ────────────────────────────────────────
+async function onRegenClick(videoId,platform,regenBtn,restoreBtn,statusSpan,container,video){
+  if(!videoId)return; regenBtn.disabled=true; restoreBtn.disabled=true;
+  statusSpan.className='plat-action-status active'; statusSpan.textContent='Regenerating\u2026';
+  try{const res=await fetch('/api/regenerate-platform',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,platform})});const data=await res.json();
+    if(!res.ok){statusSpan.className='plat-action-status err';statusSpan.textContent=data.error||'Regeneration failed';regenBtn.disabled=false;restoreBtn.disabled=false;return;}
+    await rebuildExpanded(container,video);
+  }catch(err){statusSpan.className='plat-action-status err';statusSpan.textContent='Network error: '+err.message;regenBtn.disabled=false;restoreBtn.disabled=false;}
 }
-
-function setGenStatus(msg, cls) {
-  const el = document.getElementById('genStatus');
-  el.textContent = msg; el.className = 'gen-status' + (cls ? ' ' + cls : '');
+async function onRestoreClick(videoId,platform,regenBtn,restoreBtn,statusSpan,container,video){
+  if(!videoId)return; if(!confirm('Restore this platform to published content?'))return;
+  restoreBtn.disabled=true; regenBtn.disabled=true;
+  statusSpan.className='plat-action-status active'; statusSpan.textContent='Restoring\u2026';
+  try{const res=await fetch('/api/restore-platform',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,platform})});const data=await res.json();
+    if(!res.ok){statusSpan.className='plat-action-status err';statusSpan.textContent=data.error||'Restore failed';restoreBtn.disabled=false;regenBtn.disabled=false;return;}
+    if(video.pendingEdits&&data.restoredFields)Object.keys(data.restoredFields).forEach(f=>delete video.pendingEdits[f]);
+    if(Array.isArray(video.editedFields)&&data.restoredFields)video.editedFields=video.editedFields.filter(f=>!(f in data.restoredFields));
+    await rebuildExpanded(container,video);
+  }catch(err){statusSpan.className='plat-action-status err';statusSpan.textContent='Network error: '+err.message;restoreBtn.disabled=false;regenBtn.disabled=false;}
 }
-
-function extractPostUrl(status) {
-  if (!status) return null;
-  if (status.startsWith('http')) return status;
-  if (status.startsWith('=HYPERLINK(')) { const m = status.match(/=HYPERLINK\("([^"]+)"/); return m ? m[1] : null; }
-  return null;
+async function rebuildExpanded(container,video,forceTab){
+  let activeTab=forceTab||null;
+  if(!activeTab){const el=container.querySelector('.ptab.active');if(el)activeTab=el.dataset.panel;}
+  const videoId=video.videoId||null; let regenMap={};
+  if(videoId){try{const res=await fetch('/api/regen-status?videoId='+videoId);const data=await res.json();if(res.ok&&data.regen)regenMap=data.regen;}catch{}}
+  container.innerHTML=''; buildExpandedContent(container,video,regenMap); container.dataset.built='1';
+  if(activeTab){const tb=container.querySelector('.platform-tabs');const pc=container.querySelector('.platform-panels');if(tb&&pc)switchTab(pc,tb,activeTab);}
 }
-function pillClass(status) { if (!status) return 'pill-pend'; if (extractPostUrl(status)) return 'pill-ok'; if (status.startsWith('Error')) return 'pill-error'; return 'pill-pend'; }
-function regionClass(r) { if (!r||r==='Global') return 'region-global'; if (r.includes('GCC')) return 'region-gcc'; if (r.includes('US')||r.includes('Canada')) return 'region-us'; return 'region-global'; }
-function formatDate(str) { if (!str) return '—'; try { return new Date(str).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}); } catch { return str; } }
-function escHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function updateTabChips(container,video,regenMap){
+  regenMap=regenMap||{}; const pending=video.pendingEdits||{}; const editedFields=video.editedFields||[]; const platforms=video.platforms||{};
+  container.querySelectorAll('.ptab').forEach(tab=>{
+    const key=tab.dataset.panel; const platformKey=key==='article'?'blog':key;
+    const pStatus=platforms[platformKey]?.status||''; const postUrl=extractPostUrl(pStatus); const isOk=!!postUrl; const isErr=pStatus.startsWith('Error');
+    const regenKey=key==='article'?'article':key; const regenData=regenMap[regenKey]||null; const hasRegenStaging=!!regenData;
+    const hasEdited=isOk&&(FIELD_MAP[platformKey]||[]).some(f=>editedFields.includes(f));
+    const hasPending=(FIELD_MAP[platformKey]||[]).some(f=>pending[f]!==undefined);
+    const lbl={article:'Article',x:'X',linkedin:'LinkedIn',discord:'Discord',tumblr:'Tumblr'}[key]||key;
+    let chipHtml='';
+    if(hasRegenStaging){const msLeft=new Date(regenData.expiresAt)-Date.now();chipHtml='<span class="ptab-chip ptab-chip-regen">\u26a1 Regen \u00b7 '+Math.max(0,Math.floor(msLeft/3600000))+'h '+Math.max(0,Math.floor((msLeft%3600000)/60000))+'m</span>';}
+    else if(hasEdited||hasPending){chipHtml='<span class="ptab-chip ptab-chip-edited">\u26a0 Not published</span>';}
+    else if(isOk){chipHtml='<span class="ptab-chip ptab-chip-ok">Posted</span>';}
+    else if(isErr){chipHtml='<span class="ptab-chip ptab-chip-err">Error</span>';}
+    tab.innerHTML=lbl+chipHtml;
+  });
+}
+function switchTab(pc,tb,key){
+  tb.querySelectorAll('.ptab').forEach(t=>t.classList.toggle('active',t.dataset.panel===key));
+  pc.querySelectorAll('.ppanel').forEach(p=>p.classList.toggle('active',p.dataset.panel===key));
+}
+async function publishVideo(videoId,slug,actionRow,pubBtn,container,video){
+  container.querySelectorAll('[data-edit-active="true"]').forEach(el=>{el.setAttribute('contenteditable','false');el.dataset.editActive='false';});
+  container.querySelectorAll('.edit-save-bar').forEach(bar=>bar.classList.remove('visible'));
+  const platforms={}; actionRow.querySelectorAll('.platform-checkbox').forEach(el=>{platforms[el.dataset.platform]=el.dataset.checked==='true';});
+  if(!Object.values(platforms).some(v=>v)){showPubResult(container,'Select at least one platform.',false);return;}
+  pubBtn.disabled=true; pubBtn.textContent='Publishing\u2026';
+  try{const res=await fetch('/press-publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,slug,platforms})});const data=await res.json();
+    if(!res.ok){showPubResult(container,data.error||'Publish failed.',false);pubBtn.disabled=false;pubBtn.textContent='Publish';return;}
+    if(data.status){if(!video.platforms)video.platforms={};Object.keys(data.status).forEach(p=>{const s=data.status[p];if(!s||s==='not_selected'||s==='pending')return;if(!video.platforms[p])video.platforms[p]={};video.platforms[p].status=s;video.platforms[p].publishedAt=new Date().toISOString();});}
+    const row=container.closest('.video-row'); if(data.status)updatePills(row,data.status);
+    await rebuildExpanded(container,video); showPubResult(container,'\u2713 Published successfully',true); pubBtn.disabled=false; pubBtn.textContent='Publish';
+  }catch(err){showPubResult(container,'Network error: '+err.message,false);pubBtn.disabled=false;pubBtn.textContent='Publish';}
+}
+function showPubResult(container,msg,ok){const el=container.querySelector('.pub-result');if(!el)return;el.textContent=msg;el.className='pub-result '+(ok?'ok':'err');}
+function updatePills(row,status){const pills=row.querySelectorAll('.pill');PLATFORMS.forEach((p,i)=>{if(!pills[i])return;pills[i].className='pill '+pillClass(status[p.key]||'');});}
+function makeEditable(el,video,field,regenMap){
+  if(el.dataset.editActive==='true')return; el.dataset.editActive='true'; const original=el.innerText;
+  el.setAttribute('contenteditable','true'); el.focus();
+  let bar=el.nextElementSibling;
+  if(!bar||!bar.classList.contains('edit-save-bar')){bar=document.createElement('div');bar.className='edit-save-bar';bar.innerHTML='<span class="edit-save-bar-label">Editing '+field+' \u2014 unsaved</span><button class="btn-edit-discard">Discard</button><button class="btn-edit-save">Save</button>';el.parentNode.insertBefore(bar,el.nextSibling);}
+  bar.classList.add('visible');
+  bar.querySelector('.btn-edit-save').onclick=()=>saveEdit(el,bar,video,field,original,regenMap);
+  bar.querySelector('.btn-edit-discard').onclick=()=>{el.setAttribute('contenteditable','false');el.innerText=original;el.dataset.editActive='false';bar.classList.remove('visible');};
+}
+async function saveEdit(el,bar,video,field,original,regenMap){
+  const saveBtn=bar.querySelector('.btn-edit-save'); saveBtn.disabled=true; saveBtn.textContent='Saving\u2026';
+  const value=el.innerText.trim(); const videoId=video.videoId||null; const slug=video.slug||null;
+  const regenPlatformForField=getRegenPlatformForField(field);
+  try{const res=await fetch('/save-edits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,slug,kvType:'published',field,value})});const data=await res.json();
+    if(!res.ok){saveBtn.disabled=false;saveBtn.textContent='Save';bar.querySelector('.edit-save-bar-label').textContent='Error: '+(data.error||'Save failed');return;}
+    if(!video.pendingEdits)video.pendingEdits={};video.pendingEdits[field]=value;
+    const tm=field.match(/^tweet([1-6])$/);if(tm){if(!Array.isArray(video.pendingEdits.x_thread))video.pendingEdits.x_thread=[];video.pendingEdits.x_thread[parseInt(tm[1])-1]=value;}
+    if(!Array.isArray(video.editedFields))video.editedFields=[];if(!video.editedFields.includes(field))video.editedFields.push(field);
+    el.setAttribute('contenteditable','false');el.dataset.editActive='false';bar.classList.remove('visible');saveBtn.disabled=false;saveBtn.textContent='Save';
+    if(regenPlatformForField&&regenMap&&regenMap[regenPlatformForField]&&videoId){try{await fetch('/api/regen-status?videoId='+videoId+'&platform='+regenPlatformForField,{method:'DELETE'});}catch{}delete regenMap[regenPlatformForField];}
+    const ec=el.closest('.row-expanded');
+    if(ec){updateTabChips(ec,video,regenMap);const regenPlt=regenPlatformForField||getRegenPlatformForField(field);const tabKey=regenPlt==='article'?'article':regenPlt;if(tabKey){const ap=ec.querySelector('.ppanel[data-panel="'+tabKey+'"]');if(ap){const rb=ap.querySelector('.btn-plat-restore');if(rb){rb.disabled=false;rb.title='';}}}}
+  }catch(err){saveBtn.disabled=false;saveBtn.textContent='Save';bar.querySelector('.edit-save-bar-label').textContent='Network error \u2014 try again';}
+}
+function getRegenPlatformForField(field){if(field==='body')return'article';if(/^tweet[1-6]$/.test(field))return'x';if(field==='linkedin')return'linkedin';if(field==='discord')return'discord';if(field==='tumblr')return'tumblr';return null;}
+function toggleGeneratePanel(){document.getElementById('generatePanel').classList.toggle('open');}
+async function startGeneration(){
+  const url=document.getElementById('genUrl').value.trim(); const btn=document.getElementById('genBtn');
+  if(!url){setGenStatus('Paste a YouTube URL first.','err');return;}
+  btn.disabled=true; btn.textContent='Checking\u2026'; setGenStatus('Checking records\u2026','active');
+  try{const statusRes=await fetch('/kv-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({youtubeUrl:url})});const statusData=await statusRes.json();
+    if(statusData.found){btn.disabled=false;btn.textContent='Generate';document.getElementById('generatePanel').classList.remove('open');document.getElementById('genUrl').value='';setGenStatus('','');const videoId=statusData.videoId||extractVideoIdFromUrl(url);const row=document.querySelector('[data-videoid="'+videoId+'"]');if(row){if(!row.classList.contains('open'))row.querySelector('.row-summary').click();row.scrollIntoView({behavior:'smooth',block:'start'});}else{setGenStatus('Already published \u2014 not found in current list.','done');}return;}
+    btn.textContent='Generating\u2026'; setGenStatus('Sending to queue\u2026','active');
+    const genRes=await fetch('/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({youtubeUrl:url})});const genData=await genRes.json();
+    if(!genRes.ok){setGenStatus('Error: '+(genData.error||genRes.status),'err');btn.disabled=false;btn.textContent='Generate';return;}
+    const videoId=genData.videoId||extractVideoIdFromUrl(url);
+    if(videoId){await fetch('/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,youtubeUrl:url})}).catch(()=>{});}
+    setGenStatus('Queued \u2014 content ready in 2\u20133 minutes.','done'); btn.disabled=false; btn.textContent='Generate';
+    document.getElementById('generatePanel').classList.remove('open'); document.getElementById('genUrl').value='';
+    setTimeout(()=>{setGenStatus('','');loadAll();},3000);
+  }catch(err){setGenStatus('Network error: '+err.message,'err');btn.disabled=false;btn.textContent='Generate';}
+}
+function extractVideoIdFromUrl(url){try{const u=new URL(url);if(u.hostname==='youtu.be')return u.pathname.slice(1).split('?')[0];if(u.hostname.includes('youtube.com'))return u.searchParams.get('v')||null;}catch{}return null;}
+function setGenStatus(msg,cls){const el=document.getElementById('genStatus');el.textContent=msg;el.className='gen-status'+(cls?' '+cls:'');}
+function extractPostUrl(status){if(!status)return null;if(status.startsWith('http'))return status;if(status.startsWith('=HYPERLINK(')){const m=status.match(/=HYPERLINK\("([^"]+)"/);return m?m[1]:null;}return null;}
+function pillClass(status){if(!status)return'pill-pend';if(extractPostUrl(status))return'pill-ok';if(status.startsWith('Error'))return'pill-error';return'pill-pend';}
+function regionClass(r){if(!r||r==='Global')return'region-global';if(r.includes('GCC'))return'region-gcc';if(r.includes('US')||r.includes('Canada'))return'region-us';return'region-global';}
+function formatDate(str){if(!str)return'\u2014';try{return new Date(str).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}catch{return str;}}
+function escHtml(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-document.addEventListener('DOMContentLoaded', init);
-document.getElementById('genUrl').addEventListener('keydown', e => { if (e.key === 'Enter') startGeneration(); });
+document.addEventListener('DOMContentLoaded',init);
+document.getElementById('genUrl').addEventListener('keydown',e=>{if(e.key==='Enter')startGeneration();});
 </script>
 </body>
 </html>
