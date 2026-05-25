@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FFX Queue</title>
+  <title>FFX Press</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="/dashboard-styles.css">
 </head>
@@ -14,8 +14,8 @@
   <div class="nav-wordmark">FFX <span>·</span> Internal</div>
   <div class="nav-links">
     <a href="/dashboard.html"           class="nav-link">Dashboard</a>
-    <a href="/dashboard-press.html"     class="nav-link">Press</a>
-    <a href="/dashboard-queue.html"     class="nav-link active">Queue</a>
+    <a href="/dashboard-press.html"     class="nav-link active">Press</a>
+    <a href="/dashboard-queue.html"     class="nav-link">Queue</a>
     <a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a>
     <a href="/dashboard-seo.html"       class="nav-link">SEO</a>
     <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
@@ -27,29 +27,44 @@
 <div class="page-header">
   <div class="page-header-inner">
   <div class="page-header-left">
-    <div class="wordmark">FFX <span>Queue</span></div>
+    <div class="wordmark">FFX <span>Press</span></div>
     <div class="header-count" id="headerCount">—</div>
   </div>
   <div style="display:flex;align-items:center;gap:14px;">
     <div class="status-dot"></div>
+    <button class="btn-generate" onclick="toggleGeneratePanel()">+ Generate</button>
   </div>
+  </div>
+</div>
+
+<div class="generate-panel" id="generatePanel">
+  <div class="generate-panel-inner">
+  <div class="gen-title">New Content Generation</div>
+  <div class="gen-row">
+    <input type="url" class="gen-input" id="genUrl" placeholder="https://youtu.be/..." autocomplete="off" spellcheck="false">
+    <button class="btn-primary" id="genBtn" onclick="startGeneration()">Generate</button>
+  </div>
+  <div class="gen-status" id="genStatus"></div>
   </div>
 </div>
 
 <div class="content-wrap">
-  <div class="table-header" style="grid-template-columns:200px 1fr 180px 140px;">
+  <div class="table-header">
     <div>Video</div>
-    <div>Title &amp; URL</div>
-    <div>State</div>
-    <div>Added</div>
+    <div>Title &amp; Details</div>
+    <div>Platforms</div>
+    <div>Date</div>
   </div>
-  <div id="queueRows">
-    <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading queue&hellip;</div></div>
+  <div id="videoList">
+    <div class="loading-state">
+      <div class="loading-spin"></div>
+      <div class="loading-text">Loading FFX Press…</div>
+    </div>
   </div>
 </div>
 
 <script>
-let pollTimers = {};
+let allVideos = [];
 
 const PLATFORMS = [
   {key:'blog',label:'Blog'},{key:'x',label:'X'},{key:'linkedin',label:'LinkedIn'},
@@ -59,378 +74,304 @@ const FIELD_MAP = {
   blog:['body'],x:['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
   linkedin:['linkedin'],discord:['discord'],tumblr:['tumblr']
 };
-const STEPS = ['transcript','global_article','global_platforms','regional_article','regional_platforms','library'];
-const STEP_LABELS = {
-  transcript:'① Fetching transcript',
-  global_article:'② Writing global article',
-  global_platforms:'③ Writing platform content',
-  regional_article:'④ Writing regional article',
-  regional_platforms:'⑤ Writing regional platforms',
-  library:'⑥ Extracting knowledge nuggets'
-};
 
 async function init() {
-  const params   = new URLSearchParams(window.location.search);
-  const openItem = params.get('video');
-  await loadQueue();
-  if (openItem) {
+  const params = new URLSearchParams(window.location.search);
+  const preVideoId = params.get('video');
+  await loadAll();
+  if (preVideoId) {
     setTimeout(() => {
-      const row = document.querySelector('.queue-row[data-videoid="'+openItem+'"]');
-      if (row) { row.querySelector('.row-summary')?.click(); row.scrollIntoView({behavior:'smooth',block:'start'}); }
-    }, 400);
+      const row = document.querySelector('[data-videoid="'+preVideoId+'"]');
+      if (row && !row.classList.contains('open')) { row.querySelector('.row-summary').click(); row.scrollIntoView({behavior:'smooth',block:'start'}); }
+    }, 300);
   }
 }
 
-async function loadQueue() {
+async function loadAll() {
   try {
-    const res  = await fetch('/queue');
+    const res  = await fetch('/press-data');
     const data = await res.json();
-    if (!res.ok) { document.getElementById('queueRows').innerHTML='<div class="empty-state"><p>Error: '+escHtml(data.error||'Unknown')+'</p></div>'; return; }
-    const queue = data.queue || [];
-    document.getElementById('headerCount').textContent = queue.length + ' items';
-    renderQueue(queue);
+    if (!res.ok) { document.getElementById('videoList').innerHTML='<div class="empty-state"><p>Error: '+escHtml(data.error||'Unknown')+'</p></div>'; return; }
+    allVideos = data.videos || [];
+    document.getElementById('headerCount').textContent = allVideos.length + ' videos';
+    renderVideoList(allVideos);
   } catch (err) {
-    document.getElementById('queueRows').innerHTML='<div class="empty-state"><p>Network error: '+escHtml(err.message)+'</p></div>';
+    document.getElementById('videoList').innerHTML='<div class="empty-state"><p>Network error: '+escHtml(err.message)+'</p></div>';
   }
 }
 
-function renderQueue(queue) {
-  const container = document.getElementById('queueRows');
-  if (!queue.length) { container.innerHTML='<div class="empty-state"><p>Queue is empty. Cron will add videos automatically at 9am Dubai time.</p></div>'; return; }
-  container.innerHTML = '';
-  queue.forEach(item => container.appendChild(buildQueueRow(item)));
+function renderVideoList(videos) {
+  const list = document.getElementById('videoList');
+  if (!videos.length) { list.innerHTML='<div class="empty-state"><p>No published videos yet.</p></div>'; return; }
+  list.innerHTML = '';
+  videos.forEach(v => list.appendChild(buildVideoRow(v)));
 }
 
-function buildQueueRow(item) {
-  const videoId = item.videoId || '';
-  const ytUrl   = item.youtubeUrl || '';
-  const title   = item.title || '';
-  const row     = document.createElement('div');
-  row.className = 'queue-row';
-  row.dataset.videoid = videoId;
+function buildVideoRow(video) {
+  const row = document.createElement('div'); row.className='video-row';
+  row.dataset.videoid = video.videoId || video.slug;
+  const videoId  = video.videoId || '';
+  const ytUrl    = video.youtubeUrl||video.globalContent?.youtubeUrl||video.content?.youtubeUrl||'';
+  const isRealId = videoId && videoId.length <= 12;
+  const thumbUrl = isRealId ? 'https://img.youtube.com/vi/'+videoId+'/mqdefault.jpg' : '';
+  const date     = formatDate(video.updatedAt||'');
+  const region   = video.region||'Global';
+  const platforms= video.platforms||{};
 
-  const thumbHtml = '<div class="row-thumb-wrap" style="width:200px;height:112px;">'
-    + '<img class="row-thumb" src="https://img.youtube.com/vi/'+videoId+'/mqdefault.jpg" '
-    + 'onerror="this.parentElement.innerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'" alt=""></div>';
+  const summary = document.createElement('div'); summary.className='row-summary'; summary.style.cursor='default';
+  const thumbHtml = thumbUrl
+    ? '<div class="row-thumb-wrap"><img class="row-thumb" src="'+thumbUrl+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'"></div>'
+    : '<div class="row-thumb-wrap"><div class="row-thumb-placeholder">No thumb</div></div>';
 
-  // State badge
-  let badgeHtml = '', actionHtml = '';
-  const isOrange = item.state === 'orange';
-  if (isOrange) {
-    const hrs = item.expiresInMs ? Math.max(0,Math.floor(item.expiresInMs/3600000)) : 0;
-    const min = item.expiresInMs ? Math.max(0,Math.floor((item.expiresInMs%3600000)/60000)) : 0;
-    badgeHtml = '<span class="state-badge badge-ready">\u2713 Ready &middot; '+hrs+'h '+min+'m</span>';
-    if (item.hasQueueEdits) badgeHtml += '<br><span class="state-badge badge-edited" style="margin-top:6px;">\u26a0 Edited</span>';
-  } else if (item.state === 'red') {
-    badgeHtml  = '<span class="state-badge badge-expired">\u2715 Expired</span>';
-    actionHtml = '<br><button class="btn-gen-row" onclick="generateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Regenerate</button>';
-  } else if (item.state === 'generating') {
-    badgeHtml = '<span class="state-badge badge-generating">\u25cf Generating</span>';
-  } else {
-    const src = (item.addedBy==='cron'||item.addedBy==='cron-new') ? 'Cron' : 'Manual';
-    badgeHtml  = '<span class="state-badge badge-grey">'+src+'</span>';
-    actionHtml = '<br><button class="btn-gen-row" onclick="generateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Generate</button>';
-  }
-
-  const summary = document.createElement('div');
-  summary.className = 'row-summary';
-  summary.style.gridTemplateColumns = '200px 1fr 180px 140px'; summary.style.cursor = 'default';
   summary.innerHTML = thumbHtml
     + '<div class="row-info">'
-    + '<div class="row-title">'+(title ? escHtml(title) : '<span style="color:var(--dim);font-style:italic;font-size:14px;">Title loads after generation</span>')+'</div>'
-    + '<div class="row-meta"><span class="region-tag region-global">Global</span><span class="row-slug">'+escHtml(videoId)+'</span></div>'
+    + '<div class="row-title">'+escHtml(video.title||'Untitled')+'</div>'
+    + '<div class="row-meta"><span class="region-tag '+regionClass(region)+'">'+region+'</span><span style="color:var(--dim)">'+escHtml(video.slug||'')+'</span></div>'
     + (ytUrl ? '<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '')
     + '</div>'
-    + '<div style="display:flex;flex-direction:column;gap:6px;justify-content:flex-start;padding-top:4px;">'
-    + badgeHtml + actionHtml
-    + (item.state==='generating'&&item.jobId ? '<div class="row-progress" id="rp-'+videoId+'"><div class="step active"><div class="step-spinner"></div> Starting\u2026</div></div>' : '')
-    + '</div>'
-    + '<div class="row-date">'+formatDate(item.addedAt)+(isOrange?'<span class="row-chevron">\u25bc</span>':'')+'</div>';
+    + '<div class="platform-pills">'+PLATFORMS.map(p=>'<span class="pill '+pillClass(platforms[p.key]?.status||'')+'">'+p.label+'</span>').join('')+'</div>'
+    + '<div class="row-date">'+date+'<span class="row-chevron">▼</span></div>';
 
-  if (isOrange) {
-    // Only title, slug, meta area and date are clickable — not thumbnail or empty space
-    const infoEl = summary.querySelector('.row-info');
-    const dateEl = summary.querySelector('.row-date');
-    if (infoEl) { infoEl.style.cursor='pointer'; infoEl.addEventListener('click', (e) => { if(e.target.closest('.row-yt-url'))return; toggleRow(row,item); }); }
-    if (dateEl) { dateEl.style.cursor='pointer'; dateEl.addEventListener('click', () => toggleRow(row,item)); }
-  }
-
+  // Only title/info text and date are clickable — thumbnail and empty space are inert
+  summary.querySelector('.row-info').style.cursor = 'pointer';
+  summary.querySelector('.row-date').style.cursor = 'pointer';
+  summary.querySelector('.row-info').addEventListener('click', (e) => { if(e.target.closest('.row-yt-url'))return; toggleRow(row, video); });
+  summary.querySelector('.row-date').addEventListener('click', () => toggleRow(row, video));
   row.appendChild(summary);
-
   const expanded = document.createElement('div'); expanded.className='row-expanded';
   row.appendChild(expanded);
-
-  if (item.state==='generating' && item.jobId) startPolling(item.jobId, videoId, summary);
-
   return row;
 }
 
-function toggleRow(row, item) {
+function toggleRow(row, video) {
   const isOpen = row.classList.contains('open');
-  document.querySelectorAll('.queue-row.open').forEach(r => r.classList.remove('open'));
+  document.querySelectorAll('.video-row.open').forEach(r => r.classList.remove('open'));
   if (!isOpen) {
     row.classList.add('open');
     const expanded = row.querySelector('.row-expanded');
-    if (!expanded.dataset.built) loadExpandedContent(expanded, item);
+    if (!expanded.dataset.built) fetchRegenStatusAndBuild(expanded, video);
   }
 }
 
-async function loadExpandedContent(container, item) {
-  container.innerHTML = '<div class="loading-state" style="padding:40px 0"><div class="loading-spin"></div><div class="loading-text">Loading content\u2026</div></div>';
-  try {
-    const [videoRes, editsRes] = await Promise.all([
-      fetch('/api/video-content?videoId='+item.videoId),
-      fetch('/api/queue-edits?videoId='+item.videoId)
-    ]);
-    const editsData   = editsRes.ok  ? await editsRes.json()  : {edits:{},editedFields:[]};
-    const videoData   = videoRes.ok  ? await videoRes.json()  : null;
-    const videoRecord = videoData?.video || null;
-    if (!videoRecord) {
-      container.innerHTML = '<div class="empty-state" style="padding:40px 0">'
-        + '<p style="color:var(--red);font-size:14px;">'
-        + (videoData?.error || 'Content not found. The 24hr window may have expired.')
-        + '</p></div>';
-      return;
-    }
-    buildExpandedContent(container, videoRecord, editsData, item);
-    container.dataset.built = '1';
-  } catch (err) {
-    container.innerHTML = '<div class="empty-state" style="padding:40px 0"><p style="color:var(--red);">Error: '+escHtml(err.message)+'</p></div>';
-  }
+async function fetchRegenStatusAndBuild(container, video) {
+  const videoId = video.videoId||null; let regenMap={};
+  if (videoId) { try { const res=await fetch('/api/regen-status?videoId='+videoId); const data=await res.json(); if(res.ok&&data.regen)regenMap=data.regen; } catch {} }
+  buildExpandedContent(container, video, regenMap); container.dataset.built='1';
 }
 
-function buildExpandedContent(container, videoRecord, editsData, queueItem) {
-  const platforms    = videoRecord.platforms || {};
-  const videoId      = videoRecord.videoId   || queueItem.videoId;
-  const slug         = videoRecord.slug      || '';
-  const queueEdits   = editsData.edits       || {};
-  const editedFields = editsData.editedFields || [];
-
-  const gc     = platforms.blog_global?.content || {};
-  const tweets = [1,2,3,4,5,6].map(i => queueEdits['tweet'+i]||gc['tweet'+i]).filter(Boolean);
+function buildExpandedContent(container, video, regenMap) {
+  regenMap = regenMap||{};
+  const content   = video.globalContent||video.content||video.platforms?.blog?.content||{};
+  const pending   = video.pendingEdits||{};
+  const platforms = video.platforms||{};
+  const videoId   = video.videoId||null;
+  const slug      = video.slug||null;
+  const tweets = Array.isArray(pending.x_thread)&&pending.x_thread.length ? pending.x_thread
+    : Array.isArray(content.x_thread)&&content.x_thread.length ? content.x_thread
+    : [1,2,3,4,5,6].map(i=>pending['tweet'+i]||content['tweet'+i]).filter(Boolean);
+  const regenX = regenMap['x'];
+  const regenTweets = regenX ? [1,2,3,4,5,6].map(i=>regenX.fields['tweet'+i]).filter(Boolean) : null;
 
   const panelsData = [
-    { key:'article', label:'Article', platformKey:'blog',
-      html: () => '<div class="content-block article-body" data-field="body" data-edit-active="false">'+(queueEdits.body||gc.body||'<em>No article body found.</em>')+'</div>'
-    },
-    { key:'x', label:'X', platformKey:'x',
-      html: () => tweets.length
-        ? '<div class="tweet-list">'+tweets.map((t,i)=>'<div class="tweet-item" data-field="tweet'+(i+1)+'" data-edit-active="false"><span class="tweet-num">'+(i+1)+'</span><span class="tweet-text">'+escHtml(t)+'</span></div>').join('')+'</div>'
-        : '<div class="content-block"><em>No tweets found.</em></div>'
-    },
-    { key:'linkedin', label:'LinkedIn', platformKey:'linkedin',
-      html: () => '<div class="content-block" data-field="linkedin" data-edit-active="false">'+(queueEdits.linkedin||platforms.linkedin?.content?.text||gc.linkedin||'<em>No LinkedIn content.</em>')+'</div>'
-    },
-    { key:'discord', label:'Discord', platformKey:'discord',
-      html: () => '<div class="content-block" data-field="discord" data-edit-active="false">'+(queueEdits.discord||platforms.discord?.content?.text||gc.discord||'<em>No Discord content.</em>')+'</div>'
-    },
-    { key:'tumblr', label:'Tumblr', platformKey:'tumblr',
-      html: () => '<div class="content-block" data-field="tumblr" data-edit-active="false">'+(queueEdits.tumblr||platforms.tumblr?.content?.text||gc.tumblr||'<em>No Tumblr content.</em>')+'</div>'
-    }
+    {key:'article',label:'Article',platformKey:'blog',regenKey:'article',html:()=>{const rR=regenMap['article'];return'<div class="content-block article-body" data-field="body" data-edit-active="false">'+(rR?rR.fields.body:(pending.body||content.body||'<em>No article body found.</em>'))+'</div>';}},
+    {key:'x',label:'X',platformKey:'x',regenKey:'x',html:()=>{const dt=regenTweets||tweets;return dt.length?'<div class="tweet-list">'+dt.map((t,i)=>'<div class="tweet-item" data-field="tweet'+(i+1)+'" data-edit-active="false"><span class="tweet-num">'+(i+1)+'</span><span class="tweet-text">'+escHtml(t)+'</span></div>').join('')+'</div>':'<div class="content-block"><em>No tweets found.</em></div>';}},
+    {key:'linkedin',label:'LinkedIn',platformKey:'linkedin',regenKey:'linkedin',html:()=>{const rR=regenMap['linkedin'];return'<div class="content-block" data-field="linkedin" data-edit-active="false">'+(rR?rR.fields.linkedin:(pending.linkedin||content.linkedin||'<em>No LinkedIn content found.</em>'))+'</div>';}},
+    {key:'discord',label:'Discord',platformKey:'discord',regenKey:'discord',html:()=>{const rR=regenMap['discord'];return'<div class="content-block" data-field="discord" data-edit-active="false">'+(rR?rR.fields.discord:(pending.discord||content.discord||'<em>No Discord content found.</em>'))+'</div>';}},
+    {key:'tumblr',label:'Tumblr',platformKey:'tumblr',regenKey:'tumblr',html:()=>{const rR=regenMap['tumblr'];return'<div class="content-block" data-field="tumblr" data-edit-active="false">'+(rR?rR.fields.tumblr:(pending.tumblr||content.tumblr||'<em>No Tumblr content found.</em>'))+'</div>';}}
   ];
 
   const tabBar=document.createElement('div'); tabBar.className='platform-tabs';
   const panelContainer=document.createElement('div'); panelContainer.className='platform-panels';
 
-  panelsData.forEach((p,idx) => {
-    const isEdited = editedFields.some(f => (FIELD_MAP[p.platformKey]||[p.key]).includes(f));
-    const tab = document.createElement('button');
-    tab.className = 'ptab'+(idx===0?' active':''); tab.dataset.panel=p.key;
-    tab.innerHTML = p.label+(isEdited?'<span class="ptab-chip ptab-chip-edited">\u26a0 Edited</span>':'');
-    tab.addEventListener('click',()=>switchTab(panelContainer,tabBar,p.key));
-    tabBar.appendChild(tab);
+  panelsData.forEach((p,idx)=>{
+    const pStatus=platforms[p.platformKey]?.status||''; const postUrl=extractPostUrl(pStatus);
+    const isOk=!!postUrl; const isErr=pStatus.startsWith('Error');
+    const publishedAt=platforms[p.platformKey]?.publishedAt||'';
+    const editedFields=video.editedFields||[]; const regenData=regenMap[p.regenKey]||null;
+    const hasRegenStaging=!!regenData;
+    const hasEdited=isOk&&(FIELD_MAP[p.platformKey]||[]).some(f=>editedFields.includes(f));
+    const hasPending=(FIELD_MAP[p.platformKey]||[]).some(f=>pending[f]!==undefined);
+
+    let chipHtml='';
+    if(hasRegenStaging){const msLeft=new Date(regenData.expiresAt)-Date.now();chipHtml='<span class="ptab-chip ptab-chip-regen">\u26a1 '+Math.max(0,Math.floor(msLeft/3600000))+'h '+Math.max(0,Math.floor((msLeft%3600000)/60000))+'m</span>';}
+    else if(hasEdited||hasPending){chipHtml='<span class="ptab-chip ptab-chip-edited">\u26a0 Edited</span>';}
+    else if(isOk){chipHtml='<span class="ptab-chip ptab-chip-ok">\u2713 Live</span>';}
+    else if(isErr){chipHtml='<span class="ptab-chip ptab-chip-err">\u2715 Error</span>';}
+
+    const tab=document.createElement('button'); tab.className='ptab'+(idx===0?' active':''); tab.dataset.panel=p.key;
+    tab.innerHTML=p.label+chipHtml; tab.addEventListener('click',()=>switchTab(panelContainer,tabBar,p.key)); tabBar.appendChild(tab);
 
     const panel=document.createElement('div'); panel.className='ppanel'+(idx===0?' active':''); panel.dataset.panel=p.key;
-    const sbCls = isEdited ? 'psb-chip-edited' : 'psb-chip-pend';
-    const sbTxt = isEdited ? '\u26a0 Edited \u2014 not published' : '\u25cb Not published';
-    panel.innerHTML='<div class="platform-status-bar"><div class="psb-left"><span class="psb-status-chip '+sbCls+'">'+sbTxt+'</span></div></div>'+p.html();
-    panelContainer.appendChild(panel);
+    let sbCls,sbTxt;
+    if(hasRegenStaging){const msLeft=new Date(regenData.expiresAt)-Date.now();sbCls='psb-chip-regen';sbTxt='\u26a1 Regen \u2014 expires '+Math.max(0,Math.floor(msLeft/3600000))+'h '+Math.max(0,Math.floor((msLeft%3600000)/60000))+'m';}
+    else if(hasEdited||hasPending){sbCls='psb-chip-edited';sbTxt='\u26a0 Edited \u2014 not published';}
+    else if(postUrl){sbCls='psb-chip-ok';sbTxt='\u2713 Live';}
+    else if(isErr){sbCls='psb-chip-err';sbTxt='\u2715 Error';}
+    else{sbCls='psb-chip-pend';sbTxt='\u25cb Not published';}
+
+    panel.innerHTML='<div class="platform-status-bar"><div class="psb-left"><span class="psb-status-chip '+sbCls+'">'+sbTxt+'</span>'
+      +(postUrl?'<a href="'+postUrl+'" target="_blank" class="psb-link">View post \u2192</a>':'')
+      +(publishedAt?'<span class="psb-date">'+formatDate(publishedAt)+'</span>':'')
+      +'</div></div>'+p.html();
+
+    const hasAnythingToRestore=hasRegenStaging||hasEdited||hasPending;
+    const platActionBar=document.createElement('div'); platActionBar.className='platform-action-bar';
+    const regenBtn=document.createElement('button'); regenBtn.className='btn-plat-regen'; regenBtn.textContent='Regenerate';
+    if(!videoId){regenBtn.disabled=true;}
+    regenBtn.addEventListener('click',()=>onRegenClick(videoId,p.regenKey,regenBtn,restoreBtn,platStatusSpan,container,video));
+    const restoreBtn=document.createElement('button'); restoreBtn.className='btn-plat-restore'; restoreBtn.textContent='Restore Published';
+    if(!hasAnythingToRestore||!videoId)restoreBtn.disabled=true;
+    restoreBtn.addEventListener('click',()=>onRestoreClick(videoId,p.regenKey,regenBtn,restoreBtn,platStatusSpan,container,video));
+    const platStatusSpan=document.createElement('span'); platStatusSpan.className='plat-action-status';
+    platActionBar.appendChild(regenBtn); platActionBar.appendChild(restoreBtn); platActionBar.appendChild(platStatusSpan);
+    panel.appendChild(platActionBar); panelContainer.appendChild(panel);
   });
 
   const actionRow=document.createElement('div'); actionRow.className='action-row'; actionRow.innerHTML='<span class="action-label">Publish to:</span>';
   PLATFORMS.forEach(p=>{
+    const pStatus=platforms[p.key]?.status||''; const postUrl=extractPostUrl(pStatus); const isPosted=!!postUrl;
     const chk=document.createElement('div');
-    chk.className='platform-checkbox checked'; chk.dataset.platform=p.key; chk.dataset.checked='true';
-    chk.innerHTML='<span class="chk-dot"></span>'+p.label;
+    chk.className='platform-checkbox '+(isPosted?'already-posted':'checked');
+    chk.dataset.platform=p.key; chk.dataset.checked=isPosted?'false':'true';
+    chk.dataset.wasPosted=isPosted?'true':'false'; chk.dataset.postUrl=postUrl||'';
+    const linkHtml=postUrl?' <a href="'+postUrl+'" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View</a>':'';
+    chk.innerHTML='<span class="chk-dot"></span>'+p.label+(isPosted?' \u2713':'')+linkHtml;
     chk.addEventListener('click',()=>{
       const c=chk.dataset.checked==='true'; chk.dataset.checked=c?'false':'true';
-      if(!c){chk.classList.add('checked');chk.innerHTML='<span class="chk-dot"></span>'+p.label;}
-      else{chk.classList.remove('checked');chk.innerHTML='<span class="chk-dot"></span>'+p.label+' \u2014';}
+      const wasPosted=chk.dataset.wasPosted==='true'; const url=chk.dataset.postUrl;
+      const link=url?' <a href="'+url+'" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none;margin-left:4px;">View prev</a>':'';
+      if(!c){chk.classList.add('checked');chk.classList.remove('already-posted');chk.innerHTML='<span class="chk-dot"></span>'+p.label+(wasPosted?' \u21bb':'')+link;}
+      else{chk.classList.remove('checked','already-posted');chk.innerHTML='<span class="chk-dot"></span>'+p.label+' \u2014'+link;}
     });
     actionRow.appendChild(chk);
   });
   const pubBtn=document.createElement('button'); pubBtn.className='btn-publish'; pubBtn.textContent='Publish';
-  pubBtn.onclick=()=>publishQueueItem(videoId,slug,actionRow,pubBtn,container,videoRecord,editsData);
-  actionRow.appendChild(pubBtn);
-
+  pubBtn.onclick=()=>publishVideo(videoId,slug,actionRow,pubBtn,container,video); actionRow.appendChild(pubBtn);
   const pubResult=document.createElement('div'); pubResult.className='pub-result';
   const inner=document.createElement('div'); inner.className='expanded-inner'; inner.innerHTML='';
-
-  panelContainer.querySelectorAll('.content-block[data-field]').forEach(el=>{
-    el.addEventListener('click',()=>makeQueueEditable(el,videoId,el.dataset.field,editsData,tabBar));
-  });
-  panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(el=>{
-    el.addEventListener('click',()=>{const ts=el.querySelector('.tweet-text');if(ts)makeQueueEditable(ts,videoId,el.dataset.field,editsData,tabBar);});
-  });
-
-  inner.appendChild(tabBar); inner.appendChild(panelContainer); inner.appendChild(actionRow); inner.appendChild(pubResult);
-  container.innerHTML=''; container.appendChild(inner);
+  inner.appendChild(tabBar); inner.appendChild(panelContainer);
+  panelContainer.querySelectorAll('.content-block[data-field]').forEach(el=>el.addEventListener('click',()=>makeEditable(el,video,el.dataset.field,regenMap)));
+  panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(el=>el.addEventListener('click',()=>{const ts=el.querySelector('.tweet-text');if(ts)makeEditable(ts,video,el.dataset.field,regenMap);}));
+  inner.appendChild(actionRow); inner.appendChild(pubResult); container.appendChild(inner);
 }
 
-function makeQueueEditable(el,videoId,field,editsData,tabBar){
+async function onRegenClick(videoId,platform,regenBtn,restoreBtn,statusSpan,container,video){
+  if(!videoId)return; regenBtn.disabled=true; restoreBtn.disabled=true;
+  statusSpan.className='plat-action-status active'; statusSpan.textContent='Regenerating\u2026';
+  try{const res=await fetch('/api/regenerate-platform',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,platform})});const data=await res.json();
+    if(!res.ok){statusSpan.className='plat-action-status err';statusSpan.textContent=data.error||'Failed';regenBtn.disabled=false;restoreBtn.disabled=false;return;}
+    await rebuildExpanded(container,video);
+  }catch(err){statusSpan.className='plat-action-status err';statusSpan.textContent='Network error';regenBtn.disabled=false;restoreBtn.disabled=false;}
+}
+async function onRestoreClick(videoId,platform,regenBtn,restoreBtn,statusSpan,container,video){
+  if(!videoId)return; if(!confirm('Restore this platform to published content?'))return;
+  restoreBtn.disabled=true; regenBtn.disabled=true;
+  statusSpan.className='plat-action-status active'; statusSpan.textContent='Restoring\u2026';
+  try{const res=await fetch('/api/restore-platform',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,platform})});const data=await res.json();
+    if(!res.ok){statusSpan.className='plat-action-status err';statusSpan.textContent=data.error||'Failed';restoreBtn.disabled=false;regenBtn.disabled=false;return;}
+    if(video.pendingEdits&&data.restoredFields)Object.keys(data.restoredFields).forEach(f=>delete video.pendingEdits[f]);
+    if(Array.isArray(video.editedFields)&&data.restoredFields)video.editedFields=video.editedFields.filter(f=>!(f in data.restoredFields));
+    await rebuildExpanded(container,video);
+  }catch(err){statusSpan.className='plat-action-status err';statusSpan.textContent='Network error';restoreBtn.disabled=false;regenBtn.disabled=false;}
+}
+async function rebuildExpanded(container,video,forceTab){
+  let activeTab=forceTab||null;
+  if(!activeTab){const el=container.querySelector('.ptab.active');if(el)activeTab=el.dataset.panel;}
+  const videoId=video.videoId||null; let regenMap={};
+  if(videoId){try{const res=await fetch('/api/regen-status?videoId='+videoId);const data=await res.json();if(res.ok&&data.regen)regenMap=data.regen;}catch{}}
+  container.innerHTML=''; buildExpandedContent(container,video,regenMap); container.dataset.built='1';
+  if(activeTab){const tb=container.querySelector('.platform-tabs');const pc=container.querySelector('.platform-panels');if(tb&&pc)switchTab(pc,tb,activeTab);}
+}
+function updateTabChips(container,video,regenMap){
+  regenMap=regenMap||{}; const pending=video.pendingEdits||{}; const editedFields=video.editedFields||[]; const platforms=video.platforms||{};
+  container.querySelectorAll('.ptab').forEach(tab=>{
+    const key=tab.dataset.panel; const platformKey=key==='article'?'blog':key;
+    const pStatus=platforms[platformKey]?.status||''; const postUrl=extractPostUrl(pStatus); const isOk=!!postUrl;
+    const regenKey=key==='article'?'article':key; const regenData=regenMap[regenKey]||null; const hasRegenStaging=!!regenData;
+    const hasEdited=isOk&&(FIELD_MAP[platformKey]||[]).some(f=>editedFields.includes(f));
+    const hasPending=(FIELD_MAP[platformKey]||[]).some(f=>pending[f]!==undefined);
+    const lbl={article:'Article',x:'X',linkedin:'LinkedIn',discord:'Discord',tumblr:'Tumblr'}[key]||key;
+    let chipHtml='';
+    if(hasRegenStaging){const msLeft=new Date(regenData.expiresAt)-Date.now();chipHtml='<span class="ptab-chip ptab-chip-regen">\u26a1 '+Math.max(0,Math.floor(msLeft/3600000))+'h</span>';}
+    else if(hasEdited||hasPending){chipHtml='<span class="ptab-chip ptab-chip-edited">\u26a0 Edited</span>';}
+    else if(isOk){chipHtml='<span class="ptab-chip ptab-chip-ok">\u2713 Live</span>';}
+    tab.innerHTML=lbl+chipHtml;
+  });
+}
+function switchTab(pc,tb,key){
+  tb.querySelectorAll('.ptab').forEach(t=>t.classList.toggle('active',t.dataset.panel===key));
+  pc.querySelectorAll('.ppanel').forEach(p=>p.classList.toggle('active',p.dataset.panel===key));
+}
+async function publishVideo(videoId,slug,actionRow,pubBtn,container,video){
+  container.querySelectorAll('[data-edit-active="true"]').forEach(el=>{el.setAttribute('contenteditable','false');el.dataset.editActive='false';});
+  container.querySelectorAll('.edit-save-bar').forEach(bar=>bar.classList.remove('visible'));
+  const platforms={};
+  actionRow.querySelectorAll('.platform-checkbox').forEach(el=>{platforms[el.dataset.platform]=el.dataset.checked==='true';});
+  if(!Object.values(platforms).some(v=>v)){showPubResult(container,'Select at least one platform.',false);return;}
+  pubBtn.disabled=true; pubBtn.textContent='Publishing\u2026';
+  try{const res=await fetch('/press-publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,slug,platforms})});const data=await res.json();
+    if(!res.ok){showPubResult(container,data.error||'Publish failed.',false);pubBtn.disabled=false;pubBtn.textContent='Publish';return;}
+    if(data.status){if(!video.platforms)video.platforms={};Object.keys(data.status).forEach(p=>{const s=data.status[p];if(!s||s==='not_selected'||s==='pending')return;if(!video.platforms[p])video.platforms[p]={};video.platforms[p].status=s;video.platforms[p].publishedAt=new Date().toISOString();});}
+    const row=container.closest('.video-row'); if(data.status)updatePills(row,data.status);
+    await rebuildExpanded(container,video); showPubResult(container,'\u2713 Published successfully',true); pubBtn.disabled=false; pubBtn.textContent='Publish';
+  }catch(err){showPubResult(container,'Network error: '+err.message,false);pubBtn.disabled=false;pubBtn.textContent='Publish';}
+}
+function showPubResult(container,msg,ok){const el=container.querySelector('.pub-result');if(!el)return;el.textContent=msg;el.className='pub-result '+(ok?'ok':'err');}
+function updatePills(row,status){const pills=row.querySelectorAll('.pill');PLATFORMS.forEach((p,i)=>{if(!pills[i])return;pills[i].className='pill '+pillClass(status[p.key]||'');});}
+function makeEditable(el,video,field,regenMap){
   if(el.dataset.editActive==='true')return; el.dataset.editActive='true'; const original=el.innerText;
   el.setAttribute('contenteditable','true'); el.focus();
   let bar=el.nextElementSibling;
   if(!bar||!bar.classList.contains('edit-save-bar')){bar=document.createElement('div');bar.className='edit-save-bar';bar.innerHTML='<span class="edit-save-bar-label">Editing '+field+' \u2014 unsaved</span><button class="btn-edit-discard">Discard</button><button class="btn-edit-save">Save</button>';el.parentNode.insertBefore(bar,el.nextSibling);}
   bar.classList.add('visible');
-  bar.querySelector('.btn-edit-save').onclick=()=>saveQueueEdit(el,bar,videoId,field,editsData,tabBar);
+  bar.querySelector('.btn-edit-save').onclick=()=>saveEdit(el,bar,video,field,original,regenMap);
   bar.querySelector('.btn-edit-discard').onclick=()=>{el.setAttribute('contenteditable','false');el.innerText=original;el.dataset.editActive='false';bar.classList.remove('visible');};
 }
-
-async function saveQueueEdit(el,bar,videoId,field,editsData,tabBar){
+async function saveEdit(el,bar,video,field,original,regenMap){
   const saveBtn=bar.querySelector('.btn-edit-save'); saveBtn.disabled=true; saveBtn.textContent='Saving\u2026';
-  // Use innerHTML for body to preserve HTML; innerText for plain text fields
-  const value = (field==='body') ? el.innerHTML : el.innerText.trim();
-  try{
-    const res=await fetch('/api/queue-edits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,field,value})});
-    const data=await res.json();
+  const value=el.innerText.trim(); const videoId=video.videoId||null; const slug=video.slug||null;
+  const regenPlatformForField=getRegenPlatformForField(field);
+  try{const res=await fetch('/save-edits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,slug,kvType:'published',field,value})});const data=await res.json();
     if(!res.ok){saveBtn.disabled=false;saveBtn.textContent='Save';bar.querySelector('.edit-save-bar-label').textContent='Error: '+(data.error||'Save failed');return;}
-    editsData.edits=editsData.edits||{}; editsData.edits[field]=value;
-    if(!editsData.editedFields)editsData.editedFields=[];
-    if(!editsData.editedFields.includes(field))editsData.editedFields.push(field);
-    // Close bar — do NOT reset el.innerText, content stays as typed in DOM
+    if(!video.pendingEdits)video.pendingEdits={};video.pendingEdits[field]=value;
+    const tm=field.match(/^tweet([1-6])$/);if(tm){if(!Array.isArray(video.pendingEdits.x_thread))video.pendingEdits.x_thread=[];video.pendingEdits.x_thread[parseInt(tm[1])-1]=value;}
+    if(!Array.isArray(video.editedFields))video.editedFields=[];if(!video.editedFields.includes(field))video.editedFields.push(field);
     el.setAttribute('contenteditable','false');el.dataset.editActive='false';bar.classList.remove('visible');saveBtn.disabled=false;saveBtn.textContent='Save';
-    const tabKey=field==='body'?'article':(/^tweet/.test(field)?'x':field);
-    const tabEl=tabBar.querySelector('.ptab[data-panel="'+tabKey+'"]');
-    if(tabEl&&!tabEl.innerHTML.includes('ptab-chip-edited')){
-      const lbl={article:'Article',x:'X',linkedin:'LinkedIn',discord:'Discord',tumblr:'Tumblr'}[tabKey]||tabKey;
-      tabEl.innerHTML=lbl+'<span class="ptab-chip ptab-chip-edited">\u26a0 Edited</span>';
-    }
-    const row=document.querySelector('.queue-row[data-videoid="'+videoId+'"]');
-    if(row&&!row.querySelector('.badge-edited')){
-      const stateDiv=row.querySelector('[style*="flex-direction:column"]');
-      if(stateDiv){const eb=document.createElement('span');eb.className='state-badge badge-edited';eb.style.marginTop='6px';eb.textContent='\u26a0 Edited';stateDiv.appendChild(eb);}
-    }
+    if(regenPlatformForField&&regenMap&&regenMap[regenPlatformForField]&&videoId){try{await fetch('/api/regen-status?videoId='+videoId+'&platform='+regenPlatformForField,{method:'DELETE'});}catch{}delete regenMap[regenPlatformForField];}
+    const ec=el.closest('.row-expanded');
+    if(ec){updateTabChips(ec,video,regenMap);const tabKey=regenPlatformForField==='article'?'article':regenPlatformForField;if(tabKey){const ap=ec.querySelector('.ppanel[data-panel="'+tabKey+'"]');if(ap){const rb=ap.querySelector('.btn-plat-restore');if(rb){rb.disabled=false;}}}}
   }catch(err){saveBtn.disabled=false;saveBtn.textContent='Save';bar.querySelector('.edit-save-bar-label').textContent='Network error \u2014 try again';}
 }
-
-async function publishQueueItem(videoId,slug,actionRow,pubBtn,container,videoRecord,editsData){
-  const platforms={};
-  actionRow.querySelectorAll('.platform-checkbox').forEach(el=>{platforms[el.dataset.platform]=el.dataset.checked==='true';});
-  if(!Object.values(platforms).some(v=>v)){showPubResult(container,'Select at least one platform.',false);return;}
-  pubBtn.disabled=true; pubBtn.textContent='Publishing\u2026';
-  const gc=videoRecord.platforms?.blog_global?.content||{};
-  const merged={...gc,...(editsData.edits||{})};
-  const regional=videoRecord.platforms?.blog_regional?.content||null;
+function getRegenPlatformForField(field){if(field==='body')return'article';if(/^tweet[1-6]$/.test(field))return'x';if(field==='linkedin')return'linkedin';if(field==='discord')return'discord';if(field==='tumblr')return'tumblr';return null;}
+function toggleGeneratePanel(){document.getElementById('generatePanel').classList.toggle('open');}
+async function startGeneration(){
+  const url=document.getElementById('genUrl').value.trim(); const btn=document.getElementById('genBtn');
+  if(!url){setGenStatus('Paste a YouTube URL first.','err');return;}
+  btn.disabled=true; btn.textContent='Checking\u2026'; setGenStatus('Checking records\u2026','active');
   try{
-    const res=await fetch('/press-publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,slug,platforms,content:merged,regionalContent:regional,source:'queue'})});
-    const data=await res.json();
-    if(!res.ok){showPubResult(container,data.error||'Publish failed.',false);pubBtn.disabled=false;pubBtn.textContent='Publish';return;}
-    showPubResult(container,'\u2713 Published \u2014 moving to Press',true);
-    pubBtn.disabled=false;pubBtn.textContent='Publish';
-    setTimeout(async()=>await loadQueue(),1500);
-  }catch(err){showPubResult(container,'Network error: '+err.message,false);pubBtn.disabled=false;pubBtn.textContent='Publish';}
+    const statusRes=await fetch('/kv-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({youtubeUrl:url})});
+    const statusData=await statusRes.json();
+    if(statusData.found){btn.disabled=false;btn.textContent='Generate';document.getElementById('generatePanel').classList.remove('open');document.getElementById('genUrl').value='';setGenStatus('','');const videoId=statusData.videoId||extractVideoIdFromUrl(url);const row=document.querySelector('[data-videoid="'+videoId+'"]');if(row){if(!row.classList.contains('open'))row.querySelector('.row-summary').click();row.scrollIntoView({behavior:'smooth',block:'start'});}else{setGenStatus('Already published.','done');}return;}
+    btn.textContent='Generating\u2026'; setGenStatus('Sending to queue\u2026','active');
+    const genRes=await fetch('/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({youtubeUrl:url})});
+    const genData=await genRes.json();
+    if(!genRes.ok){setGenStatus('Error: '+(genData.error||genRes.status),'err');btn.disabled=false;btn.textContent='Generate';return;}
+    const videoId=genData.videoId||extractVideoIdFromUrl(url);
+    if(videoId){await fetch('/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,youtubeUrl:url})}).catch(()=>{});}
+    setGenStatus('\u2713 Queued \u2014 check Queue page for progress.','done');
+    btn.disabled=false;btn.textContent='Generate';
+    document.getElementById('generatePanel').classList.remove('open');document.getElementById('genUrl').value='';
+  }catch(err){setGenStatus('Network error: '+err.message,'err');btn.disabled=false;btn.textContent='Generate';}
 }
-
-async function generateItem(e,videoId,youtubeUrl){
-  e.stopPropagation();
-  const btn=e.target; const row=btn.closest('.queue-row');
-  btn.disabled=true; btn.textContent='Queuing\u2026';
-  try{
-    const res=await fetch('/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({youtubeUrl})});
-    const data=await res.json();
-    if(!res.ok){
-      btn.disabled=false; btn.textContent='Generate';
-      const errDiv=document.createElement('div');
-      errDiv.style.cssText='font-family:var(--mono);font-size:12px;color:var(--red);margin-top:8px;padding:8px 12px;background:var(--red-bg);border:1px solid var(--red-bd);border-radius:4px;';
-      errDiv.textContent='Error: '+(data.error||'Generation failed. Check Worker logs.');
-      btn.parentNode.insertBefore(errDiv,btn.nextSibling);
-      return;
-    }
-    const jobId=data.jobId;
-    btn.style.display='none';
-    const stateDiv=btn.closest('[style*="flex-direction"]')||btn.parentNode;
-    const badgeEl=stateDiv.querySelector('.state-badge');
-    if(badgeEl){badgeEl.className='state-badge badge-generating';badgeEl.innerHTML='\u25cf Generating';}
-    const progressEl=document.createElement('div'); progressEl.className='row-progress'; progressEl.id='rp-'+videoId;
-    progressEl.innerHTML='<div class="step active"><div class="step-spinner"></div> Starting\u2026</div>';
-    stateDiv.appendChild(progressEl);
-    await fetch('/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,youtubeUrl})}).catch(()=>{});
-    startPolling(jobId,videoId,row.querySelector('.row-summary'));
-  }catch(err){btn.disabled=false;btn.textContent='Generate';}
-}
-
-function startPolling(jobId,videoId,summaryEl){
-  if(pollTimers[jobId])return;
-  const getProgress=()=>document.getElementById('rp-'+videoId);
-  const poll=async()=>{
-    try{
-      const res=await fetch('/generate-status?jobId='+jobId);
-      const data=await res.json();
-      const step=data.step||''; const status=data.status||''; const reason=data.reason||'';
-      const progressEl=getProgress();
-      if(progressEl){
-        if(status==='complete'){
-          progressEl.innerHTML='<div class="step done">\u2713 Content ready \u2014 click row to review</div>';
-        }else if(status==='error'){
-          progressEl.innerHTML='<div class="step" style="color:var(--red);background:var(--red-bg);border:1px solid var(--red-bd);border-radius:4px;padding:8px 12px;">\u2715 '+escHtml(reason||'Generation failed')+'</div>';
-        }else{
-          const ci=STEPS.indexOf(step);
-          progressEl.innerHTML=STEPS.map((s,i)=>{
-            const cls=i<ci?'done':i===ci?'active':'pending';
-            const icon=i<ci?'\u2713':i===ci?'<div class="step-spinner"></div>':'\u25cb';
-            return '<div class="step '+cls+'">'+icon+' '+(STEP_LABELS[s]||s)+'</div>';
-          }).join('');
-        }
-      }
-      if(status==='complete'){clearInterval(pollTimers[jobId]);delete pollTimers[jobId];setTimeout(()=>loadQueue(),600);}
-      else if(status==='error'){clearInterval(pollTimers[jobId]);delete pollTimers[jobId];}
-    }catch{}
-  };
-  poll(); pollTimers[jobId]=setInterval(poll,4000);
-}
-
-// Queue per-platform regenerate — regenerates from transcript, updates panel content
-async function onQueueRegenClick(videoId, platform, regenBtn, statusSpan, panel, videoRecord, editsData, tabBar) {
-  if(!videoId){statusSpan.textContent='No videoId';statusSpan.className='plat-action-status err';return;}
-  regenBtn.disabled=true;
-  statusSpan.className='plat-action-status active'; statusSpan.textContent='Regenerating…';
-  try {
-    const res = await fetch('/api/regenerate-platform',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,platform})});
-    const data = await res.json();
-    if(!res.ok){statusSpan.className='plat-action-status err';statusSpan.textContent=data.error||'Failed';regenBtn.disabled=false;return;}
-    // Update content in panel from regen staging
-    const regenRes = await fetch('/api/regen-status?videoId='+videoId);
-    const regenData = regenRes.ok ? await regenRes.json() : {};
-    const regenMap = regenData.regen || {};
-    const regenEntry = regenMap[platform] || null;
-    if(regenEntry && regenEntry.fields) {
-      const cb = panel.querySelector('.content-block[data-field]');
-      if(cb && regenEntry.fields[cb.dataset.field]) {
-        cb.innerHTML = regenEntry.fields[cb.dataset.field];
-        cb.dataset.editActive = 'false';
-      }
-      // Update status bar chip
-      const chip = panel.querySelector('.psb-status-chip');
-      if(chip){chip.className='psb-status-chip psb-chip-regen';chip.textContent='⚡ Regenerated — review and publish';}
-      // Update tab chip
-      const tabEl = tabBar.querySelector('.ptab[data-panel="'+platform+'"]');
-      if(tabEl){const lbl={article:'Article',x:'X',linkedin:'LinkedIn',discord:'Discord',tumblr:'Tumblr'}[platform]||platform;tabEl.innerHTML=lbl+'<span class="ptab-chip ptab-chip-regen">⚡ Regen</span>';}
-    }
-    statusSpan.className='plat-action-status done'; statusSpan.textContent='✓ Done';
-    regenBtn.disabled=false;
-    setTimeout(()=>{statusSpan.textContent='';statusSpan.className='plat-action-status';},3000);
-  } catch(err){statusSpan.className='plat-action-status err';statusSpan.textContent='Error';regenBtn.disabled=false;}
-}
-
-function switchTab(pc,tb,key){
-  tb.querySelectorAll('.ptab').forEach(t=>t.classList.toggle('active',t.dataset.panel===key));
-  pc.querySelectorAll('.ppanel').forEach(p=>p.classList.toggle('active',p.dataset.panel===key));
-}
-function showPubResult(container,msg,ok){const el=container.querySelector('.pub-result');if(!el)return;el.textContent=msg;el.className='pub-result '+(ok?'ok':'err');}
+function extractVideoIdFromUrl(url){try{const u=new URL(url);if(u.hostname==='youtu.be')return u.pathname.slice(1).split('?')[0];if(u.hostname.includes('youtube.com'))return u.searchParams.get('v')||null;}catch{}return null;}
+function setGenStatus(msg,cls){const el=document.getElementById('genStatus');el.textContent=msg;el.className='gen-status'+(cls?' '+cls:'');}
+function extractPostUrl(s){if(!s)return null;if(s.startsWith('http'))return s;if(s.startsWith('=HYPERLINK(')){const m=s.match(/=HYPERLINK\("([^"]+)"/);return m?m[1]:null;}return null;}
+function pillClass(s){if(!s)return'pill-pend';if(extractPostUrl(s))return'pill-ok';if(s.startsWith('Error'))return'pill-error';return'pill-pend';}
+function regionClass(r){if(!r||r==='Global')return'region-global';if(r.includes('GCC'))return'region-gcc';if(r.includes('US')||r.includes('Canada'))return'region-us';return'region-global';}
 function formatDate(str){if(!str)return'\u2014';try{return new Date(str).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}catch{return str;}}
 function escHtml(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 document.addEventListener('DOMContentLoaded',init);
+document.getElementById('genUrl')?.addEventListener('keydown',e=>{if(e.key==='Enter')startGeneration();});
 </script>
 </body>
 </html>
