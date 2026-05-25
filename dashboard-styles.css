@@ -257,13 +257,14 @@ body::before {
   padding: 16px 0;
   border-bottom: 1px solid var(--border2);
   font-family: var(--mono);
-  font-size: 11px;        /* ↑ increased from 10px */
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--purple);
   margin-top: 32px;
 }
+.table-header > div { text-align: left; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    VIDEO ROW
@@ -286,19 +287,16 @@ body::before {
 .video-row.open { background: rgba(155,109,255,0.06); }
 .video-row.open::before { background: var(--purple); box-shadow: 0 0 8px var(--purple-glow); }
 
-/* Row summary — NOT a link, only child elements are interactive */
 .row-summary {
   display: grid;
   grid-template-columns: 200px 1fr 240px 140px;
   gap: 20px;
   padding: 18px 0;
   align-items: center;
-  /* NO cursor:pointer here — child elements handle clicks */
+  cursor: default;
 }
 
-/* Only the clickable info area gets pointer */
-.row-info-clickable { cursor: pointer; }
-.row-date-clickable { cursor: pointer; text-align: right; }
+
 
 /* ── Thumbnail — NOT clickable ── */
 .row-thumb-wrap {
@@ -377,6 +375,7 @@ body::before {
   font-family: var(--mono);
   font-size: 13px; color: var(--muted);
   text-align: right; line-height: 1.4;
+  padding-right: 4px;
 }
 .row-chevron {
   font-size: 10px; color: var(--purple);
@@ -412,7 +411,7 @@ body::before {
 .video-row.open .row-expanded,
 .queue-row.open .row-expanded { display: block; }
 .expanded-inner {
-  padding: 28px 32px 36px; /* ← breathing room on all sides */
+  padding: 28px 0 36px; /* breathing room top/bottom, columns handle horizontal */
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
