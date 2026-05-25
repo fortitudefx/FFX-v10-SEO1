@@ -4,181 +4,47 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FFX Queue</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    :root{
-      --bg:#1a1c21;--bg2:#20232a;--surface:#252830;--surface2:#2c2f38;
-      --border:#32353f;--border2:#3d4150;--text:#e2e0db;--text-mid:#b8b5ae;
-      --muted:#7a7870;--dim:#4a4845;
-      --green:#4d9e72;--green-bg:#0e1f17;--green-bd:#1e3f2e;
-      --red:#c45c5c;--red-bg:#1f0e0e;--red-bd:#3f1e1e;
-      --amber:#c49a3c;--amber-bg:#1f1800;--amber-bd:#3f3000;
-      --blue:#5b8fc4;--blue-bg:#0e1620;--blue-bd:#1e2f40;
-      --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
-    }
-    html{scroll-behavior:smooth;}
-    body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;line-height:1.7;overflow-x:hidden;}
-    .nav{border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;position:sticky;top:0;background:var(--bg);z-index:100;}
-    .nav-wordmark{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.08em;color:var(--text);margin-right:36px;flex-shrink:0;}
-    .nav-wordmark span{color:var(--muted);font-weight:400;}
-    .nav-links{display:flex;gap:2px;flex:1;}
-    .nav-link{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:7px 14px;border-radius:3px;color:var(--muted);text-decoration:none;transition:background 0.15s,color 0.15s;}
-    .nav-link:hover{background:var(--surface);color:var(--text-mid);}
-    .nav-link.active{background:var(--surface2);color:var(--text);}
-
-    /* ── PAGE LAYOUT ── */
-    .page{display:flex;flex-direction:column;height:calc(100vh - 56px);overflow:hidden;}
-    .page-header{border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg);}
-    .page-header-left{display:flex;align-items:center;gap:20px;}
-    .wordmark{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:0.08em;color:var(--text);}
-    .wordmark span{color:var(--muted);font-weight:400;}
-    .header-count{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:3px 10px;}
-    .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px var(--green-bg);}
-
-    /* ── CONTENT AREA — switches between list and review ── */
-    .content-area{flex:1;overflow:hidden;position:relative;}
-    .queue-list-view{height:100%;overflow-y:auto;padding:0 32px 80px;}
-    .queue-review-view{display:none;height:100%;flex-direction:column;overflow:hidden;}
-    .queue-review-view.visible{display:flex;}
-
-    /* ── QUEUE LIST TABLE ── */
-    .table-header{display:grid;grid-template-columns:180px 1fr 160px 130px;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-top:28px;}
-    .queue-row{border-bottom:1px solid var(--border);transition:background 0.1s;}
-    .queue-row:hover{background:var(--bg2);}
-    .queue-row.open{background:var(--bg2);}
-    .row-summary{display:grid;grid-template-columns:180px 1fr 160px 130px;gap:16px;padding:14px 0;cursor:pointer;align-items:center;}
-    .row-thumb-wrap{width:180px;height:101px;border-radius:5px;overflow:hidden;background:var(--surface);border:1px solid var(--border);flex-shrink:0;}
-    .row-thumb{width:100%;height:100%;object-fit:cover;display:block;}
-    .row-thumb-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--dim);}
-    .row-info{}
-    .row-title{font-size:16px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:8px;}
-    .row-yt-url{font-family:var(--mono);font-size:11px;color:var(--blue);text-decoration:none;display:block;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-    .row-yt-url:hover{text-decoration:underline;}
-    .row-state{display:flex;flex-direction:column;gap:6px;}
-    .state-badge{font-family:var(--mono);font-size:11px;font-weight:600;padding:4px 10px;border-radius:3px;display:inline-block;letter-spacing:0.05em;}
-    .badge-grey{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
-    .badge-orange{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd);}
-    .badge-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd);}
-    .badge-generating{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);}
-    .badge-edited{background:#2a1500;color:#e06b1a;border:1px solid #4a2800;}
-    .row-date{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;}
-    .row-chevron{font-size:11px;color:var(--dim);transition:transform 0.2s;margin-left:6px;display:inline-block;}
-    .queue-row.open .row-chevron{transform:rotate(180deg);}
-    .btn-gen-row{font-family:var(--mono);font-size:11px;font-weight:600;background:var(--surface2);border:1px solid var(--border2);border-radius:3px;color:var(--text-mid);padding:4px 12px;cursor:pointer;transition:all 0.15s;margin-top:4px;display:inline-block;}
-    .btn-gen-row:hover:not(:disabled){border-color:var(--blue-bd);color:var(--blue);}
-    .btn-gen-row:disabled{opacity:0.4;cursor:not-allowed;}
-
-    /* ── PROGRESS STEPS ── */
-    .row-progress{padding:12px 0 4px;font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.8;}
-    .step{display:flex;align-items:center;gap:8px;}
-    .step.done{color:var(--green);}
-    .step.active{color:var(--blue);}
-    .step.pending{color:var(--dim);}
-    .step-spinner{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--blue-bd);border-top-color:var(--blue);animation:spin 0.7s linear infinite;flex-shrink:0;}
-    @keyframes spin{to{transform:rotate(360deg);}}
-
-    /* ── INLINE EXPANDED CONTENT (same as Press) ── */
-    .row-expanded{display:none;padding:0 0 28px;border-top:1px solid var(--border);}
-    .queue-row.open .row-expanded{display:block;}
-    .expanded-inner{padding-top:24px;}
-    .platform-tabs{display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--border);}
-    .ptab{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:9px 16px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color 0.15s,border-color 0.15s;background:none;border-top:none;border-left:none;border-right:none;}
-    .ptab:hover{color:var(--text-mid);}
-    .ptab.active{color:var(--text);border-bottom-color:var(--text);}
-    .ptab-chip{display:inline-block;font-size:9px;font-weight:600;padding:1px 5px;border-radius:2px;margin-left:5px;vertical-align:middle;letter-spacing:0.04em;}
-    .ptab-chip-edited{background:#2a1500;color:#e06b1a;border:1px solid #4a2800;}
-    .platform-panels{position:relative;}
-    .ppanel{display:none;}
-    .ppanel.active{display:block;}
-    .platform-status-bar{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 16px;border-radius:5px;margin-bottom:14px;border:1px solid var(--border);background:var(--surface);flex-wrap:wrap;gap:8px;}
-    .psb-left{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-    .psb-status-chip{font-family:var(--mono);font-size:12px;font-weight:600;padding:3px 10px;border-radius:3px;}
-    .psb-chip-pend{background:var(--surface2);color:var(--muted);border:1px solid var(--border2);}
-    .psb-chip-edited{background:#2a1500;color:#e06b1a;border:1px solid #4a2800;}
-    .content-block{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:18px 20px;font-size:15px;line-height:1.8;color:var(--text-mid);white-space:pre-wrap;word-break:break-word;max-height:400px;overflow-y:auto;}
-    .content-block.article-body{white-space:normal;}
-    .content-block.article-body h2{font-size:16px;font-weight:700;color:var(--text);margin:18px 0 9px;}
-    .content-block.article-body h3{font-size:14px;font-weight:600;color:var(--text);margin:14px 0 7px;}
-    .content-block.article-body p{margin-bottom:12px;}
-    .content-block.article-body a{color:var(--blue);}
-    .tweet-list{display:flex;flex-direction:column;gap:10px;}
-    .tweet-item{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:14px 16px;display:flex;gap:14px;font-size:15px;line-height:1.75;color:var(--text-mid);}
-    .tweet-num{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--dim);min-width:18px;padding-top:3px;}
-    .content-block[contenteditable="true"]{outline:1px solid var(--blue);cursor:text;border-color:var(--blue-bd);background:var(--blue-bg);}
-    .edit-save-bar{display:none;align-items:center;gap:10px;margin-top:10px;padding:10px 14px;background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:4px;}
-    .edit-save-bar.visible{display:flex;}
-    .edit-save-bar-label{font-family:var(--mono);font-size:11px;color:var(--blue);flex:1;}
-    .btn-edit-save{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--blue);color:#fff;border:none;border-radius:3px;padding:7px 18px;cursor:pointer;transition:opacity 0.15s;}
-    .btn-edit-save:hover:not(:disabled){opacity:0.85;}
-    .btn-edit-save:disabled{opacity:0.4;cursor:not-allowed;}
-    .btn-edit-discard{font-family:var(--mono);font-size:12px;background:none;color:var(--muted);border:1px solid var(--border);border-radius:3px;padding:7px 14px;cursor:pointer;}
-    .btn-edit-discard:hover{color:var(--text-mid);border-color:var(--border2);}
-    .action-row{display:flex;align-items:center;gap:10px;margin-top:24px;padding-top:18px;border-top:1px solid var(--border);flex-wrap:wrap;}
-    .action-label{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-right:4px;}
-    .platform-checkbox{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:4px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s;user-select:none;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--muted);background:var(--surface);}
-    .platform-checkbox:hover{border-color:var(--border2);color:var(--text-mid);}
-    .platform-checkbox.checked{border-color:var(--blue-bd);background:var(--blue-bg);color:var(--blue);}
-    .chk-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor;flex-shrink:0;}
-    .platform-checkbox.checked .chk-dot{background:currentColor;}
-    .btn-publish{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.06em;background:var(--green);color:#fff;border:none;border-radius:4px;padding:9px 24px;cursor:pointer;margin-left:auto;transition:opacity 0.15s;}
-    .btn-publish:hover:not(:disabled){opacity:0.85;}
-    .btn-publish:disabled{opacity:0.3;cursor:not-allowed;}
-    .pub-result{font-family:var(--mono);font-size:12px;margin-top:12px;padding:10px 14px;border-radius:4px;display:none;}
-    .pub-result.ok{background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green);display:block;}
-    .pub-result.err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red);display:block;}
-    .loading-state{text-align:center;padding:80px 0;}
-    .loading-spin{width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);border-top-color:var(--text-mid);animation:spin 0.7s linear infinite;margin:0 auto 16px;}
-    .loading-text{font-family:var(--mono);font-size:13px;color:var(--muted);}
-    .empty-state{text-align:center;padding:80px 0;}
-    .empty-state p{font-family:var(--mono);font-size:13px;color:var(--muted);}
-    ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
-  </style>
+  <link rel="stylesheet" href="/dashboard-styles.css">
 </head>
 <body>
+
 <nav class="nav">
-  <div class="nav-wordmark">FFX <span>Internal</span></div>
+  <div class="nav-wordmark">FFX <span>·</span> Internal</div>
   <div class="nav-links">
-    <a href="/dashboard.html" class="nav-link">Dashboard</a>
-    <a href="/dashboard-press.html" class="nav-link">Press</a>
-    <a href="/dashboard-queue.html" class="nav-link active">Queue</a>
+    <a href="/dashboard.html"           class="nav-link">Dashboard</a>
+    <a href="/dashboard-press.html"     class="nav-link">Press</a>
+    <a href="/dashboard-queue.html"     class="nav-link active">Queue</a>
     <a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a>
-    <a href="/dashboard-seo.html" class="nav-link">SEO</a>
-    <a href="/dashboard-audience.html" class="nav-link">Audience</a>
-    <a href="/dashboard-youtube.html" class="nav-link">YouTube</a>
+    <a href="/dashboard-seo.html"       class="nav-link">SEO</a>
+    <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
+    <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
   </div>
 </nav>
 
-<div class="page">
-  <div class="page-header">
-    <div class="page-header-left">
-      <div class="wordmark">FFX <span>Queue</span></div>
-      <div class="header-count" id="headerCount">—</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div class="status-dot"></div>
-    </div>
+<div class="page-header">
+  <div class="page-header-left">
+    <div class="wordmark">FFX <span>Queue</span></div>
+    <div class="header-count" id="headerCount">—</div>
   </div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="status-dot"></div>
+  </div>
+</div>
 
-  <div class="content-area">
-    <div class="queue-list-view" id="queueListView">
-      <div class="table-header">
-        <div>Video</div>
-        <div>Title &amp; URL</div>
-        <div>State</div>
-        <div style="text-align:right;">Added</div>
-      </div>
-      <div id="queueRows">
-        <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading queue&hellip;</div></div>
-      </div>
-    </div>
+<div class="content-wrap">
+  <div class="table-header" style="grid-template-columns:200px 1fr 180px 140px;">
+    <div>Video</div>
+    <div>Title &amp; URL</div>
+    <div>State</div>
+    <div style="text-align:right;">Added</div>
+  </div>
+  <div id="queueRows">
+    <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading queue&hellip;</div></div>
   </div>
 </div>
 
 <script>
-// ── STATE ─────────────────────────────────────────────────────────────────────
 let pollTimers = {};
 
 const PLATFORMS = [
@@ -189,17 +55,16 @@ const FIELD_MAP = {
   blog:['body'],x:['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
   linkedin:['linkedin'],discord:['discord'],tumblr:['tumblr']
 };
+const STEPS = ['transcript','global_article','global_platforms','regional_article','regional_platforms','library'];
 const STEP_LABELS = {
   transcript:'① Fetching transcript',
   global_article:'② Writing global article',
-  global_platforms:'③ Writing global platforms',
+  global_platforms:'③ Writing platform content',
   regional_article:'④ Writing regional article',
   regional_platforms:'⑤ Writing regional platforms',
-  library:'⑥ Extracting knowledge'
+  library:'⑥ Extracting knowledge nuggets'
 };
-const STEPS = ['transcript','global_article','global_platforms','regional_article','regional_platforms','library'];
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
   const params   = new URLSearchParams(window.location.search);
   const openItem = params.get('video');
@@ -207,12 +72,11 @@ async function init() {
   if (openItem) {
     setTimeout(() => {
       const row = document.querySelector('.queue-row[data-videoid="'+openItem+'"]');
-      if (row) { row.querySelector('.row-summary').click(); row.scrollIntoView({behavior:'smooth',block:'start'}); }
-    }, 300);
+      if (row) { row.querySelector('.row-summary')?.click(); row.scrollIntoView({behavior:'smooth',block:'start'}); }
+    }, 400);
   }
 }
 
-// ── LOAD QUEUE ────────────────────────────────────────────────────────────────
 async function loadQueue() {
   try {
     const res  = await fetch('/queue');
@@ -226,10 +90,9 @@ async function loadQueue() {
   }
 }
 
-// ── RENDER QUEUE ──────────────────────────────────────────────────────────────
 function renderQueue(queue) {
   const container = document.getElementById('queueRows');
-  if (!queue.length) { container.innerHTML='<div class="empty-state"><p>Queue is empty.</p></div>'; return; }
+  if (!queue.length) { container.innerHTML='<div class="empty-state"><p>Queue is empty. Cron will add videos automatically at 9am Dubai time.</p></div>'; return; }
   container.innerHTML = '';
   queue.forEach(item => container.appendChild(buildQueueRow(item)));
 }
@@ -242,41 +105,45 @@ function buildQueueRow(item) {
   row.className = 'queue-row';
   row.dataset.videoid = videoId;
 
-  const thumbHtml = '<div class="row-thumb-wrap"><img class="row-thumb" src="https://img.youtube.com/vi/'+videoId+'/mqdefault.jpg" onerror="this.parentElement.innerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'" alt=""></div>';
+  const thumbHtml = '<div class="row-thumb-wrap" style="width:200px;height:112px;">'
+    + '<img class="row-thumb" src="https://img.youtube.com/vi/'+videoId+'/mqdefault.jpg" '
+    + 'onerror="this.parentElement.innerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'" alt=""></div>';
 
   // State badge
   let badgeHtml = '', actionHtml = '';
-  if (item.state === 'orange') {
+  const isOrange = item.state === 'orange';
+  if (isOrange) {
     const hrs = item.expiresInMs ? Math.max(0,Math.floor(item.expiresInMs/3600000)) : 0;
     const min = item.expiresInMs ? Math.max(0,Math.floor((item.expiresInMs%3600000)/60000)) : 0;
-    badgeHtml = '<span class="state-badge badge-orange">Ready &middot; '+hrs+'h '+min+'m</span>';
-    if (item.hasQueueEdits) badgeHtml += '<br><span class="state-badge badge-edited" style="margin-top:4px;">Edited</span>';
+    badgeHtml = '<span class="state-badge badge-ready">\u2713 Ready &middot; '+hrs+'h '+min+'m</span>';
+    if (item.hasQueueEdits) badgeHtml += '<br><span class="state-badge badge-edited" style="margin-top:6px;">\u26a0 Edited</span>';
   } else if (item.state === 'red') {
-    badgeHtml  = '<span class="state-badge badge-red">Expired</span>';
-    actionHtml = '<button class="btn-gen-row" onclick="generateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Regenerate</button>';
+    badgeHtml  = '<span class="state-badge badge-expired">\u2715 Expired</span>';
+    actionHtml = '<br><button class="btn-gen-row" onclick="generateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Regenerate</button>';
   } else if (item.state === 'generating') {
-    badgeHtml = '<span class="state-badge badge-generating">Generating&hellip;</span>';
+    badgeHtml = '<span class="state-badge badge-generating">\u25cf Generating</span>';
   } else {
-    // grey
-    const source = item.addedBy==='cron'||item.addedBy==='cron-new' ? 'Cron' : 'Manual';
-    badgeHtml  = '<span class="state-badge badge-grey">'+source+'</span>';
-    actionHtml = '<button class="btn-gen-row" onclick="generateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Generate</button>';
+    const src = (item.addedBy==='cron'||item.addedBy==='cron-new') ? 'Cron' : 'Manual';
+    badgeHtml  = '<span class="state-badge badge-grey">'+src+'</span>';
+    actionHtml = '<br><button class="btn-gen-row" onclick="generateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Generate</button>';
   }
 
   const summary = document.createElement('div');
   summary.className = 'row-summary';
+  summary.style.gridTemplateColumns = '200px 1fr 180px 140px';
   summary.innerHTML = thumbHtml
     + '<div class="row-info">'
-    + '<div class="row-title">'+(title ? escHtml(title) : '<span style="color:var(--dim);font-style:italic;">Untitled — title loads after generation</span>')+'</div>'
+    + '<div class="row-title">'+(title ? escHtml(title) : '<span style="color:var(--dim);font-style:italic;font-size:14px;">Title loads after generation</span>')+'</div>'
     + (ytUrl ? '<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '')
     + '</div>'
-    + '<div class="row-state">'+badgeHtml+actionHtml
-    + (item.state==='generating'&&item.jobId ? '<div class="row-progress" id="rp-'+videoId+'">Starting&hellip;</div>' : '')
+    + '<div style="display:flex;flex-direction:column;gap:6px;justify-content:flex-start;padding-top:4px;">'
+    + badgeHtml + actionHtml
+    + (item.state==='generating'&&item.jobId ? '<div class="row-progress" id="rp-'+videoId+'"><div class="step active"><div class="step-spinner"></div> Starting\u2026</div></div>' : '')
     + '</div>'
-    + '<div class="row-date">'+formatDate(item.addedAt)+'<span class="row-chevron">&#9660;</span></div>';
+    + '<div class="row-date">'+formatDate(item.addedAt)+(isOrange?'<span class="row-chevron">\u25bc</span>':'')+'</div>';
 
-  // Only orange items expand inline
-  if (item.state === 'orange') {
+  if (isOrange) {
+    summary.style.cursor = 'pointer';
     summary.addEventListener('click', (e) => {
       if (e.target.closest('.btn-gen-row')||e.target.closest('.row-yt-url')) return;
       toggleRow(row, item);
@@ -285,18 +152,14 @@ function buildQueueRow(item) {
 
   row.appendChild(summary);
 
-  // Expanded content area
-  const expanded = document.createElement('div');
-  expanded.className = 'row-expanded';
+  const expanded = document.createElement('div'); expanded.className='row-expanded';
   row.appendChild(expanded);
 
-  // Resume polling if generating
   if (item.state==='generating' && item.jobId) startPolling(item.jobId, videoId, summary);
 
   return row;
 }
 
-// ── TOGGLE ROW ────────────────────────────────────────────────────────────────
 function toggleRow(row, item) {
   const isOpen = row.classList.contains('open');
   document.querySelectorAll('.queue-row.open').forEach(r => r.classList.remove('open'));
@@ -307,29 +170,30 @@ function toggleRow(row, item) {
   }
 }
 
-// ── LOAD EXPANDED CONTENT ─────────────────────────────────────────────────────
 async function loadExpandedContent(container, item) {
-  container.innerHTML = '<div class="loading-state" style="padding:40px 0"><div class="loading-spin"></div><div class="loading-text">Loading content&hellip;</div></div>';
+  container.innerHTML = '<div class="loading-state" style="padding:40px 0"><div class="loading-spin"></div><div class="loading-text">Loading content\u2026</div></div>';
   try {
     const [videoRes, editsRes] = await Promise.all([
-      fetch('/press-data?video='+item.videoId),
+      fetch('/api/video-content?videoId='+item.videoId),
       fetch('/api/queue-edits?videoId='+item.videoId)
     ]);
-    const editsData   = editsRes.ok ? await editsRes.json() : {edits:{},editedFields:[]};
-    const videoData   = videoRes.ok ? await videoRes.json() : null;
+    const editsData   = editsRes.ok  ? await editsRes.json()  : {edits:{},editedFields:[]};
+    const videoData   = videoRes.ok  ? await videoRes.json()  : null;
     const videoRecord = videoData?.video || null;
     if (!videoRecord) {
-      container.innerHTML = '<div class="empty-state" style="padding:40px 0"><p>Content not found or expired.</p></div>';
+      container.innerHTML = '<div class="empty-state" style="padding:40px 0">'
+        + '<p style="color:var(--red);font-size:14px;">'
+        + (videoData?.error || 'Content not found. The 24hr window may have expired.')
+        + '</p></div>';
       return;
     }
     buildExpandedContent(container, videoRecord, editsData, item);
     container.dataset.built = '1';
   } catch (err) {
-    container.innerHTML = '<div class="empty-state" style="padding:40px 0"><p>Error: '+escHtml(err.message)+'</p></div>';
+    container.innerHTML = '<div class="empty-state" style="padding:40px 0"><p style="color:var(--red);">Error: '+escHtml(err.message)+'</p></div>';
   }
 }
 
-// ── BUILD EXPANDED CONTENT ────────────────────────────────────────────────────
 function buildExpandedContent(container, videoRecord, editsData, queueItem) {
   const platforms    = videoRecord.platforms || {};
   const videoId      = videoRecord.videoId   || queueItem.videoId;
@@ -350,174 +214,160 @@ function buildExpandedContent(container, videoRecord, editsData, queueItem) {
         : '<div class="content-block"><em>No tweets found.</em></div>'
     },
     { key:'linkedin', label:'LinkedIn', platformKey:'linkedin',
-      html: () => '<div class="content-block" data-field="linkedin" data-edit-active="false">'+(queueEdits.linkedin||platforms.linkedin?.content?.text||gc.linkedin||'<em>No LinkedIn content found.</em>')+'</div>'
+      html: () => '<div class="content-block" data-field="linkedin" data-edit-active="false">'+(queueEdits.linkedin||platforms.linkedin?.content?.text||gc.linkedin||'<em>No LinkedIn content.</em>')+'</div>'
     },
     { key:'discord', label:'Discord', platformKey:'discord',
-      html: () => '<div class="content-block" data-field="discord" data-edit-active="false">'+(queueEdits.discord||platforms.discord?.content?.text||gc.discord||'<em>No Discord content found.</em>')+'</div>'
+      html: () => '<div class="content-block" data-field="discord" data-edit-active="false">'+(queueEdits.discord||platforms.discord?.content?.text||gc.discord||'<em>No Discord content.</em>')+'</div>'
     },
     { key:'tumblr', label:'Tumblr', platformKey:'tumblr',
-      html: () => '<div class="content-block" data-field="tumblr" data-edit-active="false">'+(queueEdits.tumblr||platforms.tumblr?.content?.text||gc.tumblr||'<em>No Tumblr content found.</em>')+'</div>'
+      html: () => '<div class="content-block" data-field="tumblr" data-edit-active="false">'+(queueEdits.tumblr||platforms.tumblr?.content?.text||gc.tumblr||'<em>No Tumblr content.</em>')+'</div>'
     }
   ];
 
-  const tabBar         = document.createElement('div'); tabBar.className = 'platform-tabs';
-  const panelContainer = document.createElement('div'); panelContainer.className = 'platform-panels';
+  const tabBar=document.createElement('div'); tabBar.className='platform-tabs';
+  const panelContainer=document.createElement('div'); panelContainer.className='platform-panels';
 
-  panelsData.forEach((p, idx) => {
+  panelsData.forEach((p,idx) => {
     const isEdited = editedFields.some(f => (FIELD_MAP[p.platformKey]||[p.key]).includes(f));
     const tab = document.createElement('button');
-    tab.className = 'ptab'+(idx===0?' active':''); tab.dataset.panel = p.key;
+    tab.className = 'ptab'+(idx===0?' active':''); tab.dataset.panel=p.key;
     tab.innerHTML = p.label+(isEdited?'<span class="ptab-chip ptab-chip-edited">\u26a0 Edited</span>':'');
-    tab.addEventListener('click', () => switchTab(panelContainer, tabBar, p.key));
+    tab.addEventListener('click',()=>switchTab(panelContainer,tabBar,p.key));
     tabBar.appendChild(tab);
 
-    const panel = document.createElement('div');
-    panel.className = 'ppanel'+(idx===0?' active':''); panel.dataset.panel = p.key;
+    const panel=document.createElement('div'); panel.className='ppanel'+(idx===0?' active':''); panel.dataset.panel=p.key;
     const sbCls = isEdited ? 'psb-chip-edited' : 'psb-chip-pend';
     const sbTxt = isEdited ? '\u26a0 Edited \u2014 not published' : '\u25cb Not published';
-    panel.innerHTML = '<div class="platform-status-bar"><div class="psb-left"><span class="psb-status-chip '+sbCls+'">'+sbTxt+'</span></div></div>'+p.html();
+    panel.innerHTML='<div class="platform-status-bar"><div class="psb-left"><span class="psb-status-chip '+sbCls+'">'+sbTxt+'</span></div></div>'+p.html();
     panelContainer.appendChild(panel);
   });
 
-  // Action row
-  const actionRow = document.createElement('div'); actionRow.className = 'action-row';
-  actionRow.innerHTML = '<span class="action-label">Publish to:</span>';
-  PLATFORMS.forEach(p => {
-    const chk = document.createElement('div');
-    chk.className = 'platform-checkbox checked'; chk.dataset.platform = p.key; chk.dataset.checked = 'true';
-    chk.innerHTML = '<span class="chk-dot"></span>'+p.label;
-    chk.addEventListener('click', () => {
-      const c = chk.dataset.checked==='true'; chk.dataset.checked = c?'false':'true';
-      if (!c) { chk.classList.add('checked'); chk.innerHTML='<span class="chk-dot"></span>'+p.label; }
-      else    { chk.classList.remove('checked'); chk.innerHTML='<span class="chk-dot"></span>'+p.label+' \u2014'; }
+  const actionRow=document.createElement('div'); actionRow.className='action-row'; actionRow.innerHTML='<span class="action-label">Publish to:</span>';
+  PLATFORMS.forEach(p=>{
+    const chk=document.createElement('div');
+    chk.className='platform-checkbox checked'; chk.dataset.platform=p.key; chk.dataset.checked='true';
+    chk.innerHTML='<span class="chk-dot"></span>'+p.label;
+    chk.addEventListener('click',()=>{
+      const c=chk.dataset.checked==='true'; chk.dataset.checked=c?'false':'true';
+      if(!c){chk.classList.add('checked');chk.innerHTML='<span class="chk-dot"></span>'+p.label;}
+      else{chk.classList.remove('checked');chk.innerHTML='<span class="chk-dot"></span>'+p.label+' \u2014';}
     });
     actionRow.appendChild(chk);
   });
-  const pubBtn = document.createElement('button'); pubBtn.className='btn-publish'; pubBtn.textContent='Publish';
-  pubBtn.onclick = () => publishQueueItem(videoId, slug, actionRow, pubBtn, container, videoRecord, editsData);
+  const pubBtn=document.createElement('button'); pubBtn.className='btn-publish'; pubBtn.textContent='Publish';
+  pubBtn.onclick=()=>publishQueueItem(videoId,slug,actionRow,pubBtn,container,videoRecord,editsData);
   actionRow.appendChild(pubBtn);
 
-  const pubResult = document.createElement('div'); pubResult.className='pub-result';
-  const inner = document.createElement('div'); inner.className='expanded-inner'; inner.innerHTML='';
+  const pubResult=document.createElement('div'); pubResult.className='pub-result';
+  const inner=document.createElement('div'); inner.className='expanded-inner'; inner.innerHTML='';
 
-  // Wire inline edits
-  panelContainer.querySelectorAll('.content-block[data-field]').forEach(el => {
-    el.addEventListener('click', () => makeQueueEditable(el, videoId, el.dataset.field, editsData, tabBar));
+  panelContainer.querySelectorAll('.content-block[data-field]').forEach(el=>{
+    el.addEventListener('click',()=>makeQueueEditable(el,videoId,el.dataset.field,editsData,tabBar));
   });
-  panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(el => {
-    el.addEventListener('click', () => { const ts=el.querySelector('.tweet-text'); if(ts) makeQueueEditable(ts, videoId, el.dataset.field, editsData, tabBar); });
+  panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(el=>{
+    el.addEventListener('click',()=>{const ts=el.querySelector('.tweet-text');if(ts)makeQueueEditable(ts,videoId,el.dataset.field,editsData,tabBar);});
   });
 
-  inner.appendChild(tabBar);
-  inner.appendChild(panelContainer);
-  inner.appendChild(actionRow);
-  inner.appendChild(pubResult);
-  container.innerHTML = '';
-  container.appendChild(inner);
+  inner.appendChild(tabBar); inner.appendChild(panelContainer); inner.appendChild(actionRow); inner.appendChild(pubResult);
+  container.innerHTML=''; container.appendChild(inner);
 }
 
-// ── QUEUE INLINE EDIT ─────────────────────────────────────────────────────────
-function makeQueueEditable(el, videoId, field, editsData, tabBar) {
-  if (el.dataset.editActive==='true') return;
-  el.dataset.editActive='true';
-  const original = el.innerText;
+function makeQueueEditable(el,videoId,field,editsData,tabBar){
+  if(el.dataset.editActive==='true')return; el.dataset.editActive='true'; const original=el.innerText;
   el.setAttribute('contenteditable','true'); el.focus();
-  let bar = el.nextElementSibling;
-  if (!bar||!bar.classList.contains('edit-save-bar')) {
-    bar = document.createElement('div'); bar.className='edit-save-bar';
-    bar.innerHTML='<span class="edit-save-bar-label">Editing '+field+' \u2014 unsaved</span><button class="btn-edit-discard">Discard</button><button class="btn-edit-save">Save</button>';
-    el.parentNode.insertBefore(bar, el.nextSibling);
-  }
+  let bar=el.nextElementSibling;
+  if(!bar||!bar.classList.contains('edit-save-bar')){bar=document.createElement('div');bar.className='edit-save-bar';bar.innerHTML='<span class="edit-save-bar-label">Editing '+field+' \u2014 unsaved</span><button class="btn-edit-discard">Discard</button><button class="btn-edit-save">Save</button>';el.parentNode.insertBefore(bar,el.nextSibling);}
   bar.classList.add('visible');
-  bar.querySelector('.btn-edit-save').onclick    = () => saveQueueEdit(el, bar, videoId, field, editsData, tabBar);
-  bar.querySelector('.btn-edit-discard').onclick = () => { el.setAttribute('contenteditable','false'); el.innerText=original; el.dataset.editActive='false'; bar.classList.remove('visible'); };
+  bar.querySelector('.btn-edit-save').onclick=()=>saveQueueEdit(el,bar,videoId,field,editsData,tabBar);
+  bar.querySelector('.btn-edit-discard').onclick=()=>{el.setAttribute('contenteditable','false');el.innerText=original;el.dataset.editActive='false';bar.classList.remove('visible');};
 }
 
-async function saveQueueEdit(el, bar, videoId, field, editsData, tabBar) {
-  const saveBtn = bar.querySelector('.btn-edit-save');
-  saveBtn.disabled=true; saveBtn.textContent='Saving\u2026';
-  const value = el.innerText.trim();
-  try {
-    const res  = await fetch('/api/queue-edits', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({videoId,field,value}) });
-    const data = await res.json();
-    if (!res.ok) { saveBtn.disabled=false; saveBtn.textContent='Save'; bar.querySelector('.edit-save-bar-label').textContent='Error: '+(data.error||'Save failed'); return; }
+async function saveQueueEdit(el,bar,videoId,field,editsData,tabBar){
+  const saveBtn=bar.querySelector('.btn-edit-save'); saveBtn.disabled=true; saveBtn.textContent='Saving\u2026';
+  const value=el.innerText.trim();
+  try{
+    const res=await fetch('/api/queue-edits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,field,value})});
+    const data=await res.json();
+    if(!res.ok){saveBtn.disabled=false;saveBtn.textContent='Save';bar.querySelector('.edit-save-bar-label').textContent='Error: '+(data.error||'Save failed');return;}
     editsData.edits=editsData.edits||{}; editsData.edits[field]=value;
-    if (!editsData.editedFields) editsData.editedFields=[];
-    if (!editsData.editedFields.includes(field)) editsData.editedFields.push(field);
-    el.setAttribute('contenteditable','false'); el.dataset.editActive='false'; bar.classList.remove('visible'); saveBtn.disabled=false; saveBtn.textContent='Save';
-    // Update tab chip
-    const tabKey = field==='body'?'article':(/^tweet/.test(field)?'x':field);
-    const tabEl  = tabBar.querySelector('.ptab[data-panel="'+tabKey+'"]');
-    if (tabEl&&!tabEl.innerHTML.includes('ptab-chip-edited')) {
+    if(!editsData.editedFields)editsData.editedFields=[];
+    if(!editsData.editedFields.includes(field))editsData.editedFields.push(field);
+    el.setAttribute('contenteditable','false');el.dataset.editActive='false';bar.classList.remove('visible');saveBtn.disabled=false;saveBtn.textContent='Save';
+    const tabKey=field==='body'?'article':(/^tweet/.test(field)?'x':field);
+    const tabEl=tabBar.querySelector('.ptab[data-panel="'+tabKey+'"]');
+    if(tabEl&&!tabEl.innerHTML.includes('ptab-chip-edited')){
       const lbl={article:'Article',x:'X',linkedin:'LinkedIn',discord:'Discord',tumblr:'Tumblr'}[tabKey]||tabKey;
-      tabEl.innerHTML = lbl+'<span class="ptab-chip ptab-chip-edited">\u26a0 Edited</span>';
+      tabEl.innerHTML=lbl+'<span class="ptab-chip ptab-chip-edited">\u26a0 Edited</span>';
     }
-    // Update row badge
-    const row = document.querySelector('.queue-row[data-videoid="'+videoId+'"]');
-    if (row&&!row.querySelector('.badge-edited')) {
-      const eb=document.createElement('span'); eb.className='state-badge badge-edited'; eb.style.marginTop='4px'; eb.textContent='Edited';
-      const stateDiv=row.querySelector('.row-state'); if(stateDiv) stateDiv.appendChild(eb);
+    const row=document.querySelector('.queue-row[data-videoid="'+videoId+'"]');
+    if(row&&!row.querySelector('.badge-edited')){
+      const stateDiv=row.querySelector('[style*="flex-direction:column"]');
+      if(stateDiv){const eb=document.createElement('span');eb.className='state-badge badge-edited';eb.style.marginTop='6px';eb.textContent='\u26a0 Edited';stateDiv.appendChild(eb);}
     }
-  } catch (err) { saveBtn.disabled=false; saveBtn.textContent='Save'; bar.querySelector('.edit-save-bar-label').textContent='Network error \u2014 try again'; }
+  }catch(err){saveBtn.disabled=false;saveBtn.textContent='Save';bar.querySelector('.edit-save-bar-label').textContent='Network error \u2014 try again';}
 }
 
-// ── PUBLISH FROM QUEUE ────────────────────────────────────────────────────────
-async function publishQueueItem(videoId, slug, actionRow, pubBtn, container, videoRecord, editsData) {
+async function publishQueueItem(videoId,slug,actionRow,pubBtn,container,videoRecord,editsData){
   const platforms={};
   actionRow.querySelectorAll('.platform-checkbox').forEach(el=>{platforms[el.dataset.platform]=el.dataset.checked==='true';});
-  if (!Object.values(platforms).some(v=>v)) { showPubResult(container,'Select at least one platform.',false); return; }
+  if(!Object.values(platforms).some(v=>v)){showPubResult(container,'Select at least one platform.',false);return;}
   pubBtn.disabled=true; pubBtn.textContent='Publishing\u2026';
-  const gc      = videoRecord.platforms?.blog_global?.content || {};
-  const qEdits  = editsData.edits || {};
-  const merged  = {...gc,...qEdits};
-  const regional = videoRecord.platforms?.blog_regional?.content || null;
-  try {
-    const res  = await fetch('/press-publish', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({videoId,slug,platforms,content:merged,regionalContent:regional,source:'queue'}) });
-    const data = await res.json();
-    if (!res.ok) { showPubResult(container,data.error||'Publish failed.',false); pubBtn.disabled=false; pubBtn.textContent='Publish'; return; }
+  const gc=videoRecord.platforms?.blog_global?.content||{};
+  const merged={...gc,...(editsData.edits||{})};
+  const regional=videoRecord.platforms?.blog_regional?.content||null;
+  try{
+    const res=await fetch('/press-publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,slug,platforms,content:merged,regionalContent:regional,source:'queue'})});
+    const data=await res.json();
+    if(!res.ok){showPubResult(container,data.error||'Publish failed.',false);pubBtn.disabled=false;pubBtn.textContent='Publish';return;}
     showPubResult(container,'\u2713 Published \u2014 moving to Press',true);
-    pubBtn.disabled=false; pubBtn.textContent='Publish';
-    setTimeout(async()=>{ await loadQueue(); }, 1500);
-  } catch (err) { showPubResult(container,'Network error: '+err.message,false); pubBtn.disabled=false; pubBtn.textContent='Publish'; }
+    pubBtn.disabled=false;pubBtn.textContent='Publish';
+    setTimeout(async()=>await loadQueue(),1500);
+  }catch(err){showPubResult(container,'Network error: '+err.message,false);pubBtn.disabled=false;pubBtn.textContent='Publish';}
 }
 
-// ── GENERATE ITEM ─────────────────────────────────────────────────────────────
-async function generateItem(e, videoId, youtubeUrl) {
+async function generateItem(e,videoId,youtubeUrl){
   e.stopPropagation();
-  const btn  = e.target;
-  const row  = btn.closest('.queue-row');
+  const btn=e.target; const row=btn.closest('.queue-row');
   btn.disabled=true; btn.textContent='Queuing\u2026';
-  try {
-    const res  = await fetch('/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({youtubeUrl}) });
-    const data = await res.json();
-    if (!res.ok) { btn.disabled=false; btn.textContent='Generate'; showError(row,'Error: '+(data.error||res.status)); return; }
-    const jobId = data.jobId;
+  try{
+    const res=await fetch('/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({youtubeUrl})});
+    const data=await res.json();
+    if(!res.ok){
+      btn.disabled=false; btn.textContent='Generate';
+      const errDiv=document.createElement('div');
+      errDiv.style.cssText='font-family:var(--mono);font-size:12px;color:var(--red);margin-top:8px;padding:8px 12px;background:var(--red-bg);border:1px solid var(--red-bd);border-radius:4px;';
+      errDiv.textContent='Error: '+(data.error||'Generation failed. Check Worker logs.');
+      btn.parentNode.insertBefore(errDiv,btn.nextSibling);
+      return;
+    }
+    const jobId=data.jobId;
     btn.style.display='none';
-    // Update badge
-    const stateDiv = row.querySelector('.row-state');
-    if (stateDiv) stateDiv.innerHTML='<span class="state-badge badge-generating">Generating&hellip;</span><div class="row-progress" id="rp-'+videoId+'">Starting&hellip;</div>';
-    // Update queue:index wasGenerated
+    const stateDiv=btn.closest('[style*="flex-direction"]')||btn.parentNode;
+    const badgeEl=stateDiv.querySelector('.state-badge');
+    if(badgeEl){badgeEl.className='state-badge badge-generating';badgeEl.innerHTML='\u25cf Generating';}
+    const progressEl=document.createElement('div'); progressEl.className='row-progress'; progressEl.id='rp-'+videoId;
+    progressEl.innerHTML='<div class="step active"><div class="step-spinner"></div> Starting\u2026</div>';
+    stateDiv.appendChild(progressEl);
     await fetch('/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,youtubeUrl})}).catch(()=>{});
-    startPolling(jobId, videoId, row.querySelector('.row-summary'));
-  } catch { btn.disabled=false; btn.textContent='Generate'; }
+    startPolling(jobId,videoId,row.querySelector('.row-summary'));
+  }catch(err){btn.disabled=false;btn.textContent='Generate';}
 }
 
-// ── PROGRESS POLLING ──────────────────────────────────────────────────────────
-function startPolling(jobId, videoId, summaryEl) {
-  if (pollTimers[jobId]) return;
-  const getProgress = () => document.getElementById('rp-'+videoId);
-  const poll = async () => {
-    try {
-      const res  = await fetch('/generate-status?jobId='+jobId);
-      const data = await res.json();
-      const step=data.step||''; const status=data.status||'';
-      const progressEl = getProgress();
-      if (progressEl) {
-        if (status==='complete') {
-          progressEl.innerHTML='<div class="step done">\u2713 Content ready \u2014 click to review</div>';
-        } else if (status==='error') {
-          progressEl.innerHTML='<div class="step" style="color:var(--red)">\u2715 '+escHtml(data.reason||'Generation failed')+'</div>';
-        } else {
+function startPolling(jobId,videoId,summaryEl){
+  if(pollTimers[jobId])return;
+  const getProgress=()=>document.getElementById('rp-'+videoId);
+  const poll=async()=>{
+    try{
+      const res=await fetch('/generate-status?jobId='+jobId);
+      const data=await res.json();
+      const step=data.step||''; const status=data.status||''; const reason=data.reason||'';
+      const progressEl=getProgress();
+      if(progressEl){
+        if(status==='complete'){
+          progressEl.innerHTML='<div class="step done">\u2713 Content ready \u2014 click row to review</div>';
+        }else if(status==='error'){
+          progressEl.innerHTML='<div class="step" style="color:var(--red);background:var(--red-bg);border:1px solid var(--red-bd);border-radius:4px;padding:8px 12px;">\u2715 '+escHtml(reason||'Generation failed')+'</div>';
+        }else{
           const ci=STEPS.indexOf(step);
           progressEl.innerHTML=STEPS.map((s,i)=>{
             const cls=i<ci?'done':i===ci?'active':'pending';
@@ -526,30 +376,20 @@ function startPolling(jobId, videoId, summaryEl) {
           }).join('');
         }
       }
-      if (status==='complete') {
-        clearInterval(pollTimers[jobId]); delete pollTimers[jobId];
-        setTimeout(()=>loadQueue(),500);
-      } else if (status==='error') {
-        clearInterval(pollTimers[jobId]); delete pollTimers[jobId];
-        const stateDiv = summaryEl?.querySelector('.row-state');
-        if (stateDiv) { const badge=stateDiv.querySelector('.state-badge'); if(badge){badge.className='state-badge badge-red';badge.textContent='Generation failed';} }
-      }
-    } catch {}
+      if(status==='complete'){clearInterval(pollTimers[jobId]);delete pollTimers[jobId];setTimeout(()=>loadQueue(),600);}
+      else if(status==='error'){clearInterval(pollTimers[jobId]);delete pollTimers[jobId];}
+    }catch{}
   };
-  poll();
-  pollTimers[jobId]=setInterval(poll,4000);
+  poll(); pollTimers[jobId]=setInterval(poll,4000);
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
 function switchTab(pc,tb,key){
   tb.querySelectorAll('.ptab').forEach(t=>t.classList.toggle('active',t.dataset.panel===key));
   pc.querySelectorAll('.ppanel').forEach(p=>p.classList.toggle('active',p.dataset.panel===key));
 }
 function showPubResult(container,msg,ok){const el=container.querySelector('.pub-result');if(!el)return;el.textContent=msg;el.className='pub-result '+(ok?'ok':'err');}
-function showError(row,msg){const stateDiv=row?.querySelector('.row-state');if(stateDiv){const err=document.createElement('div');err.style.cssText='font-family:var(--mono);font-size:11px;color:var(--red);margin-top:4px;';err.textContent=msg;stateDiv.appendChild(err);}}
 function formatDate(str){if(!str)return'\u2014';try{return new Date(str).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}catch{return str;}}
 function escHtml(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
 document.addEventListener('DOMContentLoaded',init);
 </script>
 </body>
