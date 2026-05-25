@@ -262,7 +262,7 @@ body::before {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--purple);
-  margin-top: 32px;
+  margin-top: 0;
 }
 .table-header > div { text-align: left; }
 
