@@ -542,7 +542,7 @@ Generate ONLY the platform content fields. Return a single valid JSON object wit
 }
 
 X THREAD RULES by format:
-- THREAD: exactly 6 tweets. Posts 2-3 end with https://fortitudefx.com. Post 4 ends with https://fortitudefx.com/vipdiscord. Post 5 ends with https://fortitudefx.com/bootcamp. Post 6 includes ${articleUrl} and ${youtubeUrl}.
+- THREAD: exactly 6 tweets. Posts 2-3 include https://fortitudefx.com embedded within the tweet text, not on its own line. Post 4 includes https://fortitudefx.com/vipdiscord embedded within the tweet text. Post 5 includes https://fortitudefx.com/bootcamp embedded within the tweet text. Post 6 ends with ${articleUrl} and ${youtubeUrl} on their own lines — this is the only tweet where the URL sits alone to generate a card preview.
 - SINGLE: exactly 1 tweet, max 280 chars
 - MINI: exactly 3 tweets
 - HOTTAKE: exactly 4 tweets
