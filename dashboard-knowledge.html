@@ -3,114 +3,222 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FFX Knowledge Library</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <title>FFX Knowledge</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/dashboard-styles.css">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg:#1a1c21;--bg2:#20232a;--surface:#252830;--surface2:#2c2f38;--border:#32353f;--border2:#3d4150;
-      --text:#e2e0db;--text-mid:#b8b5ae;--muted:#7a7870;--dim:#4a4845;
-      --green:#4d9e72;--green-bg:#0e1f17;--green-bd:#1e3f2e;
-      --red:#c45c5c;--red-bg:#1f0e0e;--red-bd:#3f1e1e;
-      --amber:#c49a3c;--amber-bg:#1f1800;--amber-bd:#3f3000;
-      --blue:#5b8fc4;--blue-bg:#0e1620;--blue-bd:#1e2f40;
-      --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+    /* Knowledge-specific layout */
+    .kl-wrap {
+      max-width: var(--content-max);
+      width: calc(100% - 80px);
+      margin: 32px auto 80px;
+      position: relative; z-index: 1;
+      border-radius: var(--radius-xl);
+      border: 1.5px solid rgba(122,92,255,0.28);
+      box-shadow:
+        0 0 0 1px rgba(122,92,255,0.10),
+        0 0 32px rgba(122,92,255,0.14),
+        0 0 80px rgba(45,20,114,0.22),
+        0 32px 96px rgba(0,0,0,0.44),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      background:
+        radial-gradient(ellipse 75% 40% at 12% 6%, rgba(122,92,255,0.14) 0%, rgba(45,20,114,0.08) 45%, transparent 70%),
+        radial-gradient(ellipse 80% 50% at 100% 60%, rgba(45,20,114,0.50) 0%, rgba(35,14,90,0.30) 35%, transparent 80%),
+        radial-gradient(ellipse 80% 50% at 0% 90%, rgba(45,20,114,0.50) 0%, rgba(35,14,90,0.30) 35%, transparent 80%),
+        linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(45,20,114,0.04) 50%, rgba(255,255,255,0.012) 100%);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 600px;
     }
-    html{scroll-behavior:smooth;}
-    body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;line-height:1.7;overflow:hidden;}
-    .nav{border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;position:sticky;top:0;background:var(--bg);z-index:100;gap:0;}
-    .nav-wordmark{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.08em;color:var(--text);margin-right:36px;flex-shrink:0;}
-    .nav-wordmark span{color:var(--muted);font-weight:400;}
-    .nav-links{display:flex;gap:2px;flex:1;}
-    .nav-link{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:7px 14px;border-radius:3px;color:var(--muted);text-decoration:none;transition:background 0.15s,color 0.15s;}
-    .nav-link:hover{background:var(--surface);color:var(--text-mid);}
-    .nav-link.active{background:var(--surface2);color:var(--text);}
-
-    .kl-layout{display:grid;grid-template-columns:220px 1fr;height:calc(100vh - 56px);overflow:hidden;}
 
     /* Sidebar */
-    .kl-sidebar{border-right:1px solid var(--border);overflow-y:auto;background:var(--bg2);padding:16px 0;}
-    .kl-cat-btn{display:block;width:100%;text-align:left;padding:10px 20px;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;transition:background 0.1s,color 0.1s;letter-spacing:0.04em;}
-    .kl-cat-btn:hover{background:var(--surface);color:var(--text-mid);}
-    .kl-cat-btn.active{background:var(--surface);color:var(--text);border-left:2px solid var(--green);padding-left:18px;}
-    .kl-cat-count{font-family:var(--mono);font-size:11px;color:var(--dim);margin-left:8px;}
+    .kl-sidebar {
+      border-right: 1px solid var(--border-soft);
+      padding: 24px 0;
+      overflow-y: auto;
+    }
+    .kl-sidebar-title {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.20em;
+      text-transform: uppercase; color: rgba(255,255,255,0.28);
+      padding: 0 20px 12px; display: block;
+    }
+    .kl-cat-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; text-align: left;
+      padding: 9px 20px;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(255,255,255,0.40);
+      background: none; border: none; border-left: 2px solid transparent;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .kl-cat-btn:hover { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.70); }
+    .kl-cat-btn.active {
+      background: rgba(122,92,255,0.08);
+      color: var(--accent-text);
+      border-left-color: var(--accent);
+    }
+    .kl-cat-count {
+      font-size: 10px; font-weight: 600;
+      color: rgba(255,255,255,0.24);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-soft);
+      border-radius: 4px; padding: 1px 7px;
+    }
+    .kl-cat-btn.active .kl-cat-count { color: var(--accent-text); background: rgba(122,92,255,0.12); border-color: var(--accent-line); }
 
     /* Main */
-    .kl-main{overflow-y:auto;padding:24px 32px;}
-    .kl-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
-    .kl-search{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 14px;outline:none;transition:border-color 0.15s;}
-    .kl-search:focus{border-color:var(--blue);}
-    .kl-search::placeholder{color:var(--dim);}
-    .btn-add{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--text);color:var(--bg);border:none;border-radius:3px;padding:9px 18px;cursor:pointer;white-space:nowrap;transition:opacity 0.15s;}
-    .btn-add:hover{opacity:0.85;}
+    .kl-main { padding: 28px 40px 40px; overflow-y: auto; max-height: calc(100vh - 180px); }
+
+    /* Toolbar */
+    .kl-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .kl-search {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px; padding: 10px 16px; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .kl-search:focus { border-color: var(--accent-line-strong); box-shadow: 0 0 0 3px rgba(122,92,255,0.10); }
+    .kl-search::placeholder { color: rgba(255,255,255,0.22); }
+    .btn-add {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+      background: linear-gradient(180deg, rgba(122,92,255,0.22), rgba(45,20,114,0.34));
+      color: #efe9ff; border: 1px solid var(--accent-line); border-radius: 8px;
+      padding: 10px 18px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .btn-add:hover { border-color: var(--accent-line-strong); }
 
     /* Form */
-    .nugget-form{background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:22px;margin-bottom:18px;display:none;}
-    .nugget-form.open{display:block;}
-    .form-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;}
-    .nf-row{margin-bottom:12px;}
-    .nf-label{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;}
-    .nf-input,.nf-textarea,.nf-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 13px;outline:none;transition:border-color 0.15s;}
-    .nf-input:focus,.nf-textarea:focus,.nf-select:focus{border-color:var(--blue);}
-    .nf-textarea{resize:vertical;min-height:100px;line-height:1.7;}
-    .nf-select{font-family:var(--mono);font-size:13px;}
-    .nf-actions{display:flex;gap:8px;margin-top:16px;}
-    .btn-nf-save{font-family:var(--mono);font-size:12px;font-weight:600;background:var(--green);color:#fff;border:none;border-radius:3px;padding:9px 22px;cursor:pointer;transition:opacity 0.15s;}
-    .btn-nf-save:hover{opacity:0.85;}
-    .btn-nf-cancel{font-family:var(--mono);font-size:12px;background:none;color:var(--muted);border:1px solid var(--border);border-radius:3px;padding:9px 16px;cursor:pointer;transition:all 0.15s;}
-    .btn-nf-cancel:hover{color:var(--text-mid);border-color:var(--border2);}
+    .nugget-form {
+      background: rgba(122,92,255,0.06);
+      border: 1px solid var(--accent-line);
+      border-radius: 12px; padding: 24px;
+      margin-bottom: 24px; display: none;
+    }
+    .nugget-form.open { display: block; }
+    .form-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--accent-text); margin-bottom: 18px;
+    }
+    .nf-row { margin-bottom: 14px; }
+    .nf-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.40); display: block; margin-bottom: 7px;
+    }
+    .nf-input, .nf-textarea, .nf-select {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text);
+      font-family: var(--font); font-size: 14px;
+      padding: 10px 14px; outline: none; transition: border-color 0.15s;
+    }
+    .nf-input:focus, .nf-textarea:focus, .nf-select:focus { border-color: var(--accent-line-strong); }
+    .nf-textarea { resize: vertical; min-height: 100px; line-height: 1.7; }
+    .nf-select { font-size: 13px; }
+    .nf-actions { display: flex; gap: 8px; margin-top: 18px; }
+    .btn-nf-save {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+      background: linear-gradient(180deg, rgba(62,207,142,0.26), rgba(20,100,60,0.38));
+      color: #d0faea; border: 1px solid var(--green-bd);
+      border-radius: 8px; padding: 9px 22px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-nf-save:hover { opacity: 0.85; }
+    .btn-nf-cancel {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      background: none; color: rgba(255,255,255,0.36);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 9px 16px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-nf-cancel:hover { color: rgba(255,255,255,0.70); border-color: rgba(255,255,255,0.18); }
 
     /* Nugget cards */
-    .nugget-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:18px 20px;margin-bottom:10px;transition:border-color 0.15s;}
-    .nugget-card:hover{border-color:var(--border2);}
-    .nugget-text{font-size:15px;line-height:1.75;color:var(--text-mid);margin-bottom:12px;white-space:pre-wrap;}
-    .nugget-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-    .nugget-cat{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 9px;border-radius:2px;background:var(--surface2);color:var(--text-mid);border:1px solid var(--border2);letter-spacing:0.06em;text-transform:uppercase;}
-    .nugget-source{font-family:var(--mono);font-size:11px;color:var(--dim);}
-    .nugget-tags{display:flex;gap:4px;flex-wrap:wrap;}
-    .nugget-tag{font-family:var(--mono);font-size:10px;color:var(--dim);background:var(--surface2);border:1px solid var(--border);padding:2px 7px;border-radius:2px;}
-    .nugget-platforms{display:flex;gap:4px;margin-left:auto;}
-    .nplt{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:2px;border:1px solid;text-transform:uppercase;letter-spacing:0.05em;}
-    .nplt.used{background:var(--green-bg);color:var(--green);border-color:var(--green-bd);}
-    .nplt.unused{background:var(--surface2);color:var(--dim);border-color:var(--border);}
-    .nugget-actions{display:flex;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
-    .btn-nugget-action{font-family:var(--mono);font-size:11px;font-weight:600;background:none;color:var(--muted);border:1px solid var(--border);border-radius:3px;padding:5px 13px;cursor:pointer;transition:all 0.15s;}
-    .btn-nugget-action:hover{color:var(--text-mid);border-color:var(--border2);}
-    .btn-nugget-delete{color:var(--red);}
-    .btn-nugget-delete:hover{background:var(--red-bg);border-color:var(--red-bd);color:var(--red);}
-
-    .loading-state{text-align:center;padding:60px 0;}
-    .loading-spin{width:24px;height:24px;border-radius:50%;border:2px solid var(--border2);border-top-color:var(--text-mid);animation:spin 0.7s linear infinite;margin:0 auto 14px;}
-    @keyframes spin{to{transform:rotate(360deg);}}
-    .loading-text{font-family:var(--mono);font-size:13px;color:var(--muted);}
-    .empty-state{text-align:center;padding:60px 0;}
-    .empty-state p{font-family:var(--mono);font-size:13px;color:var(--muted);}
-    ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+    .nugget-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px; padding: 20px 22px;
+      margin-bottom: 10px; transition: border-color 0.15s;
+    }
+    .nugget-card:hover { border-color: rgba(255,255,255,0.12); }
+    .nugget-text {
+      font-size: 15px; line-height: 1.80;
+      color: var(--muted-2); margin-bottom: 14px;
+      white-space: pre-wrap;
+    }
+    .nugget-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .nugget-cat {
+      font-size: 9px; font-weight: 700; padding: 3px 9px; border-radius: 4px;
+      background: rgba(122,92,255,0.10); color: var(--accent-text);
+      border: 1px solid var(--accent-line); letter-spacing: 0.10em; text-transform: uppercase;
+    }
+    .nugget-source { font-size: 11px; color: rgba(255,255,255,0.24); letter-spacing: 0.04em; }
+    .nugget-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+    .nugget-tag {
+      font-size: 10px; color: rgba(255,255,255,0.30);
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft);
+      padding: 2px 8px; border-radius: 4px; letter-spacing: 0.04em;
+    }
+    .nugget-platforms { display: flex; gap: 4px; margin-left: auto; }
+    .nplt {
+      font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
+      border: 1px solid; text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .nplt.used   { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
+    .nplt.unused { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.22); border-color: var(--border-soft); }
+    .nugget-actions {
+      display: flex; gap: 6px; margin-top: 14px;
+      padding-top: 14px; border-top: 1px solid var(--border-soft);
+    }
+    .btn-nugget-action {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: none; color: rgba(255,255,255,0.36);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 5px 14px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-nugget-action:hover { color: rgba(255,255,255,0.70); border-color: rgba(255,255,255,0.18); }
+    .btn-nugget-delete:hover { background: var(--red-bg); border-color: var(--red-bd); color: var(--red); }
   </style>
 </head>
 <body>
 
 <nav class="nav">
-  <div class="nav-wordmark">FFX <span>Internal</span></div>
-  <div class="nav-links">
-    <a href="/dashboard.html"            class="nav-link">Dashboard</a>
-    <a href="/dashboard-press.html"      class="nav-link">Press + Queue</a>
-    <a href="/dashboard-generate.html"             class="nav-link">Generate</a>
-    <a href="/dashboard-knowledge.html"  class="nav-link active">Knowledge</a>
-    <a href="/dashboard-seo.html"        class="nav-link">SEO</a>
-    <a href="/dashboard-audience.html"   class="nav-link">Audience</a>
-    <a href="/dashboard-youtube.html"    class="nav-link">YouTube</a>
+  <div class="nav-inner">
+    <div class="nav-wordmark">FFX <span>·</span> Internal</div>
+    <div class="nav-links">
+      <a href="/dashboard.html"           class="nav-link">Dashboard</a>
+      <a href="/dashboard-press.html"     class="nav-link">Press</a>
+      <a href="/dashboard-queue.html"     class="nav-link">Queue</a>
+      <a href="/dashboard-knowledge.html" class="nav-link active">Knowledge</a>
+      <a href="/dashboard-seo.html"       class="nav-link">SEO</a>
+      <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
+      <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
+    </div>
   </div>
 </nav>
 
-<div class="kl-layout">
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-header-left">
+      <div class="wordmark">FFX <span>Knowledge</span></div>
+      <div class="header-count" id="headerCount">—</div>
+    </div>
+    <div class="header-right">
+      <div class="status-dot"></div>
+      <button class="btn-add" onclick="toggleForm()">+ Add Nugget</button>
+    </div>
+  </div>
+</div>
+
+<div class="kl-wrap">
   <div class="kl-sidebar" id="klSidebar"></div>
   <div class="kl-main">
     <div class="kl-toolbar">
       <input class="kl-search" id="klSearch" type="text" placeholder="Search knowledge library…" />
-      <button class="btn-add" onclick="toggleForm()">+ Add Nugget</button>
     </div>
     <div class="nugget-form" id="nuggetForm">
       <div class="form-title" id="formTitle">New Knowledge Nugget</div>
@@ -132,38 +240,33 @@
         <button class="btn-nf-cancel" onclick="toggleForm()">Cancel</button>
       </div>
     </div>
-    <div id="nuggetList"><div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading knowledge library…</div></div></div>
+    <div id="nuggetList">
+      <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading knowledge library…</div></div>
+    </div>
   </div>
 </div>
 
 <script>
 const CATEGORIES = [
-  'All',
-  'CTW Framework',
-  'Market Psychology',
-  'Execution Discipline',
-  'Professional Thinking',
-  'Trading Reality',
-  'Lifestyle & Philosophy',
-  'Founder Observation',
-  'Hook / Viral'
+  'All','CTW Framework','Market Psychology','Execution Discipline',
+  'Professional Thinking','Trading Reality','Lifestyle & Philosophy',
+  'Founder Observation','Hook / Viral'
 ];
 const PLATFORMS = ['blog','x','linkedin','discord','tumblr'];
 
-let allNuggets  = [];
-let currentCat  = 'All';
-let editingId   = null;
+let allNuggets = [];
+let currentCat = 'All';
+let editingId  = null;
 
-// Build sidebar
 function buildSidebar() {
   const sidebar = document.getElementById('klSidebar');
-  sidebar.innerHTML = '';
-  CATEGORIES.forEach((c, i) => {
+  sidebar.innerHTML = '<span class="kl-sidebar-title">Categories</span>';
+  CATEGORIES.forEach((c,i) => {
     const btn = document.createElement('button');
     btn.className = 'kl-cat-btn' + (i===0?' active':'');
     btn.dataset.cat = c;
     const count = c==='All' ? allNuggets.length : allNuggets.filter(n=>n.category===c).length;
-    btn.innerHTML = c + (count ? '<span class="kl-cat-count">'+count+'</span>' : '');
+    btn.innerHTML = '<span>'+c+'</span>' + (count ? '<span class="kl-cat-count">'+count+'</span>' : '');
     btn.addEventListener('click', () => {
       document.querySelectorAll('.kl-cat-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
@@ -174,7 +277,6 @@ function buildSidebar() {
   });
 }
 
-// Build category select
 function buildSelect() {
   const sel = document.getElementById('nfCategory');
   sel.innerHTML = CATEGORIES.filter(c=>c!=='All').map(c=>'<option value="'+c+'">'+c+'</option>').join('');
@@ -185,6 +287,7 @@ async function loadNuggets() {
     const res  = await fetch('/api/nuggets');
     const data = await res.json();
     allNuggets = data.nuggets || [];
+    document.getElementById('headerCount').textContent = allNuggets.length + ' nuggets';
     buildSidebar();
     renderNuggets();
   } catch(e) {
@@ -199,24 +302,19 @@ function renderNuggets() {
     const matchSearch = !search || n.text.toLowerCase().includes(search) || (n.tags||[]).join(',').toLowerCase().includes(search);
     return matchCat && matchSearch;
   });
-
   const list = document.getElementById('nuggetList');
-  if (!filtered.length) {
-    list.innerHTML = '<div class="empty-state"><p>No nuggets found. Add your first one above.</p></div>';
-    return;
-  }
-
+  if (!filtered.length) { list.innerHTML='<div class="empty-state"><p>No nuggets found.</p></div>'; return; }
   list.innerHTML = filtered.map(n => {
-    const pubs = n.publishedTo || {};
-    const pills = PLATFORMS.map(p => '<span class="nplt '+(pubs[p]?'used':'unused')+'">'+p+'</span>').join('');
+    const pubs  = n.publishedTo || {};
+    const pills = PLATFORMS.map(p=>'<span class="nplt '+(pubs[p]?'used':'unused')+'">'+p+'</span>').join('');
     const tags  = (n.tags||[]).map(t=>'<span class="nugget-tag">'+escHtml(t)+'</span>').join('');
     return '<div class="nugget-card" data-id="'+n.id+'">'
       +'<div class="nugget-text">'+escHtml(n.text)+'</div>'
       +'<div class="nugget-meta">'
-        +'<span class="nugget-cat">'+n.category+'</span>'
-        +(n.sourceVideoId?'<span class="nugget-source">'+n.sourceVideoId+'</span>':'')
+        +'<span class="nugget-cat">'+escHtml(n.category)+'</span>'
+        +(n.sourceVideoId?'<span class="nugget-source">'+escHtml(n.sourceVideoId)+'</span>':'')
         +(tags?'<div class="nugget-tags">'+tags+'</div>':'')
-        +'<div class="nugget-platforms" style="margin-left:auto;">'+pills+'</div>'
+        +'<div class="nugget-platforms">'+pills+'</div>'
       +'</div>'
       +'<div class="nugget-actions">'
         +'<button class="btn-nugget-action" onclick="editNugget(\''+n.id+'\')">Edit</button>'
@@ -231,7 +329,6 @@ function toggleForm() {
   if (form.classList.contains('open') && !editingId) { form.classList.remove('open'); clearForm(); return; }
   form.classList.toggle('open');
 }
-
 function clearForm() {
   document.getElementById('nfText').value = '';
   document.getElementById('nfCategory').value = CATEGORIES[1];
@@ -240,20 +337,17 @@ function clearForm() {
   document.getElementById('formTitle').textContent = 'New Knowledge Nugget';
   editingId = null;
 }
-
 function editNugget(id) {
-  const n = allNuggets.find(x=>x.id===id);
-  if (!n) return;
+  const n = allNuggets.find(x=>x.id===id); if(!n)return;
   editingId = id;
-  document.getElementById('editId').value   = id;
-  document.getElementById('nfText').value   = n.text;
+  document.getElementById('editId').value = id;
+  document.getElementById('nfText').value = n.text;
   document.getElementById('nfCategory').value = n.category;
-  document.getElementById('nfTags').value   = (n.tags||[]).join(', ');
+  document.getElementById('nfTags').value = (n.tags||[]).join(', ');
   document.getElementById('formTitle').textContent = 'Edit Nugget';
   document.getElementById('nuggetForm').classList.add('open');
-  document.getElementById('nuggetForm').scrollIntoView({ behavior:'smooth' });
+  document.getElementById('nuggetForm').scrollIntoView({behavior:'smooth'});
 }
-
 async function saveNugget() {
   const text     = document.getElementById('nfText').value.trim();
   const category = document.getElementById('nfCategory').value;
@@ -262,26 +356,22 @@ async function saveNugget() {
   const payload = { text, category, tags };
   if (editingId) payload.id = editingId;
   try {
-    const res  = await fetch('/api/nuggets', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const res = await fetch('/api/nuggets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const data = await res.json();
     if (res.ok) { clearForm(); document.getElementById('nuggetForm').classList.remove('open'); await loadNuggets(); }
-    else { alert('Save failed: '+(data.error||'Unknown')); }
+    else alert('Save failed: '+(data.error||'Unknown'));
   } catch(e) { alert('Network error.'); }
 }
-
 async function deleteNugget(id) {
   if (!confirm('Delete this nugget?')) return;
   try {
-    const res = await fetch('/api/nuggets?id='+id, { method:'DELETE' });
+    const res = await fetch('/api/nuggets?id='+id,{method:'DELETE'});
     if (res.ok) await loadNuggets();
     else alert('Delete failed.');
   } catch(e) { alert('Network error.'); }
 }
-
-function escHtml(str) { if(!str)return''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
+function escHtml(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 document.getElementById('klSearch').addEventListener('input', renderNuggets);
-
 buildSelect();
 document.addEventListener('DOMContentLoaded', loadNuggets);
 </script>
