@@ -119,6 +119,20 @@ async function addToQueueBottom(env, video) {
 // FIND NEW VIDEO (last 25hrs)
 // ─────────────────────────────────────────────────────────────────────────────
 
+async function isLongFormVideo(videoId, apiKey) {
+  const url = `${YOUTUBE_API_BASE}/videos?part=contentDetails&id=${videoId}&key=${apiKey}`;
+  const res = await fetch(url);
+  if (!res.ok) return true;
+  const data = await res.json();
+  const duration = data.items?.[0]?.contentDetails?.duration || '';
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return true;
+  const hours = parseInt(match[1] || 0);
+  const mins  = parseInt(match[2] || 0);
+  const secs  = parseInt(match[3] || 0);
+  const total = hours * 3600 + mins * 60 + secs;
+  return total >= 60;
+}
 async function findNewVideo(env) {
   const since = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
   const url   = `${YOUTUBE_API_BASE}/search?part=snippet&channelId=${env.YOUTUBE_CHANNEL_ID}&type=video&order=date&publishedAfter=${since}&maxResults=10&key=${env.YOUTUBE_API_KEY}`;
@@ -141,6 +155,9 @@ async function findNewVideo(env) {
 
     // Skip if already in queue
     if (queue.some(q => q.videoId === videoId)) continue;
+
+    const isLong = await isLongFormVideo(videoId, env.YOUTUBE_API_KEY);
+    if (!isLong) continue;
 
     return {
       videoId,
@@ -183,6 +200,9 @@ async function findBacklogVideos(env, limit, currentQueue) {
       // Skip if already published
       const published = await env.FFX_KV.get(`published:${videoId}`).catch(() => null);
       if (published) continue;
+
+      const isLong = await isLongFormVideo(videoId, env.YOUTUBE_API_KEY);
+      if (!isLong) continue;
 
       results.push({
         videoId,
