@@ -332,21 +332,21 @@ body > * { position: relative; z-index: 1; }
 
 /* ── Row Info ── */
 .row-title {
-  font-size: 30px; font-weight: 700;
+  font-size: 16px; font-weight: 700;
   color: var(--text); line-height: 1.35;
   margin-bottom: 8px; letter-spacing: -0.01em;
 }
 .row-meta {
-  font-size: 11px; color: rgba(255,255,255,0.46);
+  font-size: 14px; color: rgba(255,255,255,0.46);
   display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
   margin-bottom: 6px; letter-spacing: 0.02em;
 }
 .row-slug {
-  font-size: 11px; color: rgba(255,255,255,0.46);
+  font-size: 14px; color: rgba(255,255,255,0.46);
   letter-spacing: 0.02em;
 }
 .row-yt-url {
-  font-size: 11px; color: rgba(122,92,255,0.80);
+  font-size: 14px; color: rgba(122,92,255,0.80);
   text-decoration: none; display: inline-block; margin-top: 4px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   transition: color 0.15s;
