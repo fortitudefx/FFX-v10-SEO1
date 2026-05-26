@@ -152,7 +152,7 @@ async function regenPlatform(transcript, youtubeUrl, articleUrl, platform, apiKe
     x: {
       fields: ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
       instruction: `Regenerate the X thread. Return a JSON object with keys tweet1 through tweet6.
-THREAD RULES: tweet1 is the hook (no link). tweet2-3 end with https://fortitudefx.com. tweet4 ends with https://fortitudefx.com/vipdiscord. tweet5 ends with https://fortitudefx.com/bootcamp. tweet6 includes ${articleUrl} and ${youtubeUrl}.
+- THREAD: exactly 6 tweets. Posts 2-3 include https://fortitudefx.com embedded within the tweet text, not on its own line. Post 4 includes https://fortitudefx.com/vipdiscord embedded within the tweet text. Post 5 includes https://fortitudefx.com/bootcamp embedded within the tweet text. Post 6 ends with ${articleUrl} and ${youtubeUrl} on their own lines — this is the only tweet where the URL sits alone to generate a card preview.
 BANNED OPENING WORDS: Never start any tweet with "Most traders", "The reality is", "One thing I've learned", "The market doesn't care", "This is why", "Here's the truth", "Trading is", "Many traders", "Many people".
 Return: { "tweet1": "...", "tweet2": "...", "tweet3": "...", "tweet4": "...", "tweet5": "...", "tweet6": "..." }`,
     },
