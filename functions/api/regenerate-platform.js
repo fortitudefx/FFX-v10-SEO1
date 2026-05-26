@@ -133,7 +133,7 @@ The body field contains HTML — ensure all quotes inside HTML attributes use si
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
-      max_tokens: 3500,
+      max_tokens: 6000,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Transcript:\n\n${transcript}\n\nVOICE: This is Salman speaking — founder of FortitudeFX™. Write in his voice — direct, calm, experienced, institutional tone. Study his sentence rhythm and phrasing from the transcript before writing.` }],
     }),
