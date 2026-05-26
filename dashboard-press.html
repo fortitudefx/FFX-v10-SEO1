@@ -313,6 +313,8 @@ async function publishVideo(videoId,slug,actionRow,pubBtn,container,video){
     if(!res.ok){showPubResult(container,data.error||'Publish failed.',false);pubBtn.disabled=false;pubBtn.textContent='Publish';return;}
     if(data.status){if(!video.platforms)video.platforms={};Object.keys(data.status).forEach(p=>{const s=data.status[p];if(!s||s==='not_selected'||s==='pending')return;if(!video.platforms[p])video.platforms[p]={};video.platforms[p].status=s;video.platforms[p].publishedAt=new Date().toISOString();});}
     const row=container.closest('.video-row'); if(data.status)updatePills(row,data.status);
+    try{const freshRes=await fetch('/press-data');const freshData=await freshRes.json();if(freshRes.ok&&freshData.videos){const fv=freshData.videos.find(v=>v.videoId===video.videoId||v.slug===video.slug);if(fv)Object.assign(video,fv);}}catch{}
+    await rebuildExpanded(container,video); showPubResult(container,'\u2713 Published successfully',true); pubBtn.disabled=false; pubBtn.textContent='Publish';
     await rebuildExpanded(container,video); showPubResult(container,'\u2713 Published successfully',true); pubBtn.disabled=false; pubBtn.textContent='Publish';
   }catch(err){showPubResult(container,'Network error: '+err.message,false);pubBtn.disabled=false;pubBtn.textContent='Publish';}
 }
