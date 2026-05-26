@@ -100,15 +100,15 @@
       border-bottom: 1px solid var(--border-soft);
       align-items: center;
       transition: background 0.15s;
-      font-size: 13px;
+      font-size: 14px;
     }
     .seo-table-row:last-child { border-bottom: none; }
     .seo-table-row:hover { background: rgba(122,92,255,0.04); }
     .seo-table-head {
-      padding: 10px 24px;
+      padding: 12px 24px;
       border-bottom: 1px solid var(--border-soft);
-      font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
-      color: var(--accent-text);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(196,181,253,0.80);
     }
 
     /* Queries table */
@@ -116,15 +116,15 @@
     .pages-row   { grid-template-columns: 1fr 80px 80px 80px; }
     .countries-row { grid-template-columns: 1fr 80px 80px; }
 
-    .seo-url { color: rgba(122,92,255,0.80); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .seo-num { text-align: right; color: var(--muted-2); font-size: 12px; font-weight: 600; }
-    .seo-query { color: var(--muted); font-size: 13px; }
+    .seo-url { color: rgba(255,255,255,0.72); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .seo-num { text-align: right; color: rgba(255,255,255,0.60); font-size: 14px; font-weight: 600; }
+    .seo-query { color: rgba(255,255,255,0.72); font-size: 14px; }
 
     /* Position badge */
     .pos-badge {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 36px; height: 22px; border-radius: 4px;
-      font-size: 11px; font-weight: 700;
+      width: 42px; height: 24px; border-radius: 4px;
+      font-size: 13px; font-weight: 700;
     }
     .pos-1  { background: rgba(201,168,76,0.15); color: var(--accent-warm-text); border: 1px solid var(--accent-warm-line); }
     .pos-10 { background: var(--green-bg);        color: var(--green);            border: 1px solid var(--green-bd); }
@@ -166,6 +166,31 @@
 
     /* Error */
     .seo-error { color: var(--red); font-size: 12px; padding: 16px 24px; }
+
+
+    /* Trend charts */
+    .chart-wrap {
+      padding: 24px;
+    }
+    .chart-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      color: rgba(255,255,255,0.36); margin-bottom: 20px;
+    }
+    .chart-canvas-wrap {
+      position: relative; height: 180px;
+    }
+    canvas { width: 100% !important; }
+    .chart-legend {
+      display: flex; gap: 20px; margin-top: 14px;
+    }
+    .chart-legend-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.50);
+    }
+    .chart-legend-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
 
     /* Disconnect */
     .btn-disconnect {
@@ -226,6 +251,31 @@
 
   <!-- Dashboard -->
   <div class="seo-dashboard" id="seoDashboard">
+
+
+    <!-- Trend charts -->
+    <div class="seo-grid-2" id="chartsRow" style="display:none;">
+      <div class="seo-panel">
+        <div class="seo-panel-header"><span class="seo-panel-title">Daily Clicks &amp; Impressions — Last 28 Days</span></div>
+        <div class="chart-wrap">
+          <div class="chart-canvas-wrap"><canvas id="chartClicksImpr"></canvas></div>
+          <div class="chart-legend">
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(122,92,255,0.90);"></div>Clicks</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(201,168,76,0.80);"></div>Impressions</div>
+          </div>
+        </div>
+      </div>
+      <div class="seo-panel">
+        <div class="seo-panel-header"><span class="seo-panel-title">Weekly Avg Position &amp; CTR — Last 90 Days</span></div>
+        <div class="chart-wrap">
+          <div class="chart-canvas-wrap"><canvas id="chartPosCtr"></canvas></div>
+          <div class="chart-legend">
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(62,207,142,0.90);"></div>Avg Position</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(249,115,22,0.80);"></div>CTR %</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Stat cards -->
     <div class="stat-row" id="statRow">
@@ -485,7 +535,7 @@ function renderCountries(rows) {
     const country = r.keys[0].toUpperCase();
     const pct     = total ? (r.impressions/total*100).toFixed(1) : 0;
     return '<div class="seo-table-row countries-row">'
-      + '<span style="color:var(--muted-2);font-size:13px;">' + escHtml(country) + ' <span style="color:rgba(255,255,255,0.28);font-size:11px;">' + pct + '%</span></span>'
+      + '<span style="color:rgba(255,255,255,0.72);font-size:14px;">' + escHtml(country) + ' <span style="color:rgba(255,255,255,0.28);font-size:11px;">' + pct + '%</span></span>'
       + '<span class="seo-num">' + fmt(r.clicks) + '</span>'
       + '<span class="seo-num">' + fmt(r.impressions) + '</span>'
       + '</div>';
@@ -551,6 +601,146 @@ function posBadge(pos) {
   return '<span class="pos-badge pos-50">' + p + '</span>';
 }
 
+
+// ── Chart.js loader ───────────────────────────────────────────────────────
+function loadChartJs(callback) {
+  if (window.Chart) { callback(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+  s.onload = callback;
+  document.head.appendChild(s);
+}
+
+async function loadCharts() {
+  loadChartJs(async () => {
+    try {
+      const [daily, weekly] = await Promise.all([
+        scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, {
+          startDate: dateRange(28).startDate,
+          endDate:   dateRange(28).endDate,
+          dimensions: ['date'],
+          rowLimit: 28,
+        }),
+        scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, {
+          startDate: dateRange(90).startDate,
+          endDate:   dateRange(90).endDate,
+          dimensions: ['date'],
+          rowLimit: 90,
+        }),
+      ]);
+
+      document.getElementById('chartsRow').style.display = 'grid';
+
+      // Daily clicks + impressions chart
+      const dailyRows = (daily.rows || []).sort((a,b) => a.keys[0].localeCompare(b.keys[0]));
+      const dailyLabels = dailyRows.map(r => r.keys[0].slice(5)); // MM-DD
+      const dailyClicks = dailyRows.map(r => r.clicks);
+      const dailyImprs  = dailyRows.map(r => r.impressions);
+
+      new Chart(document.getElementById('chartClicksImpr'), {
+        type: 'bar',
+        data: {
+          labels: dailyLabels,
+          datasets: [
+            {
+              label: 'Clicks',
+              data: dailyClicks,
+              backgroundColor: 'rgba(122,92,255,0.70)',
+              borderColor: 'rgba(122,92,255,0.90)',
+              borderWidth: 1,
+              borderRadius: 3,
+              yAxisID: 'y',
+            },
+            {
+              label: 'Impressions',
+              data: dailyImprs,
+              backgroundColor: 'rgba(201,168,76,0.50)',
+              borderColor: 'rgba(201,168,76,0.80)',
+              borderWidth: 1,
+              borderRadius: 3,
+              yAxisID: 'y1',
+            },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(9,9,16,0.92)', titleColor: 'rgba(255,255,255,0.70)', bodyColor: 'rgba(255,255,255,0.90)', borderColor: 'rgba(122,92,255,0.30)', borderWidth: 1 } },
+          scales: {
+            x: { ticks: { color: 'rgba(255,255,255,0.30)', font: { size: 10 }, maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: 'rgba(255,255,255,0.08)' } },
+            y:  { position: 'left',  ticks: { color: 'rgba(122,92,255,0.80)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: 'rgba(255,255,255,0.08)' } },
+            y1: { position: 'right', ticks: { color: 'rgba(201,168,76,0.70)', font: { size: 10 } }, grid: { display: false }, border: { color: 'rgba(255,255,255,0.08)' } },
+          }
+        }
+      });
+
+      // Weekly position + CTR — aggregate by week
+      const weeklyRows = (weekly.rows || []).sort((a,b) => a.keys[0].localeCompare(b.keys[0]));
+      const weeks = {};
+      weeklyRows.forEach(r => {
+        const d = new Date(r.keys[0]);
+        const weekStart = new Date(d); weekStart.setDate(d.getDate() - d.getDay());
+        const key = weekStart.toISOString().split('T')[0];
+        if (!weeks[key]) weeks[key] = { pos: [], ctr: [] };
+        weeks[key].pos.push(r.position);
+        weeks[key].ctr.push(r.ctr * 100);
+      });
+      const weekLabels = Object.keys(weeks).sort().map(k => k.slice(5));
+      const weekPos    = Object.keys(weeks).sort().map(k => { const a = weeks[k].pos; return (a.reduce((s,v)=>s+v,0)/a.length).toFixed(1); });
+      const weekCtr    = Object.keys(weeks).sort().map(k => { const a = weeks[k].ctr; return (a.reduce((s,v)=>s+v,0)/a.length).toFixed(2); });
+
+      new Chart(document.getElementById('chartPosCtr'), {
+        type: 'line',
+        data: {
+          labels: weekLabels,
+          datasets: [
+            {
+              label: 'Avg Position',
+              data: weekPos,
+              borderColor: 'rgba(62,207,142,0.90)',
+              backgroundColor: 'rgba(62,207,142,0.08)',
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: 'rgba(62,207,142,0.90)',
+              tension: 0.4,
+              fill: true,
+              yAxisID: 'y',
+            },
+            {
+              label: 'CTR %',
+              data: weekCtr,
+              borderColor: 'rgba(249,115,22,0.80)',
+              backgroundColor: 'rgba(249,115,22,0.06)',
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: 'rgba(249,115,22,0.80)',
+              tension: 0.4,
+              fill: true,
+              yAxisID: 'y1',
+            },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(9,9,16,0.92)', titleColor: 'rgba(255,255,255,0.70)', bodyColor: 'rgba(255,255,255,0.90)', borderColor: 'rgba(122,92,255,0.30)', borderWidth: 1 } },
+          scales: {
+            x: { ticks: { color: 'rgba(255,255,255,0.30)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: 'rgba(255,255,255,0.08)' } },
+            y:  { position: 'left',  reverse: true, title: { display: true, text: 'Position', color: 'rgba(62,207,142,0.60)', font: { size: 10 } }, ticks: { color: 'rgba(62,207,142,0.70)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: 'rgba(255,255,255,0.08)' } },
+            y1: { position: 'right', ticks: { color: 'rgba(249,115,22,0.70)', font: { size: 10 }, callback: v => v+'%' }, grid: { display: false }, border: { color: 'rgba(255,255,255,0.08)' } },
+          }
+        }
+      });
+
+    } catch(e) {
+      console.error('Chart load error:', e);
+      document.getElementById('chartsRow').style.display = 'none';
+    }
+  });
+}
+
 // ── Date selector ─────────────────────────────────────────────────────────
 document.getElementById('dateSelector').addEventListener('click', e => {
   const btn = e.target.closest('.date-btn');
@@ -568,6 +758,7 @@ function showDashboard() {
   document.getElementById('btnDisconnect').style.display = 'inline-block';
   document.getElementById('statusDot').style.cssText = '';
   loadAll(28);
+  loadCharts();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
