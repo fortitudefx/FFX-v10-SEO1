@@ -301,7 +301,7 @@ function renderNuggets() {
       +'<div class="nugget-text">'+escHtml(n.text)+'</div>'
       +'<div class="nugget-meta">'
         +'<span class="nugget-cat">'+escHtml(n.category)+'</span>'
-        +(n.sourceVideoId?'<span class="nugget-source">'+escHtml(n.sourceVideoId)+'</span>':'')
+        +(n.youtubeUrl?'<a class="nugget-source" href="'+escHtml(n.youtubeUrl)+'" target="_blank" style="font-size:13px;color:rgba(255,255,255,0.55);text-decoration:none;">'+escHtml(n.youtubeUrl)+'</a>':n.sourceVideoId?'<span class="nugget-source" style="font-size:13px;color:rgba(255,255,255,0.55);">'+escHtml(n.sourceVideoId)+'</span>':'')
         +(tags?'<div class="nugget-tags">'+tags+'</div>':'')
         +'<div class="nugget-platforms">'+pills+'</div>'
       +'</div>'
