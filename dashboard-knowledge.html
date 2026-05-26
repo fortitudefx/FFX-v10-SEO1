@@ -25,6 +25,7 @@
     /* Sidebar */
     .kl-sidebar {
       border-right: 1px solid rgba(255,255,255,0.07);
+      background: rgba(0,0,0,0.15);
       padding: 24px 0;
     }
     .kl-sidebar-title {
@@ -63,8 +64,8 @@
     .kl-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
     .kl-search {
       flex: 1;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.09);
       border-radius: 8px;
       color: var(--text);
       font-family: var(--font);
@@ -100,8 +101,8 @@
     }
     .nf-input, .nf-textarea, .nf-select {
       width: 100%;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.09);
       border-radius: 8px; color: var(--text);
       font-family: var(--font); font-size: 14px;
       padding: 10px 14px; outline: none; transition: border-color 0.15s;
@@ -127,15 +128,15 @@
 
     /* Nugget cards */
     .nugget-card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border-soft);
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.07);
       border-radius: 10px; padding: 20px 22px;
-      margin-bottom: 10px; transition: border-color 0.15s;
+      margin-bottom: 10px; transition: border-color 0.15s, background 0.15s;
     }
-    .nugget-card:hover { border-color: rgba(255,255,255,0.12); }
+    .nugget-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); }
     .nugget-text {
       font-size: 15px; line-height: 1.80;
-      color: var(--muted-2); margin-bottom: 14px;
+      color: rgba(255,255,255,0.68); margin-bottom: 14px;
       white-space: pre-wrap;
     }
     .nugget-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -147,8 +148,8 @@
     .nugget-source { font-size: 11px; color: rgba(255,255,255,0.24); letter-spacing: 0.04em; }
     .nugget-tags { display: flex; gap: 4px; flex-wrap: wrap; }
     .nugget-tag {
-      font-size: 10px; color: rgba(255,255,255,0.30);
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft);
+      font-size: 10px; color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
       padding: 2px 8px; border-radius: 4px; letter-spacing: 0.04em;
     }
     .nugget-platforms { display: flex; gap: 4px; margin-left: auto; }
@@ -157,19 +158,19 @@
       border: 1px solid; text-transform: uppercase; letter-spacing: 0.08em;
     }
     .nplt.used   { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
-    .nplt.unused { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.22); border-color: var(--border-soft); }
+    .nplt.unused { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.08); }
     .nugget-actions {
       display: flex; gap: 6px; margin-top: 14px;
-      padding-top: 14px; border-top: 1px solid var(--border-soft);
+      padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.07);
     }
     .btn-nugget-action {
       font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
       background: none; color: rgba(255,255,255,0.36);
-      border: 1px solid var(--border); border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.09); border-radius: 6px;
       padding: 5px 14px; cursor: pointer; transition: all 0.15s;
     }
-    .btn-nugget-action:hover { color: rgba(255,255,255,0.70); border-color: rgba(255,255,255,0.18); }
-    .btn-nugget-delete:hover { background: var(--red-bg); border-color: var(--red-bd); color: var(--red); }
+    .btn-nugget-action:hover { color: rgba(255,255,255,0.70); border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); }
+    .btn-nugget-delete:hover { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.25); color: rgba(248,113,113,0.80); }
   </style>
 </head>
 <body>
