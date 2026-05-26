@@ -1,1 +1,583 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>FFX SEO</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}:root{--bg:#1a1c21;--bg2:#20232a;--surface:#252830;--surface2:#2c2f38;--border:#32353f;--border2:#3d4150;--text:#e2e0db;--text-mid:#b8b5ae;--muted:#7a7870;--dim:#4a4845;--green:#4d9e72;--blue:#5b8fc4;--mono:"IBM Plex Mono",monospace;--sans:"IBM Plex Sans",sans-serif;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;line-height:1.7;}.nav{border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;position:sticky;top:0;background:var(--bg);z-index:100;gap:0;}.nav-wordmark{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.08em;color:var(--text);margin-right:36px;flex-shrink:0;}.nav-wordmark span{color:var(--muted);font-weight:400;}.nav-links{display:flex;gap:2px;flex:1;}.nav-link{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:7px 14px;border-radius:3px;color:var(--muted);text-decoration:none;transition:background 0.15s,color 0.15s;}.nav-link:hover{background:var(--surface);color:var(--text-mid);}.nav-link.active{background:var(--surface2);color:var(--text);}main{max-width:800px;margin:0 auto;padding:60px 32px;}.page-title{font-family:var(--mono);font-size:18px;font-weight:600;letter-spacing:0.02em;color:var(--text);margin-bottom:4px;}.page-sub{font-size:14px;color:var(--muted);margin-bottom:40px;}.placeholder-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:40px;text-align:center;}.placeholder-title{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text-mid);margin-bottom:12px;}.placeholder-body{font-family:var(--mono);font-size:13px;color:var(--muted);line-height:1.8;}</style></head><body><nav class="nav"><div class="nav-wordmark">FFX <span>Internal</span></div><div class="nav-links"><a href="/dashboard.html" class="nav-link">Dashboard</a><a href="/dashboard-press.html" class="nav-link">Press + Queue</a><a href="/dashboard-generate.html" class="nav-link">Generate</a><a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a><a href="/dashboard-seo.html" class="nav-link active">SEO</a><a href="/dashboard-audience.html" class="nav-link">Audience</a><a href="/dashboard-youtube.html" class="nav-link">YouTube</a></div></nav><main><div class="page-title">SEO & Search Console</div><div class="page-sub">Impressions, clicks, position, top queries, indexing errors</div><div class="placeholder-card"><div class="placeholder-title">Google Search Console API — Coming Soon</div><div class="placeholder-body">Requires a Google service account with Search Console access.<br>Once connected: impressions, clicks, CTR, average position,<br>top 10 queries, top pages, crawl errors and indexing issues.</div></div></main></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFX SEO</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/dashboard-styles.css">
+  <style>
+    .seo-wrap {
+      max-width: var(--content-max);
+      width: calc(100% - 80px);
+      margin: 32px auto 80px;
+      position: relative; z-index: 1;
+    }
+
+    /* Connect state */
+    .connect-box {
+      border-radius: var(--radius-xl);
+      border: 1.5px solid rgba(122,92,255,0.28);
+      box-shadow: 0 0 32px rgba(122,92,255,0.14), 0 32px 96px rgba(0,0,0,0.44);
+      background: radial-gradient(ellipse 75% 40% at 12% 6%, rgba(122,92,255,0.14) 0%, transparent 70%),
+        linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(45,20,114,0.04) 100%);
+      padding: 80px 40px;
+      text-align: center;
+    }
+    .connect-box h2 { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 12px; letter-spacing: -0.02em; }
+    .connect-box p { font-size: 15px; color: var(--muted-2); margin-bottom: 32px; line-height: 1.7; }
+    .btn-connect {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: linear-gradient(180deg, rgba(122,92,255,0.26), rgba(45,20,114,0.38));
+      color: #efe9ff; border: 1px solid var(--accent-line-strong); border-radius: 10px;
+      padding: 14px 28px; cursor: pointer; transition: all 0.2s;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 28px rgba(122,92,255,0.24);
+    }
+    .btn-connect:hover { border-color: rgba(167,139,250,0.60); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 12px 36px rgba(122,92,255,0.36); }
+
+    /* Dashboard grid */
+    .seo-dashboard { display: none; }
+    .seo-dashboard.visible { display: block; }
+
+    /* Stat cards row */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      border-radius: 16px;
+      border: 1px solid var(--border-soft);
+      background: radial-gradient(ellipse 80% 60% at 20% 20%, rgba(122,92,255,0.08) 0%, transparent 70%),
+        linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(45,20,114,0.06) 100%);
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--accent-line); }
+    .stat-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.36); margin-bottom: 10px;
+    }
+    .stat-value {
+      font-size: 32px; font-weight: 800; color: var(--text);
+      letter-spacing: -0.03em; line-height: 1; margin-bottom: 8px;
+    }
+    .stat-delta {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 4px;
+    }
+    .stat-delta.up   { color: var(--green); background: var(--green-bg); }
+    .stat-delta.down { color: var(--red);   background: var(--red-bg); }
+    .stat-delta.flat { color: rgba(255,255,255,0.36); background: rgba(255,255,255,0.05); }
+
+    /* Panels */
+    .seo-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .seo-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .seo-panel {
+      border-radius: 16px;
+      border: 1px solid var(--border-soft);
+      background: linear-gradient(160deg, rgba(255,255,255,0.03) 0%, rgba(45,20,114,0.05) 100%);
+      overflow: hidden;
+    }
+    .seo-panel-header {
+      padding: 18px 24px 14px;
+      border-bottom: 1px solid var(--border-soft);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .seo-panel-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.50);
+    }
+    .seo-panel-body { padding: 0; }
+
+    /* Table rows */
+    .seo-table-row {
+      display: grid;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border-soft);
+      align-items: center;
+      transition: background 0.15s;
+      font-size: 13px;
+    }
+    .seo-table-row:last-child { border-bottom: none; }
+    .seo-table-row:hover { background: rgba(122,92,255,0.04); }
+    .seo-table-head {
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--border-soft);
+      font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--accent-text);
+    }
+
+    /* Queries table */
+    .queries-row { grid-template-columns: 1fr 80px 80px 80px 80px; }
+    .pages-row   { grid-template-columns: 1fr 80px 80px 80px; }
+    .countries-row { grid-template-columns: 1fr 80px 80px; }
+
+    .seo-url { color: rgba(122,92,255,0.80); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .seo-num { text-align: right; color: var(--muted-2); font-size: 12px; font-weight: 600; }
+    .seo-query { color: var(--muted); font-size: 13px; }
+
+    /* Position badge */
+    .pos-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 22px; border-radius: 4px;
+      font-size: 11px; font-weight: 700;
+    }
+    .pos-1  { background: rgba(201,168,76,0.15); color: var(--accent-warm-text); border: 1px solid var(--accent-warm-line); }
+    .pos-10 { background: var(--green-bg);        color: var(--green);            border: 1px solid var(--green-bd); }
+    .pos-20 { background: rgba(122,92,255,0.10);  color: var(--accent-text);      border: 1px solid var(--accent-line); }
+    .pos-50 { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.40);  border: 1px solid var(--border-soft); }
+
+    /* Position distribution */
+    .pos-dist { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; padding: 20px 24px; }
+    .pos-dist-item { text-align: center; }
+    .pos-dist-num { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
+    .pos-dist-label { font-size: 10px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(255,255,255,0.36); }
+
+    /* Date range selector */
+    .date-selector {
+      display: flex; gap: 4px;
+    }
+    .date-btn {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: none; color: rgba(255,255,255,0.36);
+      border: 1px solid transparent; border-radius: 5px;
+      padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .date-btn:hover { color: rgba(255,255,255,0.70); border-color: var(--border); }
+    .date-btn.active { color: var(--accent-text); background: rgba(122,92,255,0.10); border-color: var(--accent-line); }
+
+    /* Alert row */
+    .alert-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 24px; border-bottom: 1px solid var(--border-soft);
+      font-size: 13px; transition: background 0.15s;
+    }
+    .alert-row:hover { background: rgba(248,113,113,0.04); }
+    .alert-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+    .alert-page { color: var(--muted-2); flex: 1; font-size: 12px; }
+    .alert-drop { color: var(--red); font-weight: 700; font-size: 12px; }
+
+    /* Loading */
+    .panel-loading { padding: 40px; text-align: center; color: rgba(255,255,255,0.28); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    /* Error */
+    .seo-error { color: var(--red); font-size: 12px; padding: 16px 24px; }
+
+    /* Disconnect */
+    .btn-disconnect {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: none; color: rgba(255,255,255,0.28);
+      border: 1px solid var(--border-soft); border-radius: 5px;
+      padding: 5px 12px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-disconnect:hover { color: var(--red); border-color: var(--red-bd); }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-wordmark">FFX <span>·</span> Internal</div>
+    <div class="nav-links">
+      <a href="/dashboard.html"           class="nav-link">Dashboard</a>
+      <a href="/dashboard-press.html"     class="nav-link">Press</a>
+      <a href="/dashboard-queue.html"     class="nav-link">Queue</a>
+      <a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a>
+      <a href="/dashboard-seo.html"       class="nav-link active">SEO</a>
+      <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
+      <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-header-left">
+      <div class="wordmark">FFX <span>SEO</span></div>
+      <div class="header-count" id="headerCount">Search Console</div>
+    </div>
+    <div class="header-right">
+      <div class="date-selector" id="dateSelector" style="display:none;">
+        <button class="date-btn" data-days="7">7D</button>
+        <button class="date-btn active" data-days="28">28D</button>
+        <button class="date-btn" data-days="90">90D</button>
+      </div>
+      <div class="status-dot" id="statusDot" style="background:var(--muted);box-shadow:none;animation:none;"></div>
+      <button class="btn-disconnect" id="btnDisconnect" style="display:none;" onclick="disconnect()">Disconnect</button>
+    </div>
+  </div>
+</div>
+
+<div class="seo-wrap">
+
+  <!-- Connect state -->
+  <div class="connect-box" id="connectBox">
+    <h2>Connect Google Search Console</h2>
+    <p>Sign in with your Google account to view SEO performance,<br>rankings, top queries, and page health for fortitudefx.com</p>
+    <button class="btn-connect" onclick="startAuth()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Connect with Google
+    </button>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="seo-dashboard" id="seoDashboard">
+
+    <!-- Stat cards -->
+    <div class="stat-row" id="statRow">
+      <div class="stat-card"><div class="stat-label">Total Clicks</div><div class="stat-value" id="statClicks">—</div><div id="deltaClicks"></div></div>
+      <div class="stat-card"><div class="stat-label">Impressions</div><div class="stat-value" id="statImpressions">—</div><div id="deltaImpressions"></div></div>
+      <div class="stat-card"><div class="stat-label">Avg CTR</div><div class="stat-value" id="statCtr">—</div><div id="deltaCtr"></div></div>
+      <div class="stat-card"><div class="stat-label">Avg Position</div><div class="stat-value" id="statPosition">—</div><div id="deltaPosition"></div></div>
+    </div>
+
+    <!-- Position distribution + Alerts -->
+    <div class="seo-grid-2">
+      <div class="seo-panel">
+        <div class="seo-panel-header"><span class="seo-panel-title">Position Distribution</span></div>
+        <div class="pos-dist" id="posDist">
+          <div class="pos-dist-item"><div class="pos-dist-num" style="color:var(--accent-warm-text)" id="posTop3">—</div><div class="pos-dist-label">Top 3</div></div>
+          <div class="pos-dist-item"><div class="pos-dist-num" style="color:var(--green)" id="posTop10">—</div><div class="pos-dist-label">Top 10</div></div>
+          <div class="pos-dist-item"><div class="pos-dist-num" style="color:var(--accent-text)" id="posTop20">—</div><div class="pos-dist-label">Top 20</div></div>
+          <div class="pos-dist-item"><div class="pos-dist-num" style="color:rgba(255,255,255,0.36)" id="posBelow">—</div><div class="pos-dist-label">Below 20</div></div>
+        </div>
+      </div>
+      <div class="seo-panel">
+        <div class="seo-panel-header"><span class="seo-panel-title">⚠ Position Drops</span></div>
+        <div id="alertsList"><div class="panel-loading">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- Top queries + Top pages -->
+    <div class="seo-grid-2">
+      <div class="seo-panel">
+        <div class="seo-panel-header"><span class="seo-panel-title">Top Queries</span></div>
+        <div class="seo-table-head queries-row" style="display:grid;">
+          <span>Query</span><span style="text-align:right;">Clicks</span><span style="text-align:right;">Impr</span><span style="text-align:right;">CTR</span><span style="text-align:right;">Pos</span>
+        </div>
+        <div id="queriesList"><div class="panel-loading">Loading…</div></div>
+      </div>
+      <div class="seo-panel">
+        <div class="seo-panel-header"><span class="seo-panel-title">Top Pages</span></div>
+        <div class="seo-table-head pages-row" style="display:grid;">
+          <span>Page</span><span style="text-align:right;">Clicks</span><span style="text-align:right;">Impr</span><span style="text-align:right;">Pos</span>
+        </div>
+        <div id="pagesList"><div class="panel-loading">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- Articles + Countries -->
+    <div class="seo-grid-2">
+      <div class="seo-panel">
+        <div class="seo-panel-header"><span class="seo-panel-title">Article Performance</span></div>
+        <div class="seo-table-head pages-row" style="display:grid;">
+          <span>Article</span><span style="text-align:right;">Clicks</span><span style="text-align:right;">Impr</span><span style="text-align:right;">Pos</span>
+        </div>
+        <div id="articlesList"><div class="panel-loading">Loading…</div></div>
+      </div>
+      <div class="seo-panel">
+        <div class="seo-panel-header"><span class="seo-panel-title">Top Countries</span></div>
+        <div class="seo-table-head countries-row" style="display:grid;">
+          <span>Country</span><span style="text-align:right;">Clicks</span><span style="text-align:right;">Impr</span>
+        </div>
+        <div id="countriesList"><div class="panel-loading">Loading…</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CLIENT_ID    = '805135063067-mb9ap5knagr29280dmg1s63gcbd2f01t.apps.googleusercontent.com';
+const SCOPES       = 'https://www.googleapis.com/auth/webmasters.readonly';
+const SC_PROPERTY  = 'sc-domain:fortitudefx.com';
+const REDIRECT_URI = 'https://fortitudefx.com/dashboard-seo.html';
+
+let accessToken = null;
+let currentDays = 28;
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+function startAuth() {
+  const params = new URLSearchParams({
+    client_id:     CLIENT_ID,
+    redirect_uri:  REDIRECT_URI,
+    response_type: 'token',
+    scope:         SCOPES,
+    prompt:        'consent',
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+}
+
+function handleAuthCallback() {
+  const hash   = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  const token  = params.get('access_token');
+  const expiry = params.get('expires_in');
+  if (token) {
+    const expiresAt = Date.now() + parseInt(expiry) * 1000;
+    sessionStorage.setItem('seo_token', token);
+    sessionStorage.setItem('seo_token_expiry', expiresAt);
+    window.history.replaceState(null, '', window.location.pathname);
+    return token;
+  }
+  return null;
+}
+
+function getToken() {
+  const token   = sessionStorage.getItem('seo_token');
+  const expiry  = sessionStorage.getItem('seo_token_expiry');
+  if (token && expiry && Date.now() < parseInt(expiry)) return token;
+  return null;
+}
+
+function disconnect() {
+  sessionStorage.removeItem('seo_token');
+  sessionStorage.removeItem('seo_token_expiry');
+  document.getElementById('connectBox').style.display = 'block';
+  document.getElementById('seoDashboard').classList.remove('visible');
+  document.getElementById('dateSelector').style.display = 'none';
+  document.getElementById('btnDisconnect').style.display = 'none';
+  document.getElementById('statusDot').style.cssText = 'background:var(--muted);box-shadow:none;animation:none;';
+}
+
+// ── API ───────────────────────────────────────────────────────────────────
+async function scQuery(endpoint, body) {
+  const res = await fetch('https://searchconsole.googleapis.com/webmasters/v3/' + endpoint, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error('SC API ' + res.status);
+  return res.json();
+}
+
+function dateRange(days) {
+  const end   = new Date(); end.setDate(end.getDate() - 1);
+  const start = new Date(end); start.setDate(start.getDate() - days);
+  return {
+    startDate: start.toISOString().split('T')[0],
+    endDate:   end.toISOString().split('T')[0],
+  };
+}
+
+function prevDateRange(days) {
+  const end   = new Date(); end.setDate(end.getDate() - 1 - days);
+  const start = new Date(end); start.setDate(start.getDate() - days);
+  return {
+    startDate: start.toISOString().split('T')[0],
+    endDate:   end.toISOString().split('T')[0],
+  };
+}
+
+// ── Load all data ─────────────────────────────────────────────────────────
+async function loadAll(days) {
+  currentDays = days;
+  const { startDate, endDate }   = dateRange(days);
+  const { startDate: ps, endDate: pe } = prevDateRange(days);
+
+  try {
+    // Current period totals
+    const [curr, prev, queries, pages, countries] = await Promise.all([
+      scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, { startDate, endDate, dimensions: [] }),
+      scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, { startDate: ps, endDate: pe, dimensions: [] }),
+      scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, { startDate, endDate, dimensions: ['query'], rowLimit: 15 }),
+      scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, { startDate, endDate, dimensions: ['page'], rowLimit: 20 }),
+      scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, { startDate, endDate, dimensions: ['country'], rowLimit: 10 }),
+    ]);
+
+    renderStats(curr.rows?.[0], prev.rows?.[0]);
+    renderQueries(queries.rows || []);
+    renderPages(pages.rows || []);
+    renderArticles(pages.rows || []);
+    renderCountries(countries.rows || []);
+    renderPositionDist(pages.rows || []);
+    renderAlerts(pages.rows || []);
+
+  } catch(err) {
+    console.error(err);
+    document.getElementById('queriesList').innerHTML = '<div class="seo-error">Error loading data: ' + err.message + '</div>';
+  }
+}
+
+// ── Render stats ──────────────────────────────────────────────────────────
+function renderStats(curr, prev) {
+  const c = curr || {};
+  const p = prev || {};
+
+  document.getElementById('statClicks').textContent      = fmt(c.clicks);
+  document.getElementById('statImpressions').textContent = fmt(c.impressions);
+  document.getElementById('statCtr').textContent         = c.ctr ? (c.ctr*100).toFixed(1)+'%' : '—';
+  document.getElementById('statPosition').textContent    = c.position ? c.position.toFixed(1) : '—';
+
+  renderDelta('deltaClicks',      c.clicks,      p.clicks,      false);
+  renderDelta('deltaImpressions', c.impressions, p.impressions, false);
+  renderDelta('deltaCtr',         c.ctr,         p.ctr,         false);
+  renderDelta('deltaPosition',    c.position,    p.position,    true); // lower is better
+}
+
+function renderDelta(id, curr, prev, lowerIsBetter) {
+  const el = document.getElementById(id);
+  if (!curr || !prev || prev === 0) { el.innerHTML = ''; return; }
+  const pct   = ((curr - prev) / prev * 100);
+  const up    = lowerIsBetter ? pct < 0 : pct > 0;
+  const arrow = pct > 0 ? '↑' : '↓';
+  const cls   = up ? 'up' : 'down';
+  el.innerHTML = '<span class="stat-delta '+cls+'">'+arrow+' '+Math.abs(pct).toFixed(1)+'%</span>';
+}
+
+// ── Render queries ────────────────────────────────────────────────────────
+function renderQueries(rows) {
+  const el = document.getElementById('queriesList');
+  if (!rows.length) { el.innerHTML = '<div class="panel-loading">No data</div>'; return; }
+  el.innerHTML = rows.map(r => {
+    const query = r.keys[0];
+    return '<div class="seo-table-row queries-row">'
+      + '<span class="seo-query">' + escHtml(query) + '</span>'
+      + '<span class="seo-num">' + fmt(r.clicks) + '</span>'
+      + '<span class="seo-num">' + fmt(r.impressions) + '</span>'
+      + '<span class="seo-num">' + (r.ctr*100).toFixed(1) + '%</span>'
+      + '<span class="seo-num">' + posBadge(r.position) + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Render pages ──────────────────────────────────────────────────────────
+function renderPages(rows) {
+  const el = document.getElementById('pagesList');
+  if (!rows.length) { el.innerHTML = '<div class="panel-loading">No data</div>'; return; }
+  el.innerHTML = rows.map(r => {
+    const url = r.keys[0].replace('https://fortitudefx.com', '');
+    return '<div class="seo-table-row pages-row">'
+      + '<span class="seo-url" title="'+escHtml(r.keys[0])+'">' + escHtml(url||'/') + '</span>'
+      + '<span class="seo-num">' + fmt(r.clicks) + '</span>'
+      + '<span class="seo-num">' + fmt(r.impressions) + '</span>'
+      + '<span class="seo-num">' + posBadge(r.position) + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Render articles only ──────────────────────────────────────────────────
+function renderArticles(rows) {
+  const el   = document.getElementById('articlesList');
+  const arts = rows.filter(r => r.keys[0].includes('/article'));
+  if (!arts.length) { el.innerHTML = '<div class="panel-loading">No article data yet</div>'; return; }
+  el.innerHTML = arts.map(r => {
+    const slug = r.keys[0].split('slug=')[1] || r.keys[0].replace('https://fortitudefx.com','');
+    return '<div class="seo-table-row pages-row">'
+      + '<span class="seo-url" title="'+escHtml(r.keys[0])+'">' + escHtml(slug) + '</span>'
+      + '<span class="seo-num">' + fmt(r.clicks) + '</span>'
+      + '<span class="seo-num">' + fmt(r.impressions) + '</span>'
+      + '<span class="seo-num">' + posBadge(r.position) + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Render countries ──────────────────────────────────────────────────────
+function renderCountries(rows) {
+  const el = document.getElementById('countriesList');
+  if (!rows.length) { el.innerHTML = '<div class="panel-loading">No data</div>'; return; }
+  const total = rows.reduce((s,r) => s + r.impressions, 0);
+  el.innerHTML = rows.map(r => {
+    const country = r.keys[0].toUpperCase();
+    const pct     = total ? (r.impressions/total*100).toFixed(1) : 0;
+    return '<div class="seo-table-row countries-row">'
+      + '<span style="color:var(--muted-2);font-size:13px;">' + escHtml(country) + ' <span style="color:rgba(255,255,255,0.28);font-size:11px;">' + pct + '%</span></span>'
+      + '<span class="seo-num">' + fmt(r.clicks) + '</span>'
+      + '<span class="seo-num">' + fmt(r.impressions) + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Position distribution ─────────────────────────────────────────────────
+function renderPositionDist(rows) {
+  const top3   = rows.filter(r => r.position <= 3).length;
+  const top10  = rows.filter(r => r.position > 3  && r.position <= 10).length;
+  const top20  = rows.filter(r => r.position > 10 && r.position <= 20).length;
+  const below  = rows.filter(r => r.position > 20).length;
+  document.getElementById('posTop3').textContent  = top3;
+  document.getElementById('posTop10').textContent = top10;
+  document.getElementById('posTop20').textContent = top20;
+  document.getElementById('posBelow').textContent = below;
+}
+
+// ── Alerts — pages that dropped ───────────────────────────────────────────
+async function renderAlerts(currentRows) {
+  const el = document.getElementById('alertsList');
+  try {
+    const { startDate: ps, endDate: pe } = prevDateRange(currentDays);
+    const prev = await scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, {
+      startDate: ps, endDate: pe, dimensions: ['page'], rowLimit: 20
+    });
+    const prevRows = prev.rows || [];
+    const drops = [];
+    currentRows.forEach(r => {
+      const url  = r.keys[0];
+      const prevR = prevRows.find(p => p.keys[0] === url);
+      if (prevR && r.position - prevR.position > 5) {
+        drops.push({ url, drop: (r.position - prevR.position).toFixed(1), pos: r.position.toFixed(1) });
+      }
+    });
+    if (!drops.length) {
+      el.innerHTML = '<div class="panel-loading" style="color:var(--green);">✓ No significant drops</div>';
+      return;
+    }
+    el.innerHTML = drops.map(d => {
+      const slug = d.url.replace('https://fortitudefx.com','') || '/';
+      return '<div class="alert-row">'
+        + '<div class="alert-dot"></div>'
+        + '<span class="alert-page">' + escHtml(slug) + '</span>'
+        + '<span class="alert-drop">↓ ' + d.drop + ' pos</span>'
+        + '<span style="font-size:11px;color:rgba(255,255,255,0.36);">now #' + d.pos + '</span>'
+        + '</div>';
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="panel-loading">Could not load alerts</div>';
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function fmt(n) { if(!n) return '0'; if(n>=1000000) return (n/1000000).toFixed(1)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'K'; return Math.round(n); }
+function escHtml(s) { if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function posBadge(pos) {
+  if (!pos) return '—';
+  const p = pos.toFixed(1);
+  if (pos <= 3)  return '<span class="pos-badge pos-1">'  + p + '</span>';
+  if (pos <= 10) return '<span class="pos-badge pos-10">' + p + '</span>';
+  if (pos <= 20) return '<span class="pos-badge pos-20">' + p + '</span>';
+  return '<span class="pos-badge pos-50">' + p + '</span>';
+}
+
+// ── Date selector ─────────────────────────────────────────────────────────
+document.getElementById('dateSelector').addEventListener('click', e => {
+  const btn = e.target.closest('.date-btn');
+  if (!btn) return;
+  document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadAll(parseInt(btn.dataset.days));
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────
+function showDashboard() {
+  document.getElementById('connectBox').style.display = 'none';
+  document.getElementById('seoDashboard').classList.add('visible');
+  document.getElementById('dateSelector').style.display = 'flex';
+  document.getElementById('btnDisconnect').style.display = 'inline-block';
+  document.getElementById('statusDot').style.cssText = '';
+  loadAll(28);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Check for OAuth callback
+  const token = handleAuthCallback() || getToken();
+  if (token) {
+    accessToken = token;
+    showDashboard();
+  }
+});
+</script>
+</body>
+</html>
