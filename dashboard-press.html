@@ -319,13 +319,13 @@ async function publishVideo(videoId,slug,actionRow,pubBtn,container,video){
 function showPubResult(container,msg,ok){const el=container.querySelector('.pub-result');if(!el)return;el.textContent=msg;el.className='pub-result '+(ok?'ok':'err');}
 function updatePills(row,status){const pills=row.querySelectorAll('.pill');PLATFORMS.forEach((p,i)=>{if(!pills[i])return;pills[i].className='pill '+pillClass(status[p.key]||'');});}
 function makeEditable(el,video,field,regenMap){
-  if(el.dataset.editActive==='true')return; el.dataset.editActive='true'; const original=el.innerText;
+  if(el.dataset.editActive==='true')return; el.dataset.editActive='true'; const original = (el.dataset.field==='body') ? el.innerHTML : el.innerText;
   el.setAttribute('contenteditable','true'); el.focus();
   let bar=el.nextElementSibling;
   if(!bar||!bar.classList.contains('edit-save-bar')){bar=document.createElement('div');bar.className='edit-save-bar';bar.innerHTML='<span class="edit-save-bar-label">Editing '+field+' \u2014 unsaved</span><button class="btn-edit-discard">Discard</button><button class="btn-edit-save">Save</button>';el.parentNode.insertBefore(bar,el.nextSibling);}
   bar.classList.add('visible');
   bar.querySelector('.btn-edit-save').onclick=()=>saveEdit(el,bar,video,field,original,regenMap);
-  bar.querySelector('.btn-edit-discard').onclick=()=>{el.setAttribute('contenteditable','false');el.innerText=original;el.dataset.editActive='false';bar.classList.remove('visible');};
+  bar.querySelector('.btn-edit-discard').onclick=()=>{el.setAttribute('contenteditable','false');if(el.dataset.field==='body'){el.innerHTML=original;}else{el.innerText=original;}el.dataset.editActive='false';bar.classList.remove('visible');};
 }
 async function saveEdit(el,bar,video,field,original,regenMap){
   const saveBtn=bar.querySelector('.btn-edit-save'); saveBtn.disabled=true; saveBtn.textContent='Saving\u2026';
