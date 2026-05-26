@@ -68,8 +68,31 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ error: `KV read failed: ${err.message}` }), { status: 500, headers });
     }
 
-    globalContent   = publishedEntry.globalContent;
-    regionalContent = publishedEntry.regionalContent || null;
+  globalContent   = publishedEntry.globalContent;
+regionalContent = publishedEntry.regionalContent || null;
+
+// Merge any regen staging content into globalContent before publishing
+// This ensures published:{videoId} becomes the source of truth FIRST
+if (videoId) {
+  const REGEN_PLATFORMS = ['article','x','linkedin','discord','tumblr'];
+  const REGEN_FIELD_MAP = {
+    article:  ['body'],
+    x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
+    linkedin: ['linkedin'],
+    discord:  ['discord'],
+    tumblr:   ['tumblr'],
+  };
+  for (const platform of REGEN_PLATFORMS) {
+    if (!platforms[platform === 'article' ? 'blog' : platform]) continue;
+    try {
+      const regenData = await env.FFX_KV.get(`regen:${videoId}:${platform}`, { type: 'json' });
+      if (regenData && regenData.fields) {
+        Object.assign(globalContent, regenData.fields);
+        console.log('[FFX Press Publish] Merged regen staging for platform:', platform);
+      }
+    } catch {}
+  }
+}
 
     if (!globalContent || !globalContent.slug) {
       return new Response(JSON.stringify({ error: 'Full content not found in published record. Please regenerate.' }), { status: 400, headers });
