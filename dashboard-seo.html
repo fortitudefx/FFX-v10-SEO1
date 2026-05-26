@@ -230,6 +230,10 @@
         <button class="date-btn" data-days="7">7D</button>
         <button class="date-btn active" data-days="28">28D</button>
         <button class="date-btn" data-days="90">90D</button>
+        <button class="date-btn" data-days="180">6M</button>
+        <button class="date-btn" data-days="0">All</button>
+        <input id="customMonths" type="number" min="1" max="60" placeholder="Mo" title="Enter months" style="width:48px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:5px;color:rgba(255,255,255,0.70);font-size:11px;font-weight:700;padding:4px 6px;outline:none;text-align:center;" />
+        <button class="date-btn" id="customBtn" onclick="applyCustomMonths()">Go</button>
       </div>
       <div class="status-dot" id="statusDot" style="background:var(--muted);box-shadow:none;animation:none;"></div>
       <button class="btn-disconnect" id="btnDisconnect" style="display:none;" onclick="disconnect()">Disconnect</button>
@@ -262,6 +266,7 @@
           <div class="chart-legend">
             <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(122,92,255,0.90);"></div>Clicks</div>
             <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(201,168,76,0.80);"></div>Impressions</div>
+            <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(56,189,248,0.80);"></div>Cumulative Impr</div>
           </div>
         </div>
       </div>
@@ -611,21 +616,22 @@ function loadChartJs(callback) {
   document.head.appendChild(s);
 }
 
-async function loadCharts() {
+async function loadCharts(days) {
+  days = days || currentDays;
   loadChartJs(async () => {
     try {
       const [daily, weekly] = await Promise.all([
         scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, {
-          startDate: dateRange(28).startDate,
-          endDate:   dateRange(28).endDate,
+          startDate: dateRange(days === 0 ? 540 : days).startDate,
+          endDate:   dateRange(days === 0 ? 540 : days).endDate,
           dimensions: ['date'],
-          rowLimit: 28,
+          rowLimit: days === 0 ? 540 : days,
         }),
         scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, {
-          startDate: dateRange(90).startDate,
-          endDate:   dateRange(90).endDate,
+          startDate: dateRange(days === 0 ? 540 : Math.max(days, 90)).startDate,
+          endDate:   dateRange(days === 0 ? 540 : Math.max(days, 90)).endDate,
           dimensions: ['date'],
-          rowLimit: 90,
+          rowLimit: days === 0 ? 540 : Math.max(days, 90),
         }),
       ]);
 
@@ -659,6 +665,18 @@ async function loadCharts() {
               borderWidth: 1,
               borderRadius: 3,
               yAxisID: 'y1',
+            },
+            {
+              label: 'Cumulative Impressions',
+              data: dailyImprs.reduce((acc, v, i) => { acc.push((acc[i-1]||0) + v); return acc; }, []),
+              type: 'line',
+              borderColor: 'rgba(56,189,248,0.80)',
+              backgroundColor: 'rgba(56,189,248,0.06)',
+              borderWidth: 2,
+              pointRadius: 0,
+              tension: 0.4,
+              fill: true,
+              yAxisID: 'y2',
             },
           ]
         },
@@ -741,13 +759,26 @@ async function loadCharts() {
   });
 }
 
+// ── Custom months ────────────────────────────────────────────────────────────
+function applyCustomMonths() {
+  const val = parseInt(document.getElementById('customMonths').value);
+  if (!val || val < 1) return;
+  const days = val * 30;
+  document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('customBtn').classList.add('active');
+  loadAll(days);
+  loadCharts(days);
+}
+
 // ── Date selector ─────────────────────────────────────────────────────────
 document.getElementById('dateSelector').addEventListener('click', e => {
   const btn = e.target.closest('.date-btn');
-  if (!btn) return;
+  if (!btn || btn.id === 'customBtn') return;
   document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  loadAll(parseInt(btn.dataset.days));
+  const days = parseInt(btn.dataset.days);
+  loadAll(days);
+  loadCharts(days);
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────
@@ -758,7 +789,7 @@ function showDashboard() {
   document.getElementById('btnDisconnect').style.display = 'inline-block';
   document.getElementById('statusDot').style.cssText = '';
   loadAll(28);
-  loadCharts();
+  loadCharts(28);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
