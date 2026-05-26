@@ -329,7 +329,7 @@ function makeEditable(el,video,field,regenMap){
 }
 async function saveEdit(el,bar,video,field,original,regenMap){
   const saveBtn=bar.querySelector('.btn-edit-save'); saveBtn.disabled=true; saveBtn.textContent='Saving\u2026';
-  const value=el.innerText.trim(); const videoId=video.videoId||null; const slug=video.slug||null;
+  const value = (field==='body') ? el.innerHTML : el.innerText.trim(); const videoId=video.videoId||null; const slug=video.slug||null;
   const regenPlatformForField=getRegenPlatformForField(field);
   try{const res=await fetch('/save-edits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,slug,kvType:'published',field,value})});const data=await res.json();
     if(!res.ok){saveBtn.disabled=false;saveBtn.textContent='Save';bar.querySelector('.edit-save-bar-label').textContent='Error: '+(data.error||'Save failed');return;}
