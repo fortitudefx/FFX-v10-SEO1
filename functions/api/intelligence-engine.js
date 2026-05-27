@@ -3,7 +3,7 @@
 // Called by cron daily after signals are collected
 // Reads all available signal KV keys, calls Claude analyst, writes intelligence:brief
 
-const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
+const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
