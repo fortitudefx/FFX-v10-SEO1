@@ -6,6 +6,99 @@
   <title>FFX Queue</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="/dashboard-styles.css">
+  <style>
+    /* Two-column layout */
+    .queue-layout {
+      max-width: var(--content-max);
+      width: calc(100% - 80px);
+      margin: 32px auto 80px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      align-items: start;
+      position: relative; z-index: 1;
+    }
+
+    /* Active queue — same styling as content-wrap */
+    .queue-active {
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.03);
+      background: #16181f;
+      overflow: hidden;
+    }
+
+    /* Parked column */
+    .queue-parked {
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.03);
+      background: #16181f;
+      overflow: hidden;
+      position: sticky;
+      top: calc(var(--nav-h) + var(--header-h) + 20px);
+    }
+
+    .queue-col-header {
+      padding: 14px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .queue-col-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.40);
+    }
+    .queue-col-count {
+      font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.28);
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px; padding: 2px 8px;
+    }
+
+    /* Parked items */
+    .parked-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex; align-items: center; gap: 12px;
+      transition: background 0.15s;
+    }
+    .parked-item:last-child { border-bottom: none; }
+    .parked-item:hover { background: rgba(255,255,255,0.03); }
+    .parked-thumb {
+      width: 72px; height: 40px; border-radius: 5px; object-fit: cover;
+      background: rgba(255,255,255,0.06); flex-shrink: 0;
+    }
+    .parked-info { flex: 1; min-width: 0; }
+    .parked-title {
+      font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.70);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 3px;
+    }
+    .parked-id { font-size: 11px; color: rgba(255,255,255,0.28); }
+    .btn-unpark {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      background: none; color: rgba(255,255,255,0.30);
+      border: 1px solid rgba(255,255,255,0.10); border-radius: 5px;
+      padding: 4px 10px; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .btn-unpark:hover { color: rgba(255,255,255,0.70); border-color: rgba(255,255,255,0.22); }
+
+    /* Park button on queue rows */
+    .btn-park {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      background: none; color: rgba(255,255,255,0.28);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 5px;
+      padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+      margin-top: 6px; display: inline-block;
+    }
+    .btn-park:hover { color: rgba(201,168,76,0.80); border-color: rgba(201,168,76,0.30); }
+
+    .parked-empty {
+      padding: 40px 24px; text-align: center;
+      font-size: 12px; color: rgba(255,255,255,0.20);
+      letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.8;
+    }
+  </style>
 </head>
 <body>
 
@@ -36,16 +129,32 @@
   </div>
 </div>
 
-<div class="content-wrap">
-  <div class="table-header" style="grid-template-columns:200px 1fr 180px 140px;">
-    <div>Video</div>
-    <div>Title &amp; URL</div>
-    <div>State</div>
-    <div>Added</div>
+<div class="queue-layout">
+
+  <!-- Active Queue -->
+  <div class="queue-active">
+    <div class="table-header" style="grid-template-columns:200px 1fr 180px 140px;">
+      <div>Video</div>
+      <div>Title &amp; URL</div>
+      <div>State</div>
+      <div>Added</div>
+    </div>
+    <div id="queueRows">
+      <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading queue&hellip;</div></div>
+    </div>
   </div>
-  <div id="queueRows">
-    <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading queue&hellip;</div></div>
+
+  <!-- Parked -->
+  <div class="queue-parked">
+    <div class="queue-col-header">
+      <span class="queue-col-title">Parked</span>
+      <span class="queue-col-count" id="parkedCount">0</span>
+    </div>
+    <div id="parkedRows">
+      <div class="parked-empty">Move videos here<br>to skip them.<br>Cron ignores parked videos.</div>
+    </div>
   </div>
+
 </div>
 
 <script>
@@ -81,6 +190,102 @@ async function init() {
   }
 }
 
+// ── Parked KV via API ─────────────────────────────────────────────────────
+async function getParked() {
+  try {
+    const res = await fetch('/api/parked-queue');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.parked || [];
+  } catch { return []; }
+}
+
+async function saveParked(parked) {
+  try {
+    await fetch('/api/parked-queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parked })
+    });
+  } catch {}
+}
+
+async function parkItem(videoId) {
+  // Find item in active queue
+  const row = document.querySelector('.queue-row[data-videoid="'+videoId+'"]');
+  if (!row) return;
+
+  // Get current queue from server, remove this item
+  try {
+    const res  = await fetch('/queue');
+    const data = await res.json();
+    const queue = data.queue || [];
+    const item  = queue.find(q => q.videoId === videoId);
+    if (!item) return;
+
+    // Remove from active queue via API
+    await fetch('/api/queue-remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId })
+    });
+
+    // Add to parked list
+    const parked = await getParked();
+    if (!parked.find(p => p.videoId === videoId)) {
+      parked.push({ videoId, title: item.title || '', youtubeUrl: item.youtubeUrl || '', parkedAt: new Date().toISOString() });
+      await saveParked(parked);
+    }
+
+    await loadQueue();
+  } catch(err) { console.error('Park error:', err); }
+}
+
+async function unparkItem(videoId) {
+  try {
+    // Remove from parked
+    const parked = await getParked();
+    const item   = parked.find(p => p.videoId === videoId);
+    if (!item) return;
+    const updated = parked.filter(p => p.videoId !== videoId);
+    await saveParked(updated);
+
+    // Add back to active queue bottom
+    await fetch('/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId, youtubeUrl: item.youtubeUrl, title: item.title })
+    });
+
+    await loadQueue();
+  } catch(err) { console.error('Unpark error:', err); }
+}
+
+async function renderParked() {
+  const parked  = await getParked();
+  const el      = document.getElementById('parkedRows');
+  const countEl = document.getElementById('parkedCount');
+  countEl.textContent = parked.length;
+
+  if (!parked.length) {
+    el.innerHTML = '<div class="parked-empty">Move videos here<br>to skip them.<br>Cron ignores parked videos.</div>';
+    return;
+  }
+
+  el.innerHTML = '';
+  parked.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'parked-item';
+    div.innerHTML = '<img class="parked-thumb" src="https://img.youtube.com/vi/'+item.videoId+'/mqdefault.jpg" onerror="this.style.display=\'none\'" alt="">'
+      + '<div class="parked-info">'
+      + '<div class="parked-title">'+(item.title ? escHtml(item.title) : escHtml(item.videoId))+'</div>'
+      + '<div class="parked-id">'+escHtml(item.videoId)+'</div>'
+      + '</div>'
+      + '<button class="btn-unpark" onclick="unparkItem(\''+escHtml(item.videoId)+'\')">↑ Activate</button>';
+    el.appendChild(div);
+  });
+}
+
 async function loadQueue() {
   try {
     const res  = await fetch('/queue');
@@ -89,6 +294,7 @@ async function loadQueue() {
     const queue = data.queue || [];
     document.getElementById('headerCount').textContent = queue.length + ' items';
     renderQueue(queue);
+    renderParked();
   } catch (err) {
     document.getElementById('queueRows').innerHTML='<div class="empty-state"><p>Network error: '+escHtml(err.message)+'</p></div>';
   }
@@ -113,7 +319,6 @@ function buildQueueRow(item) {
     + '<img class="row-thumb" src="https://img.youtube.com/vi/'+videoId+'/mqdefault.jpg" '
     + 'onerror="this.parentElement.innerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'" alt=""></div>';
 
-  // State badge
   let badgeHtml = '', actionHtml = '';
   const isOrange = item.state === 'orange';
   if (isOrange) {
@@ -132,23 +337,25 @@ function buildQueueRow(item) {
     actionHtml = '<br><button class="btn-gen-row" onclick="generateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Generate</button>';
   }
 
+  // Park button — always visible
+  const parkBtn = '<button class="btn-park" onclick="event.stopPropagation();parkItem(\''+videoId+'\')">→ Park</button>';
+
   const summary = document.createElement('div');
   summary.className = 'row-summary';
   summary.style.gridTemplateColumns = '200px 1fr 180px 140px'; summary.style.cursor = 'default';
   summary.innerHTML = thumbHtml
     + '<div class="row-info">'
-    + '<div class="row-title">'+(title ? escHtml(title) : '<span style="color:var(--dim);font-style:italic;font-size:14px;">Title loads after generation</span>')+'</div>'
+    + '<div class="row-title">'+(title ? escHtml(title) : '<span style="color:rgba(255,255,255,0.24);font-style:italic;font-size:14px;">Title loads after generation</span>')+'</div>'
     + '<div class="row-meta"><span class="region-tag region-global">Global</span><span class="row-slug">'+escHtml(videoId)+'</span></div>'
     + (ytUrl ? '<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '')
     + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:6px;justify-content:flex-start;padding-top:4px;">'
-    + badgeHtml + actionHtml
+    + badgeHtml + actionHtml + parkBtn
     + (item.state==='generating'&&item.jobId ? '<div class="row-progress" id="rp-'+videoId+'"><div class="step active"><div class="step-spinner"></div> Starting\u2026</div></div>' : '')
     + '</div>'
     + '<div class="row-date">'+formatDate(item.addedAt)+(isOrange?'<span class="row-chevron">\u25bc</span>':'')+'</div>';
 
   if (isOrange) {
-    // Only title, slug, meta area and date are clickable — not thumbnail or empty space
     const infoEl = summary.querySelector('.row-info');
     const dateEl = summary.querySelector('.row-date');
     if (infoEl) { infoEl.style.cursor='pointer'; infoEl.addEventListener('click', (e) => { if(e.target.closest('.row-yt-url'))return; toggleRow(row,item); }); }
@@ -156,12 +363,9 @@ function buildQueueRow(item) {
   }
 
   row.appendChild(summary);
-
   const expanded = document.createElement('div'); expanded.className='row-expanded';
   row.appendChild(expanded);
-
   if (item.state==='generating' && item.jobId) startPolling(item.jobId, videoId, summary);
-
   return row;
 }
 
@@ -289,7 +493,6 @@ function makeQueueEditable(el,videoId,field,editsData,tabBar){
 
 async function saveQueueEdit(el,bar,videoId,field,editsData,tabBar){
   const saveBtn=bar.querySelector('.btn-edit-save'); saveBtn.disabled=true; saveBtn.textContent='Saving\u2026';
-  // Use innerHTML for body to preserve HTML; innerText for plain text fields
   const value = (field==='body') ? el.innerHTML : el.innerText.trim();
   try{
     const res=await fetch('/api/queue-edits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,field,value})});
@@ -298,7 +501,6 @@ async function saveQueueEdit(el,bar,videoId,field,editsData,tabBar){
     editsData.edits=editsData.edits||{}; editsData.edits[field]=value;
     if(!editsData.editedFields)editsData.editedFields=[];
     if(!editsData.editedFields.includes(field))editsData.editedFields.push(field);
-    // Close bar — do NOT reset el.innerText, content stays as typed in DOM
     el.setAttribute('contenteditable','false');el.dataset.editActive='false';bar.classList.remove('visible');saveBtn.disabled=false;saveBtn.textContent='Save';
     const tabKey=field==='body'?'article':(/^tweet/.test(field)?'x':field);
     const tabEl=tabBar.querySelector('.ptab[data-panel="'+tabKey+'"]');
@@ -342,7 +544,7 @@ async function generateItem(e,videoId,youtubeUrl){
     if(!res.ok){
       btn.disabled=false; btn.textContent='Generate';
       const errDiv=document.createElement('div');
-      errDiv.style.cssText='font-family:var(--mono);font-size:12px;color:var(--red);margin-top:8px;padding:8px 12px;background:var(--red-bg);border:1px solid var(--red-bd);border-radius:4px;';
+      errDiv.style.cssText='font-size:12px;color:var(--red);margin-top:8px;padding:8px 12px;background:var(--red-bg);border:1px solid var(--red-bd);border-radius:4px;';
       errDiv.textContent='Error: '+(data.error||'Generation failed. Check Worker logs.');
       btn.parentNode.insertBefore(errDiv,btn.nextSibling);
       return;
@@ -388,39 +590,6 @@ function startPolling(jobId,videoId,summaryEl){
     }catch{}
   };
   poll(); pollTimers[jobId]=setInterval(poll,4000);
-}
-
-// Queue per-platform regenerate — regenerates from transcript, updates panel content
-async function onQueueRegenClick(videoId, platform, regenBtn, statusSpan, panel, videoRecord, editsData, tabBar) {
-  if(!videoId){statusSpan.textContent='No videoId';statusSpan.className='plat-action-status err';return;}
-  regenBtn.disabled=true;
-  statusSpan.className='plat-action-status active'; statusSpan.textContent='Regenerating…';
-  try {
-    const res = await fetch('/api/regenerate-platform',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,platform})});
-    const data = await res.json();
-    if(!res.ok){statusSpan.className='plat-action-status err';statusSpan.textContent=data.error||'Failed';regenBtn.disabled=false;return;}
-    // Update content in panel from regen staging
-    const regenRes = await fetch('/api/regen-status?videoId='+videoId);
-    const regenData = regenRes.ok ? await regenRes.json() : {};
-    const regenMap = regenData.regen || {};
-    const regenEntry = regenMap[platform] || null;
-    if(regenEntry && regenEntry.fields) {
-      const cb = panel.querySelector('.content-block[data-field]');
-      if(cb && regenEntry.fields[cb.dataset.field]) {
-        cb.innerHTML = regenEntry.fields[cb.dataset.field];
-        cb.dataset.editActive = 'false';
-      }
-      // Update status bar chip
-      const chip = panel.querySelector('.psb-status-chip');
-      if(chip){chip.className='psb-status-chip psb-chip-regen';chip.textContent='⚡ Regenerated — review and publish';}
-      // Update tab chip
-      const tabEl = tabBar.querySelector('.ptab[data-panel="'+platform+'"]');
-      if(tabEl){const lbl={article:'Article',x:'X',linkedin:'LinkedIn',discord:'Discord',tumblr:'Tumblr'}[platform]||platform;tabEl.innerHTML=lbl+'<span class="ptab-chip ptab-chip-regen">⚡ Regen</span>';}
-    }
-    statusSpan.className='plat-action-status done'; statusSpan.textContent='✓ Done';
-    regenBtn.disabled=false;
-    setTimeout(()=>{statusSpan.textContent='';statusSpan.className='plat-action-status';},3000);
-  } catch(err){statusSpan.className='plat-action-status err';statusSpan.textContent='Error';regenBtn.disabled=false;}
 }
 
 function switchTab(pc,tb,key){
