@@ -6,6 +6,46 @@
   <title>FFX Press</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="/dashboard-styles.css">
+  <style>
+    /* Title editing */
+    .row-title-wrap { display: flex; align-items: center; gap: 8px; }
+    .row-title-edit {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(255,255,255,0.25); background: none; border: none; cursor: pointer;
+      padding: 2px 6px; border-radius: 4px; transition: all 0.15s; flex-shrink: 0;
+    }
+    .row-title-edit:hover { color: rgba(255,255,255,0.60); background: rgba(255,255,255,0.06); }
+    .row-title[contenteditable="true"] {
+      outline: none;
+      border-bottom: 1px solid rgba(201,168,76,0.50);
+      color: rgba(255,255,255,0.90);
+      cursor: text;
+      padding-bottom: 2px;
+    }
+    .title-edit-bar {
+      display: none; align-items: center; gap: 8px;
+      margin-top: 6px; font-size: 11px; color: rgba(255,255,255,0.40);
+    }
+    .title-edit-bar.visible { display: flex; }
+    .btn-title-save {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      background: rgba(201,168,76,0.12); color: rgba(201,168,76,0.85);
+      border: 1px solid rgba(201,168,76,0.25); border-radius: 4px;
+      padding: 3px 10px; cursor: pointer;
+    }
+    .btn-title-discard {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      background: none; color: rgba(255,255,255,0.30);
+      border: 1px solid rgba(255,255,255,0.10); border-radius: 4px;
+      padding: 3px 10px; cursor: pointer;
+    }
+    .title-test-chip {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(62,207,142,0.08); color: rgba(62,207,142,0.70);
+      border: 1px solid rgba(62,207,142,0.15); border-radius: 4px;
+      padding: 2px 7px;
+    }
+  </style>
 </head>
 <body>
 
@@ -117,30 +157,167 @@ function buildVideoRow(video) {
   const date     = formatDate(video.updatedAt||'');
   const region   = video.region||'Global';
   const platforms= video.platforms||{};
+  const pending  = video.pendingEdits||{};
+  const currentTitle = pending.title || video.title || 'Untitled';
+  const hasTitleTest = !!pending.title;
 
   const summary = document.createElement('div'); summary.className='row-summary'; summary.style.cursor='default';
   const thumbHtml = thumbUrl
     ? '<div class="row-thumb-wrap"><img class="row-thumb" src="'+thumbUrl+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'"></div>'
     : '<div class="row-thumb-wrap"><div class="row-thumb-placeholder">No thumb</div></div>';
 
+  // ── SURGICAL CHANGE 1: Title is now editable ──────────────────────────
   summary.innerHTML = thumbHtml
     + '<div class="row-info">'
-    + '<div class="row-title">'+escHtml(video.title||'Untitled')+'</div>'
+    + '<div class="row-title-wrap">'
+    + '<div class="row-title" id="title-'+escHtml(video.slug||videoId)+'">'+escHtml(currentTitle)+'</div>'
+    + '<button class="row-title-edit" title="Edit title for SEO" onclick="event.stopPropagation();startTitleEdit(\''+escHtml(video.slug||videoId)+'\',\''+escHtml(video.videoId||'')+'\')">✎ Edit</button>'
+    + (hasTitleTest ? '<span class="title-test-chip">A/B Testing</span>' : '')
+    + '</div>'
+    + '<div class="title-edit-bar" id="title-bar-'+escHtml(video.slug||videoId)+'">'
+    + '<span style="color:rgba(255,255,255,0.35);">Editing title — will start A/B test on publish</span>'
+    + '<button class="btn-title-save" onclick="saveTitleEdit(\''+escHtml(video.slug||videoId)+'\',\''+escHtml(video.videoId||'')+'\',event)">Save</button>'
+    + '<button class="btn-title-discard" onclick="discardTitleEdit(\''+escHtml(video.slug||videoId)+'\',\''+escHtml(currentTitle)+'\',event)">Discard</button>'
+    + '</div>'
     + '<div class="row-meta"><span class="region-tag '+regionClass(region)+'">'+region+'</span><span style="color:var(--dim)">'+escHtml(video.slug||'')+'</span></div>'
     + (ytUrl ? '<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '')
     + '</div>'
     + '<div class="platform-pills">'+PLATFORMS.map(p=>'<span class="pill '+pillClass(platforms[p.key]?.status||'')+'">'+p.label+'</span>').join('')+'</div>'
     + '<div class="row-date">'+date+'<span class="row-chevron">▼</span></div>';
 
-  // Only title/info text and date are clickable — thumbnail and empty space are inert
   summary.querySelector('.row-info').style.cursor = 'pointer';
   summary.querySelector('.row-date').style.cursor = 'pointer';
-  summary.querySelector('.row-info').addEventListener('click', (e) => { if(e.target.closest('.row-yt-url'))return; toggleRow(row, video); });
+  summary.querySelector('.row-info').addEventListener('click', (e) => {
+    if(e.target.closest('.row-yt-url')) return;
+    if(e.target.closest('.row-title-edit')) return;
+    if(e.target.closest('.title-edit-bar')) return;
+    if(e.target.closest('.row-title[contenteditable="true"]')) return;
+    toggleRow(row, video);
+  });
   summary.querySelector('.row-date').addEventListener('click', () => toggleRow(row, video));
   row.appendChild(summary);
   const expanded = document.createElement('div'); expanded.className='row-expanded';
   row.appendChild(expanded);
   return row;
+}
+
+// ── SURGICAL CHANGE 2: Title edit functions ───────────────────────────────
+function startTitleEdit(slug, videoId) {
+  const titleEl = document.getElementById('title-'+slug);
+  const barEl   = document.getElementById('title-bar-'+slug);
+  if (!titleEl) return;
+  titleEl.setAttribute('contenteditable', 'true');
+  titleEl.focus();
+  // Place cursor at end
+  const range = document.createRange();
+  range.selectNodeContents(titleEl);
+  range.collapse(false);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(range);
+  if (barEl) barEl.classList.add('visible');
+}
+
+function discardTitleEdit(slug, originalTitle, e) {
+  if (e) e.stopPropagation();
+  const titleEl = document.getElementById('title-'+slug);
+  const barEl   = document.getElementById('title-bar-'+slug);
+  if (titleEl) { titleEl.textContent = originalTitle; titleEl.setAttribute('contenteditable', 'false'); }
+  if (barEl)   barEl.classList.remove('visible');
+}
+
+async function saveTitleEdit(slug, videoId, e) {
+  if (e) e.stopPropagation();
+  const titleEl = document.getElementById('title-'+slug);
+  const barEl   = document.getElementById('title-bar-'+slug);
+  if (!titleEl) return;
+
+  const newTitle = titleEl.innerText.trim();
+  if (!newTitle) { discardTitleEdit(slug, '', e); return; }
+
+  titleEl.setAttribute('contenteditable', 'false');
+  if (barEl) barEl.classList.remove('visible');
+
+  // Save to pendingEdits via /save-edits
+  try {
+    const res = await fetch('/save-edits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId, slug, kvType: 'published', field: 'title', value: newTitle }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error('[Press] Title save failed:', data.error);
+      return;
+    }
+
+    // Update local video object
+    const video = allVideos.find(v => v.slug === slug || v.videoId === videoId);
+    if (video) {
+      if (!video.pendingEdits) video.pendingEdits = {};
+      video.pendingEdits.title = newTitle;
+    }
+
+    // Show A/B test chip
+    const wrap = titleEl.closest('.row-title-wrap');
+    if (wrap && !wrap.querySelector('.title-test-chip')) {
+      const chip = document.createElement('span');
+      chip.className = 'title-test-chip';
+      chip.textContent = 'A/B Testing';
+      wrap.appendChild(chip);
+    }
+
+    console.log('[Press] Title saved for slug:', slug, '→', newTitle);
+  } catch (err) {
+    console.error('[Press] Title save network error:', err.message);
+  }
+}
+
+// ── SURGICAL CHANGE 3: Write seo:title_tests on blog publish ─────────────
+async function writeTitleTest(slug, videoId, newTitle, originalTitle) {
+  try {
+    // Get baseline metrics from seo:signals
+    const signalRes = await fetch('/api/seo-signals');
+    const signalData = signalRes.ok ? await signalRes.json() : null;
+    const signals = signalData?.signals;
+
+    // Find this page's metrics in zero-click opportunities or page2
+    let baselineImpressions = 0, baselineClicks = 0, baselinePosition = null, baselineCtr = 0;
+    if (signals) {
+      const allPages = [
+        ...(signals.zeroClickOpportunities || []),
+        ...(signals.page2Opportunities || []),
+      ];
+      const pageUrl = `/article?slug=${slug}`;
+      const found = allPages.find(p => p.url === pageUrl);
+      if (found) {
+        baselineImpressions = found.impressions || 0;
+        baselinePosition    = found.position    || null;
+        baselineClicks      = found.clicks       || 0;
+        baselineCtr         = baselineImpressions > 0 ? baselineClicks / baselineImpressions : 0;
+      }
+    }
+
+    // Write title test record
+    await fetch('/api/title-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slug,
+        videoId,
+        oldTitle:             originalTitle,
+        newTitle,
+        changedAt:            new Date().toISOString(),
+        positionAtChange:     baselinePosition,
+        ctrAtChange:          baselineCtr,
+        clicksAtChange:       baselineClicks,
+        impressionsAtChange:  baselineImpressions,
+        status:               'monitoring',
+      }),
+    });
+    console.log('[Press] seo:title_tests written for slug:', slug);
+  } catch (err) {
+    console.error('[Press] title test write failed (non-fatal):', err.message);
+  }
 }
 
 function toggleRow(row, video) {
@@ -302,6 +479,7 @@ function switchTab(pc,tb,key){
   tb.querySelectorAll('.ptab').forEach(t=>t.classList.toggle('active',t.dataset.panel===key));
   pc.querySelectorAll('.ppanel').forEach(p=>p.classList.toggle('active',p.dataset.panel===key));
 }
+
 async function publishVideo(videoId,slug,actionRow,pubBtn,container,video){
   container.querySelectorAll('[data-edit-active="true"]').forEach(el=>{el.setAttribute('contenteditable','false');el.dataset.editActive='false';});
   container.querySelectorAll('.edit-save-bar').forEach(bar=>bar.classList.remove('visible'));
@@ -309,15 +487,25 @@ async function publishVideo(videoId,slug,actionRow,pubBtn,container,video){
   actionRow.querySelectorAll('.platform-checkbox').forEach(el=>{platforms[el.dataset.platform]=el.dataset.checked==='true';});
   if(!Object.values(platforms).some(v=>v)){showPubResult(container,'Select at least one platform.',false);return;}
   pubBtn.disabled=true; pubBtn.textContent='Publishing\u2026';
-  try{const res=await fetch('/press-publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,slug,platforms})});const data=await res.json();
+  try{
+    const res=await fetch('/press-publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,slug,platforms})});
+    const data=await res.json();
     if(!res.ok){showPubResult(container,data.error||'Publish failed.',false);pubBtn.disabled=false;pubBtn.textContent='Publish';return;}
+
+    // ── SURGICAL CHANGE 3: Write seo:title_tests if title was edited and blog published ──
+    const pending = video.pendingEdits || {};
+    if (pending.title && platforms.blog) {
+      const originalTitle = video.title || '';
+      await writeTitleTest(slug, videoId, pending.title, originalTitle);
+    }
+
     if(data.status){if(!video.platforms)video.platforms={};Object.keys(data.status).forEach(p=>{const s=data.status[p];if(!s||s==='not_selected'||s==='pending')return;if(!video.platforms[p])video.platforms[p]={};video.platforms[p].status=s;video.platforms[p].publishedAt=new Date().toISOString();});}
     const row=container.closest('.video-row'); if(data.status)updatePills(row,data.status);
     try{const freshRes=await fetch('/press-data');const freshData=await freshRes.json();if(freshRes.ok&&freshData.videos){const fv=freshData.videos.find(v=>v.videoId===video.videoId||v.slug===video.slug);if(fv)Object.assign(video,fv);}}catch{}
     await rebuildExpanded(container,video); showPubResult(container,'\u2713 Published successfully',true); pubBtn.disabled=false; pubBtn.textContent='Publish';
-    await rebuildExpanded(container,video); showPubResult(container,'\u2713 Published successfully',true); pubBtn.disabled=false; pubBtn.textContent='Publish';
   }catch(err){showPubResult(container,'Network error: '+err.message,false);pubBtn.disabled=false;pubBtn.textContent='Publish';}
 }
+
 function showPubResult(container,msg,ok){const el=container.querySelector('.pub-result');if(!el)return;el.textContent=msg;el.className='pub-result '+(ok?'ok':'err');}
 function updatePills(row,status){const pills=row.querySelectorAll('.pill');PLATFORMS.forEach((p,i)=>{if(!pills[i])return;pills[i].className='pill '+pillClass(status[p.key]||'');});}
 function makeEditable(el,video,field,regenMap){
