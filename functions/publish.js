@@ -1,14 +1,6 @@
 // FFX /publish Worker
-//
 // ALWAYS: writes article + all platform content to articles.json
 // CONDITIONALLY: rebuilds sitemap + pings Google index
-//
-// Called by publish-confirm.js:
-//   - Always first with skipSitemapAndIndex: true (keeps articles.json current)
-//   - When Blog selected: called with skipSitemapAndIndex: false (full publish)
-//
-// This ensures "Load Existing Content" always returns fresh content
-// and platform Workers always have current data in articles.json
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -17,9 +9,6 @@ export async function onRequestPost(context) {
   const GITHUB_OWNER  = 'fortitudefx';
   const GITHUB_REPO   = 'FFX-v10-SEO1';
   const GITHUB_BRANCH = 'main';
-
-  const GOOGLE_SA_EMAIL = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const GOOGLE_SA_KEY   = env.GOOGLE_PRIVATE_KEY;
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -52,8 +41,6 @@ export async function onRequestPost(context) {
     const rawDate = date || new Date().toISOString().split('T')[0];
     const articleDate = rawDate.replace(/['"]/g, '').trim();
 
-    // ── 1. Write article metadata to KV ────────────────────────────────────
-    // Called only when blog is selected — publish-confirm guards this
     const extractVideoId = (url) => {
       try {
         const u = new URL(url || '');
@@ -70,11 +57,11 @@ export async function onRequestPost(context) {
     };
     const videoId = extractVideoId(youtubeUrl || yt_url || '');
 
+    // ── 1. Write article metadata to KV ────────────────────────────────────
     if (env.FFX_KV) {
       try {
         const articleMeta = {
-          slug,
-          title,
+          slug, title,
           excerpt: excerpt || '',
           category: category || 'Strategy',
           tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : [],
@@ -90,12 +77,80 @@ export async function onRequestPost(context) {
       } catch (kvErr) {
         console.log('[FFX] KV article write failed (non-fatal):', kvErr.message);
       }
+
+      // ── 1b: Update content:performance — set publishedAt (measurement pipeline) ──
+      try {
+        const perfKey = `content:performance:${slug}`;
+        const existing = await env.FFX_KV.get(perfKey, { type: 'json' }).catch(() => null);
+        const now = new Date().toISOString();
+        if (existing) {
+          // Update existing record with publish timestamp
+          existing.publishedAt = now;
+          existing.status      = 'published';
+          await env.FFX_KV.put(perfKey, JSON.stringify(existing));
+        } else {
+          // Article published without going through consumer (manual) — create record
+          await env.FFX_KV.put(perfKey, JSON.stringify({
+            slug, title,
+            contentPillar:  category || 'Strategy',
+            region:         body.region || 'Global',
+            videoId:        videoId || null,
+            youtubeUrl:     youtubeUrl || yt_url || null,
+            targetQuery:    null,
+            briefVersion:   null,
+            promptInjected: false,
+            generatedAt:    null,
+            publishedAt:    now,
+            status:         'published',
+            snapshot7:      null,
+            snapshot30:     null,
+            snapshot90:     null,
+          }));
+        }
+        console.log('[FFX] content:performance publishedAt set for slug:', slug);
+      } catch (perfErr) {
+        console.error('[FFX] content:performance update failed (non-fatal):', perfErr.message);
+      }
+
+      // ── 1c: Write platform:performance records (measurement pipeline) ────
+      try {
+        const now = new Date().toISOString();
+        const platforms = [];
+        if (!skipSitemapAndIndex) platforms.push('blog');
+        if (body.platforms?.x)        platforms.push('x');
+        if (body.platforms?.linkedin) platforms.push('linkedin');
+        if (body.platforms?.discord)  platforms.push('discord');
+        if (body.platforms?.tumblr)   platforms.push('tumblr');
+
+        for (const platform of platforms) {
+          try {
+            await env.FFX_KV.put(
+              `platform:performance:${platform}:${slug}`,
+              JSON.stringify({
+                platform,
+                slug,
+                title,
+                publishedAt:  now,
+                videoId:      videoId || null,
+                region:       body.region || 'Global',
+                engagement:   null, // populated later by Intelligence Agent
+                trafficBack:  null, // populated by GA4 signals
+                status:       'published',
+              })
+            );
+          } catch (e) {
+            console.error(`[FFX] platform:performance:${platform} write failed (non-fatal):`, e.message);
+          }
+        }
+        console.log('[FFX] platform:performance records written for:', platforms.join(', '));
+      } catch (platErr) {
+        console.error('[FFX] platform:performance write failed (non-fatal):', platErr.message);
+      }
     }
 
     // ── 2. CONDITIONALLY: sitemap only ────────────────────────────────────
     if (!skipSitemapAndIndex) {
 
-      // Read all article keys from KV for sitemap rebuild
       let articleSlugs = [];
       try {
         if (env.FFX_KV) {
@@ -110,7 +165,6 @@ export async function onRequestPost(context) {
         articleSlugs = [{ slug, date: articleDate }];
       }
 
-      // Rebuild sitemap.xml
       const staticPages = [
         { loc: 'https://fortitudefx.com/',           lastmod: '2026-04-26', changefreq: 'weekly',  priority: '1.0' },
         { loc: 'https://fortitudefx.com/bootcamp',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
@@ -157,16 +211,18 @@ ${[...staticPages, ...articleEntries].map(u => `  <url>
         },
         body: JSON.stringify({
           message: `sitemap: add ${slug}`,
-          content: (() => { const bytes = new TextEncoder().encode(sitemapXml); let binary = ''; for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]); return btoa(binary); })(),
+          content: (() => {
+            const bytes = new TextEncoder().encode(sitemapXml);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+            return btoa(binary);
+          })(),
           branch: GITHUB_BRANCH,
           ...(sitemapSha && { sha: sitemapSha })
         })
       });
 
       console.log('[FFX] sitemap.xml updated');
-
-      // NOTE: Google Indexing API removed — only valid for JobPosting/BroadcastEvent
-      // Sitemap submission is the correct mechanism for blog articles
     }
 
     return new Response(JSON.stringify({ success: true, slug }), {
@@ -180,7 +236,6 @@ ${[...staticPages, ...articleEntries].map(u => `  <url>
   }
 }
 
-// ── JWT helper for Google Service Account auth ─────────────────────────────
 async function getGoogleAccessToken(serviceAccountEmail, privateKeyPem) {
   const now = Math.floor(Date.now() / 1000);
   const header  = { alg: 'RS256', typ: 'JWT' };
@@ -188,8 +243,7 @@ async function getGoogleAccessToken(serviceAccountEmail, privateKeyPem) {
     iss: serviceAccountEmail,
     scope: 'https://www.googleapis.com/auth/indexing',
     aud: 'https://oauth2.googleapis.com/token',
-    exp: now + 3600,
-    iat: now
+    exp: now + 3600, iat: now
   };
 
   const encode = obj => btoa(JSON.stringify(obj))
@@ -208,7 +262,7 @@ async function getGoogleAccessToken(serviceAccountEmail, privateKeyPem) {
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
   );
 
-  const encoder = new TextEncoder();
+  const encoder   = new TextEncoder();
   const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, encoder.encode(unsignedToken));
   const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
     .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
