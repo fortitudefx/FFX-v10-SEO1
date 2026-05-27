@@ -127,6 +127,40 @@
     .donut-label { font-size: 13px; color: rgba(255,255,255,0.55); }
     .donut-val { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.85); margin-left: auto; }
 
+
+    /* Executive Summary */
+    .exec-summary { border-radius: 16px; border: 1px solid rgba(255,255,255,0.09); background: #13151b; margin-bottom: 24px; overflow: hidden; }
+    .exec-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.07); transition: background 0.15s; }
+    .exec-header:hover { background: rgba(255,255,255,0.03); }
+    .exec-header-left { display: flex; align-items: center; gap: 12px; }
+    .exec-header-title { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.70); }
+    .exec-momentum { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 12px; border-radius: 5px; }
+    .momentum-up   { background: rgba(62,207,142,0.12);  color: rgba(62,207,142,0.90);  border: 1px solid rgba(62,207,142,0.25); }
+    .momentum-down { background: rgba(248,113,113,0.12); color: rgba(248,113,113,0.90); border: 1px solid rgba(248,113,113,0.25); }
+    .momentum-flat { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.50); border: 1px solid rgba(255,255,255,0.12); }
+    .exec-toggle { font-size: 11px; color: rgba(255,255,255,0.30); transition: transform 0.2s; }
+    .exec-summary.open .exec-toggle { transform: rotate(180deg); }
+    .exec-body { display: none; padding: 24px; }
+    .exec-summary.open .exec-body { display: block; }
+    .exec-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .exec-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .exec-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 16px 18px; }
+    .exec-block-title { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.36); margin-bottom: 10px; }
+    .exec-block-content { font-size: 14px; line-height: 1.70; color: rgba(255,255,255,0.72); }
+    .exec-block-content strong { color: rgba(255,255,255,0.90); font-weight: 700; }
+    .exec-block-content .good { color: rgba(62,207,142,0.90); font-weight: 700; }
+    .exec-block-content .warn { color: rgba(201,168,76,0.90); font-weight: 700; }
+    .exec-block-content .bad  { color: rgba(248,113,113,0.90); font-weight: 700; }
+    .exec-actions { display: flex; flex-direction: column; gap: 8px; }
+    .exec-action { display: flex; align-items: flex-start; gap: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 12px 16px; }
+    .exec-action-num { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.28); min-width: 20px; padding-top: 2px; }
+    .exec-action-text { font-size: 14px; color: rgba(255,255,255,0.72); line-height: 1.60; }
+    .exec-action-text strong { color: rgba(255,255,255,0.90); }
+    .exec-score { font-size: 36px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; margin-bottom: 6px; }
+    .exec-score-label { font-size: 11px; color: rgba(255,255,255,0.40); letter-spacing: 0.04em; }
+    .exec-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 20px 0; }
+    .exec-section-title { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.36); margin-bottom: 14px; }
+
     /* Disconnect */
     .btn-disconnect {
       font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
@@ -194,6 +228,21 @@
 
   <!-- Dashboard -->
   <div class="aud-dashboard" id="audDashboard">
+
+
+    <!-- Executive Summary -->
+    <div class="exec-summary" id="execSummary" style="display:none;">
+      <div class="exec-header" onclick="toggleExec()">
+        <div class="exec-header-left">
+          <span class="exec-header-title">Executive Summary</span>
+          <span class="exec-momentum" id="execMomentum">Calculating…</span>
+        </div>
+        <span class="exec-toggle">▼</span>
+      </div>
+      <div class="exec-body" id="execBody">
+        <div class="panel-loading">Generating summary…</div>
+      </div>
+    </div>
 
     <!-- Stat cards -->
     <div class="stat-row">
@@ -377,6 +426,12 @@ async function loadAll(days) {
     renderChannels(channels);
     renderArticles(pages);
 
+    // Build executive summary
+    try {
+      const prevOv = await ga4Query({ dateRanges: [{ startDate: prevDateRange(days).startDate, endDate: prevDateRange(days).endDate }], metrics: [{ name:'activeUsers' },{ name:'sessions' },{ name:'averageSessionDuration' },{ name:'bounceRate' }] });
+      buildAudExecSummary(overview, prevOv, sources, pages, channels, newReturn);
+    } catch(e) { console.error('Exec summary error:', e); }
+
   } catch(err) {
     console.error('GA4 error:', err);
     document.getElementById('sourcesList').innerHTML = '<div class="panel-loading" style="color:var(--red);">Error: ' + escHtml(err.message) + '</div>';
@@ -551,6 +606,153 @@ function loadChartJs(callback) {
   s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
   s.onload = () => { document._chartJsLoading=false; callback(); };
   document.head.appendChild(s);
+}
+
+
+// ── Executive Summary ─────────────────────────────────────────────────────
+function toggleExec() {
+  document.getElementById('execSummary').classList.toggle('open');
+}
+
+function buildAudExecSummary(overview, prevOverview, sourcesData, pagesData, channelsData, newReturnData) {
+  const c = overview.rows?.[0]?.metricValues || [];
+  const p = prevOverview.rows?.[0]?.metricValues || [];
+
+  const users    = parseInt(c[0]?.value || 0);
+  const sessions = parseInt(c[1]?.value || 0);
+  const dur      = parseFloat(c[2]?.value || 0);
+  const bounce   = parseFloat(c[3]?.value || 0);
+  const pUsers   = parseInt(p[0]?.value || 0);
+  const pSess    = parseInt(p[1]?.value || 0);
+  const pDur     = parseFloat(p[2]?.value || 0);
+  const pBounce  = parseFloat(p[3]?.value || 0);
+
+  const userDelta   = pUsers  ? ((users-pUsers)/pUsers*100).toFixed(1)     : null;
+  const sessDelta   = pSess   ? ((sessions-pSess)/pSess*100).toFixed(1)    : null;
+  const durDelta    = pDur    ? ((dur-pDur)/pDur*100).toFixed(1)           : null;
+  const bounceDelta = pBounce ? ((bounce-pBounce)/pBounce*100).toFixed(1)  : null;
+
+  // Engagement Quality Score (0-100)
+  const durScore    = Math.min(dur/180*40, 40);     // up to 40pts: 3min+ = max
+  const bounceScore = Math.min((1-bounce)*40, 40);  // up to 40pts: 0% bounce = max
+  const userScore   = Math.min(users/500*20, 20);   // up to 20pts: 500+ users = max
+  const eqs         = Math.round(durScore + bounceScore + userScore);
+
+  // Best traffic source by quality (longest session)
+  const sources  = sourcesData.rows || [];
+  const bestSource = sources[0]?.dimensionValues[0].value || 'direct';
+
+  // Content gravity — top page by sessions
+  const pages     = pagesData.rows || [];
+  const topPage   = pages[0]?.dimensionValues[0].value || '/';
+  const topSlug   = topPage.split('slug=')[1] || topPage;
+
+  // New vs returning
+  const nrRows    = newReturnData.rows || [];
+  const newUsers  = parseInt(nrRows.find(r=>r.dimensionValues[0].value==='new')?.metricValues[0].value || 0);
+  const retUsers  = parseInt(nrRows.find(r=>r.dimensionValues[0].value==='returning')?.metricValues[0].value || 0);
+  const retPct    = users ? (retUsers/users*100).toFixed(1) : 0;
+
+  // Growth velocity
+  let momentum = 'flat', momentumText = 'Stable';
+  if (userDelta > 15 || sessDelta > 15)       { momentum = 'up';   momentumText = '↑ Accelerating'; }
+  else if (userDelta > 0 || sessDelta > 0)    { momentum = 'up';   momentumText = '↑ Growing'; }
+  else if (userDelta < -10 || sessDelta < -10){ momentum = 'down'; momentumText = '↓ Declining'; }
+
+  document.getElementById('execMomentum').className   = 'exec-momentum momentum-' + momentum;
+  document.getElementById('execMomentum').textContent = momentumText;
+
+  // 30-day forecast
+  const daysInPeriod = currentDays || 28;
+  const dailyUsers   = users / daysInPeriod;
+  const forecast30   = Math.round(dailyUsers * 30);
+
+  const html = `
+    <div class="exec-grid">
+      <div class="exec-block">
+        <div class="exec-block-title">Current State</div>
+        <div class="exec-block-content">
+          ${users === 0
+            ? `<span class="warn">No user data yet.</span> Ensure GA4 tracking code is active on all pages.`
+            : users < 100
+            ? `<strong>Early traction stage.</strong> <strong>${fmt(users)} users</strong> in this period. Traffic is nascent — primarily direct visitors and early community members from Discord/YouTube.`
+            : users < 500
+            ? `<strong>Growing audience.</strong> <strong>${fmt(users)} users</strong> across <strong>${fmt(sessions)} sessions</strong>. Site is establishing organic reach.`
+            : `<strong>Established audience.</strong> <strong>${fmt(users)} users</strong> generating <strong>${fmt(sessions)} sessions</strong>. Meaningful organic presence.`
+          }
+          Avg session <strong>${fmtDur(dur)}</strong>. Bounce rate <strong>${(bounce*100).toFixed(1)}%</strong>.
+        </div>
+      </div>
+      <div class="exec-block">
+        <div class="exec-block-title">vs Last Period</div>
+        <div class="exec-block-content">
+          ${userDelta !== null
+            ? `Users <span class="${parseFloat(userDelta)>=0?'good':'bad'}">${parseFloat(userDelta)>=0?'↑':'↓'} ${Math.abs(userDelta)}%</span>.
+               Sessions <span class="${sessDelta && parseFloat(sessDelta)>=0?'good':'bad'}">${sessDelta ? (parseFloat(sessDelta)>=0?'↑':'↓')+' '+Math.abs(sessDelta)+'%' : 'flat'}</span>.
+               Session duration <span class="${durDelta && parseFloat(durDelta)>=0?'good':'bad'}">${durDelta ? (parseFloat(durDelta)>=0?'improved':'declined')+' by '+Math.abs(durDelta)+'%' : 'stable'}</span>.
+               Bounce rate <span class="${bounceDelta && parseFloat(bounceDelta)<0?'good':bounceDelta && parseFloat(bounceDelta)>5?'bad':'warn'}">${bounceDelta ? (parseFloat(bounceDelta)<0?'improved':'worsened')+' by '+Math.abs(bounceDelta)+'%' : 'stable'}</span>.`
+            : `Insufficient historical data for comparison. Check back after ${currentDays} more days.`
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="exec-grid-3">
+      <div class="exec-block">
+        <div class="exec-block-title">Engagement Quality Score</div>
+        <div class="exec-score" style="color:${eqs>=70?'rgba(62,207,142,0.90)':eqs>=40?'rgba(201,168,76,0.90)':'rgba(248,113,113,0.80)'}">${eqs}<span style="font-size:18px;font-weight:400;color:rgba(255,255,255,0.30)">/100</span></div>
+        <div class="exec-score-label">${eqs>=70?'High quality audience':'eqs>=40?Moderate engagement':'Low engagement — needs work'}</div>
+        <div class="exec-block-content" style="margin-top:10px;font-size:13px;">
+          ${eqs >= 70 ? `<span class="good">Strong.</span> Visitors are reading, staying, and engaging.`
+            : eqs >= 40 ? `<span class="warn">Moderate.</span> Some engagement but bounce rate or session time needs improvement.`
+            : `<span class="bad">Low.</span> Most visitors leave quickly. Content or landing page experience needs work.`}
+        </div>
+      </div>
+      <div class="exec-block">
+        <div class="exec-block-title">Content Gravity</div>
+        <div class="exec-block-content" style="font-size:13px;">
+          <strong>Top page:</strong> <span class="warn">${escHtml(topSlug)}</span><br><br>
+          This is your <strong>strongest content magnet</strong>. Create more articles on this topic and link them here.
+          ${retPct > 0 ? `<br><br><strong>${retPct}%</strong> of users are <span class="${parseFloat(retPct)>=20?'good':'warn'}">returning visitors</span>.` : ''}
+        </div>
+      </div>
+      <div class="exec-block">
+        <div class="exec-block-title">30-Day Forecast</div>
+        <div class="exec-score" style="color:rgba(255,255,255,0.80)">${fmt(forecast30)}</div>
+        <div class="exec-score-label">projected users next 30 days</div>
+        <div class="exec-block-content" style="margin-top:10px;font-size:13px;">
+          Best traffic source: <strong>${escHtml(bestSource)}</strong>.
+          ${parseFloat(retPct) < 20
+            ? `Returning visitor rate <span class="warn">${retPct}%</span> — below target of 20-30%. Focus on email capture to bring people back.`
+            : `Returning visitor rate <span class="good">${retPct}%</span> — healthy community forming.`
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="exec-divider"></div>
+    <div class="exec-section-title">Priority Actions</div>
+    <div class="exec-actions">
+      <div class="exec-action"><span class="exec-action-num">1</span><span class="exec-action-text">
+        ${bounce > 0.70
+          ? `<strong>Reduce bounce rate (currently ${(bounce*100).toFixed(1)}%)</strong> — add a clear next step on every page. Related articles, a Discord CTA, or a video embed. Over 70% bounce means most visitors leave without engaging.`
+          : dur < 60
+          ? `<strong>Increase session duration (currently ${fmtDur(dur)})</strong> — embed YouTube videos in articles, add related content links at the bottom of each article. Longer sessions signal quality to Google and build trust.`
+          : `<strong>Scale what's working</strong> — your engagement metrics are healthy. Focus on increasing traffic volume through more content and stronger YouTube CTAs.`
+        }
+      </span></div>
+      <div class="exec-action"><span class="exec-action-num">2</span><span class="exec-action-text">
+        <strong>Build email capture</strong> — ${parseFloat(retPct) < 15 ? `only ${retPct}% of visitors return.` : ''} Email is the highest-ROI channel for bringing people back. A simple "Get the weekly breakdown" signup on every article page will compound over time.
+      </span></div>
+      <div class="exec-action"><span class="exec-action-num">3</span><span class="exec-action-text">
+        <strong>Strengthen YouTube → website funnel</strong> — check if youtube.com appears in your traffic sources. If traffic from YouTube is low, add specific article links in video descriptions and verbally direct viewers to fortitudefx.com during videos.
+      </span></div>
+    </div>
+  `;
+
+  document.getElementById('execBody').innerHTML = html;
+  document.getElementById('execSummary').style.display = 'block';
+  document.getElementById('execSummary').classList.add('open');
 }
 
 // ── Date selector ─────────────────────────────────────────────────────────
