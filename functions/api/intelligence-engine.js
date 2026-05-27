@@ -3,7 +3,7 @@
 // Called by cron daily after signals are collected
 // Reads all available signal KV keys, calls Claude analyst, writes intelligence:brief
 
-const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -66,6 +66,70 @@ export async function onRequestPost(context) {
     };
 
     await env.FFX_KV.put('intelligence:brief', JSON.stringify(output));
+
+    // ── Write intelligence:brief_log (recommendation tracking) ───────────
+    try {
+      const today    = new Date().toISOString().split('T')[0];
+      const briefLog = {
+        briefId:    today,
+        generatedAt: output.generatedAt,
+        signalSources: output.signalSources,
+        signalConfidence: (output.signalSources?.seo && output.signalSources?.ga4) ? 'low' : 'minimal',
+        recommendations: [],
+        accuracyScore:   null,
+        usefulnessScore: null,
+        scoredAt:        null,
+      };
+
+      // Extract recommendations from brief sections
+      if (brief.articleBrief) {
+        briefLog.recommendations.push({
+          id:         `${today}_article`,
+          type:       'article_brief',
+          target:     brief.articleBrief.targetQuery || null,
+          prediction: `Article ranks in top 50 for "${brief.articleBrief.targetQuery}" within 30 days`,
+          confidence: 'low',
+          actedOn:    null,
+          outcome:    null,
+          accurate:   null,
+        });
+      }
+
+      if (brief.titleRewrites && Array.isArray(brief.titleRewrites)) {
+        brief.titleRewrites.forEach((r, i) => {
+          briefLog.recommendations.push({
+            id:         `${today}_title_${i}`,
+            type:       'title_rewrite',
+            target:     r.currentUrl || null,
+            prediction: 'CTR improvement within 14 days of title change',
+            confidence: r.currentPosition < 15 ? 'high' : 'medium',
+            actedOn:    null,
+            outcome:    null,
+            accurate:   null,
+          });
+        });
+      }
+
+      if (brief.priorityActions && Array.isArray(brief.priorityActions)) {
+        brief.priorityActions.forEach((a, i) => {
+          briefLog.recommendations.push({
+            id:         `${today}_action_${i}`,
+            type:       'priority_action',
+            target:     a.action || null,
+            prediction: `Impact: ${a.impact}, Effort: ${a.effort}`,
+            confidence: a.impact === 'high' ? 'medium' : 'low',
+            actedOn:    null,
+            outcome:    null,
+            accurate:   null,
+          });
+        });
+      }
+
+      await env.FFX_KV.put(`intelligence:brief_log:${today}`, JSON.stringify(briefLog));
+      console.log('[intelligence-engine] Brief log written for:', today);
+    } catch (logErr) {
+      console.error('[intelligence-engine] Brief log write failed (non-fatal):', logErr.message);
+    }
 
     // ── Update weekly learning summary if Monday ──────────────────────────
     const dayOfWeek = new Date().getDay();
