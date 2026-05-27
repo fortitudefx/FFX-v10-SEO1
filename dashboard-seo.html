@@ -192,6 +192,65 @@
       width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
     }
 
+
+    /* Executive Summary */
+    .exec-summary {
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: #13151b;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .exec-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 24px; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      transition: background 0.15s;
+    }
+    .exec-header:hover { background: rgba(255,255,255,0.03); }
+    .exec-header-left { display: flex; align-items: center; gap: 12px; }
+    .exec-header-title { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.70); }
+    .exec-momentum {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 5px;
+    }
+    .momentum-up      { background: rgba(62,207,142,0.12);  color: rgba(62,207,142,0.90);  border: 1px solid rgba(62,207,142,0.25); }
+    .momentum-down    { background: rgba(248,113,113,0.12); color: rgba(248,113,113,0.90); border: 1px solid rgba(248,113,113,0.25); }
+    .momentum-flat    { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.50); border: 1px solid rgba(255,255,255,0.12); }
+    .exec-toggle { font-size: 11px; color: rgba(255,255,255,0.30); transition: transform 0.2s; }
+    .exec-summary.open .exec-toggle { transform: rotate(180deg); }
+    .exec-body { display: none; padding: 24px; }
+    .exec-summary.open .exec-body { display: block; }
+    .exec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .exec-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .exec-block {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 16px 18px;
+    }
+    .exec-block-title { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.36); margin-bottom: 10px; }
+    .exec-block-content { font-size: 14px; line-height: 1.70; color: rgba(255,255,255,0.72); }
+    .exec-block-content strong { color: rgba(255,255,255,0.90); font-weight: 700; }
+    .exec-block-content .good  { color: rgba(62,207,142,0.90); font-weight: 700; }
+    .exec-block-content .warn  { color: rgba(201,168,76,0.90); font-weight: 700; }
+    .exec-block-content .bad   { color: rgba(248,113,113,0.90); font-weight: 700; }
+    .exec-actions { display: flex; flex-direction: column; gap: 8px; }
+    .exec-action {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; padding: 12px 16px;
+    }
+    .exec-action-num { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.28); min-width: 20px; padding-top: 2px; }
+    .exec-action-text { font-size: 14px; color: rgba(255,255,255,0.72); line-height: 1.60; }
+    .exec-action-text strong { color: rgba(255,255,255,0.90); }
+    .exec-score {
+      font-size: 36px; font-weight: 800; letter-spacing: -0.03em;
+      line-height: 1; margin-bottom: 6px;
+    }
+    .exec-score-label { font-size: 11px; color: rgba(255,255,255,0.40); letter-spacing: 0.04em; }
+    .exec-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 20px 0; }
+    .exec-section-title { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.36); margin-bottom: 14px; }
+
     /* Disconnect */
     .btn-disconnect {
       font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
@@ -256,6 +315,21 @@
   <!-- Dashboard -->
   <div class="seo-dashboard" id="seoDashboard">
 
+
+
+    <!-- Executive Summary -->
+    <div class="exec-summary" id="execSummary" style="display:none;">
+      <div class="exec-header" onclick="toggleExec()">
+        <div class="exec-header-left">
+          <span class="exec-header-title">Executive Summary</span>
+          <span class="exec-momentum" id="execMomentum">Calculating…</span>
+        </div>
+        <span class="exec-toggle">▼</span>
+      </div>
+      <div class="exec-body" id="execBody">
+        <div class="panel-loading">Generating summary…</div>
+      </div>
+    </div>
 
     <!-- Trend charts -->
     <div class="seo-grid-2" id="chartsRow" style="display:none;">
@@ -455,6 +529,15 @@ async function loadAll(days) {
     renderCountries(countries.rows || []);
     renderPositionDist(pages.rows || []);
     renderAlerts(pages.rows || []);
+
+    // Build executive summary
+    try {
+      const [prevTotals, prevPages] = await Promise.all([
+        scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, { startDate: prevDateRange(currentDays).startDate, endDate: prevDateRange(currentDays).endDate, dimensions: [] }),
+        scQuery(`sites/${encodeURIComponent(SC_PROPERTY)}/searchAnalytics/query`, { startDate: prevDateRange(currentDays).startDate, endDate: prevDateRange(currentDays).endDate, dimensions: ['page'], rowLimit: 20 }),
+      ]);
+      buildExecSummary(curr, prevTotals, queries, pages, prevPages);
+    } catch(e) { console.error('Exec summary error:', e); }
 
   } catch(err) {
     console.error(err);
@@ -780,6 +863,133 @@ function applyCustomMonths() {
   document.getElementById('customBtn').classList.add('active');
   loadAll(days);
   loadCharts(days);
+}
+
+
+// ── Executive Summary ─────────────────────────────────────────────────────
+function toggleExec() {
+  document.getElementById('execSummary').classList.toggle('open');
+}
+
+function buildExecSummary(currData, prevData, queriesData, pagesData, prevPagesData) {
+  const c = currData.rows?.[0] || {};
+  const p = prevData.rows?.[0] || {};
+
+  const clicks      = c.clicks      || 0;
+  const impressions = c.impressions  || 0;
+  const ctr         = c.ctr         || 0;
+  const position    = c.position    || 0;
+  const pClicks     = p.clicks      || 0;
+  const pImpr       = p.impressions || 0;
+  const pCtr        = p.ctr         || 0;
+  const pPos        = p.position    || 0;
+
+  const clickDelta = pClicks  ? ((clicks-pClicks)/pClicks*100).toFixed(1) : null;
+  const imprDelta  = pImpr    ? ((impressions-pImpr)/pImpr*100).toFixed(1) : null;
+  const posDelta   = pPos     ? (position-pPos).toFixed(1) : null;
+
+  // Momentum
+  let momentum = 'flat', momentumText = 'Stable';
+  if (clickDelta > 10 || imprDelta > 15) { momentum = 'up'; momentumText = '↑ Growing'; }
+  else if (clickDelta < -10 || imprDelta < -15) { momentum = 'down'; momentumText = '↓ Declining'; }
+  else if (imprDelta > 0) { momentum = 'up'; momentumText = '↑ Steady'; }
+
+  document.getElementById('execMomentum').className = 'exec-momentum momentum-' + momentum;
+  document.getElementById('execMomentum').textContent = momentumText;
+
+  // Opportunity score — pages with impressions but 0 clicks
+  const pages = pagesData.rows || [];
+  const opportunities = pages.filter(r => r.impressions > 2 && r.clicks === 0);
+  const deadPages     = pages.filter(r => r.impressions === 0);
+  const page1Pages    = pages.filter(r => r.position <= 10).length;
+  const page2Pages    = pages.filter(r => r.position > 10 && r.position <= 20).length;
+
+  // Breakout query
+  const queries    = queriesData.rows || [];
+  const topQuery   = queries[0] ? queries[0].keys[0] : null;
+
+  // 30-day forecast (simple linear extrapolation from current period)
+  const daysInPeriod = currentDays || 28;
+  const dailyClicks  = clicks / daysInPeriod;
+  const forecast30   = Math.round(dailyClicks * 30);
+  const forecast90   = Math.round(dailyClicks * 90);
+
+  // Indexing health
+  const totalIndexed = pages.length;
+
+  const html = `
+    <div class="exec-grid">
+      <div class="exec-block">
+        <div class="exec-block-title">Current State</div>
+        <div class="exec-block-content">
+          ${clicks === 0 && impressions < 10
+            ? `Site is <strong>early stage</strong>. Google is indexing your content but you have <span class="warn">minimal search visibility</span> yet. This is normal for a site under 6 months old with a small backlink profile.`
+            : clicks < 50
+            ? `Site is <strong>gaining traction</strong>. Google is showing your pages <strong>${fmt(impressions)} times</strong> but click-through is low at <span class="warn">${(ctr*100).toFixed(1)}%</span>. The content is indexed — the titles need optimisation.`
+            : `Site has <strong>established presence</strong>. Generating <strong>${fmt(clicks)} clicks</strong> from <strong>${fmt(impressions)} impressions</strong> at <span class="good">${(ctr*100).toFixed(1)}% CTR</span>.`
+          }
+        </div>
+      </div>
+      <div class="exec-block">
+        <div class="exec-block-title">vs Last Period</div>
+        <div class="exec-block-content">
+          ${imprDelta !== null
+            ? `Impressions <span class="${parseFloat(imprDelta)>=0?'good':'bad'}">${parseFloat(imprDelta)>=0?'↑':'↓'} ${Math.abs(imprDelta)}%</span>.
+               Clicks <span class="${clickDelta && parseFloat(clickDelta)>=0?'good':'bad'}">${clickDelta ? (parseFloat(clickDelta)>=0?'↑':'↓')+' '+Math.abs(clickDelta)+'%' : 'no change'}</span>.
+               Average position <span class="${posDelta && parseFloat(posDelta)<0?'good':posDelta && parseFloat(posDelta)>2?'bad':'warn'}">${posDelta ? (parseFloat(posDelta)<0?'improved by '+Math.abs(posDelta):'dropped by '+posDelta)+' positions' : 'stable'}</span>.`
+            : `Insufficient historical data for comparison. Check back after ${currentDays} more days.`
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="exec-grid-3">
+      <div class="exec-block">
+        <div class="exec-block-title">Opportunity Score</div>
+        <div class="exec-score" style="color:${opportunities.length>3?'rgba(201,168,76,0.90)':'rgba(62,207,142,0.80)'}">${opportunities.length}</div>
+        <div class="exec-score-label">pages with impressions but 0 clicks</div>
+        <div class="exec-block-content" style="margin-top:10px;font-size:13px;">
+          ${opportunities.length > 0
+            ? `<span class="warn">${opportunities.length} quick win${opportunities.length>1?'s':''}</span> — these pages appear in Google but nobody clicks. Rewrite their titles and meta descriptions to be more compelling.`
+            : `<span class="good">No wasted impressions.</span> All pages with visibility are converting to clicks.`
+          }
+        </div>
+      </div>
+      <div class="exec-block">
+        <div class="exec-block-title">Page 1 Ranking</div>
+        <div class="exec-score" style="color:${page1Pages>3?'rgba(62,207,142,0.80)':page1Pages>0?'rgba(201,168,76,0.90)':'rgba(248,113,113,0.80)'}">${page1Pages}</div>
+        <div class="exec-score-label">pages ranking in top 10</div>
+        <div class="exec-block-content" style="margin-top:10px;font-size:13px;">
+          ${page2Pages} pages on page 2 (positions 11-20). ${deadPages.length} pages with zero impressions.
+          ${page1Pages === 0 ? `<span class="warn">No page 1 rankings yet.</span> Focus on long-tail article titles.` : `<span class="good">Page 1 presence established.</span>`}
+        </div>
+      </div>
+      <div class="exec-block">
+        <div class="exec-block-title">30-Day Forecast</div>
+        <div class="exec-score" style="color:rgba(255,255,255,0.80)">${fmt(forecast30)}</div>
+        <div class="exec-score-label">projected clicks next 30 days</div>
+        <div class="exec-block-content" style="margin-top:10px;font-size:13px;">
+          Based on current trajectory. <strong>${fmt(forecast90)}</strong> projected over 90 days if publishing cadence holds.
+          ${topQuery ? `Breakout query: <span class="warn">"${escHtml(topQuery)}"</span> — build more content around this topic.` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="exec-divider"></div>
+    <div class="exec-section-title">Priority Actions</div>
+    <div class="exec-actions">
+      ${opportunities.length > 0
+        ? `<div class="exec-action"><span class="exec-action-num">1</span><span class="exec-action-text"><strong>Fix ${opportunities.length} zero-click page${opportunities.length>1?'s':''}</strong> — rewrite titles to include high-intent keywords like "forex trading strategy", "how to trade wicks", "London session setup". These pages already appear in Google — a better title alone can 3-5x your clicks.</span></div>`
+        : `<div class="exec-action"><span class="exec-action-num">1</span><span class="exec-action-text"><strong>Publish more articles</strong> — each new article creates a new indexable page. Aim for 3-4 articles per week minimum to build impressions volume quickly.</span></div>`
+      }
+      <div class="exec-action"><span class="exec-action-num">2</span><span class="exec-action-text"><strong>Build internal links</strong> — link between your articles using anchor text that includes keywords. Google follows these links to discover and rank your content faster. Every article should link to at least 2-3 others.</span></div>
+      <div class="exec-action"><span class="exec-action-num">3</span><span class="exec-action-text"><strong>${page1Pages === 0 ? 'Target long-tail keywords' : 'Double down on what's ranking'}</strong> — ${page1Pages === 0 ? 'write articles targeting specific phrases like "how to catch the wick on GBPUSD" rather than broad terms. Long-tail keywords rank faster for new sites.' : `you have ${page1Pages} page 1 ranking${page1Pages>1?'s':''}. Create supporting articles on the same topic to reinforce your authority in that area.`}</span></div>
+    </div>
+  `;
+
+  document.getElementById('execBody').innerHTML = html;
+  document.getElementById('execSummary').style.display = 'block';
+  document.getElementById('execSummary').classList.add('open');
 }
 
 // ── Date selector ─────────────────────────────────────────────────────────
