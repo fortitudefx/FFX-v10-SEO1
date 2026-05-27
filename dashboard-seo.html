@@ -285,6 +285,7 @@
       <div class="header-count" id="headerCount">Search Console</div>
     </div>
     <div class="header-right">
+      <button onclick="triggerSignals()" id="signalBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Refresh SEO signals">⟳ Refresh Signals</button>
       <div class="date-selector" id="dateSelector" style="display:none;">
         <button class="date-btn" data-days="7">7D</button>
         <button class="date-btn active" data-days="28">28D</button>
@@ -428,6 +429,30 @@ let currentDays = 28;
 // ── Chart instances — stored so we can destroy before recreating ─────────────
 let chartClicksImprInstance = null;
 let chartPosCtrInstance     = null;
+
+
+// ── Manual signal trigger ─────────────────────────────────────────────────
+async function triggerSignals() {
+  const btn = document.getElementById('signalBtn');
+  btn.textContent = '⟳ Running…';
+  btn.style.color = 'rgba(201,168,76,0.80)';
+  try {
+    const res  = await fetch('/api/seo-signals', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      btn.textContent = '✓ Signals updated';
+      btn.style.color = 'rgba(62,207,142,0.80)';
+      setTimeout(() => { btn.textContent = '⟳ Refresh Signals'; btn.style.color = 'rgba(255,255,255,0.50)'; }, 3000);
+    } else {
+      btn.textContent = '✗ Error';
+      btn.style.color = 'rgba(248,113,113,0.80)';
+      setTimeout(() => { btn.textContent = '⟳ Refresh Signals'; btn.style.color = 'rgba(255,255,255,0.50)'; }, 3000);
+    }
+  } catch(e) {
+    btn.textContent = '✗ Error';
+    setTimeout(() => { btn.textContent = '⟳ Refresh Signals'; btn.style.color = 'rgba(255,255,255,0.50)'; }, 3000);
+  }
+}
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 async function startAuth() {
@@ -1013,6 +1038,7 @@ function showDashboard() {
   document.getElementById('seoDashboard').classList.add('visible');
   document.getElementById('dateSelector').style.display = 'flex';
   document.getElementById('statusDot').style.cssText = '';
+  document.getElementById('signalBtn').style.display = 'inline-block';
   loadAll(28);
   loadCharts(28);
 }
