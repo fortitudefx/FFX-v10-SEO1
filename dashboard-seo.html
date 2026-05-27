@@ -436,27 +436,40 @@ let chartPosCtrInstance     = null;
 // ── Intelligence engine trigger ───────────────────────────────────────────
 async function triggerIntelligence() {
   const btn = document.getElementById('intelBtn');
-  btn.textContent = '⚡ Analysing…';
+  btn.textContent = '⚡ Running — ~90s';
   btn.style.color = 'rgba(201,168,76,0.90)';
-  try {
-    const res  = await fetch('/api/intelligence-engine', { method: 'POST' });
-    const data = await res.json();
-    if (data.success) {
-      btn.textContent = '✓ Analysis complete';
-      btn.style.color = 'rgba(62,207,142,0.80)';
-      // Reload exec summary with new intelligence
-      if (typeof loadAll === 'function') loadAll(currentDays);
-      setTimeout(() => { btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; }, 4000);
-    } else {
-      btn.textContent = '✗ Error';
-      btn.style.color = 'rgba(248,113,113,0.80)';
-      console.error('Intelligence error:', data.error);
-      setTimeout(() => { btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; }, 3000);
+  btn.disabled = true;
+
+  // Fire and forget — engine takes ~80s, don't wait for response
+  fetch('/api/intelligence-engine', { method: 'POST' }).catch(() => {});
+
+  // Poll every 5s for up to 2 minutes to detect completion
+  let attempts = 0;
+  const poll = setInterval(async () => {
+    attempts++;
+    try {
+      const res  = await fetch('/api/intelligence-engine');
+      const data = await res.json();
+      if (data.brief && data.brief.generatedAt) {
+        const genTime = new Date(data.brief.generatedAt).getTime();
+        const now     = Date.now();
+        if (now - genTime < 180000) { // Generated within last 3 mins
+          clearInterval(poll);
+          btn.textContent = '✓ Analysis complete';
+          btn.style.color = 'rgba(62,207,142,0.80)';
+          btn.disabled = false;
+          if (typeof loadAll === 'function') loadAll(currentDays);
+          setTimeout(() => { btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; }, 4000);
+        }
+      }
+    } catch(e) {}
+    if (attempts >= 24) { // 2 minutes
+      clearInterval(poll);
+      btn.textContent = '⚡ Run Analysis';
+      btn.style.color = 'rgba(201,168,76,0.70)';
+      btn.disabled = false;
     }
-  } catch(e) {
-    btn.textContent = '✗ Error';
-    setTimeout(() => { btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; }, 3000);
-  }
+  }, 5000);
 }
 
 // ── Manual signal trigger ─────────────────────────────────────────────────
