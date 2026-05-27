@@ -232,7 +232,7 @@
         <button class="date-btn" data-days="90">90D</button>
         <button class="date-btn" data-days="180">6M</button>
         <button class="date-btn" data-days="0">All</button>
-        <input id="customMonths" type="number" min="1" max="60" placeholder="Mo" title="Enter months" style="width:48px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:5px;color:rgba(255,255,255,0.70);font-size:11px;font-weight:700;padding:4px 6px;outline:none;text-align:center;" />
+        <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:rgba(255,255,255,0.36);">MO</span><input id="customMonths" type="number" min="1" max="60" placeholder="1-60" title="Enter number of months" style="width:48px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:5px;color:rgba(255,255,255,0.70);font-size:11px;font-weight:700;padding:4px 6px;outline:none;text-align:center;" />
         <button class="date-btn" id="customBtn" onclick="applyCustomMonths()">Go</button>
       </div>
       <div class="status-dot" id="statusDot" style="background:var(--muted);box-shadow:none;animation:none;"></div>
@@ -354,6 +354,10 @@ const REDIRECT_URI = 'https://fortitudefx.com/dashboard-seo.html';
 
 let accessToken = null;
 let currentDays = 28;
+
+// ── Chart instances — stored so we can destroy before recreating ─────────────
+let chartClicksImprInstance = null;
+let chartPosCtrInstance     = null;
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 function startAuth() {
@@ -610,9 +614,15 @@ function posBadge(pos) {
 // ── Chart.js loader ───────────────────────────────────────────────────────
 function loadChartJs(callback) {
   if (window.Chart) { callback(); return; }
+  // Check if script already loading
+  if (document._chartJsLoading) {
+    const wait = () => window.Chart ? callback() : setTimeout(wait, 50);
+    wait(); return;
+  }
+  document._chartJsLoading = true;
   const s = document.createElement('script');
   s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
-  s.onload = callback;
+  s.onload = () => { document._chartJsLoading = false; callback(); };
   document.head.appendChild(s);
 }
 
@@ -635,7 +645,7 @@ async function loadCharts(days) {
         }),
       ]);
 
-      document.getElementById('chartsRow').style.display = 'grid';
+      document.getElementById('chartsRow').style.display = 'grid'; // keep visible on redraw
 
       // Daily clicks + impressions chart
       const dailyRows = (daily.rows || []).sort((a,b) => a.keys[0].localeCompare(b.keys[0]));
@@ -643,7 +653,8 @@ async function loadCharts(days) {
       const dailyClicks = dailyRows.map(r => r.clicks);
       const dailyImprs  = dailyRows.map(r => r.impressions);
 
-      new Chart(document.getElementById('chartClicksImpr'), {
+      if (chartClicksImprInstance) { chartClicksImprInstance.destroy(); chartClicksImprInstance = null; }
+      chartClicksImprInstance = new Chart(document.getElementById('chartClicksImpr'), {
         type: 'bar',
         data: {
           labels: dailyLabels,
@@ -708,7 +719,8 @@ async function loadCharts(days) {
       const weekPos    = Object.keys(weeks).sort().map(k => { const a = weeks[k].pos; return (a.reduce((s,v)=>s+v,0)/a.length).toFixed(1); });
       const weekCtr    = Object.keys(weeks).sort().map(k => { const a = weeks[k].ctr; return (a.reduce((s,v)=>s+v,0)/a.length).toFixed(2); });
 
-      new Chart(document.getElementById('chartPosCtr'), {
+      if (chartPosCtrInstance) { chartPosCtrInstance.destroy(); chartPosCtrInstance = null; }
+      chartPosCtrInstance = new Chart(document.getElementById('chartPosCtr'), {
         type: 'line',
         data: {
           labels: weekLabels,
@@ -754,7 +766,7 @@ async function loadCharts(days) {
 
     } catch(e) {
       console.error('Chart load error:', e);
-      document.getElementById('chartsRow').style.display = 'none';
+      console.error('Chart render failed:', e);
     }
   });
 }
