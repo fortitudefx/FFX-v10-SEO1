@@ -279,7 +279,7 @@ async function renderParked() {
     div.innerHTML = '<img class="parked-thumb" src="https://img.youtube.com/vi/'+item.videoId+'/mqdefault.jpg" onerror="this.style.display=\'none\'" alt="">'
       + '<div class="parked-info">'
       + '<div class="parked-title">'+(item.title ? escHtml(item.title) : escHtml(item.videoId))+'</div>'
-      + '<div class="parked-id">'+escHtml(item.videoId)+'</div>'
+      + '<a href="'+escHtml(item.youtubeUrl)+'" target="_blank" style="font-size:12px;color:rgba(255,255,255,0.45);text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" onclick="event.stopPropagation()">'+escHtml(item.youtubeUrl)+'</a>'
       + '</div>'
       + '<button class="btn-unpark" onclick="unparkItem(\''+escHtml(item.videoId)+'\')">↑ Activate</button>';
     el.appendChild(div);
