@@ -701,7 +701,7 @@ function buildAudExecSummary(overview, prevOverview, sourcesData, pagesData, cha
       <div class="exec-block">
         <div class="exec-block-title">Engagement Quality Score</div>
         <div class="exec-score" style="color:${eqs>=70?'rgba(62,207,142,0.90)':eqs>=40?'rgba(201,168,76,0.90)':'rgba(248,113,113,0.80)'}">${eqs}<span style="font-size:18px;font-weight:400;color:rgba(255,255,255,0.30)">/100</span></div>
-        <div class="exec-score-label">${eqs>=70?'High quality audience':'eqs>=40?Moderate engagement':'Low engagement — needs work'}</div>
+        <div class="exec-score-label">${eqs>=70?'High quality audience':eqs>=40?'Moderate engagement':'Low engagement'}</div>
         <div class="exec-block-content" style="margin-top:10px;font-size:13px;">
           ${eqs >= 70 ? `<span class="good">Strong.</span> Visitors are reading, staying, and engaging.`
             : eqs >= 40 ? `<span class="warn">Moderate.</span> Some engagement but bounce rate or session time needs improvement.`
