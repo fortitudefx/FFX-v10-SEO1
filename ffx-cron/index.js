@@ -9,7 +9,9 @@
 //    → 3 or fewer: top up with 7 more
 //    → 4+: do nothing
 // 3. Trigger generation on first item in queue
-// 4. On any error → send alert email via Brevo
+// 4. Collect fresh SEO + GA4 signals
+// 5. Update intelligence:targets with actuals vs targets
+// 6. Trigger intelligence engine
 // ─────────────────────────────────────────────────────────────────────────────
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
@@ -57,12 +59,69 @@ async function runCron(env) {
     const updatedQueue = await getQueue(env);
     if (!updatedQueue.length) {
       console.log('[ffx-cron] Queue empty after top-up — all videos processed');
-      return;
+    } else {
+      const firstItem = updatedQueue[0];
+      console.log('[ffx-cron] Triggering generation for:', firstItem.videoId, firstItem.title);
+      await triggerGeneration(env, firstItem);
     }
 
-    const firstItem = updatedQueue[0];
-    console.log('[ffx-cron] Triggering generation for:', firstItem.videoId, firstItem.title);
-    await triggerGeneration(env, firstItem);
+    // ── Step 4: Collect fresh SEO + GA4 signals ───────────────────────────
+    console.log('[ffx-cron] Collecting SEO signals...');
+    try {
+      const seoRes = await fetch('https://fortitudefx.com/api/seo-signals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (seoRes.ok) {
+        console.log('[ffx-cron] SEO signals collected');
+      } else {
+        console.error('[ffx-cron] SEO signals failed:', seoRes.status);
+      }
+    } catch(e) {
+      console.error('[ffx-cron] SEO signals error:', e.message);
+    }
+
+    console.log('[ffx-cron] Collecting GA4 signals...');
+    try {
+      const ga4Res = await fetch('https://fortitudefx.com/api/ga4-signals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (ga4Res.ok) {
+        console.log('[ffx-cron] GA4 signals collected');
+      } else {
+        console.error('[ffx-cron] GA4 signals failed:', ga4Res.status);
+      }
+    } catch(e) {
+      console.error('[ffx-cron] GA4 signals error:', e.message);
+    }
+
+    // ── Step 5: Update intelligence:targets with actuals ──────────────────
+    console.log('[ffx-cron] Updating target actuals...');
+    try {
+      await updateTargetActuals(env);
+      console.log('[ffx-cron] Target actuals updated');
+    } catch(e) {
+      console.error('[ffx-cron] Target actuals error:', e.message);
+    }
+
+    // ── Step 6: Trigger intelligence engine ───────────────────────────────
+    console.log('[ffx-cron] Triggering intelligence engine...');
+    try {
+      const intelRes = await fetch('https://fortitudefx.com/api/intelligence-engine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (intelRes.ok) {
+        console.log('[ffx-cron] Intelligence engine triggered');
+      } else {
+        console.error('[ffx-cron] Intelligence engine failed:', intelRes.status);
+      }
+    } catch(e) {
+      console.error('[ffx-cron] Intelligence engine error:', e.message);
+    }
+
+    console.log('[ffx-cron] Cron run complete');
 
   } catch (err) {
     console.error('[ffx-cron] Fatal error:', err.message);
@@ -74,7 +133,147 @@ async function runCron(env) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// QUEUE HELPERS
+// STEP 5: UPDATE TARGET ACTUALS
+// Reads latest signals, compares vs targets, writes status
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function updateTargetActuals(env) {
+  const [targetsRaw, seoRaw, ga4Raw] = await Promise.all([
+    env.FFX_KV.get('intelligence:targets', { type: 'json' }).catch(() => null),
+    env.FFX_KV.get('seo:signals',          { type: 'json' }).catch(() => null),
+    env.FFX_KV.get('ga4:signals',          { type: 'json' }).catch(() => null),
+  ]);
+
+  if (!targetsRaw) {
+    console.log('[ffx-cron] No targets found — skipping actuals update');
+    return;
+  }
+
+  const targets = targetsRaw;
+  const current = targets.current;
+  if (!current || !current.targets) return;
+
+  // Pull actuals from signals
+  const seoActuals = {
+    impressions: seoRaw?.totals?.impressions || 0,
+    clicks:      seoRaw?.totals?.clicks      || 0,
+    avgPosition: seoRaw?.totals?.position    || 0,
+  };
+
+  const ga4Actuals = {
+    users:       ga4Raw?.totals?.users       || 0,
+    sessions:    ga4Raw?.totals?.sessions    || 0,
+    avgDuration: ga4Raw?.totals?.avgDuration || 0,
+    bounceRate:  ga4Raw?.totals?.bounceRate  || 0,
+  };
+
+  // Map actuals to target keys
+  const actualMap = {
+    impressions:  seoActuals.impressions,
+    clicks:       seoActuals.clicks,
+    avgPosition:  seoActuals.avgPosition,
+    users:        ga4Actuals.users,
+    sessions:     ga4Actuals.sessions,
+    avgDuration:  ga4Actuals.avgDuration,
+    bounceRate:   ga4Actuals.bounceRate,
+  };
+
+  // Calculate status for each KPI
+  const amberAlerts = [];
+  const redAlerts   = [];
+  let   overallWorst = 'on_track';
+
+  for (const [key, entry] of Object.entries(current.targets)) {
+    if (!(key in actualMap)) continue;
+
+    const actual = actualMap[key];
+    const target = entry.target;
+    const direction = entry.direction || 'above'; // 'above' = higher is better, 'below' = lower is better
+
+    entry.actual = actual;
+
+    // Calculate ratio — direction aware
+    let ratio;
+    if (direction === 'below') {
+      // Lower is better (bounce rate, position)
+      ratio = target > 0 ? target / Math.max(actual, 0.001) : 1;
+    } else {
+      ratio = target > 0 ? actual / target : 1;
+    }
+
+    // Set status
+    if (ratio >= 1.15)      entry.status = 'ahead';
+    else if (ratio >= 0.85) entry.status = 'on_track';
+    else if (ratio >= 0.70) entry.status = 'behind';
+    else                    entry.status = 'critical';
+
+    // Track alerts
+    if (entry.status === 'critical') {
+      redAlerts.push(key);
+      overallWorst = 'critical';
+    } else if (entry.status === 'behind' && overallWorst !== 'critical') {
+      amberAlerts.push(key);
+      if (overallWorst === 'on_track') overallWorst = 'behind';
+    }
+  }
+
+  // Update current week
+  current.amberAlerts  = amberAlerts;
+  current.redAlerts    = redAlerts;
+  current.overallStatus = overallWorst;
+  current.lastUpdated  = new Date().toISOString();
+
+  // Identify primary gap
+  if (redAlerts.length > 0) {
+    current.primaryGap = redAlerts[0];
+    current.primaryGapCause = redAlerts.includes('articlesPublished')
+      ? 'Content output is the upstream cause — fix this first'
+      : 'Strategy gap — signals not improving despite publishing';
+  } else if (amberAlerts.length > 0) {
+    current.primaryGap = amberAlerts[0];
+    current.primaryGapCause = 'Behind target — monitor for 2 more weeks before adapting';
+  } else {
+    current.primaryGap      = null;
+    current.primaryGapCause = null;
+  }
+
+  // Append to history weekly (Mondays only)
+  const dayOfWeek = new Date().getDay();
+  if (dayOfWeek === 1) {
+    if (!targets.history) targets.history = [];
+    targets.history.push({
+      weekOf:        current.weekOf,
+      weekNumber:    current.weekNumber,
+      overallStatus: current.overallStatus,
+      actuals:       { ...actualMap },
+      primaryGap:    current.primaryGap,
+      updatedAt:     new Date().toISOString(),
+    });
+    // Keep last 52 weeks
+    targets.history = targets.history.slice(-52);
+
+    // Advance week number for next week
+    current.weekNumber = (current.weekNumber || 1) + 1;
+    current.weekOf     = new Date().toISOString().split('T')[0];
+
+    // Set next week targets from milestones if available
+    const wk = current.weekNumber;
+    const milestone = wk <= 4  ? targets.milestones?.week4  :
+                      wk <= 8  ? targets.milestones?.week8  :
+                      wk <= 13 ? targets.milestones?.week13 : null;
+    if (milestone) {
+      if (milestone.seo?.impressions) current.targets.impressions.target = Math.round(milestone.seo.impressions / 4);
+      if (milestone.ga4?.users)       current.targets.users.target       = Math.round(milestone.ga4.users / 4);
+      if (milestone.ga4?.sessions)    current.targets.sessions.target    = Math.round(milestone.ga4.sessions / 4);
+    }
+  }
+
+  await env.FFX_KV.put('intelligence:targets', JSON.stringify(targets));
+  console.log('[ffx-cron] Targets updated — overall:', overallWorst, '| red:', redAlerts.join(',') || 'none', '| amber:', amberAlerts.join(',') || 'none');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUEUE HELPERS — unchanged
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function getQueue(env) {
@@ -84,7 +283,6 @@ async function getQueue(env) {
 
 async function addToQueueTop(env, video) {
   const queue = await getQueue(env);
-  // Don't add if already in queue
   if (queue.some(item => item.videoId === video.videoId)) {
     console.log('[ffx-cron] Already in queue:', video.videoId);
     return;
@@ -116,7 +314,7 @@ async function addToQueueBottom(env, video) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FIND NEW VIDEO (last 25hrs)
+// FIND NEW VIDEO (last 25hrs) — FIX: 180s threshold (was 60s)
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function isLongFormVideo(videoId, apiKey) {
@@ -131,8 +329,9 @@ async function isLongFormVideo(videoId, apiKey) {
   const mins  = parseInt(match[2] || 0);
   const secs  = parseInt(match[3] || 0);
   const total = hours * 3600 + mins * 60 + secs;
-  return total >= 60;
+  return total >= 180; // FIX: 3 minutes minimum (was 60s)
 }
+
 async function findNewVideo(env) {
   const since = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
   const url   = `${YOUTUBE_API_BASE}/search?part=snippet&channelId=${env.YOUTUBE_CHANNEL_ID}&type=video&order=date&publishedAfter=${since}&maxResults=10&key=${env.YOUTUBE_API_KEY}`;
@@ -142,19 +341,20 @@ async function findNewVideo(env) {
 
   const data  = await res.json();
   const items = data.items || [];
-
   const queue = await getQueue(env);
 
   for (const item of items) {
     const videoId = item.id?.videoId;
     if (!videoId) continue;
 
-    // Skip if already published
     const published = await env.FFX_KV.get(`published:${videoId}`).catch(() => null);
     if (published) continue;
 
-    // Skip if already in queue
     if (queue.some(q => q.videoId === videoId)) continue;
+
+    // Check parked queue — never re-add parked videos
+    const parked = await env.FFX_KV.get('queue:parked', { type: 'json' }).catch(() => null);
+    if (Array.isArray(parked) && parked.some(p => p.videoId === videoId)) continue;
 
     const isLong = await isLongFormVideo(videoId, env.YOUTUBE_API_KEY);
     if (!isLong) continue;
@@ -170,13 +370,17 @@ async function findNewVideo(env) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FIND BACKLOG VIDEOS — newest first, skip published and already queued
+// FIND BACKLOG VIDEOS — unchanged except parked check added
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function findBacklogVideos(env, limit, currentQueue) {
   const results   = [];
   let pageToken   = null;
   const queuedIds = new Set(currentQueue.map(q => q.videoId));
+
+  // Load parked videos — never add them back
+  const parked    = await env.FFX_KV.get('queue:parked', { type: 'json' }).catch(() => null);
+  const parkedIds = new Set(Array.isArray(parked) ? parked.map(p => p.videoId) : []);
 
   do {
     const pageParam = pageToken ? `&pageToken=${pageToken}` : '';
@@ -194,10 +398,9 @@ async function findBacklogVideos(env, limit, currentQueue) {
       const videoId = item.id?.videoId;
       if (!videoId) continue;
 
-      // Skip if already in queue
-      if (queuedIds.has(videoId)) continue;
+      if (queuedIds.has(videoId))  continue;
+      if (parkedIds.has(videoId))  continue; // Never re-add parked videos
 
-      // Skip if already published
       const published = await env.FFX_KV.get(`published:${videoId}`).catch(() => null);
       if (published) continue;
 
@@ -221,11 +424,10 @@ async function findBacklogVideos(env, limit, currentQueue) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TRIGGER GENERATION — sends to ffx-generate-queue
+// TRIGGER GENERATION — unchanged
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function triggerGeneration(env, item) {
-  // Check if already generating (lock exists)
   const lock = await env.FFX_KV.get('lock:generating').catch(() => null);
   if (lock) {
     const lockData = JSON.parse(lock);
@@ -233,24 +435,20 @@ async function triggerGeneration(env, item) {
     return;
   }
 
-  // Check if already generated (video: key exists with content)
   const existing = await env.FFX_KV.get(`video:${item.videoId}`).catch(() => null);
   if (existing) {
     console.log('[ffx-cron] Already generated:', item.videoId, '— skipping generation');
     return;
   }
 
-  // Generate unique jobId
   const jobId = `${Date.now()}-${item.videoId}`;
 
-  // Write pending job
   await env.FFX_KV.put(
     `job:${jobId}`,
     JSON.stringify({ status: 'pending', videoId: item.videoId, createdAt: new Date().toISOString() }),
     { expirationTtl: 86400 }
   );
 
-  // Send to queue
   await env.FFX_QUEUE.send({
     jobId,
     videoId:    item.videoId,
@@ -258,7 +456,6 @@ async function triggerGeneration(env, item) {
     source:     'cron',
   });
 
-  // Mark queue item as wasGenerated
   const queue = await getQueue(env);
   const idx   = queue.findIndex(q => q.videoId === item.videoId);
   if (idx !== -1) {
@@ -271,7 +468,7 @@ async function triggerGeneration(env, item) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ALERT EMAIL via Brevo
+// ALERT EMAIL via Brevo — unchanged
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function sendAlertEmail(env, { subject, message }) {
