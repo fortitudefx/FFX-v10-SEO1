@@ -128,6 +128,37 @@
     .donut-val { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.85); margin-left: auto; }
 
 
+
+    /* Target Scorecard */
+    .scorecard { border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: #13151b; margin-bottom: 24px; overflow: hidden; }
+    .scorecard-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .scorecard-title { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.40); }
+    .scorecard-week  { font-size: 11px; color: rgba(255,255,255,0.28); }
+    .scorecard-body  { padding: 20px 24px; }
+    .scorecard-grid  { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .sc-kpi { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 12px 14px; }
+    .sc-kpi-label { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.30); margin-bottom: 8px; }
+    .sc-kpi-row   { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
+    .sc-kpi-actual { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; }
+    .sc-kpi-target { font-size: 11px; color: rgba(255,255,255,0.28); }
+    .sc-kpi-bar    { height: 3px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+    .sc-kpi-fill   { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+    .sc-kpi-status { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 5px; }
+    .status-ahead    { color: rgba(62,207,142,0.90); }
+    .status-on_track { color: rgba(62,207,142,0.70); }
+    .status-behind   { color: rgba(201,168,76,0.90); }
+    .status-critical { color: rgba(248,113,113,0.90); }
+    .status-baselining { color: rgba(255,255,255,0.28); }
+    .fill-ahead    { background: rgba(62,207,142,0.80); }
+    .fill-on_track { background: rgba(62,207,142,0.60); }
+    .fill-behind   { background: rgba(201,168,76,0.80); }
+    .fill-critical { background: rgba(248,113,113,0.80); }
+    .fill-baselining { background: rgba(255,255,255,0.15); }
+    .sc-alert { margin-top: 14px; padding: 10px 14px; border-radius: 7px; font-size: 12px; line-height: 1.60; }
+    .sc-alert-amber { background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.20); color: rgba(201,168,76,0.85); }
+    .sc-alert-red   { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.20); color: rgba(248,113,113,0.85); }
+    .sc-no-targets  { padding: 40px 24px; text-align: center; font-size: 12px; color: rgba(255,255,255,0.28); line-height: 1.8; }
+
     /* Executive Summary */
     .exec-summary { border-radius: 16px; border: 1px solid rgba(255,255,255,0.09); background: #13151b; margin-bottom: 24px; overflow: hidden; }
     .exec-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.07); transition: background 0.15s; }
@@ -203,6 +234,7 @@
       <div class="header-count" id="headerCount">GA4 Analytics</div>
     </div>
     <div class="header-right">
+      <button onclick="seedTargets()" id="seedBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.08);color:rgba(62,207,142,0.60);border:1px solid rgba(62,207,142,0.15);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Seed founding targets (run once)">⊕ Seed Targets</button>
       <button onclick="triggerSignals()" id="signalBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Refresh GA4 signals">⟳ Refresh Signals</button>
       <div class="date-selector" id="dateSelector" style="display:none;">
         <button class="date-btn" data-days="7">7D</button>
@@ -226,6 +258,18 @@
   <!-- Dashboard -->
   <div class="aud-dashboard" id="audDashboard">
 
+
+
+    <!-- Target Scorecard -->
+    <div class="scorecard" id="targetScorecard" style="display:none;">
+      <div class="scorecard-header">
+        <span class="scorecard-title">Weekly Scorecard</span>
+        <span class="scorecard-week" id="scorecardWeek">Week —</span>
+      </div>
+      <div class="scorecard-body" id="scorecardBody">
+        <div class="sc-no-targets">Click ⊕ Seed Targets to initialise the target system.</div>
+      </div>
+    </div>
 
     <!-- Executive Summary -->
     <div class="exec-summary" id="execSummary" style="display:none;">
@@ -324,6 +368,81 @@ let currentDays = 28;
 let chartSessionsInstance = null;
 let chartNewReturnInstance = null;
 
+
+
+// ── Target Scorecard ──────────────────────────────────────────────────────
+async function seedTargets() {
+  const btn = document.getElementById('seedBtn');
+  btn.textContent = '⊕ Seeding…';
+  try {
+    const res  = await fetch('/api/seed-targets', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      btn.textContent = '✓ Targets seeded';
+      btn.style.color = 'rgba(62,207,142,0.90)';
+      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 3000);
+      loadTargetScorecard();
+    } else {
+      btn.textContent = '✗ Error';
+      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; }, 3000);
+    }
+  } catch(e) { btn.textContent = '✗ Error'; setTimeout(() => { btn.textContent = '⊕ Seed Targets'; }, 3000); }
+}
+
+async function loadTargetScorecard() {
+  try {
+    const res  = await fetch('/api/seed-targets');
+    const data = await res.json();
+    if (!data.targets) return;
+    renderScorecard(data.targets);
+    document.getElementById('targetScorecard').style.display = 'block';
+  } catch(e) { console.error('Scorecard error:', e); }
+}
+
+function renderScorecard(targets) {
+  const current = targets.current;
+  if (!current) return;
+  const weekNum = current.weekNumber || 1;
+  document.getElementById('scorecardWeek').textContent = 'Week ' + weekNum + ' of 52';
+
+  const kpis = [
+    { key: 'users',             label: 'Users',         suffix: '', decimals: 0 },
+    { key: 'sessions',          label: 'Sessions',      suffix: '', decimals: 0 },
+    { key: 'avgDuration',       label: 'Avg Duration',  suffix: 's',decimals: 0 },
+    { key: 'articlesPublished', label: 'Articles',      suffix: '', decimals: 0 },
+    { key: 'impressions',       label: 'Impressions',   suffix: '', decimals: 0 },
+    { key: 'clicks',            label: 'Clicks',        suffix: '', decimals: 0 },
+    { key: 'linkedInPosts',     label: 'LinkedIn Posts',suffix: '', decimals: 0 },
+    { key: 'emailSubscribers',  label: 'Email Subs',    suffix: '', decimals: 0 },
+  ];
+
+  let alerts = '';
+  if (current.redAlerts && current.redAlerts.length)   alerts += '<div class="sc-alert sc-alert-red">🔴 <strong>Red Alert:</strong> ' + current.redAlerts.join(' · ') + '</div>';
+  if (current.amberAlerts && current.amberAlerts.length) alerts += '<div class="sc-alert sc-alert-amber">⚠ <strong>Behind:</strong> ' + current.amberAlerts.join(' · ') + '</div>';
+
+  const grid = kpis.map(kpi => {
+    const entry  = current.targets[kpi.key];
+    if (!entry) return '';
+    const target = entry.target || 0;
+    const actual = entry.actual;
+    const status = entry.status || (actual === null ? 'baselining' : 'on_track');
+    const displayActual = actual !== null ? (actual.toFixed(kpi.decimals) + kpi.suffix) : '—';
+    const pct     = actual !== null && target > 0 ? Math.min((actual / target) * 100, 100) : 0;
+    const fillPct = actual !== null ? pct : 15;
+    const statusLabels = { ahead: '↑ Ahead', on_track: '✓ On track', behind: '↓ Behind', critical: '✗ Critical', baselining: '~ Baselining' };
+    return `<div class="sc-kpi">
+      <div class="sc-kpi-label">${kpi.label}</div>
+      <div class="sc-kpi-row">
+        <span class="sc-kpi-actual status-${status}">${displayActual}</span>
+        <span class="sc-kpi-target">/ ${target}${kpi.suffix}</span>
+      </div>
+      <div class="sc-kpi-bar"><div class="sc-kpi-fill fill-${status}" style="width:${fillPct}%"></div></div>
+      <div class="sc-kpi-status status-${status}">${statusLabels[status] || status}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('scorecardBody').innerHTML = '<div class="scorecard-grid">' + grid + '</div>' + alerts;
+}
 
 // ── Manual signal trigger ─────────────────────────────────────────────────
 async function triggerSignals() {
@@ -795,7 +914,9 @@ function showDashboard() {
   document.getElementById('dateSelector').style.display = 'flex';
   document.getElementById('statusDot').style.cssText = '';
   document.getElementById('signalBtn').style.display = 'inline-block';
+  document.getElementById('seedBtn').style.display = 'inline-block';
   loadAll(28);
+  loadTargetScorecard();
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
