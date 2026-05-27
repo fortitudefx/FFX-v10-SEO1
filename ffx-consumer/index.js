@@ -82,7 +82,7 @@ async function processJob(job, env) {
   await updateJob(env, jobId, videoId, 'processing', 'global_article');
   let globalArticle;
   try {
-    globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug);
+    globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug, env);
     console.log('[FFX] Global article done, slug:', globalArticle.slug);
   } catch (err) {
     await failJob(env, jobId, videoId, 'global_article', formatClaudeError(err, 'Global article'), true);
@@ -339,9 +339,89 @@ async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
   throw new Error('Unexpected Supadata response: ' + JSON.stringify(data).slice(0, 200));
 }
 
-async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalSlug, existingSlug) {
+async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalSlug, existingSlug, env) {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
   const isRegional = region !== 'Global';
+
+  // ── Read intelligence signals for prompt injection ────────────────────────
+  let signalInjection = '';
+  if (env && region === 'Global') { // Only inject on Global article — regional inherits same brief
+    try {
+      const [brief, learningSummary, targets] = await Promise.all([
+        env.FFX_KV.get('intelligence:brief',       { type: 'json' }).catch(() => null),
+        env.FFX_KV.get('seo:learning:summary',     { type: 'json' }).catch(() => null),
+        env.FFX_KV.get('intelligence:targets',     { type: 'json' }).catch(() => null),
+      ]);
+
+      const parts = [];
+
+      if (brief?.promptInjection) {
+        const pi = brief.promptInjection;
+        if (pi.currentSignals)    parts.push(`CURRENT SIGNALS (act on these now):
+${pi.currentSignals}`);
+        if (pi.historicalLearning) parts.push(`WHAT HAS WORKED ON FORTITUDEFX (last 12 weeks):
+${pi.historicalLearning}`);
+        if (pi.avoidance)         parts.push(`AVOID (based on poor performance data):
+${pi.avoidance}`);
+      }
+
+      if (brief?.articleBrief) {
+        const ab = brief.articleBrief;
+        const briefLines = [];
+        if (ab.targetQuery)    briefLines.push(`Target query: "${ab.targetQuery}"`);
+        if (ab.suggestedTitle) briefLines.push(`Suggested title: "${ab.suggestedTitle}"`);
+        if (ab.angle)          briefLines.push(`Angle: ${ab.angle}`);
+        if (ab.targetLength)   briefLines.push(`Target length: ${ab.targetLength} words`);
+        if (ab.contentPillar)  briefLines.push(`Content pillar: ${ab.contentPillar}`);
+        if (ab.keyPoints?.length) briefLines.push(`Key points to cover:
+${ab.keyPoints.map(p => `  - ${p}`).join('
+')}`);
+        if (ab.nuggetTags?.length) briefLines.push(`Knowledge tags to draw from: ${ab.nuggetTags.join(', ')}`);
+        if (briefLines.length) parts.push(`TODAY'S ARTICLE BRIEF (from intelligence analysis):
+${briefLines.join('
+')}`);
+      }
+
+      if (learningSummary) {
+        const ls = learningSummary;
+        const lsParts = [];
+        if (ls.seoSummary)       lsParts.push(ls.seoSummary);
+        if (ls.audienceSummary)  lsParts.push(ls.audienceSummary);
+        if (ls.optimalLength)    lsParts.push(`Optimal article length for FFX: ${ls.optimalLength} words`);
+        if (ls.optimalStructure) lsParts.push(`Best structure: ${ls.optimalStructure}`);
+        if (lsParts.length) parts.push(`SITE LEARNING PATTERNS:
+${lsParts.join('
+')}`);
+      }
+
+      if (targets?.current) {
+        const gap = targets.current.primaryGap;
+        const overall = targets.current.overallStatus;
+        if (gap || overall) {
+          parts.push(`PERFORMANCE CONTEXT:
+Site momentum: ${overall || 'building'}${gap ? `. Primary gap to close: ${gap}` : ''}. Write content that drives organic traffic and Discord community engagement.`);
+        }
+      }
+
+      if (parts.length > 0) {
+        signalInjection = `
+
+${'='.repeat(60)}
+INTELLIGENCE CONTEXT — READ BEFORE WRITING
+${'='.repeat(60)}
+${parts.join('
+
+')}
+${'='.repeat(60)}
+
+Apply the above context to shape what you write and how you target it. Your voice rules and trademark rules below remain absolute.
+`;
+        console.log('[FFX] Signal injection built — targetQuery:', brief?.articleBrief?.targetQuery || 'none');
+      }
+    } catch (injErr) {
+      console.error('[FFX] Signal injection failed (non-fatal — continuing without):', injErr.message);
+    }
+  }
   const regionInstruction = isRegional ? `
 REGIONAL TARGETING - THIS ARTICLE IS FOR: ${region}
 This is the regional variant. The global slug is: ${globalSlug}.
@@ -349,7 +429,7 @@ Append the region to the slug: e.g. "trading-london-session-gcc".
 Frame examples, market session times, currency pairs, and cultural context specifically for ${region} traders.
 Keep the core trading insight identical - only framing and examples shift.` : '';
 
-  const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.
+  const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.${signalInjection}
 
 TRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.
 
