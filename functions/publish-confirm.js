@@ -271,6 +271,23 @@ export async function onRequestPost(context) {
         await env.FFX_KV.put(`published:${videoId}`, JSON.stringify(publishedEntry));
         console.log('[FFX] published: KV written permanently for videoId:', videoId);
 
+// ── Update content:performance:{slug} with publishedAt and status ─────────
+try {
+  const slug = content.slug;
+  if (slug) {
+    const perfKey = `content:performance:${slug}`;
+    const perf = await env.FFX_KV.get(perfKey, { type: 'json' }).catch(() => null);
+    if (perf) {
+      perf.publishedAt = now.toISOString();
+      perf.status = 'published';
+      await env.FFX_KV.put(perfKey, JSON.stringify(perf));
+      console.log('[FFX] content:performance updated to published for slug:', slug);
+    }
+  }
+} catch(perfErr) {
+  console.error('[FFX] content:performance publish update failed (non-fatal):', perfErr.message);
+}
+
         // Clear video:{videoId} immediately — content is now permanent in published:{videoId}
         // Non-fatal — publish already succeeded if this fails
         try { await env.FFX_KV.delete(`video:${videoId}`); console.log('[FFX] video: KV cleared for videoId:', videoId); } catch {}
