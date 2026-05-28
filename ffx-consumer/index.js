@@ -414,13 +414,9 @@ ${pi.avoidance}`);
         if (ab.angle)          briefLines.push(`Angle: ${ab.angle}`);
         if (ab.targetLength)   briefLines.push(`Target length: ${ab.targetLength} words`);
         if (ab.contentPillar)  briefLines.push(`Content pillar: ${ab.contentPillar}`);
-        if (ab.keyPoints?.length) briefLines.push(`Key points to cover:
-${ab.keyPoints.map(p => `  - ${p}`).join('
-')}`);
+        if (ab.keyPoints?.length) briefLines.push(`Key points to cover:\n${ab.keyPoints.map(p => `  - ${p}`).join('\n')}`);
         if (ab.nuggetTags?.length) briefLines.push(`Knowledge tags to draw from: ${ab.nuggetTags.join(', ')}`);
-        if (briefLines.length) parts.push(`TODAY'S ARTICLE BRIEF (from intelligence analysis):
-${briefLines.join('
-')}`);
+        if (briefLines.length) parts.push(`TODAY'S ARTICLE BRIEF (from intelligence analysis):\n${briefLines.join('\n')}`);
       }
 
       if (learningSummary) {
