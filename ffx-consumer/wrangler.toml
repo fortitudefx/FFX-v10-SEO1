@@ -14,3 +14,6 @@ id = "6660064783ba4b2fbe4f8a0031818e99"
 
 [vars]
 ARTICLE_BASE_URL = "https://fortitudefx.com/article?slug="
+
+[observability]
+enabled = true
