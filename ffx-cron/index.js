@@ -457,13 +457,11 @@ async function triggerGeneration(env, item) {
   });
 
   const queue = await getQueue(env);
-  const idx   = queue.findIndex(q => q.videoId === item.videoId);
-  if (idx !== -1) {
-    queue[idx].wasGenerated = true;
-    queue[idx].jobId        = jobId;
-    await env.FFX_KV.put(QUEUE_KEY, JSON.stringify(queue));
-  }
-
+const idx   = queue.findIndex(q => q.videoId === item.videoId);
+if (idx !== -1) {
+  queue[idx].jobId = jobId;
+  await env.FFX_KV.put(QUEUE_KEY, JSON.stringify(queue));
+}
   console.log('[ffx-cron] Generation triggered:', item.videoId, 'jobId:', jobId);
 }
 
