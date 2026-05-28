@@ -481,7 +481,7 @@ Append the region to the slug: e.g. "trading-london-session-gcc".
 Frame examples, market session times, currency pairs, and cultural context specifically for ${region} traders.
 Keep the core trading insight identical - only framing and examples shift.` : '';
 
-  const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.${signalInjection}
+  const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.${nuggetBlock}${signalInjection}
 
 TRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.
 
