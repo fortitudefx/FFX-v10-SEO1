@@ -7,6 +7,16 @@ export async function onRequestPost(context) {
   const { env } = context;
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
+  // ── Guard: refuse to overwrite if targets already seeded ─────────────
+  const existing = await env.FFX_KV.get('intelligence:targets', { type: 'json' }).catch(() => null);
+  if (existing && existing.meta?.version >= 1) {
+    return new Response(JSON.stringify({
+      error: 'Targets already seeded. Use the cron to update actuals. Re-seeding would overwrite live data.',
+      weekNumber: existing.current?.weekNumber || 1,
+      seededAt: existing.meta?.setAt || 'unknown',
+    }), { status: 409, headers });
+  }
+  
   try {
     const now     = new Date();
     const weekOf  = now.toISOString().split('T')[0];
