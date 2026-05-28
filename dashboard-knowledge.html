@@ -325,7 +325,8 @@ const usedChip = usedLinks
         +(tags?'<div class="nugget-tags">'+tags+'</div>':'')
         +'<div class="nugget-platforms">'+pills+'</div>'
       +'</div>'
-      +'<div class="nugget-actions">'
+      +usedChip
++'<div class="nugget-actions">'
         +'<button class="btn-nugget-action" onclick="editNugget(\''+n.id+'\')">Edit</button>'
         +'<button class="btn-nugget-action btn-nugget-delete" onclick="deleteNugget(\''+n.id+'\')">Delete</button>'
       +'</div>'
