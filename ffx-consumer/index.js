@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Consumer Worker — Queue consumer
-// 4 Claude calls: Global Article, Global Platforms, Regional Article, Regional Platforms.
+// 4 Claude calls: Global Article, Global Platforms, Regional Article, Regional Platforms..
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default {
