@@ -17,7 +17,7 @@ export async function onRequestGet(context) {
   }
 
   const url = new URL(request.url);
-  const jobId = url.searchParams.get('job');
+  const jobId = url.searchParams.get('jobId') || url.searchParams.get('job');
 
   if (!jobId) {
     return new Response(JSON.stringify({ error: 'job parameter required' }), { status: 400, headers });
