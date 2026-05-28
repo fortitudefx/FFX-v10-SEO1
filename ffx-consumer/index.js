@@ -208,23 +208,27 @@ try {
       : 0;
 
     const perfRecord = {
-      slug:           globalContent.slug,
-      videoId,
-      youtubeUrl,
-      title:          globalContent.title,
-      contentPillar:  globalContent.category || 'Strategy',
-      region:         regionName,
-      wordCount,
-      targetQuery:    targetQuery  || null,
-      briefVersion:   briefVersion || null,
-      promptInjected: !!targetQuery,
-      generatedAt:    new Date().toISOString(),
-      publishedAt:    null,
-      status:         'generated',
-      snapshot7:      null,
-      snapshot30:     null,
-      snapshot90:     null,
-    };
+  slug:                   globalContent.slug,
+  videoId,
+  youtubeUrl,
+  title:                  globalContent.title,
+  contentPillar:          globalContent.category || 'Strategy',
+  region:                 regionName,
+  wordCount,
+  targetQuery:            targetQuery  || null,
+  briefVersion:           briefVersion || null,
+  promptInjected:         !!targetQuery,
+  nuggetIdsUsed:          nuggetInjection.ids,
+  nuggetTagsUsed:         nuggetInjection.tags,
+  nuggetInjectionStatus:  nuggetInjection.status,
+  nuggetInjectionReason:  nuggetInjection.reason,
+  generatedAt:            new Date().toISOString(),
+  publishedAt:            null,
+  status:                 'generated',
+  snapshot7:              null,
+  snapshot30:             null,
+  snapshot90:             null,
+};
 
     await env.FFX_KV.put(`content:performance:${globalContent.slug}`, JSON.stringify(perfRecord));
     console.log('[FFX] content:performance written for slug:', globalContent.slug);
@@ -232,6 +236,31 @@ try {
     console.error('[FFX] content:performance write failed (non-fatal):', perfErr.message);
   }
 
+  // ── Update usedInArticles on each injected nugget ─────────────────────
+if (nuggetInjection.ids.length > 0) {
+  try {
+    for (const nuggetId of nuggetInjection.ids) {
+      const nuggetRaw = await env.FFX_KV.get(`nugget:${nuggetId}`, { type: 'json' }).catch(() => null);
+      if (!nuggetRaw) continue;
+      if (!Array.isArray(nuggetRaw.usedInArticles)) nuggetRaw.usedInArticles = [];
+      const alreadyRecorded = nuggetRaw.usedInArticles.some(a => a.slug === globalContent.slug);
+      if (!alreadyRecorded) {
+        nuggetRaw.usedInArticles.push({
+          slug:    globalContent.slug,
+          videoId,
+          title:   globalContent.title,
+          usedAt:  new Date().toISOString(),
+        });
+        nuggetRaw.updatedAt = new Date().toISOString();
+        await env.FFX_KV.put(`nugget:${nuggetId}`, JSON.stringify(nuggetRaw));
+      }
+    }
+    console.log('[FFX] usedInArticles updated for', nuggetInjection.ids.length, 'nuggets');
+  } catch (err) {
+    console.error('[FFX] usedInArticles update failed (non-fatal):', err.message);
+  }
+}
+  
   // Update queue:index
   try {
     const queueRaw = await env.FFX_KV.get('queue:index', { type: 'json' });
@@ -349,6 +378,12 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
   const isRegional = region !== 'Global';
 
+// ── Nugget injection ─────────────────────────────────────────────────────
+let nuggetInjection = { text: '', ids: [], tags: [], status: 'skipped_error', reason: '' };
+if (env && region === 'Global') {
+  nuggetInjection = await fetchRelevantNuggets(transcript, env);
+}
+  
   // ── Read intelligence signals for prompt injection ────────────────────────
   let signalInjection = '';
   if (env && region === 'Global') { // Only inject on Global article — regional inherits same brief
@@ -428,6 +463,17 @@ Apply the above context to shape what you write and how you target it. Your voic
       console.error('[FFX] Signal injection failed (non-fatal — continuing without):', injErr.message);
     }
   }
+
+  const nuggetBlock = nuggetInjection.text ? `
+
+${'='.repeat(60)}
+KNOWLEDGE LIBRARY — SALMAN'S METHODOLOGY
+${'='.repeat(60)}
+These are real insights from Salman's trading methodology. Use them as intellectual foundation where genuinely relevant. Do not force them in. Do not copy verbatim — let them inform the thinking.
+${nuggetInjection.text}
+${'='.repeat(60)}
+` : '';
+  
   const regionInstruction = isRegional ? `
 REGIONAL TARGETING - THIS ARTICLE IS FOR: ${region}
 This is the regional variant. The global slug is: ${globalSlug}.
@@ -439,7 +485,7 @@ Keep the core trading insight identical - only framing and examples shift.` : ''
 
 TRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.
 
-Article region: ${region}${regionInstruction}
+Article region: ${region}${regionInstruction}${nuggetBlock}
 
 Generate ONLY the blog article fields. Return a single valid JSON object with exactly these keys and no others:
 
@@ -627,3 +673,71 @@ Return ONLY the raw JSON array. Start with [ end with ].`;
   if (!Array.isArray(parsed)) throw new Error('Library extraction did not return array');
   return parsed.filter(item => item.category && item.format && item.content);
 }
+
+async function fetchRelevantNuggets(transcript, env) {
+  const result = { text: '', ids: [], tags: [], status: 'skipped_error', reason: '' };
+
+  try {
+    const indexRaw = await env.FFX_KV.get('nuggets:index', { type: 'json' }).catch(() => null);
+    if (!indexRaw || !Array.isArray(indexRaw) || indexRaw.length === 0) {
+      result.status = 'skipped_empty';
+      result.reason = 'nuggets:index is empty or not found';
+      console.log('[FFX] Nugget injection skipped:', result.reason);
+      return result;
+    }
+
+    // Fetch up to 50 most recent nuggets
+    const recentIds = indexRaw.slice(0, 50);
+    const nuggets = (await Promise.all(
+      recentIds.map(id => env.FFX_KV.get(`nugget:${id}`, { type: 'json' }).catch(() => null))
+    )).filter(Boolean);
+
+    if (nuggets.length === 0) {
+      result.status = 'skipped_empty';
+      result.reason = 'No nuggets could be read from KV';
+      console.log('[FFX] Nugget injection skipped:', result.reason);
+      return result;
+    }
+
+    // Score each nugget — count how many of its tags appear in the transcript
+    const transcriptLower = transcript.toLowerCase();
+    const scored = nuggets.map(n => {
+      const tags = Array.isArray(n.tags) ? n.tags : [];
+      const score = tags.filter(t => transcriptLower.includes(t.toLowerCase())).length;
+      return { nugget: n, score };
+    }).filter(s => s.score > 0);
+
+    if (scored.length === 0) {
+      result.status = 'skipped_no_match';
+      result.reason = 'No nugget tags matched transcript content';
+      console.log('[FFX] Nugget injection skipped:', result.reason);
+      return result;
+    }
+
+    // Sort by score descending, take top 5
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.slice(0, 5);
+
+    // Build injection text
+    const lines = top.map(s =>
+      `[${s.nugget.category}] ${s.nugget.text}${s.nugget.tags?.length ? ' (tags: ' + s.nugget.tags.join(', ') + ')' : ''}`
+    ).join('\n\n');
+
+    result.text   = lines;
+    result.ids    = top.map(s => s.nugget.id);
+    result.tags   = [...new Set(top.flatMap(s => s.nugget.tags || []))];
+    result.status = 'injected';
+    result.reason = `${top.length} nuggets matched and injected`;
+
+    console.log('[FFX] Nugget injection:', result.reason, '| IDs:', result.ids.join(', '));
+    return result;
+
+  } catch (err) {
+    result.status = 'skipped_error';
+    result.reason = `KV read failed: ${err.message}`;
+    console.error('[FFX] Nugget injection error (non-fatal):', err.message);
+    return result;
+  }
+}
+
+
