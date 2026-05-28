@@ -592,7 +592,13 @@ async function fetchRelevantNuggets(transcript, env) {
     const transcriptLower = transcript.toLowerCase();
     const scored = nuggets.map(n => {
       const tags  = Array.isArray(n.tags) ? n.tags : [];
-      const score = tags.filter(t => transcriptLower.includes(t.toLowerCase())).length;
+      const score = tags.reduce((total, tag) => {
+  const tagLower = tag.toLowerCase();
+  if (transcriptLower.includes(tagLower)) return total + 2;
+  const words = tagLower.split(/\s+/).filter(w => w.length > 3);
+  const wordMatches = words.filter(w => transcriptLower.includes(w)).length;
+  return total + wordMatches;
+}, 0);
       return { nugget: n, score };
     }).filter(s => s.score > 0);
 
