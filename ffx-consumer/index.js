@@ -39,15 +39,21 @@ async function processJob(job, env) {
 
   await updateJob(env, jobId, videoId, 'processing', 'transcript');
 
-  let transcript;
-  try {
+let transcript;
+try {
+  const cached = await env.FFX_KV.get(`transcript:${videoId}`, { type: 'text' }).catch(() => null);
+  if (cached && cached.trim().length >= 100) {
+    transcript = cached;
+    console.log('[FFX] Transcript loaded from KV, length:', transcript.length);
+  } else {
     transcript = await fetchTranscriptSupadata(youtubeUrl, env.SUPADATA_API_KEY);
-    console.log('[FFX] Transcript fetched, length:', transcript?.length);
-  } catch (err) {
-    await failJob(env, jobId, videoId, 'transcript',
-      `Transcript fetch failed: ${err.message}. Ensure captions are enabled on this video in YouTube Studio.`, false);
-    return;
+    console.log('[FFX] Transcript fetched from Supadata, length:', transcript?.length);
   }
+} catch (err) {
+  await failJob(env, jobId, videoId, 'transcript',
+    `Transcript fetch failed: ${err.message}. Ensure captions are enabled on this video in YouTube Studio.`, false);
+  return;
+}
 
   if (!transcript || transcript.trim().length < 100) {
     await failJob(env, jobId, videoId, 'transcript',
