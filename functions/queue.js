@@ -75,10 +75,21 @@ async function handleGet(request, env, headers) {
       }
 
       // Determine state
-      let state = 'grey'; // no content
-      if (hasContent) state = 'orange'; // content ready
-      // red = was generated but expired — we detect by checking wasGenerated flag
-      if (!hasContent && item.wasGenerated) state = 'red';
+      let state = 'grey';
+if (hasContent) state = 'orange';
+if (!hasContent && item.wasGenerated) {
+  // Check if job is still active before showing red
+  if (item.jobId) {
+    const job = await env.FFX_KV.get(`job:${item.jobId}`, { type: 'json' }).catch(() => null);
+    if (job && (job.status === 'pending' || job.status === 'processing')) {
+      state = 'generating';
+    } else {
+      state = 'red';
+    }
+  } else {
+    state = 'red';
+  }
+}
 
       return {
         ...item,
