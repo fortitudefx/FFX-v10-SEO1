@@ -13,6 +13,9 @@ export async function onRequestPost(context) {
 
   try {
     // ── Read all available signal sources ────────────────────────────────
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
     const [
       seoSignals,    seoLearning,
       ga4Signals,    ga4Learning,
@@ -20,20 +23,28 @@ export async function onRequestPost(context) {
       emailSignals,  intelSignals,
       calSignals,    knowledgeTaxonomy,
       knowledgePerf, prevBrief,
+      accuracyScores, healthResults,
     ] = await Promise.all([
-      env.FFX_KV.get('seo:signals',           { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('seo:learning',           { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('ga4:signals',            { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('ga4:learning',           { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('youtube:signals',        { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('discord:signals',        { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('email:signals',          { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('intelligence:signals',   { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('calendar:signals',       { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('knowledge:taxonomy',     { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('knowledge:performance',  { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('intelligence:brief',     { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('seo:signals',            { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('seo:learning',            { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('ga4:signals',             { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('ga4:learning',            { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('youtube:signals',         { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('discord:signals',         { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('email:signals',           { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('intelligence:signals',    { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('calendar:signals',        { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('knowledge:taxonomy',      { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('knowledge:performance',   { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('intelligence:brief',      { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('intelligence:accuracy_scores', { type: 'json' }).catch(() => null),
+      env.FFX_KV.get(`health:results:${today}`, { type: 'json' }).catch(() => null),
     ]);
+
+    // ── Read list-based signals (cannot go in Promise.all — need KV.list) ──
+    const contentPerfHistory  = await getContentPerformanceHistory(env).catch(() => null);
+    const recentBriefSummary  = await getRecentBriefLogSummary(env, yesterday).catch(() => null);
+    const titleTestLearnings  = await getTitleTestLearnings(env).catch(() => null);
 
     if (!seoSignals && !ga4Signals) {
       return json({ error: 'No signal data available. Run signal collection first.' }, 400, headers);
@@ -44,6 +55,8 @@ export async function onRequestPost(context) {
       seoSignals, seoLearning, ga4Signals, ga4Learning,
       ytSignals, discordSignals, emailSignals, intelSignals,
       calSignals, knowledgeTaxonomy, knowledgePerf, prevBrief,
+      accuracyScores, healthResults,
+      contentPerfHistory, recentBriefSummary, titleTestLearnings,
     });
 
     // ── Call Claude analyst ───────────────────────────────────────────────
@@ -69,7 +82,6 @@ export async function onRequestPost(context) {
 
     // ── Write intelligence:brief_log (recommendation tracking) ───────────
     try {
-      const today    = new Date().toISOString().split('T')[0];
       const briefLog = {
         briefId:    today,
         generatedAt: output.generatedAt,
@@ -150,7 +162,9 @@ export async function onRequestPost(context) {
 function buildSignalContext(signals) {
   const { seoSignals, seoLearning, ga4Signals, ga4Learning, ytSignals,
           discordSignals, emailSignals, intelSignals, calSignals,
-          knowledgeTaxonomy, knowledgePerf, prevBrief } = signals;
+          knowledgeTaxonomy, knowledgePerf, prevBrief,
+          accuracyScores, healthResults,
+          contentPerfHistory, recentBriefSummary, titleTestLearnings } = signals;
 
   let ctx = `You are the intelligence analyst for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick™ mechanical entry system by Salman Khan.
 
@@ -295,7 +309,158 @@ Yesterday's momentum: ${prevBrief.weeklyInsight?.momentum || 'N/A'}
 `;
   }
 
+
+  // ── Section 30: Content performance history ──────────────────────────
+  if (contentPerfHistory && contentPerfHistory.length > 0) {
+    ctx += `
+━━ CONTENT PERFORMANCE HISTORY (published articles with ranking data) ━━
+`;
+    const ranked    = contentPerfHistory.filter(p => p.snapshot7?.position).sort((a,b) => a.snapshot7.position - b.snapshot7.position).slice(0,5);
+    const engaged   = contentPerfHistory.filter(p => p.snapshot7?.avgDuration > 0).sort((a,b) => b.snapshot7.avgDuration - a.snapshot7.avgDuration).slice(0,3);
+    const pillars   = {};
+    contentPerfHistory.forEach(p => { if (p.contentPillar) pillars[p.contentPillar] = (pillars[p.contentPillar]||0)+1; });
+    const topPillar = Object.entries(pillars).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'unknown';
+
+    if (ranked.length > 0) {
+      ctx += `Top ranking articles:
+${ranked.map(p => `  - "${p.title}" — pos ${p.snapshot7.position?.toFixed(1)}, ${p.snapshot7.impressions} impr, pillar: ${p.contentPillar}, query: "${p.targetQuery}"`).join('\n')}\n`;
+    }
+    if (engaged.length > 0) {
+      ctx += `Best session quality:
+${engaged.map(p => `  - "${p.title}" — ${Math.round(p.snapshot7.avgDuration)}s avg, ${p.snapshot7.sessions} sessions`).join('\n')}\n`;
+    }
+    ctx += `Most published pillar: ${topPillar}. Total articles tracked: ${contentPerfHistory.length}.\n`;
+  }
+
+  // ── Section 30: Accuracy track record ────────────────────────────────
+  if (accuracyScores && Array.isArray(accuracyScores) && accuracyScores.length > 0) {
+    const recent4 = accuracyScores.slice(-4);
+    const latest  = recent4[recent4.length - 1];
+    ctx += `
+━━ YOUR RECOMMENDATION TRACK RECORD (last ${recent4.length} weeks) ━━
+Overall accuracy: ${latest.accuracyRate ? (latest.accuracyRate*100).toFixed(0)+'%' : 'building'} | Acted on: ${latest.usefulnessRate ? (latest.usefulnessRate*100).toFixed(0)+'%' : 'building'}
+`;
+    if (latest.byType) {
+      Object.entries(latest.byType).forEach(([type, stats]) => {
+        ctx += `  ${type}: ${stats.accurate}/${stats.measured} accurate, ${stats.actedOn}/${stats.made} acted on\n`;
+      });
+    }
+    ctx += `CALIBRATION: Focus on recommendation types with highest acted-on rate. Reduce types with <30% accuracy.\n`;
+  }
+
+  // ── Section 30: Recent brief outcomes ────────────────────────────────
+  if (recentBriefSummary) {
+    ctx += `
+━━ RECENT BRIEF OUTCOMES (last 7 days) ━━
+${recentBriefSummary}
+`;
+  }
+
+  // ── Section 30: Title format learnings ───────────────────────────────
+  if (titleTestLearnings) {
+    ctx += `
+━━ TITLE FORMAT LEARNINGS (completed A/B tests on this site) ━━
+${titleTestLearnings}
+Apply these format learnings to every title suggestion in this brief.
+`;
+  }
+
+  // ── Section 31: System health context ────────────────────────────────
+  if (healthResults) {
+    const redChecks   = (healthResults.checks||[]).filter(c => c.status === 'RED');
+    const amberChecks = (healthResults.checks||[]).filter(c => c.status === 'AMBER');
+    if (redChecks.length > 0 || amberChecks.length > 0) {
+      ctx += `
+━━ SYSTEM HEALTH (from last health check: ${healthResults.ranAt?.split('T')[0] || 'unknown'}) ━━
+Overall: ${healthResults.overall}
+`;
+      if (redChecks.length > 0) {
+        ctx += `CRITICAL issues: ${redChecks.map(c => c.name).join(', ')}\n`;
+        ctx += `NOTE: Some recommendations may be affected by these system issues. Flag if relevant.\n`;
+      }
+      if (amberChecks.length > 0) {
+        ctx += `Degraded: ${amberChecks.map(c => c.name).join(', ')}\n`;
+      }
+    }
+  }
+
   return ctx;
+}
+
+// ── Section 30: Helper — get content performance history ─────────────────
+async function getContentPerformanceHistory(env) {
+  try {
+    const list = await env.FFX_KV.list({ prefix: 'content:performance:' }).catch(() => null);
+    if (!list || !list.keys.length) return [];
+    const results = [];
+    for (const key of list.keys.slice(0, 20)) {
+      const perf = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
+      if (!perf || perf.status !== 'published') continue;
+      if (!perf.snapshot7) continue; // Only include articles with at least 7-day snapshot
+      results.push({
+        slug:          perf.slug,
+        title:         perf.title,
+        contentPillar: perf.contentPillar,
+        targetQuery:   perf.targetQuery,
+        briefVersion:  perf.briefVersion,
+        nuggetTagsUsed: perf.nuggetTagsUsed || [],
+        snapshot7:     perf.snapshot7,
+        snapshot30:    perf.snapshot30 || null,
+      });
+    }
+    return results;
+  } catch(e) {
+    console.error('[intelligence-engine] getContentPerformanceHistory error:', e.message);
+    return [];
+  }
+}
+
+// ── Section 30: Helper — get recent brief log summary ────────────────────
+async function getRecentBriefLogSummary(env, yesterday) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const keys  = [today, yesterday];
+    const lines = [];
+    for (const date of keys) {
+      const log = await env.FFX_KV.get(`intelligence:brief_log:${date}`, { type: 'json' }).catch(() => null);
+      if (!log || !log.recommendations) continue;
+      const actedOn = log.recommendations.filter(r => r.actedOn).length;
+      const accurate = log.recommendations.filter(r => r.accurate === true).length;
+      const total   = log.recommendations.length;
+      lines.push(`${date}: ${total} recommendations, ${actedOn} acted on, ${accurate} confirmed accurate`);
+      log.recommendations.filter(r => r.actedOn && r.outcome).slice(0,3).forEach(r => {
+        lines.push(`  - ${r.type} for "${r.target}" → ${r.outcome}`);
+      });
+    }
+    return lines.length > 0 ? lines.join('\n') : null;
+  } catch(e) {
+    console.error('[intelligence-engine] getRecentBriefLogSummary error:', e.message);
+    return null;
+  }
+}
+
+// ── Section 30: Helper — get title test learnings ────────────────────────
+async function getTitleTestLearnings(env) {
+  try {
+    const list = await env.FFX_KV.list({ prefix: 'seo:title_tests:' }).catch(() => null);
+    if (!list || !list.keys.length) return null;
+    const improved    = [];
+    const notImproved = [];
+    for (const key of list.keys.slice(0, 15)) {
+      const test = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
+      if (!test || test.status !== 'complete') continue;
+      if (test.improvement) improved.push(test.newTitle || 'unknown');
+      else notImproved.push(test.newTitle || 'unknown');
+    }
+    if (improved.length === 0 && notImproved.length === 0) return null;
+    let result = '';
+    if (improved.length > 0)    result += `Improved CTR: ${improved.join(' | ')}\n`;
+    if (notImproved.length > 0) result += `No improvement: ${notImproved.join(' | ')}\n`;
+    return result;
+  } catch(e) {
+    console.error('[intelligence-engine] getTitleTestLearnings error:', e.message);
+    return null;
+  }
 }
 
 // ── Call Claude analyst ───────────────────────────────────────────────────
