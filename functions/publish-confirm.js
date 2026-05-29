@@ -271,23 +271,6 @@ export async function onRequestPost(context) {
         await env.FFX_KV.put(`published:${videoId}`, JSON.stringify(publishedEntry));
         console.log('[FFX] published: KV written permanently for videoId:', videoId);
 
-// ── Update content:performance:{slug} with publishedAt and status ─────────
-try {
-  const slug = content.slug;
-  if (slug) {
-    const perfKey = `content:performance:${slug}`;
-    const perf = await env.FFX_KV.get(perfKey, { type: 'json' }).catch(() => null);
-    if (perf) {
-      perf.publishedAt = now.toISOString();
-      perf.status = 'published';
-      await env.FFX_KV.put(perfKey, JSON.stringify(perf));
-      console.log('[FFX] content:performance updated to published for slug:', slug);
-    }
-  }
-} catch(perfErr) {
-  console.error('[FFX] content:performance publish update failed (non-fatal):', perfErr.message);
-}
-
         // Clear video:{videoId} immediately — content is now permanent in published:{videoId}
         // Non-fatal — publish already succeeded if this fails
         try { await env.FFX_KV.delete(`video:${videoId}`); console.log('[FFX] video: KV cleared for videoId:', videoId); } catch {}
@@ -303,6 +286,23 @@ try {
           }
         }
         console.log('[FFX] regen staging keys cleared for published platforms');
+
+        // ── Section 31: Trigger health check on first publish of the day ─
+        // Non-blocking — runs asynchronously, never delays publish response
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          const lastRun = await env.FFX_KV.get('health:last_run').catch(() => null);
+          if (lastRun !== today) {
+            await env.FFX_KV.put('health:last_run', today);
+            // Fire health check asynchronously — do not await, do not block publish
+            const healthUrl = `${baseUrl}/api/health-check`;
+            fetch(healthUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+              .then(r => console.log('[FFX] Health check triggered:', r.status))
+              .catch(e => console.error('[FFX] Health check trigger failed (non-fatal):', e.message));
+          }
+        } catch(healthErr) {
+          console.error('[FFX] Health check trigger error (non-fatal):', healthErr.message);
+        }
 
       } else {
         console.log('[FFX] No videoId found in content — published: KV not written');
