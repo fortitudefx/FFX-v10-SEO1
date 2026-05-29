@@ -237,6 +237,7 @@
     <div class="header-right">
       <button onclick="seedTargets()" id="seedBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.08);color:rgba(62,207,142,0.60);border:1px solid rgba(62,207,142,0.15);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Seed founding targets (run once)">⊕ Seed Targets</button>
       <button onclick="triggerSignals()" id="signalBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Refresh GA4 signals">⟳ Refresh Signals</button>
+      <button onclick="triggerIntelligence()" id="intelBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(201,168,76,0.10);color:rgba(201,168,76,0.70);border:1px solid rgba(201,168,76,0.20);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Run intelligence analysis">⚡ Run Analysis</button>
       <div class="date-selector" id="dateSelector" style="display:none;">
         <button class="date-btn" data-days="7">7D</button>
         <button class="date-btn active" data-days="28">28D</button>
@@ -916,8 +917,38 @@ function showDashboard() {
   document.getElementById('statusDot').style.cssText = '';
   document.getElementById('signalBtn').style.display = 'inline-block';
   document.getElementById('seedBtn').style.display = 'inline-block';
+  document.getElementById('intelBtn').style.display = 'inline-block';
   loadAll(28);
   loadTargetScorecard();
+}
+
+// ── Trigger intelligence engine ──────────────────────────────────────────
+async function triggerIntelligence() {
+  const btn = document.getElementById('intelBtn');
+  btn.textContent = '⚡ Running — ~90s';
+  btn.style.color = 'rgba(201,168,76,0.90)';
+  btn.disabled = true;
+  fetch('/api/intelligence-engine', { method: 'POST' }).catch(() => {});
+  let attempts = 0;
+  const poll = setInterval(async () => {
+    attempts++;
+    try {
+      const res  = await fetch('/api/intelligence-engine');
+      const data = await res.json();
+      if (data.brief && data.brief.generatedAt) {
+        const genTime = new Date(data.brief.generatedAt).getTime();
+        if (Date.now() - genTime < 180000) {
+          clearInterval(poll);
+          btn.textContent = '✓ Analysis complete';
+          btn.style.color = 'rgba(62,207,142,0.80)';
+          btn.disabled = false;
+          loadTargetScorecard();
+          setTimeout(() => { btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; }, 4000);
+        }
+      }
+    } catch(e) {}
+    if (attempts >= 24) { clearInterval(poll); btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; btn.disabled = false; }
+  }, 5000);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
