@@ -124,6 +124,40 @@
     .yt-meta-thumb { font-size: 13px; color: rgba(255,255,255,0.65); font-style: italic; margin-bottom: 10px; }
     .btn-copy-meta { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.50); border: 1px solid rgba(255,255,255,0.12); border-radius: 5px; padding: 4px 12px; cursor: pointer; margin-right: 6px; transition: all 0.15s; }
     .btn-copy-meta:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.80); }
+
+    /* Manual add form */
+    .queue-add-form {
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; gap: 8px; align-items: center;
+    }
+    .queue-add-input {
+      flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 6px; color: var(--text); font-family: var(--font); font-size: 13px;
+      padding: 8px 12px; outline: none; transition: border-color 0.15s;
+    }
+    .queue-add-input:focus { border-color: rgba(255,255,255,0.22); }
+    .queue-add-input::placeholder { color: rgba(255,255,255,0.22); }
+    .btn-queue-add {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.70);
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 6px;
+      padding: 8px 16px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .btn-queue-add:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.22); color: #fff; }
+    .btn-queue-add:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Reorder buttons */
+    .btn-reorder {
+      font-size: 11px; font-weight: 700; background: none;
+      color: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px; width: 22px; height: 22px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: all 0.15s; padding: 0; line-height: 1;
+    }
+    .btn-reorder:hover { color: rgba(255,255,255,0.70); border-color: rgba(255,255,255,0.20); background: rgba(255,255,255,0.06); }
+    .btn-reorder:disabled { opacity: 0.20; cursor: not-allowed; }
+    .reorder-btns { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -160,6 +194,10 @@
 
   <!-- Active Queue -->
   <div class="queue-active">
+    <div class="queue-add-form">
+      <input class="queue-add-input" id="addUrlInput" type="text" placeholder="Paste YouTube URL to add to queue…" />
+      <button class="btn-queue-add" id="addBtn" onclick="addToQueue()">+ Add to Queue</button>
+    </div>
     <div class="table-header" style="grid-template-columns:200px 1fr 180px 140px;">
       <div>Video</div>
       <div>Title &amp; URL</div>
@@ -206,6 +244,10 @@ const STEP_LABELS = {
 };
 
 async function init() {
+  // Enter key on manual add input
+  const addInput = document.getElementById('addUrlInput');
+  if(addInput) addInput.addEventListener('keydown', e => { if(e.key==='Enter') addToQueue(); });
+
   const params   = new URLSearchParams(window.location.search);
   const openItem = params.get('video');
   await loadQueue();
@@ -367,6 +409,15 @@ function buildQueueRow(item) {
   // Park button — always visible
   const parkBtn = '<button class="btn-park" onclick="event.stopPropagation();parkItem(\''+videoId+'\')">→ Park</button>';
 
+  // Reorder buttons — only for grey state (not generating/orange/red)
+  const isGrey = (item.state !== 'orange' && item.state !== 'generating' && item.state !== 'red');
+  const reorderBtns = isGrey
+    ? '<div class="reorder-btns">'
+      + '<button class="btn-reorder" title="Move up" onclick="event.stopPropagation();moveQueueItem(\''+videoId+'\',\'up\')">▲</button>'
+      + '<button class="btn-reorder" title="Move down" onclick="event.stopPropagation();moveQueueItem(\''+videoId+'\',\'down\')">▼</button>'
+      + '</div>'
+    : '';
+
   // YT Metadata button — only for orange state (content ready, transcript exists)
   const ytMetaBtn = isOrange
     ? '<button class="btn-yt-meta" id="ytbtn-'+videoId+'" onclick="event.stopPropagation();generateYTMetadata(\''+videoId+'\',\''+escHtml(ytUrl)+'\',\''+escHtml(title)+'\')">▶ YT Metadata</button>'
@@ -382,7 +433,7 @@ function buildQueueRow(item) {
     + (ytUrl ? '<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '')
     + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:6px;justify-content:flex-start;padding-top:4px;">'
-    + badgeHtml + actionHtml + parkBtn + ytMetaBtn
+    + badgeHtml + actionHtml + parkBtn + ytMetaBtn + reorderBtns
     + (item.state==='generating'&&item.jobId ? '<div class="row-progress" id="rp-'+videoId+'"><div class="step active"><div class="step-spinner"></div> Starting\u2026</div></div>' : '')
     + '</div>'
     + '<div class="row-date">'+formatDate(item.addedAt)+(isOrange?'<span class="row-chevron">\u25bc</span>':'')+'</div>';
@@ -592,6 +643,54 @@ async function generateItem(e,videoId,youtubeUrl){
     await fetch('/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,youtubeUrl})}).catch(()=>{});
     startPolling(jobId,videoId,row.querySelector('.row-summary'));
   }catch(err){btn.disabled=false;btn.textContent='Generate';}
+}
+
+async function addToQueue(){
+  const input = document.getElementById('addUrlInput');
+  const btn   = document.getElementById('addBtn');
+  const url   = input.value.trim();
+  if (!url) { input.style.borderColor='var(--red-bd)'; setTimeout(()=>input.style.borderColor='',1500); return; }
+  btn.disabled=true; btn.textContent='Adding…';
+  try{
+    const res  = await fetch('/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({youtubeUrl:url})});
+    const data = await res.json();
+    if(!res.ok){
+      btn.disabled=false; btn.textContent='+ Add to Queue';
+      input.style.borderColor='var(--red-bd)';
+      input.placeholder = data.error || 'Error — check URL';
+      setTimeout(()=>{input.style.borderColor='';input.placeholder='Paste YouTube URL to add to queue…';},3000);
+      return;
+    }
+    input.value='';
+    btn.textContent='✓ Added';
+    btn.style.color='rgba(62,207,142,0.80)';
+    setTimeout(()=>{btn.disabled=false;btn.textContent='+ Add to Queue';btn.style.color='';},2000);
+    await loadQueue();
+  }catch(err){
+    btn.disabled=false; btn.textContent='+ Add to Queue';
+    console.error('Add to queue error:',err);
+  }
+}
+
+async function moveQueueItem(videoId, direction){
+  try{
+    const res  = await fetch('/queue');
+    const data = await res.json();
+    const queue = data.queue || [];
+    const idx   = queue.findIndex(q => q.videoId === videoId);
+    if(idx === -1) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if(newIdx < 0 || newIdx >= queue.length) return;
+    // Swap
+    const temp     = queue[idx];
+    queue[idx]     = queue[newIdx];
+    queue[newIdx]  = temp;
+    const order = queue.map(q => q.videoId);
+    await fetch('/queue/reorder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order})});
+    await loadQueue();
+  }catch(err){
+    console.error('Reorder error:',err);
+  }
 }
 
 async function generateYTMetadata(videoId,youtubeUrl,title){
