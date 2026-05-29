@@ -171,20 +171,6 @@
     }
     .btn-nugget-action:hover { color: rgba(255,255,255,0.70); border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); }
     .btn-nugget-delete:hover { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.25); color: rgba(248,113,113,0.80); }
-
-    .nugget-used-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; color: rgba(122,92,255,0.90);
-  background: rgba(122,92,255,0.10); border: 1px solid rgba(122,92,255,0.25);
-  border-radius: 4px; padding: 3px 8px; margin-top: 6px;
-}
-.nugget-used-chip a {
-  color: rgba(122,92,255,0.90); text-decoration: none;
-  border-bottom: 1px solid rgba(122,92,255,0.30);
-}
-.nugget-used-chip a:hover { color: #fff; border-bottom-color: #fff; }
-  
   </style>
 </head>
 <body>
@@ -200,6 +186,7 @@
       <a href="/dashboard-seo.html"       class="nav-link">SEO</a>
       <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
       <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
+      <a href="/dashboard-health.html"    class="nav-link">Health</a>
     </div>
   </div>
 </nav>
@@ -311,12 +298,6 @@ function renderNuggets() {
     const pubs  = n.publishedTo || {};
     const pills = PLATFORMS.map(p=>'<span class="nplt '+(pubs[p]?'used':'unused')+'">'+p+'</span>').join('');
     const tags  = (n.tags||[]).map(t=>'<span class="nugget-tag">'+escHtml(t)+'</span>').join('');
-    const usedLinks = (n.usedInArticles||[]).map(a =>
-  `<a href="/dashboard-press.html?video=${escHtml(a.videoId)}" target="_blank">${escHtml(a.title||a.slug)}</a>`
-).join(', ');
-const usedChip = usedLinks
-  ? `<div class="nugget-used-chip">Used in ${(n.usedInArticles||[]).length} article${(n.usedInArticles||[]).length>1?'s':''}: ${usedLinks}</div>`
-  : '';
     return '<div class="nugget-card" data-id="'+n.id+'">'
       +'<div class="nugget-text">'+escHtml(n.text)+'</div>'
       +'<div class="nugget-meta">'
@@ -325,8 +306,7 @@ const usedChip = usedLinks
         +(tags?'<div class="nugget-tags">'+tags+'</div>':'')
         +'<div class="nugget-platforms">'+pills+'</div>'
       +'</div>'
-      +usedChip
-+'<div class="nugget-actions">'
+      +'<div class="nugget-actions">'
         +'<button class="btn-nugget-action" onclick="editNugget(\''+n.id+'\')">Edit</button>'
         +'<button class="btn-nugget-action btn-nugget-delete" onclick="deleteNugget(\''+n.id+'\')">Delete</button>'
       +'</div>'

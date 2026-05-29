@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFX Health</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/dashboard-styles.css">
+  <style>
+    .health-wrap {
+      max-width: var(--content-max);
+      width: calc(100% - 80px);
+      margin: 32px auto 80px;
+      position: relative; z-index: 1;
+    }
+
+    /* Overall status banner */
+    .health-banner {
+      border-radius: var(--radius-xl);
+      border: 1px solid;
+      padding: 28px 36px;
+      margin-bottom: 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .health-banner.GREEN  { background: rgba(62,207,142,0.06);  border-color: rgba(62,207,142,0.25); }
+    .health-banner.AMBER  { background: rgba(201,168,76,0.06);  border-color: rgba(201,168,76,0.25); }
+    .health-banner.RED    { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.25); }
+    .health-banner.UNKNOWN{ background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.10); }
+
+    .banner-left { display: flex; align-items: center; gap: 20px; }
+    .banner-icon { font-size: 32px; line-height: 1; }
+    .banner-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+    .banner-title.GREEN  { color: rgba(62,207,142,0.90); }
+    .banner-title.AMBER  { color: rgba(201,168,76,0.90); }
+    .banner-title.RED    { color: rgba(248,113,113,0.90); }
+    .banner-title.UNKNOWN{ color: rgba(255,255,255,0.50); }
+    .banner-sub { font-size: 13px; color: rgba(255,255,255,0.45); margin-top: 4px; }
+    .banner-counts { display: flex; gap: 16px; }
+    .banner-count { text-align: center; }
+    .banner-count-num { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+    .banner-count-num.green { color: rgba(62,207,142,0.90); }
+    .banner-count-num.amber { color: rgba(201,168,76,0.90); }
+    .banner-count-num.red   { color: rgba(248,113,113,0.90); }
+    .banner-count-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.30); margin-top: 4px; }
+
+    /* Layer sections */
+    .health-layer {
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: #16181f;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .layer-header {
+      padding: 14px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .layer-header:hover { background: rgba(255,255,255,0.03); }
+    .layer-title { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.50); }
+    .layer-badges { display: flex; gap: 6px; }
+    .layer-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+    .lb-green { background: rgba(62,207,142,0.10);  color: rgba(62,207,142,0.80);  border: 1px solid rgba(62,207,142,0.20); }
+    .lb-amber { background: rgba(201,168,76,0.10);  color: rgba(201,168,76,0.80);  border: 1px solid rgba(201,168,76,0.20); }
+    .lb-red   { background: rgba(248,113,113,0.10); color: rgba(248,113,113,0.80); border: 1px solid rgba(248,113,113,0.20); }
+
+    /* Check rows */
+    .check-row {
+      padding: 14px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    .check-row:last-child { border-bottom: none; }
+    .check-row.RED    { background: rgba(248,113,113,0.04); }
+    .check-row.AMBER  { background: rgba(201,168,76,0.03); }
+
+    .check-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 5px; text-align: center; width: fit-content; }
+    .check-badge.GREEN { background: rgba(62,207,142,0.10);  color: rgba(62,207,142,0.90);  border: 1px solid rgba(62,207,142,0.20); }
+    .check-badge.AMBER { background: rgba(201,168,76,0.10);  color: rgba(201,168,76,0.90);  border: 1px solid rgba(201,168,76,0.20); }
+    .check-badge.RED   { background: rgba(248,113,113,0.10); color: rgba(248,113,113,0.90); border: 1px solid rgba(248,113,113,0.20); }
+
+    .check-content {}
+    .check-name   { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.80); margin-bottom: 4px; }
+    .check-detail { font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+    .check-diagnosis { font-size: 12px; color: rgba(201,168,76,0.80); margin-top: 6px; line-height: 1.5; }
+    .check-diagnosis::before { content: '🔍 '; }
+    .check-fix { font-size: 12px; color: rgba(62,207,142,0.80); margin-top: 4px; line-height: 1.5; padding: 6px 10px; background: rgba(62,207,142,0.06); border-radius: 4px; border: 1px solid rgba(62,207,142,0.15); }
+    .check-fix::before { content: '→ Fix: '; font-weight: 700; }
+
+    /* History bar */
+    .health-history {
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: #16181f;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .history-title { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.36); margin-bottom: 14px; }
+    .history-bars  { display: flex; gap: 4px; align-items: flex-end; height: 40px; }
+    .history-bar   { flex: 1; border-radius: 3px; min-height: 4px; cursor: default; transition: opacity 0.15s; }
+    .history-bar:hover { opacity: 0.8; }
+    .history-bar.GREEN { background: rgba(62,207,142,0.70); }
+    .history-bar.AMBER { background: rgba(201,168,76,0.70); }
+    .history-bar.RED   { background: rgba(248,113,113,0.70); }
+    .history-dates { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: rgba(255,255,255,0.24); }
+
+    .btn-run-health {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+      background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.80);
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 8px;
+      padding: 8px 18px; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-run-health:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.22); }
+    .btn-run-health:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-wordmark">FFX <span>·</span> Internal</div>
+    <div class="nav-links">
+      <a href="/dashboard.html"           class="nav-link">Dashboard</a>
+      <a href="/dashboard-press.html"     class="nav-link">Press</a>
+      <a href="/dashboard-queue.html"     class="nav-link">Queue</a>
+      <a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a>
+      <a href="/dashboard-seo.html"       class="nav-link">SEO</a>
+      <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
+      <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
+      <a href="/dashboard-health.html"    class="nav-link active">Health</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-header-left">
+      <div class="wordmark">FFX <span>Health</span></div>
+      <div class="header-count" id="headerCount">—</div>
+    </div>
+    <div class="header-right">
+      <div class="status-dot" id="statusDot" style="background:var(--muted);box-shadow:none;animation:none;"></div>
+      <button class="btn-run-health" id="runBtn" onclick="runHealthCheck()">⚡ Run Health Check</button>
+    </div>
+  </div>
+</div>
+
+<div class="health-wrap">
+  <div id="healthContent">
+    <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading health status…</div></div>
+  </div>
+</div>
+
+<script>
+const LAYER_NAMES = {
+  1: 'Pipeline Health',
+  2: 'KV Integrity',
+  3: 'Intelligence System',
+  4: 'Platform Distribution',
+  5: 'External Dependencies',
+};
+
+async function loadHealth() {
+  try {
+    const res  = await fetch('/api/health-check');
+    const data = await res.json();
+    if (!res.ok) { showError(data.error || 'Load failed'); return; }
+    renderHealth(data.results, data.history || []);
+  } catch(err) {
+    showError('Network error: ' + err.message);
+  }
+}
+
+async function runHealthCheck() {
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true; btn.textContent = '⚡ Running…';
+  document.getElementById('statusDot').style.cssText = '';
+  try {
+    const res  = await fetch('/api/health-check', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) { showError(data.error || 'Health check failed'); btn.disabled=false; btn.textContent='⚡ Run Health Check'; return; }
+    renderHealth(data.results, null);
+    // Reload to get history too
+    await loadHealth();
+  } catch(err) {
+    showError('Network error: ' + err.message);
+  }
+  btn.disabled = false; btn.textContent = '⚡ Run Health Check';
+}
+
+function renderHealth(results, history) {
+  const content = document.getElementById('healthContent');
+  if (!results) {
+    content.innerHTML = '<div class="loading-state"><p style="color:rgba(255,255,255,0.40);font-size:13px;">No health check data yet. Run a health check or publish an article.</p></div>';
+    document.getElementById('headerCount').textContent = 'No data';
+    return;
+  }
+
+  const overall = results.overall || 'UNKNOWN';
+  const icons   = { GREEN:'✓', AMBER:'⚠', RED:'✕', UNKNOWN:'?' };
+  const labels  = { GREEN:'All Systems Healthy', AMBER:'Degraded — Action Recommended', RED:'Critical Failures Detected', UNKNOWN:'No Data' };
+
+  // Update status dot
+  const dot = document.getElementById('statusDot');
+  if (overall === 'GREEN')  dot.style.cssText = '';
+  else if (overall === 'AMBER') dot.style.cssText = 'background:rgba(201,168,76,0.90);box-shadow:0 0 8px rgba(201,168,76,0.60);';
+  else if (overall === 'RED')   dot.style.cssText = 'background:rgba(248,113,113,0.90);box-shadow:0 0 8px rgba(248,113,113,0.60);animation:none;';
+
+  document.getElementById('headerCount').textContent = `${results.greenCount} GREEN · ${results.amberCount} AMBER · ${results.redCount} RED`;
+
+  let html = '';
+
+  // Banner
+  html += `<div class="health-banner ${overall}">
+    <div class="banner-left">
+      <div class="banner-icon">${icons[overall]}</div>
+      <div>
+        <div class="banner-title ${overall}">${labels[overall]}</div>
+        <div class="banner-sub">Last checked: ${results.ranAt ? new Date(results.ranAt).toLocaleString('en-GB',{timeZone:'Asia/Dubai',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'}) : 'unknown'} Dubai time · ${results.totalChecks || 0} checks</div>
+      </div>
+    </div>
+    <div class="banner-counts">
+      <div class="banner-count"><div class="banner-count-num green">${results.greenCount || 0}</div><div class="banner-count-label">Green</div></div>
+      <div class="banner-count"><div class="banner-count-num amber">${results.amberCount || 0}</div><div class="banner-count-label">Amber</div></div>
+      <div class="banner-count"><div class="banner-count-num red">${results.redCount || 0}</div><div class="banner-count-label">Red</div></div>
+    </div>
+  </div>`;
+
+  // History bar
+  if (history && history.length > 0) {
+    const bars = history.slice(-30).map(h => {
+      const height = Math.max(4, h.redCount > 0 ? 40 : h.amberCount > 0 ? 24 : 40);
+      return `<div class="history-bar ${h.overall}" style="height:${height}px;" title="${h.date}: ${h.overall} (${h.greenCount}G ${h.amberCount}A ${h.redCount}R)"></div>`;
+    }).join('');
+    const firstDate = history[0]?.date?.slice(5) || '';
+    const lastDate  = history[history.length-1]?.date?.slice(5) || '';
+    html += `<div class="health-history">
+      <div class="history-title">30-Day Health History</div>
+      <div class="history-bars">${bars}</div>
+      <div class="history-dates"><span>${firstDate}</span><span>${lastDate}</span></div>
+    </div>`;
+  }
+
+  // Group checks by layer
+  const byLayer = {};
+  (results.checks || []).forEach(c => {
+    if (!byLayer[c.layer]) byLayer[c.layer] = [];
+    byLayer[c.layer].push(c);
+  });
+
+  // Render layers — RED/AMBER first within each layer, GREEN collapsed
+  [1,2,3,4,5].forEach(layerNum => {
+    const layerChecks = byLayer[layerNum] || [];
+    if (!layerChecks.length) return;
+
+    const layerRed   = layerChecks.filter(c => c.status === 'RED').length;
+    const layerAmber = layerChecks.filter(c => c.status === 'AMBER').length;
+    const layerGreen = layerChecks.filter(c => c.status === 'GREEN').length;
+
+    const badgeHtml = [
+      layerRed   > 0 ? `<span class="layer-badge lb-red">${layerRed} RED</span>`   : '',
+      layerAmber > 0 ? `<span class="layer-badge lb-amber">${layerAmber} AMBER</span>` : '',
+      layerGreen > 0 ? `<span class="layer-badge lb-green">${layerGreen} GREEN</span>` : '',
+    ].filter(Boolean).join('');
+
+    html += `<div class="health-layer">
+      <div class="layer-header" onclick="toggleLayer(${layerNum})">
+        <span class="layer-title">Layer ${layerNum} — ${LAYER_NAMES[layerNum] || 'Unknown'}</span>
+        <div class="layer-badges">${badgeHtml}</div>
+      </div>
+      <div id="layer-${layerNum}">`;
+
+    // Sort: RED first, AMBER second, GREEN last
+    const sorted = [...layerChecks].sort((a,b) => {
+      const order = { RED: 0, AMBER: 1, GREEN: 2 };
+      return (order[a.status] || 2) - (order[b.status] || 2);
+    });
+
+    sorted.forEach(check => {
+      const diagHtml = (check.diagnosis && check.status !== 'GREEN')
+        ? `<div class="check-diagnosis">${escHtml(check.diagnosis)}</div>` : '';
+      const fixHtml  = (check.fix && check.status !== 'GREEN')
+        ? `<div class="check-fix">${escHtml(check.fix)}</div>` : '';
+
+      html += `<div class="check-row ${check.status}">
+        <div><span class="check-badge ${check.status}">${check.status}</span></div>
+        <div class="check-content">
+          <div class="check-name">${escHtml(check.name || check.id)}</div>
+          <div class="check-detail">${escHtml(check.detail || '')}</div>
+          ${diagHtml}
+          ${fixHtml}
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  content.innerHTML = html;
+
+  // Auto-collapse layers that are all GREEN
+  [1,2,3,4,5].forEach(layerNum => {
+    const layerChecks = byLayer[layerNum] || [];
+    const allGreen    = layerChecks.every(c => c.status === 'GREEN');
+    if (allGreen) {
+      const el = document.getElementById(`layer-${layerNum}`);
+      if (el) el.style.display = 'none';
+    }
+  });
+}
+
+function toggleLayer(layerNum) {
+  const el = document.getElementById(`layer-${layerNum}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function showError(msg) {
+  document.getElementById('healthContent').innerHTML =
+    '<div class="empty-state"><p style="color:var(--red);">'+escHtml(msg)+'</p></div>';
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.addEventListener('DOMContentLoaded', loadHealth);
+</script>
+</body>
+</html>

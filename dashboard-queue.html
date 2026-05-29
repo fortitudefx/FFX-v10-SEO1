@@ -98,6 +98,32 @@
       font-size: 12px; color: rgba(255,255,255,0.20);
       letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.8;
     }
+
+    /* YT Metadata panel */
+    .btn-yt-meta {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      background: rgba(255,0,0,0.08); color: rgba(255,100,100,0.80);
+      border: 1px solid rgba(255,0,0,0.20); border-radius: 5px;
+      padding: 4px 10px; cursor: pointer; transition: all 0.15s; margin-top: 6px; display: inline-block;
+    }
+    .btn-yt-meta:hover { background: rgba(255,0,0,0.14); border-color: rgba(255,0,0,0.35); color: #fff; }
+    .btn-yt-meta:disabled { opacity: 0.5; cursor: not-allowed; }
+    .yt-meta-panel {
+      padding: 20px 24px;
+      background: rgba(255,0,0,0.04);
+      border-top: 1px solid rgba(255,0,0,0.12);
+    }
+    .yt-meta-title-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+    .yt-meta-label { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,100,100,0.70); flex-shrink: 0; }
+    .yt-meta-value { font-size: 14px; color: rgba(255,255,255,0.85); font-weight: 600; flex: 1; }
+    .yt-meta-alt { font-size: 12px; color: rgba(255,255,255,0.50); margin-bottom: 4px; cursor: pointer; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .yt-meta-alt:hover { color: rgba(255,255,255,0.80); }
+    .yt-meta-desc { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.6; white-space: pre-wrap; max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 6px; margin-bottom: 10px; }
+    .yt-meta-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+    .yt-meta-tag { font-size: 10px; color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); padding: 2px 8px; border-radius: 4px; }
+    .yt-meta-thumb { font-size: 13px; color: rgba(255,255,255,0.65); font-style: italic; margin-bottom: 10px; }
+    .btn-copy-meta { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.50); border: 1px solid rgba(255,255,255,0.12); border-radius: 5px; padding: 4px 12px; cursor: pointer; margin-right: 6px; transition: all 0.15s; }
+    .btn-copy-meta:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.80); }
   </style>
 </head>
 <body>
@@ -113,6 +139,7 @@
     <a href="/dashboard-seo.html"       class="nav-link">SEO</a>
     <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
     <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
+    <a href="/dashboard-health.html"    class="nav-link">Health</a>
   </div>
   </div>
 </nav>
@@ -340,6 +367,11 @@ function buildQueueRow(item) {
   // Park button — always visible
   const parkBtn = '<button class="btn-park" onclick="event.stopPropagation();parkItem(\''+videoId+'\')">→ Park</button>';
 
+  // YT Metadata button — only for orange state (content ready, transcript exists)
+  const ytMetaBtn = isOrange
+    ? '<button class="btn-yt-meta" id="ytbtn-'+videoId+'" onclick="event.stopPropagation();generateYTMetadata(\''+videoId+'\',\''+escHtml(ytUrl)+'\',\''+escHtml(title)+'\')">▶ YT Metadata</button>'
+    : '';
+
   const summary = document.createElement('div');
   summary.className = 'row-summary';
   summary.style.gridTemplateColumns = '200px 1fr 180px 140px'; summary.style.cursor = 'default';
@@ -350,7 +382,7 @@ function buildQueueRow(item) {
     + (ytUrl ? '<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '')
     + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:6px;justify-content:flex-start;padding-top:4px;">'
-    + badgeHtml + actionHtml + parkBtn
+    + badgeHtml + actionHtml + parkBtn + ytMetaBtn
     + (item.state==='generating'&&item.jobId ? '<div class="row-progress" id="rp-'+videoId+'"><div class="step active"><div class="step-spinner"></div> Starting\u2026</div></div>' : '')
     + '</div>'
     + '<div class="row-date">'+formatDate(item.addedAt)+(isOrange?'<span class="row-chevron">\u25bc</span>':'')+'</div>';
@@ -560,6 +592,73 @@ async function generateItem(e,videoId,youtubeUrl){
     await fetch('/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,youtubeUrl})}).catch(()=>{});
     startPolling(jobId,videoId,row.querySelector('.row-summary'));
   }catch(err){btn.disabled=false;btn.textContent='Generate';}
+}
+
+async function generateYTMetadata(videoId,youtubeUrl,title){
+  const btn = document.getElementById('ytbtn-'+videoId);
+  if(btn){ btn.disabled=true; btn.textContent='Generating…'; }
+  try{
+    const res = await fetch('/api/youtube-metadata',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({videoId,youtubeUrl,title})
+    });
+    const data = await res.json();
+    if(!res.ok){
+      if(btn){ btn.disabled=false; btn.textContent='▶ YT Metadata'; }
+      const row=document.querySelector('.queue-row[data-videoid="'+videoId+'"]');
+      if(row){
+        const errDiv=document.createElement('div');
+        errDiv.style.cssText='font-size:12px;color:var(--red);margin-top:6px;padding:6px 10px;background:var(--red-bg);border:1px solid var(--red-bd);border-radius:4px;';
+        errDiv.textContent='YT Metadata error: '+(data.error||'Unknown error');
+        btn.parentNode.insertBefore(errDiv,btn.nextSibling);
+      }
+      return;
+    }
+    if(btn){ btn.textContent='✓ YT Meta Ready'; btn.style.background='rgba(62,207,142,0.10)'; btn.style.color='rgba(62,207,142,0.80)'; btn.style.borderColor='rgba(62,207,142,0.25)'; }
+    // Show metadata panel below the row
+    const row=document.querySelector('.queue-row[data-videoid="'+videoId+'"]');
+    if(row){ renderYTMetaPanel(row,data.metadata); }
+  }catch(err){
+    if(btn){ btn.disabled=false; btn.textContent='▶ YT Metadata'; }
+    console.error('YT Metadata error:',err);
+  }
+}
+
+function renderYTMetaPanel(row,meta){
+  // Remove existing panel if any
+  const existing=row.querySelector('.yt-meta-panel');
+  if(existing) existing.remove();
+
+  const panel=document.createElement('div');
+  panel.className='yt-meta-panel';
+
+  const alts=(meta.titleAlternatives||[]).map((a,i)=>
+    '<div class="yt-meta-alt" onclick="navigator.clipboard.writeText('+JSON.stringify(a.title)+').then(()=>this.style.color=\'rgba(62,207,142,0.80)\')" title="'+escHtml(a.reasoning)+'">Alt '+(i+1)+': '+escHtml(a.title)+'</div>'
+  ).join('');
+
+  const tags=(meta.tags||[]).map(t=>'<span class="yt-meta-tag">'+escHtml(t)+'</span>').join('');
+  const descHook=meta.description?.hook || '';
+  const descFull=(meta.description?.full||'').replace(/\n/g,'\n');
+
+  panel.innerHTML=
+    '<div class="yt-meta-title-row">'
+      +'<span class="yt-meta-label">Title</span>'
+      +'<span class="yt-meta-value">'+escHtml(meta.primaryTitle||'')+'</span>'
+      +'<button class="btn-copy-meta" onclick="navigator.clipboard.writeText('+JSON.stringify(meta.primaryTitle||'')+').then(()=>this.textContent=\'✓ Copied\').then(()=>setTimeout(()=>this.textContent=\'Copy Title\',2000))">Copy Title</button>'
+    +'</div>'
+    +(alts ? '<div style="margin-bottom:10px;">'+alts+'</div>' : '')
+    +'<div class="yt-meta-label" style="margin-bottom:6px;">Hook (first 125 chars)</div>'
+    +'<div class="yt-meta-desc" style="max-height:60px;">'+escHtml(descHook)+'</div>'
+    +'<div class="yt-meta-label" style="margin-bottom:6px;">Full Description</div>'
+    +'<div class="yt-meta-desc">'+escHtml(descFull)+'</div>'
+    +'<button class="btn-copy-meta" onclick="navigator.clipboard.writeText('+JSON.stringify(descFull)+').then(()=>this.textContent=\'✓ Copied\').then(()=>setTimeout(()=>this.textContent=\'Copy Description\',2000))">Copy Description</button>'
+    +'<div class="yt-meta-label" style="margin:10px 0 6px;">Tags</div>'
+    +'<div class="yt-meta-tags">'+tags+'</div>'
+    +'<button class="btn-copy-meta" onclick="navigator.clipboard.writeText('+JSON.stringify((meta.tags||[]).join(', '))+').then(()=>this.textContent=\'✓ Copied\').then(()=>setTimeout(()=>this.textContent=\'Copy Tags\',2000))">Copy Tags</button>'
+    +(meta.thumbnailConcept ? '<div class="yt-meta-thumb" style="margin-top:10px;">🖼 Thumbnail: <strong>'+escHtml(meta.thumbnailConcept.textOverlay||'')+'</strong> — '+escHtml(meta.thumbnailConcept.reasoning||'')+'</div>' : '');
+
+  row.appendChild(panel);
 }
 
 function startPolling(jobId,videoId,summaryEl){
