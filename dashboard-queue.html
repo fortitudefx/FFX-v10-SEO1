@@ -157,7 +157,7 @@
     }
     .btn-reorder:hover { color: rgba(255,255,255,0.70); border-color: rgba(255,255,255,0.20); background: rgba(255,255,255,0.06); }
     .btn-reorder:disabled { opacity: 0.20; cursor: not-allowed; }
-    .reorder-btns { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+    .reorder-btns { display: flex; flex-direction: row; gap: 4px; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -409,9 +409,8 @@ function buildQueueRow(item) {
   // Park button — always visible
   const parkBtn = '<button class="btn-park" onclick="event.stopPropagation();parkItem(\''+videoId+'\')">→ Park</button>';
 
-  // Reorder buttons — only for grey state (not generating/orange/red)
-  const isGrey = (item.state !== 'orange' && item.state !== 'generating' && item.state !== 'red');
-  const reorderBtns = isGrey
+  // Reorder buttons — all states except actively generating
+  const reorderBtns = item.state !== 'generating'
     ? '<div class="reorder-btns">'
       + '<button class="btn-reorder" title="Move up" onclick="event.stopPropagation();moveQueueItem(\''+videoId+'\',\'up\')">▲</button>'
       + '<button class="btn-reorder" title="Move down" onclick="event.stopPropagation();moveQueueItem(\''+videoId+'\',\'down\')">▼</button>'
