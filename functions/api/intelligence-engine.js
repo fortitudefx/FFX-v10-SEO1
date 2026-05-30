@@ -96,6 +96,32 @@ export async function onRequestPost(context) {
     // ── Write ga4:exec_summary:{today} for Daily Directive dashboard panel ──
     // REQUIRED for directive feedback — elevated to surface failure clearly
     try {
+      // ── Check if same directive type was acted on in last 3 days — skip repeat ──
+      const candidateType = output.priorityActions?.[0] ? detectDirectiveType(output.priorityActions[0]) : 'no_action';
+      const candidateHeadline = output.priorityActions?.[0]?.action || '';
+      let suppressDirective = false;
+      let suppressReason    = null;
+      try {
+        for (let d = 1; d <= 3; d++) {
+          const pastDate = new Date(Date.now() - d * 86400000).toISOString().split('T')[0];
+          const pastDir  = await env.FFX_KV.get(`intelligence:daily_directive:${pastDate}`, { type: 'json' }).catch(() => null);
+          if (pastDir && pastDir.actedOn === true && pastDir.directiveType === candidateType) {
+            suppressDirective = true;
+            suppressReason    = `Same directive type "${candidateType}" was acted on ${d} day${d>1?'s':''} ago (${pastDate}). Showing next priority action instead.`;
+            console.log('[intelligence-engine] Suppressing repeat directive:', suppressReason);
+            break;
+          }
+        }
+      } catch(suppressErr) {
+        console.error('[intelligence-engine] Directive repeat check failed (non-fatal):', suppressErr.message);
+      }
+
+      // If suppressed, use second priority action or no_action
+      const directiveAction = suppressDirective
+        ? (output.priorityActions?.[1] || null)
+        : (output.priorityActions?.[0] || null);
+      const directiveType = directiveAction ? detectDirectiveType(directiveAction) : 'no_action';
+
       const execSummary = {
         date:            today,
         generatedAt:     output.generatedAt,
@@ -105,20 +131,24 @@ export async function onRequestPost(context) {
         keyRisk:         output.weeklyInsight?.keyRisk  || null,
         forecast:        output.weeklyInsight?.forecast || null,
         dailyDirective: {
-          type:            output.priorityActions?.[0] ? detectDirectiveType(output.priorityActions[0]) : 'no_action',
-          headline:        output.priorityActions?.[0]?.action || 'No critical action needed today',
-          reason:          output.priorityActions?.[0]?.reasoning || 'All KPIs within acceptable range',
-          targetKpi:       output.priorityActions?.[0]?.impact === 'high' ? 'impressions' : null,
+          type:            directiveType,
+          headline:        directiveAction?.action || 'No critical action needed today',
+          reason:          suppressDirective
+                             ? suppressReason
+                             : (directiveAction?.reasoning || 'All KPIs within acceptable range'),
+          targetKpi:       directiveAction?.impact === 'high' ? 'impressions' : null,
           suggestedTopic:  output.articleBrief?.targetQuery || null,
           expectedOutcome: output.articleBrief?.reasoning || null,
-          confidence:      output.priorityActions?.[0]?.impact === 'high' ? 'high' : 'medium',
+          confidence:      directiveAction?.impact === 'high' ? 'high' : 'medium',
           triggerSignals:  output.learningUpdate?.newPattern ? [output.learningUpdate.newPattern] : [],
           issuedAt:        output.generatedAt,
+          suppressedRepeat: suppressDirective,
           actedOn:         null,
           actedOnAt:       null,
           actedOnMethod:   null,
           outcome:         null,
           accurate:        null,
+          directiveType:   directiveType,
         },
         crossSignalInsights: [
           output.weeklyInsight?.keyWin,
