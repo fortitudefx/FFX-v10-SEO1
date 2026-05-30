@@ -96,6 +96,7 @@ export async function onRequestPost(context) {
         tweet1: content.tweet1, tweet2: content.tweet2,
         tweet3: content.tweet3, tweet4: content.tweet4,
         tweet5: content.tweet5, tweet6: content.tweet6,
+        articleUrl: `https://fortitudefx.com/article?slug=${slug}`,
       });
       if (res.ok) {
         const xData = await res.json().catch(() => ({}));
@@ -196,7 +197,6 @@ export async function onRequestPost(context) {
         const existingPlatforms = existingPublished.platforms || {};
         const updatedPlatforms  = { ...existingPlatforms };
 
-        // Write per-platform status — only platforms that ran and succeeded
         if (userSelected.blog && status.blog && !status.blog.startsWith('Error') && status.blog !== 'not_selected') {
           updatedPlatforms.blog = { status: status.blog, publishedAt: timestamp };
         }
@@ -216,7 +216,6 @@ export async function onRequestPost(context) {
           updatedPlatforms.discord = { status: status.discord, publishedAt: timestamp };
         }
 
-        // Fields per platform — used for editedFields and pendingEdits cleanup
         const fieldsToCheck = {
           blog:     ['body'],
           x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
@@ -225,7 +224,6 @@ export async function onRequestPost(context) {
           tumblr:   ['tumblr'],
         };
 
-        // Clear editedFields for platforms that just published successfully
         let remainingEditedFields = Array.isArray(existingPublished.editedFields)
           ? [...existingPublished.editedFields]
           : [];
@@ -238,7 +236,6 @@ export async function onRequestPost(context) {
           }
         });
 
-        // Clear pendingEdits for platforms that just published successfully
         const existingPendingEdits = existingPublished.pendingEdits || {};
         const updatedPendingEdits  = { ...existingPendingEdits };
         Object.entries(fieldsToCheck).forEach(([platform, fields]) => {
@@ -248,7 +245,6 @@ export async function onRequestPost(context) {
             fields.forEach(f => delete updatedPendingEdits[f]);
           }
         });
-        // Also clear x_thread from pendingEdits if x published successfully
         if (status.x && !status.x.startsWith('Error') && status.x !== 'not_selected' && status.x !== 'pending') {
           delete updatedPendingEdits.x_thread;
         }
@@ -267,16 +263,32 @@ export async function onRequestPost(context) {
           pendingEdits:    updatedPendingEdits,
         };
 
-        // No TTL — published content is permanent
         await env.FFX_KV.put(`published:${videoId}`, JSON.stringify(publishedEntry));
         console.log('[FFX] published: KV written permanently for videoId:', videoId);
 
-        // Clear video:{videoId} immediately — content is now permanent in published:{videoId}
+        // ── CHANGE 12: Update content:performance:{slug} with publishedAt and status ──
         // Non-fatal — publish already succeeded if this fails
+        try {
+          if (slug) {
+            const perfKey = `content:performance:${slug}`;
+            const perf    = await env.FFX_KV.get(perfKey, { type: 'json' }).catch(() => null);
+            if (perf) {
+              perf.publishedAt = now.toISOString();
+              perf.status      = 'published';
+              await env.FFX_KV.put(perfKey, JSON.stringify(perf));
+              console.log('[FFX] content:performance updated to published for slug:', slug);
+            } else {
+              console.log('[FFX] content:performance not found for slug:', slug, '— skipping update');
+            }
+          }
+        } catch(perfErr) {
+          console.error('[FFX] content:performance update failed (non-fatal):', perfErr.message);
+        }
+
+        // Clear video:{videoId} immediately
         try { await env.FFX_KV.delete(`video:${videoId}`); console.log('[FFX] video: KV cleared for videoId:', videoId); } catch {}
 
-        // Delete regen:{videoId}:{platform} staging keys for all successfully published platforms
-        // Non-fatal — regen keys are 24hr TTL anyway but we clean immediately on publish
+        // Delete regen staging keys
         const regenPlatformMap = { blog: 'article', x: 'x', linkedin: 'linkedin', tumblr: 'tumblr', discord: 'discord' };
         for (const [platform, regenKey] of Object.entries(regenPlatformMap)) {
           const s = status[platform];
@@ -287,16 +299,13 @@ export async function onRequestPost(context) {
         }
         console.log('[FFX] regen staging keys cleared for published platforms');
 
-        // ── Section 31: Trigger health check on first publish of the day ─
-        // Non-blocking — runs asynchronously, never delays publish response
+        // ── Section 31: Trigger health check on first publish of the day ──
         try {
-          const today = new Date().toISOString().split('T')[0];
+          const today   = now.toISOString().split('T')[0];
           const lastRun = await env.FFX_KV.get('health:last_run').catch(() => null);
           if (lastRun !== today) {
             await env.FFX_KV.put('health:last_run', today);
-            // Fire health check asynchronously — do not await, do not block publish
-            const healthUrl = `${baseUrl}/api/health-check`;
-            fetch(healthUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            fetch(`${baseUrl}/api/health-check`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
               .then(r => console.log('[FFX] Health check triggered:', r.status))
               .catch(e => console.error('[FFX] Health check trigger failed (non-fatal):', e.message));
           }
