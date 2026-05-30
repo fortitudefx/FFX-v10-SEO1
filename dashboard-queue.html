@@ -699,10 +699,10 @@ async function moveQueueItem(videoId, direction){
     const order = queue.map(q => q.videoId);
     console.log('[reorder] Moving', videoId, direction, '— new order:', order);
 
-    const reorderRes = await fetch('/queue/reorder',{
+    const reorderRes = await fetch('/queue',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({order})
+      body:JSON.stringify({type:'reorder', order})
     });
     const reorderData = await reorderRes.json();
 
