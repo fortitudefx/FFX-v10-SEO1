@@ -268,6 +268,8 @@ export async function onRequestPost(context) {
 
         // ── CHANGE 12: Update content:performance:{slug} with publishedAt and status ──
         // Non-fatal — publish already succeeded if this fails
+        let contentPerfVerified = false;
+        let contentPerfError    = null;
         try {
           if (slug) {
             const perfKey = `content:performance:${slug}`;
@@ -276,13 +278,24 @@ export async function onRequestPost(context) {
               perf.publishedAt = now.toISOString();
               perf.status      = 'published';
               await env.FFX_KV.put(perfKey, JSON.stringify(perf));
-              console.log('[FFX] content:performance updated to published for slug:', slug);
+
+              // ── Read back to verify write succeeded ──────────────────────
+              const perfVerify = await env.FFX_KV.get(perfKey, { type: 'json' }).catch(() => null);
+              if (perfVerify && perfVerify.status === 'published' && perfVerify.publishedAt) {
+                contentPerfVerified = true;
+                console.log('[FFX] content:performance VERIFIED published for slug:', slug);
+              } else {
+                contentPerfError = 'Write verification failed — status not confirmed in read-back';
+                console.error('[FFX] content:performance write verification FAILED for slug:', slug);
+              }
             } else {
-              console.log('[FFX] content:performance not found for slug:', slug, '— skipping update');
+              contentPerfError = `content:performance:${slug} not found — record may not have been created by consumer`;
+              console.log('[FFX] content:performance not found for slug:', slug);
             }
           }
         } catch(perfErr) {
-          console.error('[FFX] content:performance update failed (non-fatal):', perfErr.message);
+          contentPerfError = perfErr.message;
+          console.error('[FFX] content:performance update failed:', perfErr.message);
         }
 
         // Clear video:{videoId} immediately
@@ -321,7 +334,13 @@ export async function onRequestPost(context) {
     console.log('[FFX] KV write failed (non-fatal):', kvErr.message);
   }
 
-  return resp({ success: true, slug, status }, 200, headers);
+  return resp({
+    success: true,
+    slug,
+    status,
+    contentPerfVerified: typeof contentPerfVerified !== 'undefined' ? contentPerfVerified : null,
+    contentPerfError:    typeof contentPerfError    !== 'undefined' ? contentPerfError    : null,
+  }, 200, headers);
 }
 
 export async function onRequestOptions() {
