@@ -6,6 +6,9 @@
 // If tweet content provided in request — uses it directly (no GitHub fetch)
 // If not provided — falls back to fetching from articles.json
 // Requires: X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET
+//
+// OG CARD FIX: tweet2 (index 1) always ends with article URL on its own line
+// This ensures Twitter renders the OG card on the first reply — highest visibility
 
 const GITHUB_RAW = 'https://raw.githubusercontent.com/fortitudefx/FFX-v10-SEO1/main/articles.json';
 
@@ -18,7 +21,7 @@ export async function onRequestPost(context) {
     return json({ message: 'Invalid JSON' }, 400);
   }
 
-  const { slug, tweet1, tweet2, tweet3, tweet4, tweet5, tweet6 } = body;
+  const { slug, tweet1, tweet2, tweet3, tweet4, tweet5, tweet6, articleUrl } = body;
   if (!slug) return json({ message: 'Missing slug' }, 400);
 
   const API_KEY             = context.env.X_API_KEY;
@@ -30,7 +33,10 @@ export async function onRequestPost(context) {
     return json({ message: 'X credentials not configured' }, 500);
   }
 
-  // Use content passed directly if available — avoids GitHub race condition
+  // Build the canonical article URL for OG card
+  // Passed from publish-confirm if available, otherwise constructed from slug
+  const canonicalUrl = articleUrl || `https://fortitudefx.com/article?slug=${slug}`;
+
   let tweets = null;
 
   if (tweet1) {
@@ -64,6 +70,26 @@ export async function onRequestPost(context) {
 
   if (!tweets || tweets.length === 0) {
     return json({ message: 'No tweet content found for slug: ' + slug }, 400);
+  }
+
+  // ── OG CARD FIX: inject article URL into tweet2 (index 1) ──────────────
+  // Twitter only renders OG cards when the URL is the final element of a tweet
+  // with no trailing text. Tweet2 (first reply) = highest visibility position.
+  // Also ensure tweet6 (last tweet) keeps its YouTube URL clean.
+  if (tweets.length > 1) {
+    const t2Content = tweets[1];
+    // Only append if the canonical URL is not already at the end of tweet2
+    const alreadyHasUrl = t2Content.trim().endsWith(canonicalUrl) ||
+                          t2Content.includes('fortitudefx.com/article?slug=');
+    if (!alreadyHasUrl) {
+      // Trim tweet2 to leave room for URL (Twitter max 280 chars, URL = 23 chars)
+      const maxContentLength = 280 - 23 - 2; // 2 for \n\n
+      const trimmedContent   = t2Content.length > maxContentLength
+        ? t2Content.substring(0, maxContentLength - 1) + '…'
+        : t2Content;
+      tweets[1] = `${trimmedContent}\n\n${canonicalUrl}`;
+    }
+    console.log('[FFX] X tweet2 with OG URL:', tweets[1].substring(0, 80) + '...');
   }
 
   console.log('[FFX] X thread slug:', slug, 'tweets:', tweets.length);
@@ -107,14 +133,12 @@ export async function onRequestPost(context) {
 
     const xData = await xRes.json().catch(() => ({}));
     console.log('[FFX] X tweet', i + 1, 'status:', xRes.status);
-    console.log('[FFX] X tweet', i + 1, 'response:', JSON.stringify(xData));
 
     if (!xRes.ok) {
       const errDetail = xData?.detail || xData?.title || xData?.errors?.[0]?.message || JSON.stringify(xData);
       console.log('[FFX] X tweet', i + 1, 'failed:', errDetail);
       results.push({ tweet_num: i + 1, success: false, error: errDetail });
       if (!firstError) firstError = errDetail;
-      // Do not break — continue posting remaining tweets
       continue;
     }
 
@@ -124,21 +148,18 @@ export async function onRequestPost(context) {
   }
 
   const successCount = results.filter(r => r.success).length;
-  const failCount = results.filter(r => !r.success).length;
+  const failCount    = results.filter(r => !r.success).length;
 
   console.log('[FFX] X thread complete — success:', successCount, 'failed:', failCount);
 
-  // If all failed return error so publish-confirm marks as Error
   if (successCount === 0) {
     return json({ message: 'X API error — all tweets failed', first_error: firstError, results }, 500);
   }
 
-  // If some failed return partial success — publish-confirm will mark as Yes
-  // Individual tweet failures are visible in logs
   return json({ success: true, slug, tweet_count: successCount, failed_count: failCount, results });
 }
 
-// ─── OAuth 1.0a signature builder ────────────────────────────────────────────
+// ─── OAuth 1.0a signature builder ─────────────────────────────────────────────
 
 async function buildOAuthHeader(method, url, apiKey, apiSecret, accessToken, accessTokenSecret) {
   const oauthParams = {
@@ -174,7 +195,7 @@ async function generateSignature(method, url, oauthParams, apiSecret, tokenSecre
   ].join('&');
 
   const signingKey = `${encodeURIComponent(apiSecret)}&${encodeURIComponent(tokenSecret)}`;
-  const encoder = new TextEncoder();
+  const encoder    = new TextEncoder();
 
   const cryptoKey = await crypto.subtle.importKey(
     'raw', encoder.encode(signingKey),
