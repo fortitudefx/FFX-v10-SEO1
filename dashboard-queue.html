@@ -794,9 +794,7 @@ function renderYTMetaPanel(row, meta) {
   // Build body content using DOM methods — no JSON.stringify in HTML attributes
   const tags = (meta.tags || []).map(t => '<span class="yt-meta-tag">' + escHtml(t) + '</span>').join('');
   const descHook = meta.description?.hook || '';
-  const descFull = (meta.description?.full || '').replace(/
-/g, '
-');
+  const descFull = meta.description?.full || '';
 
   // Title row
   const titleDiv = document.createElement('div');
