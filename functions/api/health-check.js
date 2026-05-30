@@ -987,6 +987,76 @@ export async function onRequestPost(context) {
     }
 
     // ─────────────────────────────────────────────────────────────────────
+    // LAYER 6 — SOCIAL INTELLIGENCE HEALTH (3 checks)
+    // ─────────────────────────────────────────────────────────────────────
+
+    // 6.1 Social scan ran today
+    try {
+      const signals6 = await env.FFX_KV.get('intelligence:signals', { type: 'json' }).catch(() => null);
+      if (!signals6) {
+        checks.push({ id:'6.1', layer:6, name:'Social scan status', status:'AMBER',
+          detail:'intelligence:signals not found — no social scan has run yet.',
+          diagnosis:'Social Intelligence Agent has not been run. This is expected if Pass 2 was just deployed.',
+          fix:'Go to Social dashboard → click ⚡ Run Scan.' });
+      } else {
+        const ageHrs6 = (now - new Date(signals6.scannedAt || signals6.date || 0)) / 3600000;
+        checks.push({ id:'6.1', layer:6, name:'Social scan status', status: ageHrs6 > 48 ? 'AMBER' : 'GREEN',
+          detail:`Last scan: ${Math.round(ageHrs6)} hours ago. Found: ${signals6.opportunitiesFound || 0} opportunities. Posted: ${signals6.acted || 0}. Dismissed: ${signals6.dismissed || 0}.`,
+          ...(ageHrs6 > 48 ? { diagnosis:'No social scan in 48+ hours.', fix:'Go to Social dashboard → click ⚡ Run Scan.' } : {}) });
+      }
+    } catch(e) {
+      checks.push({ id:'6.1', layer:6, name:'Social scan status', status:'AMBER',
+        detail:'Check error: ' + e.message, diagnosis:'KV read failed.', fix:'Check FFX_KV binding.' });
+    }
+
+    // 6.2 Opportunities written to KV
+    try {
+      const oppList6 = await env.FFX_KV.list({ prefix: 'intelligence:opportunities:' }).catch(() => null);
+      const today6   = today;
+      if (!oppList6 || !oppList6.keys.length) {
+        checks.push({ id:'6.2', layer:6, name:'Opportunities in KV', status:'AMBER',
+          detail:'No intelligence:opportunities records found.',
+          diagnosis:'Social scan has not run or found no qualifying threads.',
+          fix:'Go to Social dashboard → click ⚡ Run Scan.' });
+      } else {
+        let todayCount = 0, totalCount = oppList6.keys.length;
+        for (const key of oppList6.keys.slice(0, 10)) {
+          const opp6 = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
+          if (opp6 && opp6.detectedAt && opp6.detectedAt.startsWith(today6)) todayCount++;
+        }
+        checks.push({ id:'6.2', layer:6, name:'Opportunities in KV', status:'GREEN',
+          detail:`${todayCount} opportunities found today. ${totalCount} total in KV (last 7 days).` });
+      }
+    } catch(e) {
+      checks.push({ id:'6.2', layer:6, name:'Opportunities in KV', status:'AMBER',
+        detail:'Check error: ' + e.message, diagnosis:'KV read failed.', fix:'Check FFX_KV binding.' });
+    }
+
+    // 6.3 Reply performance tracking
+    try {
+      const perfList6 = await env.FFX_KV.list({ prefix: 'intelligence:reply_performance:' }).catch(() => null);
+      if (!perfList6 || !perfList6.keys.length) {
+        checks.push({ id:'6.3', layer:6, name:'Reply performance tracking', status:'AMBER',
+          detail:'No reply performance records yet.',
+          diagnosis:'Normal — records only write when you mark a reply as Posted on the Social dashboard.',
+          fix:'No action needed. Will build as you post replies.' });
+      } else {
+        let pending = 0, completed = 0;
+        for (const key of perfList6.keys.slice(0, 10)) {
+          const perf6 = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
+          if (!perf6) continue;
+          if (perf6.overallResult === 'pending') pending++;
+          else completed++;
+        }
+        checks.push({ id:'6.3', layer:6, name:'Reply performance tracking', status:'GREEN',
+          detail:`${perfList6.keys.length} reply records. ${pending} pending 72hr check. ${completed} completed.` });
+      }
+    } catch(e) {
+      checks.push({ id:'6.3', layer:6, name:'Reply performance tracking', status:'AMBER',
+        detail:'Check error: ' + e.message, diagnosis:'KV read failed.', fix:'Check FFX_KV binding.' });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
     // COMPUTE OVERALL STATUS AND WRITE RESULTS
     // ─────────────────────────────────────────────────────────────────────
 
