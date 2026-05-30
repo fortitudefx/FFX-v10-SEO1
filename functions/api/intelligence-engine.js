@@ -85,8 +85,16 @@ export async function onRequestPost(context) {
 
     await env.FFX_KV.put('intelligence:brief', JSON.stringify(output));
 
+    // ── Verify intelligence:brief was written correctly ───────────────────
+    const briefVerify = await env.FFX_KV.get('intelligence:brief', { type: 'json' }).catch(() => null);
+    if (!briefVerify || !briefVerify.generatedAt) {
+      console.error('[intelligence-engine] CRITICAL: intelligence:brief write verification FAILED');
+      return json({ error: 'intelligence:brief write failed verification — KV write did not persist' }, 500, headers);
+    }
+    console.log('[intelligence-engine] intelligence:brief write VERIFIED:', briefVerify.generatedAt);
+
     // ── Write ga4:exec_summary:{today} for Daily Directive dashboard panel ──
-    // Non-fatal — brief already written if this fails
+    // REQUIRED for directive feedback — elevated to surface failure clearly
     try {
       const execSummary = {
         date:            today,
@@ -121,9 +129,22 @@ export async function onRequestPost(context) {
         signalSourcesRead: Object.keys(output.signalSources || {}).filter(k => output.signalSources[k]),
       };
       await env.FFX_KV.put(`ga4:exec_summary:${today}`, JSON.stringify(execSummary), { expirationTtl: 86400 * 30 });
-      console.log('[intelligence-engine] ga4:exec_summary written for:', today);
+
+      // ── Verify ga4:exec_summary was written — CRITICAL for directive feedback ──
+      const execVerify = await env.FFX_KV.get(`ga4:exec_summary:${today}`, { type: 'json' }).catch(() => null);
+      if (!execVerify || !execVerify.dailyDirective) {
+        console.error('[intelligence-engine] CRITICAL: ga4:exec_summary write verification FAILED for:', today);
+        // Do not throw — brief is already written and verified. Surface clearly in response.
+        output._execSummaryWriteVerified = false;
+        output._execSummaryWriteError = 'Read-back verification failed — directive buttons may not work until next Run Analysis';
+      } else {
+        output._execSummaryWriteVerified = true;
+        console.log('[intelligence-engine] ga4:exec_summary write VERIFIED for:', today);
+      }
     } catch(execErr) {
-      console.error('[intelligence-engine] ga4:exec_summary write failed (non-fatal):', execErr.message);
+      console.error('[intelligence-engine] ga4:exec_summary write FAILED:', execErr.message);
+      output._execSummaryWriteVerified = false;
+      output._execSummaryWriteError = execErr.message;
     }
 
     // ── Write intelligence:brief_log (recommendation tracking) ───────────
