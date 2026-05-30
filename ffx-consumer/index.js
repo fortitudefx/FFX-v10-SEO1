@@ -415,9 +415,7 @@ ${pi.avoidance}`);
 ${'='.repeat(60)}
 INTELLIGENCE CONTEXT — READ BEFORE WRITING
 ${'='.repeat(60)}
-${parts.join('
-
-')}
+${parts.join('\n\n')}
 ${'='.repeat(60)}
 
 Apply the above context to shape what you write and how you target it. Your voice rules and trademark rules below remain absolute.
