@@ -379,16 +379,24 @@ async function seedTargets() {
   try {
     const res  = await fetch('/api/seed-targets', { method: 'POST' });
     const data = await res.json();
+    if (res.status === 409) {
+      btn.textContent = '✓ Already seeded';
+      btn.style.color = 'rgba(62,207,142,0.70)';
+      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 3000);
+      loadTargetScorecard();
+      return;
+    }
     if (data.success) {
       btn.textContent = '✓ Targets seeded';
       btn.style.color = 'rgba(62,207,142,0.90)';
       setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 3000);
       loadTargetScorecard();
     } else {
-      btn.textContent = '✗ Error';
-      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; }, 3000);
+      btn.textContent = '✗ ' + (data.error || 'Error');
+      btn.style.color = 'rgba(248,113,113,0.80)';
+      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 4000);
     }
-  } catch(e) { btn.textContent = '✗ Error'; setTimeout(() => { btn.textContent = '⊕ Seed Targets'; }, 3000); }
+  } catch(e) { btn.textContent = '✗ Network error'; btn.style.color = 'rgba(248,113,113,0.80)'; setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 4000); }
 }
 
 async function loadTargetScorecard() {
@@ -396,7 +404,34 @@ async function loadTargetScorecard() {
     const res  = await fetch('/api/seed-targets');
     const data = await res.json();
     if (!data.targets) return;
-    renderScorecard(data.targets);
+
+    // If all actuals are null, try to populate from current signals
+    const targets = data.targets;
+    const current = targets.current;
+    if (current && current.targets) {
+      const allNull = Object.values(current.targets).every(t => t.actual === null);
+      if (allNull) {
+        // Read seo:signals and ga4:signals and inject actuals
+        try {
+          const [seoRes, ga4Res] = await Promise.all([
+            fetch('/api/seo-signals'),
+            fetch('/api/ga4-signals'),
+          ]);
+          const seoData = seoRes.ok ? await seoRes.json() : null;
+          const ga4Data = ga4Res.ok ? await ga4Res.json() : null;
+          const seo = seoData?.signals;
+          const ga4 = ga4Data?.signals;
+          if (seo && current.targets.impressions) current.targets.impressions.actual = seo.totals?.impressions || 0;
+          if (seo && current.targets.clicks)      current.targets.clicks.actual      = seo.totals?.clicks     || 0;
+          if (ga4 && current.targets.users)       current.targets.users.actual       = ga4.totals?.users      || 0;
+          if (ga4 && current.targets.sessions)    current.targets.sessions.actual    = ga4.totals?.sessions   || 0;
+          if (ga4 && current.targets.avgDuration) current.targets.avgDuration.actual = ga4.totals?.avgDuration|| 0;
+          if (ga4 && current.targets.bounceRate)  current.targets.bounceRate.actual  = ga4.totals?.bounceRate || 0;
+        } catch(sigErr) { console.error('Signal read for actuals failed:', sigErr); }
+      }
+    }
+
+    renderScorecard(targets);
     document.getElementById('targetScorecard').style.display = 'block';
   } catch(e) { console.error('Scorecard error:', e); }
 }
