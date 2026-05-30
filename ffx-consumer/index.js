@@ -374,7 +374,7 @@ ${pi.avoidance}`);
         if (ab.targetLength)   briefLines.push(`Target length: ${ab.targetLength} words`);
         if (ab.contentPillar)  briefLines.push(`Content pillar: ${ab.contentPillar}`);
         if (ab.keyPoints?.length) briefLines.push(`Key points to cover:
-${ab.keyPoints.map(p => `  - ${p}`).join('
+        if (ab.keyPoints?.length) briefLines.push(`Key points to cover:\n${ab.keyPoints.map(p => '  - ' + p).join('\n')}`);
 ')}`);
         if (ab.nuggetTags?.length) briefLines.push(`Knowledge tags to draw from: ${ab.nuggetTags.join(', ')}`);
         if (briefLines.length) parts.push(`TODAY'S ARTICLE BRIEF (from intelligence analysis):
@@ -454,7 +454,7 @@ The body field contains HTML - ensure all quotes inside HTML attributes use sing
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-5',
       max_tokens: 6000,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Transcript:\n\n${transcript}\n\nVOICE: This is Salman speaking - founder of FortitudeFX. Write in his voice - direct, calm, experienced, institutional tone.${isRegional ? `\n\nREGIONAL: Write the ${region} variant.` : ''}` }],
@@ -529,7 +529,7 @@ x_thread must be a JSON array of strings.`;
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-5',
       max_tokens: 3000,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Transcript:\n\n${transcript}\n\nVOICE: Salman Khan - founder. Direct, calm, slightly contrarian, institutional.${isRegional ? `\n\nREGIONAL: Frame for ${region}.` : ''}` }],
@@ -597,7 +597,7 @@ Return ONLY the raw JSON array. Start with [ end with ].`;
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-5',
       max_tokens: 4000,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Video: ${videoTitle}\nURL: ${youtubeUrl}\n\nTranscript:\n\n${transcript}\n\nExtract 10-15 high-quality items. Apply three-test filter strictly. Salman's voice - calm, direct, experienced.` }],
