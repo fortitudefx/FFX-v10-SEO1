@@ -102,12 +102,15 @@ export async function onRequestPost(context) {
       let suppressDirective = false;
       let suppressReason    = null;
       try {
-        for (let d = 1; d <= 3; d++) {
+        // Check today AND last 3 days (d=0 is today)
+        for (let d = 0; d <= 3; d++) {
           const pastDate = new Date(Date.now() - d * 86400000).toISOString().split('T')[0];
           const pastDir  = await env.FFX_KV.get(`intelligence:daily_directive:${pastDate}`, { type: 'json' }).catch(() => null);
           if (pastDir && pastDir.actedOn === true && pastDir.directiveType === candidateType) {
             suppressDirective = true;
-            suppressReason    = `Same directive type "${candidateType}" was acted on ${d} day${d>1?'s':''} ago (${pastDate}). Showing next priority action instead.`;
+            suppressReason    = d === 0
+              ? `Same directive type "${candidateType}" was already acted on today. Showing next priority action instead.`
+              : `Same directive type "${candidateType}" was acted on ${d} day${d>1?'s':''} ago (${pastDate}). Showing next priority action instead.`;
             console.log('[intelligence-engine] Suppressing repeat directive:', suppressReason);
             break;
           }
