@@ -7,7 +7,7 @@
 // Writes: youtube:metadata:{videoId}
 // Called from: Generate YT Metadata button on queue dashboard (orange state)
 
-const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
+const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 
 export async function onRequestGet(context) {
   const { request, env } = context;
