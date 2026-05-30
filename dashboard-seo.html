@@ -740,21 +740,46 @@ async function loadDailyDirective() {
 }
 
 async function directiveFeedback(action, date) {
+  const panel = document.getElementById('directivePanel');
+  const btns  = panel ? panel.querySelectorAll('.btn-directive') : [];
+  btns.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+
+  function showPanelError(msg) {
+    if (!panel) return;
+    // Remove any existing error
+    panel.querySelectorAll('.directive-error').forEach(el => el.remove());
+    const errDiv = document.createElement('div');
+    errDiv.className = 'directive-error';
+    errDiv.style.cssText = 'margin-top:10px;font-size:12px;color:rgba(248,113,113,0.80);padding:8px 10px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.20);border-radius:6px;';
+    errDiv.textContent = msg;
+    panel.appendChild(errDiv);
+    setTimeout(() => errDiv.remove(), 8000);
+    btns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
+  }
+
   try {
-    const res = await fetch('/api/directive-feedback', {
+    const res  = await fetch('/api/directive-feedback', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ action, date }),
     });
     const data = await res.json();
-    if (res.ok) {
-      loadDailyDirective(); // Reload to show updated state
+
+    if (res.ok && data.verified === true) {
+      // Both KV writes confirmed by server read-back
+      console.log('[directive] Confirmed — execSummary:', data.execSummaryKey, 'directive:', data.directiveKey, 'directiveVerified:', data.directiveWriteVerified);
+      if (!data.directiveWriteVerified) {
+        console.warn('[directive] WARNING: intelligence:daily_directive write not verified — accuracy tracking may be incomplete');
+      }
+      loadDailyDirective();
+    } else if (res.ok && data.verified !== true) {
+      showPanelError('⚠ Saved but KV verification incomplete. Run Analysis first so the directive exists, then try again.');
     } else {
-      console.error('[directive] Feedback error:', data.error);
-      alert('Could not update directive: ' + (data.detail || data.error || 'Unknown error'));
+      showPanelError('✗ Could not save: ' + (data.detail || data.error || 'Unknown error'));
     }
   } catch(err) {
-    console.error('[directive] Feedback network error:', err.message);
+    console.error('[directive] Network error:', err.message);
+    showPanelError('✗ Network error — could not reach server');
   }
 }
 
