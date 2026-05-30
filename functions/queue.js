@@ -75,21 +75,10 @@ async function handleGet(request, env, headers) {
       }
 
       // Determine state
-      let state = 'grey';
-if (hasContent) state = 'orange';
-if (!hasContent && item.wasGenerated) {
-  // Check if job is still active before showing red
-  if (item.jobId) {
-    const job = await env.FFX_KV.get(`job:${item.jobId}`, { type: 'json' }).catch(() => null);
-    if (job && (job.status === 'pending' || job.status === 'processing')) {
-      state = 'generating';
-    } else {
-      state = 'red';
-    }
-  } else {
-    state = 'red';
-  }
-}
+      let state = 'grey'; // no content
+      if (hasContent) state = 'orange'; // content ready
+      // red = was generated but expired — we detect by checking wasGenerated flag
+      if (!hasContent && item.wasGenerated) state = 'red';
 
       return {
         ...item,
@@ -115,6 +104,18 @@ if (!hasContent && item.wasGenerated) {
 async function handleAdd(request, env, headers) {
   let body;
   try { body = await request.json(); } catch { return resp({ error: 'Invalid JSON' }, 400, headers); }
+
+  // Reorder via POST /queue with {type:'reorder', order:[...]}
+  if (body.type === 'reorder' || body.order) {
+    const { order } = body;
+    if (!Array.isArray(order)) return resp({ error: 'order must be an array of videoIds' }, 400, headers);
+    const queue    = await getQueue(env);
+    const queueMap = Object.fromEntries(queue.map(i => [i.videoId, i]));
+    const reordered = order.map(id => queueMap[id]).filter(Boolean);
+    queue.forEach(item => { if (!order.includes(item.videoId)) reordered.push(item); });
+    await saveQueue(env, reordered);
+    return resp({ success: true, queueLength: reordered.length }, 200, headers);
+  }
 
   const { videoId, youtubeUrl, title } = body;
   if (!videoId && !youtubeUrl) return resp({ error: 'videoId or youtubeUrl required' }, 400, headers);
