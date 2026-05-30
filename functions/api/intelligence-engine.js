@@ -24,6 +24,7 @@ export async function onRequestPost(context) {
       calSignals,    knowledgeTaxonomy,
       knowledgePerf, prevBrief,
       accuracyScores, healthResults,
+      socialSignals, voiceCalibration,
     ] = await Promise.all([
       env.FFX_KV.get('seo:signals',            { type: 'json' }).catch(() => null),
       env.FFX_KV.get('seo:learning',            { type: 'json' }).catch(() => null),
@@ -39,12 +40,15 @@ export async function onRequestPost(context) {
       env.FFX_KV.get('intelligence:brief',      { type: 'json' }).catch(() => null),
       env.FFX_KV.get('intelligence:accuracy_scores', { type: 'json' }).catch(() => null),
       env.FFX_KV.get(`health:results:${today}`, { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('intelligence:signals',         { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('intelligence:voice_calibration',{ type: 'json' }).catch(() => null),
     ]);
 
     // ── Read list-based signals (cannot go in Promise.all — need KV.list) ──
     const contentPerfHistory  = await getContentPerformanceHistory(env).catch(() => null);
     const recentBriefSummary  = await getRecentBriefLogSummary(env, yesterday).catch(() => null);
     const titleTestLearnings  = await getTitleTestLearnings(env).catch(() => null);
+    const replyPerformance    = await getReplyPerformanceSummary(env).catch(() => null);
 
     if (!seoSignals && !ga4Signals) {
       return json({ error: 'No signal data available. Run signal collection first.' }, 400, headers);
@@ -57,6 +61,7 @@ export async function onRequestPost(context) {
       calSignals, knowledgeTaxonomy, knowledgePerf, prevBrief,
       accuracyScores, healthResults,
       contentPerfHistory, recentBriefSummary, titleTestLearnings,
+      socialSignals, voiceCalibration, replyPerformance,
     });
 
     // ── Call Claude analyst ───────────────────────────────────────────────
@@ -79,6 +84,47 @@ export async function onRequestPost(context) {
     };
 
     await env.FFX_KV.put('intelligence:brief', JSON.stringify(output));
+
+    // ── Write ga4:exec_summary:{today} for Daily Directive dashboard panel ──
+    // Non-fatal — brief already written if this fails
+    try {
+      const execSummary = {
+        date:            today,
+        generatedAt:     output.generatedAt,
+        momentum:        output.weeklyInsight?.momentum || 'stable',
+        momentumText:    output.weeklyInsight?.headline || '',
+        keyWin:          output.weeklyInsight?.keyWin   || null,
+        keyRisk:         output.weeklyInsight?.keyRisk  || null,
+        forecast:        output.weeklyInsight?.forecast || null,
+        dailyDirective: {
+          type:            output.priorityActions?.[0] ? detectDirectiveType(output.priorityActions[0]) : 'no_action',
+          headline:        output.priorityActions?.[0]?.action || 'No critical action needed today',
+          reason:          output.priorityActions?.[0]?.reasoning || 'All KPIs within acceptable range',
+          targetKpi:       output.priorityActions?.[0]?.impact === 'high' ? 'impressions' : null,
+          suggestedTopic:  output.articleBrief?.targetQuery || null,
+          expectedOutcome: output.articleBrief?.reasoning || null,
+          confidence:      output.priorityActions?.[0]?.impact === 'high' ? 'high' : 'medium',
+          triggerSignals:  output.learningUpdate?.newPattern ? [output.learningUpdate.newPattern] : [],
+          issuedAt:        output.generatedAt,
+          actedOn:         null,
+          actedOnAt:       null,
+          actedOnMethod:   null,
+          outcome:         null,
+          accurate:        null,
+        },
+        crossSignalInsights: [
+          output.weeklyInsight?.keyWin,
+          output.weeklyInsight?.keyRisk,
+          output.learningUpdate?.confirmedPattern,
+        ].filter(Boolean),
+        topOpportunity:  output.replyOpportunities?.[0] || null,
+        signalSourcesRead: Object.keys(output.signalSources || {}).filter(k => output.signalSources[k]),
+      };
+      await env.FFX_KV.put(`ga4:exec_summary:${today}`, JSON.stringify(execSummary), { expirationTtl: 86400 * 30 });
+      console.log('[intelligence-engine] ga4:exec_summary written for:', today);
+    } catch(execErr) {
+      console.error('[intelligence-engine] ga4:exec_summary write failed (non-fatal):', execErr.message);
+    }
 
     // ── Write intelligence:brief_log (recommendation tracking) ───────────
     try {
@@ -164,7 +210,8 @@ function buildSignalContext(signals) {
           discordSignals, emailSignals, intelSignals, calSignals,
           knowledgeTaxonomy, knowledgePerf, prevBrief,
           accuracyScores, healthResults,
-          contentPerfHistory, recentBriefSummary, titleTestLearnings } = signals;
+          contentPerfHistory, recentBriefSummary, titleTestLearnings,
+          socialSignals, voiceCalibration, replyPerformance } = signals;
 
   let ctx = `You are the intelligence analyst for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick™ mechanical entry system by Salman Khan.
 
@@ -363,6 +410,44 @@ ${recentBriefSummary}
 ${titleTestLearnings}
 Apply these format learnings to every title suggestion in this brief.
 `;
+  }
+
+  // ── Section 4: Social intelligence context ──────────────────────────
+  if (socialSignals || replyPerformance || voiceCalibration) {
+    ctx += `
+━━ SOCIAL INTELLIGENCE (community engagement) ━━
+`;
+
+    if (socialSignals) {
+      const opps = socialSignals.opportunitiesFound || 0;
+      const acted = socialSignals.acted || 0;
+      const dismissed = socialSignals.dismissed || 0;
+      ctx += `Opportunities found today: ${opps} | Posted: ${acted} | Dismissed: ${dismissed}\n`;
+      if (socialSignals.topKeywords && socialSignals.topKeywords.length > 0) {
+        ctx += `Top engagement keywords: ${socialSignals.topKeywords.join(', ')}\n`;
+      }
+      if (socialSignals.topPlatform) {
+        ctx += `Most active platform: ${socialSignals.topPlatform}\n`;
+      }
+    }
+
+    if (replyPerformance) {
+      ctx += `\nReply performance (last 30 days):\n`;
+      if (replyPerformance.totalPosted > 0) {
+        ctx += `  Posted: ${replyPerformance.totalPosted} | High result: ${replyPerformance.highCount} | Traffic generated: ${replyPerformance.totalTraffic} sessions\n`;
+        if (replyPerformance.topPlatform) ctx += `  Best platform: ${replyPerformance.topPlatform} (${replyPerformance.topPlatformResult})\n`;
+        if (replyPerformance.topKeyword) ctx += `  Best keyword: "${replyPerformance.topKeyword}"\n`;
+      } else {
+        ctx += `  No posted replies yet — social intelligence launching\n`;
+      }
+    }
+
+    if (voiceCalibration && voiceCalibration.corrections && voiceCalibration.corrections.length > 0) {
+      ctx += `\nVoice calibration (apply to reply drafts):\n`;
+      voiceCalibration.corrections.slice(0, 5).forEach(c => {
+        ctx += `  - ${c}\n`;
+      });
+    }
   }
 
   // ── Section 31: System health context ────────────────────────────────
@@ -615,6 +700,48 @@ Return ONLY raw JSON. No markdown. No preamble.`;
     console.log('[intelligence-engine] Learning summary updated');
   } catch(e) {
     console.error('[intelligence-engine] Learning summary error:', e.message);
+  }
+}
+
+// ── Helper: detect directive type from priority action ───────────────────
+function detectDirectiveType(action) {
+  if (!action || !action.action) return 'no_action';
+  const a = action.action.toLowerCase();
+  if (a.includes('record') || a.includes('video')) return 'record_and_generate';
+  if (a.includes('title') || a.includes('rewrite')) return 'title_rewrite';
+  if (a.includes('publish') || a.includes('pending')) return 'publish_pending';
+  if (a.includes('linkedin') || a.includes('post') || a.includes('discord')) return 'platform_post';
+  if (a.includes('reply') || a.includes('community')) return 'community_reply';
+  return 'priority_action';
+}
+
+// ── Section 4: Helper — get reply performance summary ────────────────────
+async function getReplyPerformanceSummary(env) {
+  try {
+    const list = await env.FFX_KV.list({ prefix: 'intelligence:reply_performance:' }).catch(() => null);
+    if (!list || !list.keys.length) return null;
+
+    let totalPosted = 0, highCount = 0, totalTraffic = 0;
+    const platformCounts = {}, keywordCounts = {};
+
+    for (const key of list.keys.slice(0, 30)) {
+      const perf = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
+      if (!perf) continue;
+      totalPosted++;
+      if (perf.overallResult === 'high') highCount++;
+      totalTraffic += perf.trafficGenerated || 0;
+      if (perf.platform) platformCounts[perf.platform] = (platformCounts[perf.platform]||0)+1;
+      if (perf.keyword)  keywordCounts[perf.keyword]   = (keywordCounts[perf.keyword]||0)+1;
+    }
+
+    const topPlatform = Object.entries(platformCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || null;
+    const topKeyword  = Object.entries(keywordCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]  || null;
+
+    return { totalPosted, highCount, totalTraffic, topPlatform, topKeyword,
+             topPlatformResult: topPlatform ? `${platformCounts[topPlatform]} replies` : null };
+  } catch(e) {
+    console.error('[intelligence-engine] getReplyPerformanceSummary error:', e.message);
+    return null;
   }
 }
 
