@@ -386,13 +386,9 @@ ${pi.avoidance}`);
         if (ab.angle)          briefLines.push(`Angle: ${ab.angle}`);
         if (ab.targetLength)   briefLines.push(`Target length: ${ab.targetLength} words`);
         if (ab.contentPillar)  briefLines.push(`Content pillar: ${ab.contentPillar}`);
-        if (ab.keyPoints?.length) briefLines.push(`Key points to cover:
         if (ab.keyPoints?.length) briefLines.push(`Key points to cover:\n${ab.keyPoints.map(p => '  - ' + p).join('\n')}`);
-')}`);
         if (ab.nuggetTags?.length) briefLines.push(`Knowledge tags to draw from: ${ab.nuggetTags.join(', ')}`);
-        if (briefLines.length) parts.push(`TODAY'S ARTICLE BRIEF (from intelligence analysis):
-${briefLines.join('
-')}`);
+        if (briefLines.length) parts.push(`TODAY'S ARTICLE BRIEF (from intelligence analysis):\n${briefLines.join('\n')}`);
       }
 
       if (learningSummary) {
@@ -402,17 +398,14 @@ ${briefLines.join('
         if (ls.audienceSummary)  lsParts.push(ls.audienceSummary);
         if (ls.optimalLength)    lsParts.push(`Optimal article length for FFX: ${ls.optimalLength} words`);
         if (ls.optimalStructure) lsParts.push(`Best structure: ${ls.optimalStructure}`);
-        if (lsParts.length) parts.push(`SITE LEARNING PATTERNS:
-${lsParts.join('
-')}`);
+        if (lsParts.length) parts.push(`SITE LEARNING PATTERNS:\n${lsParts.join('\n')}`);
       }
 
       if (targets?.current) {
         const gap = targets.current.primaryGap;
         const overall = targets.current.overallStatus;
         if (gap || overall) {
-          parts.push(`PERFORMANCE CONTEXT:
-Site momentum: ${overall || 'building'}${gap ? `. Primary gap to close: ${gap}` : ''}. Write content that drives organic traffic and Discord community engagement.`);
+          parts.push(`PERFORMANCE CONTEXT:\nSite momentum: ${overall || 'building'}${gap ? `. Primary gap to close: ${gap}` : ''}. Write content that drives organic traffic and Discord community engagement.`);
         }
       }
 
