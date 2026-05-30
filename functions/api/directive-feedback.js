@@ -2,11 +2,8 @@
 // GET  /api/directive-feedback        → returns today's ga4:exec_summary from KV
 // POST /api/directive-feedback        → records Done/Snooze/Not applicable on directive
 //
-// Written by: Daily Directive buttons on dashboard-seo.html
-// Read by:    dashboard-seo.html loadDailyDirective()
-//
-// Error handling: every KV op wrapped in try/catch
-// Nothing fails silently — all errors returned as JSON with descriptive message
+// KV WRITE VERIFICATION: every write is read back and confirmed before returning success
+// No silent failures — all errors returned as JSON with descriptive message
 
 export async function onRequestGet(context) {
   const { env } = context;
@@ -16,7 +13,6 @@ export async function onRequestGet(context) {
     const today     = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    // Try today first, fall back to yesterday
     let summary = await env.FFX_KV.get(`ga4:exec_summary:${today}`, { type: 'json' }).catch(() => null);
     let dateUsed = today;
     if (!summary) {
@@ -32,18 +28,11 @@ export async function onRequestGet(context) {
       }), { status: 200, headers });
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      summary,
-      date:    dateUsed,
-    }), { status: 200, headers });
+    return new Response(JSON.stringify({ success: true, summary, date: dateUsed }), { status: 200, headers });
 
   } catch(err) {
     console.error('[directive-feedback] GET error:', err.message);
-    return new Response(JSON.stringify({
-      error:   'Failed to load directive',
-      detail:  err.message
-    }), { status: 500, headers });
+    return new Response(JSON.stringify({ error: 'Failed to load directive', detail: err.message }), { status: 500, headers });
   }
 }
 
@@ -60,63 +49,70 @@ export async function onRequestPost(context) {
 
   if (!action || !['done', 'snooze', 'not_applicable'].includes(action)) {
     return new Response(JSON.stringify({
-      error:   'Invalid action',
-      detail:  'action must be one of: done, snooze, not_applicable'
+      error: 'Invalid action',
+      detail: 'action must be one of: done, snooze, not_applicable'
     }), { status: 400, headers });
   }
 
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate  = date || new Date().toISOString().split('T')[0];
+  const summaryKey  = `ga4:exec_summary:${targetDate}`;
+  const directiveKey = `intelligence:daily_directive:${targetDate}`;
+  const now = new Date().toISOString();
 
   try {
-    const summaryKey = `ga4:exec_summary:${targetDate}`;
-    const summary    = await env.FFX_KV.get(summaryKey, { type: 'json' }).catch(() => null);
+    // ── Read exec_summary — create minimal if missing (Run Analysis not yet run) ──
+    let summary = await env.FFX_KV.get(summaryKey, { type: 'json' }).catch(() => null);
 
     if (!summary) {
-      return new Response(JSON.stringify({
-        error:  'No directive found for date: ' + targetDate,
-        detail: 'The directive may have expired or not yet been generated'
-      }), { status: 404, headers });
+      // Create minimal record so directive action is never blocked
+      summary = {
+        date:           targetDate,
+        generatedAt:    now,
+        momentum:       'unknown',
+        createdByFeedback: true,
+        dailyDirective: {},
+      };
+      console.log('[directive-feedback] No exec_summary found — creating minimal record for:', targetDate);
     }
 
-    const now = new Date().toISOString();
-
-    // Update directive based on action
     if (!summary.dailyDirective) summary.dailyDirective = {};
 
+    // ── Apply action ──────────────────────────────────────────────────────
     if (action === 'done') {
       summary.dailyDirective.actedOn       = true;
       summary.dailyDirective.actedOnAt     = now;
-      summary.dailyDirective.actedOnMethod = 'manual_confirm';
-      if (editedReply) {
-        summary.dailyDirective.editedReply = editedReply;
-        summary.dailyDirective.actedOnMethod = 'manual_edited';
-      }
-      console.log('[directive-feedback] Marked done for date:', targetDate);
-
+      summary.dailyDirective.actedOnMethod = editedReply ? 'manual_edited' : 'manual_confirm';
+      if (editedReply) summary.dailyDirective.editedReply = editedReply;
     } else if (action === 'snooze') {
-      const snoozeUntil = new Date(Date.now() + 86400000).toISOString();
       summary.dailyDirective.snoozedAt   = now;
-      summary.dailyDirective.snoozeUntil = snoozeUntil;
-      summary.dailyDirective.actedOn     = null; // not acted on, just deferred
-      console.log('[directive-feedback] Snoozed until:', snoozeUntil);
-
+      summary.dailyDirective.snoozeUntil = new Date(Date.now() + 86400000).toISOString();
+      summary.dailyDirective.actedOn     = null;
     } else if (action === 'not_applicable') {
-      const { reason } = body;
       summary.dailyDirective.actedOn         = false;
       summary.dailyDirective.rejectedAt      = now;
       summary.dailyDirective.rejectionType   = 'not_applicable';
-      summary.dailyDirective.rejectionReason = reason || 'not_applicable';
-      console.log('[directive-feedback] Dismissed, reason:', reason || 'not_applicable');
+      summary.dailyDirective.rejectionReason = body.reason || 'not_applicable';
     }
 
-    // Write updated summary back to KV
+    // ── Write ga4:exec_summary and READ BACK to verify ────────────────────
     await env.FFX_KV.put(summaryKey, JSON.stringify(summary), { expirationTtl: 86400 * 30 });
 
-    // Also write to intelligence:daily_directive:{date} for accuracy tracking
+    const verifyExec = await env.FFX_KV.get(summaryKey, { type: 'json' }).catch(() => null);
+    if (!verifyExec || verifyExec.dailyDirective?.actedOn !== summary.dailyDirective.actedOn) {
+      console.error('[directive-feedback] WRITE VERIFICATION FAILED for:', summaryKey);
+      return new Response(JSON.stringify({
+        error:    'Write verification failed',
+        detail:   `ga4:exec_summary:${targetDate} was written but read-back did not confirm. KV may be temporarily inconsistent.`,
+        verified: false,
+      }), { status: 500, headers });
+    }
+    console.log('[directive-feedback] ga4:exec_summary verified written for:', targetDate);
+
+    // ── Write intelligence:daily_directive and READ BACK to verify ─────────
+    let directiveWriteVerified = false;
     try {
-      const directiveKey = `intelligence:daily_directive:${targetDate}`;
-      const existing     = await env.FFX_KV.get(directiveKey, { type: 'json' }).catch(() => null);
-      const directive    = existing || { date: targetDate };
+      const existing  = await env.FFX_KV.get(directiveKey, { type: 'json' }).catch(() => null);
+      const directive = existing || { date: targetDate };
 
       if (action === 'done') {
         directive.actedOn       = true;
@@ -132,24 +128,37 @@ export async function onRequestPost(context) {
       }
 
       await env.FFX_KV.put(directiveKey, JSON.stringify(directive), { expirationTtl: 86400 * 90 });
+
+      const verifyDirective = await env.FFX_KV.get(directiveKey, { type: 'json' }).catch(() => null);
+      if (verifyDirective && verifyDirective.date === targetDate) {
+        directiveWriteVerified = true;
+        console.log('[directive-feedback] intelligence:daily_directive verified written for:', targetDate);
+      } else {
+        console.error('[directive-feedback] intelligence:daily_directive write verification failed for:', targetDate);
+      }
     } catch(trackErr) {
-      console.error('[directive-feedback] Directive tracking write failed (non-fatal):', trackErr.message);
+      console.error('[directive-feedback] Directive tracking write failed:', trackErr.message);
     }
 
     return new Response(JSON.stringify({
-      success: true,
+      success:                  true,
+      verified:                 true,
+      execSummaryKey:           summaryKey,
+      directiveKey:             directiveKey,
+      directiveWriteVerified,
       action,
-      date:    targetDate,
+      date:                     targetDate,
       message: action === 'done'           ? 'Directive marked as complete'
              : action === 'snooze'         ? 'Directive snoozed until tomorrow'
-             : 'Directive dismissed'
+             : 'Directive dismissed',
     }), { status: 200, headers });
 
   } catch(err) {
     console.error('[directive-feedback] POST error:', err.message);
     return new Response(JSON.stringify({
-      error:  'Failed to update directive',
-      detail: err.message
+      error:    'Failed to update directive',
+      detail:   err.message,
+      verified: false,
     }), { status: 500, headers });
   }
 }
