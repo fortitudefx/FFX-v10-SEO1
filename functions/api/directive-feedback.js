@@ -83,6 +83,8 @@ export async function onRequestPost(context) {
       summary.dailyDirective.actedOnAt     = now;
       summary.dailyDirective.actedOnMethod = editedReply ? 'manual_edited' : 'manual_confirm';
       if (editedReply) summary.dailyDirective.editedReply = editedReply;
+      // Store directiveType so intelligence engine can detect repeats in next 3 days
+      summary.dailyDirective.directiveType = summary.dailyDirective.type || 'unknown';
     } else if (action === 'snooze') {
       summary.dailyDirective.snoozedAt   = now;
       summary.dailyDirective.snoozeUntil = new Date(Date.now() + 86400000).toISOString();
@@ -118,6 +120,7 @@ export async function onRequestPost(context) {
         directive.actedOn       = true;
         directive.actedOnAt     = now;
         directive.actedOnMethod = editedReply ? 'manual_edited' : 'manual_confirm';
+        directive.directiveType = summary.dailyDirective?.type || body.directiveType || 'unknown';
       } else if (action === 'snooze') {
         directive.snoozedAt   = now;
         directive.snoozeUntil = new Date(Date.now() + 86400000).toISOString();
