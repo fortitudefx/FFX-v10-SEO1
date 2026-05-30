@@ -405,6 +405,7 @@ Search now. Find real active threads. Draft genuine helpful replies.`;
       'Content-Type':       'application/json',
       'x-api-key':          apiKey,
       'anthropic-version':  '2023-06-01',
+      'anthropic-beta':     'web-search-2025-03-05',
     },
     body: JSON.stringify({
       model:      ANTHROPIC_MODEL,
@@ -427,6 +428,12 @@ Search now. Find real active threads. Draft genuine helpful replies.`;
 
   const data = await res.json();
 
+  // Log stop reason and content structure for debugging
+  console.log('[social-intelligence] Claude stop_reason:', data.stop_reason, 'content blocks:', data.content?.length);
+  if (data.content) {
+    data.content.forEach((block, i) => console.log(`  block[${i}]: type=${block.type}`));
+  }
+
   // Extract text from response — may have tool use blocks before final text
   let rawText = '';
   if (data.content && Array.isArray(data.content)) {
@@ -436,7 +443,7 @@ Search now. Find real active threads. Draft genuine helpful replies.`;
   }
 
   if (!rawText.trim()) {
-    console.error('[social-intelligence] No text in Claude response. Stop reason:', data.stop_reason);
+    console.error('[social-intelligence] No text in Claude response. Stop reason:', data.stop_reason, 'Full response:', JSON.stringify(data).slice(0, 1000));
     return [];
   }
 
