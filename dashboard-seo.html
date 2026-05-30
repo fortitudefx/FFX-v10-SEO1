@@ -685,11 +685,12 @@ async function loadDailyDirective() {
     const kpiLine = d.targetKpi
       ? '<div class="directive-kpi">KPI at risk: ' + escD(d.targetKpi) + (d.suggestedTopic ? ' — Topic: ' + escD(d.suggestedTopic) : '') + '</div>' : '';
 
+        const safeDate = (date || '').replace(/[^0-9-]/g, '');
     const actionBtns = hasAction
       ? '<div class="directive-actions">'
-          + '<button class="btn-directive btn-directive-done" onclick="directiveFeedback('done','' + escD(date) + '')">✓ Done</button>'
-          + '<button class="btn-directive btn-directive-snooze" onclick="directiveFeedback('snooze','' + escD(date) + '')">⏸ Snooze 24hrs</button>'
-          + '<button class="btn-directive btn-directive-dismiss" onclick="directiveFeedback('not_applicable','' + escD(date) + '')">✗ Not applicable</button>'
+          + '<button class="btn-directive btn-directive-done" data-action="done" data-date="' + safeDate + '">✓ Done</button>'
+          + '<button class="btn-directive btn-directive-snooze" data-action="snooze" data-date="' + safeDate + '">⏸ Snooze 24hrs</button>'
+          + '<button class="btn-directive btn-directive-dismiss" data-action="not_applicable" data-date="' + safeDate + '">✗ Not applicable</button>'
         + '</div>'
       : '';
 
@@ -730,6 +731,15 @@ async function directiveFeedback(action, date) {
 }
 
 function escD(str) { if(!str)return''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
+
+// Event delegation for directive buttons — avoids inline onclick quote issues
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action][data-date]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const date   = btn.dataset.date;
+  if (action && date) directiveFeedback(action, date);
+});
 
 // ── Intelligence engine trigger ───────────────────────────────────────────
 async function triggerIntelligence() {
