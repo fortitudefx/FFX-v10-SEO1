@@ -412,6 +412,156 @@ export async function onRequestPost(context) {
     }
 
     // ─────────────────────────────────────────────────────────────────────
+    // LAYER 2 FLOW INTEGRITY CHECKS (5 checks — verify complete flows not just KV existence)
+    // ─────────────────────────────────────────────────────────────────────
+
+    // 2.9 ga4:exec_summary written today AND contains dailyDirective
+    try {
+      const execSummary = await env.FFX_KV.get(`ga4:exec_summary:${today}`, { type: 'json' }).catch(() => null);
+      if (!execSummary) {
+        checks.push({ id:'2.9', layer:2, name:'Exec summary written today', status:'AMBER',
+          detail:`ga4:exec_summary:${today} not found.`,
+          diagnosis:'Run Analysis has not been run today, or the write failed.',
+          fix:'Click ⚡ Run Analysis on SEO dashboard. This generates the daily directive and exec summary.' });
+      } else if (!execSummary.dailyDirective) {
+        checks.push({ id:'2.9', layer:2, name:'Exec summary contains directive', status:'RED',
+          detail:`ga4:exec_summary:${today} exists but has no dailyDirective field.`,
+          diagnosis:'Intelligence engine wrote the exec summary but the directive generation step failed or returned incomplete JSON.',
+          fix:'Click ⚡ Run Analysis again. If it persists, check intelligence-engine.js Claude response parsing.' });
+      } else {
+        const actedOn = execSummary.dailyDirective.actedOn;
+        const snoozed = execSummary.dailyDirective.snoozeUntil;
+        const detail  = actedOn === true ? 'Directive acted on ✓'
+                      : snoozed ? 'Directive snoozed'
+                      : 'Directive awaiting action';
+        checks.push({ id:'2.9', layer:2, name:'Exec summary written today', status:'GREEN',
+          detail:`ga4:exec_summary:${today} present with dailyDirective. ${detail}.` });
+      }
+    } catch(e) {
+      checks.push({ id:'2.9', layer:2, name:'Exec summary written today', status:'AMBER',
+        detail:'Check error: ' + e.message, diagnosis:'KV read failed.', fix:'Check FFX_KV binding.' });
+    }
+
+    // 2.10 Directive action written to intelligence:daily_directive when user clicked Done
+    try {
+      const directive = await env.FFX_KV.get(`intelligence:daily_directive:${today}`, { type: 'json' }).catch(() => null);
+      const execSummary2 = await env.FFX_KV.get(`ga4:exec_summary:${today}`, { type: 'json' }).catch(() => null);
+      const execActedOn  = execSummary2?.dailyDirective?.actedOn;
+
+      if (execActedOn === true && !directive) {
+        checks.push({ id:'2.10', layer:2, name:'Directive action confirmed in KV', status:'RED',
+          detail:`ga4:exec_summary shows actedOn:true but intelligence:daily_directive:${today} is missing.`,
+          diagnosis:'Directive feedback POST wrote exec_summary but failed to write intelligence:daily_directive. Silent failure in directive-feedback.js.',
+          fix:'Re-click Done on the directive. The deployed directive-feedback.js now verifies both writes.' });
+      } else if (execActedOn === true && directive?.actedOn === true) {
+        checks.push({ id:'2.10', layer:2, name:'Directive action confirmed in KV', status:'GREEN',
+          detail:`Both ga4:exec_summary and intelligence:daily_directive:${today} confirm actedOn:true at ${directive.actedOnAt?.split('T')[1]?.slice(0,5) || 'unknown'}.` });
+      } else if (!execActedOn) {
+        checks.push({ id:'2.10', layer:2, name:'Directive action confirmed in KV', status:'GREEN',
+          detail:'No directive action taken today — nothing to verify.' });
+      } else {
+        checks.push({ id:'2.10', layer:2, name:'Directive action confirmed in KV', status:'AMBER',
+          detail:`exec_summary actedOn: ${execActedOn}, directive record actedOn: ${directive?.actedOn ?? 'missing'}.`,
+          diagnosis:'Mismatch between exec_summary and daily_directive records.',
+          fix:'Re-click Done on the directive to re-sync both KV records.' });
+      }
+    } catch(e) {
+      checks.push({ id:'2.10', layer:2, name:'Directive action confirmed in KV', status:'AMBER',
+        detail:'Check error: ' + e.message, diagnosis:'KV read failed.', fix:'Check FFX_KV binding.' });
+    }
+
+    // 2.11 content:performance updated to published after last publish
+    try {
+      const pubList211 = await env.FFX_KV.list({ prefix: 'published:' }).catch(() => null);
+      const filtered211 = pubList211?.keys?.filter(k => !k.name.includes('slug:')) || [];
+      if (!filtered211.length) {
+        checks.push({ id:'2.11', layer:2, name:'Publish flow integrity', status:'GREEN',
+          detail:'No articles published yet — nothing to verify.' });
+      } else {
+        const latest211   = await env.FFX_KV.get(filtered211[0].name, { type: 'json' }).catch(() => null);
+        const slug211     = latest211?.slug;
+        if (!slug211) {
+          checks.push({ id:'2.11', layer:2, name:'Publish flow integrity', status:'AMBER',
+            detail:'Latest published record has no slug field.',
+            diagnosis:'published: KV record may be malformed.',
+            fix:'Check publish-confirm.js deployment.' });
+        } else {
+          const perf211 = await env.FFX_KV.get(`content:performance:${slug211}`, { type: 'json' }).catch(() => null);
+          if (!perf211) {
+            checks.push({ id:'2.11', layer:2, name:'Publish flow integrity', status:'AMBER',
+              detail:`content:performance:${slug211} not found. Article is published but performance tracking missing.`,
+              diagnosis:'Consumer may not have written content:performance on generation, or slug mismatch.',
+              fix:'Generate a new article — the updated consumer writes content:performance at generation time.' });
+          } else if (perf211.status !== 'published') {
+            checks.push({ id:'2.11', layer:2, name:'Publish flow integrity', status:'RED',
+              detail:`content:performance:${slug211} has status:${perf211.status} — should be published after successful publish.`,
+              diagnosis:'publish-confirm.js CHANGE 12 did not update status to published, or the write verification failed.',
+              fix:'Republish from Press dashboard. Check Cloudflare logs for publish-confirm.js errors.' });
+          } else {
+            checks.push({ id:'2.11', layer:2, name:'Publish flow integrity', status:'GREEN',
+              detail:`content:performance:${slug211} confirmed status:published at ${perf211.publishedAt?.split('T')[0] || 'unknown'}.` });
+          }
+        }
+      }
+    } catch(e) {
+      checks.push({ id:'2.11', layer:2, name:'Publish flow integrity', status:'AMBER',
+        detail:'Check error: ' + e.message, diagnosis:'KV read failed.', fix:'Check FFX_KV binding.' });
+    }
+
+    // 2.12 intelligence:brief contains all required fields (complete write verification)
+    try {
+      const brief212 = await env.FFX_KV.get('intelligence:brief', { type: 'json' }).catch(() => null);
+      if (!brief212) {
+        checks.push({ id:'2.12', layer:2, name:'Brief write complete', status:'AMBER',
+          detail:'intelligence:brief not found.',
+          diagnosis:'Run Analysis has not been run, or the write failed.',
+          fix:'Click ⚡ Run Analysis on SEO dashboard.' });
+      } else {
+        const required = ['articleBrief','priorityActions','weeklyInsight','promptInjection','generatedAt'];
+        const missing212 = required.filter(f => !brief212[f]);
+        const execVerified = brief212._execSummaryWriteVerified;
+        if (missing212.length > 0) {
+          checks.push({ id:'2.12', layer:2, name:'Brief write complete', status:'RED',
+            detail:`Brief is missing fields: ${missing212.join(', ')}.`,
+            diagnosis:'Claude returned incomplete JSON or the brief was truncated. The write itself succeeded but the content is incomplete.',
+            fix:'Click ⚡ Run Analysis again to regenerate with complete fields.' });
+        } else if (execVerified === false) {
+          checks.push({ id:'2.12', layer:2, name:'Brief write complete', status:'AMBER',
+            detail:`Brief is complete. But ga4:exec_summary write verification FAILED during last Run Analysis — directive buttons may not work.`,
+            diagnosis:'intelligence:brief wrote successfully but ga4:exec_summary failed its read-back check.',
+            fix:'Click ⚡ Run Analysis again. The updated intelligence-engine.js now surfaces this failure.' });
+        } else {
+          checks.push({ id:'2.12', layer:2, name:'Brief write complete', status:'GREEN',
+            detail:`All required fields present. Exec summary write ${execVerified === true ? 'verified ✓' : 'not tracked (pre-fix version)'}. Generated: ${brief212.generatedAt?.split('T')[0]}.` });
+        }
+      }
+    } catch(e) {
+      checks.push({ id:'2.12', layer:2, name:'Brief write complete', status:'AMBER',
+        detail:'Check error: ' + e.message, diagnosis:'KV read failed.', fix:'Check FFX_KV binding.' });
+    }
+
+    // 2.13 Pre-deploy mode — fast subset for post-deploy verification
+    const url213 = context?.request?.url || '';
+    const isPredeploy = url213.includes('mode=predeploy');
+    if (isPredeploy) {
+      // Only run immediate checks — skip time-dependent ones
+      const predeployChecks = checks.filter(c =>
+        ['1.1','1.3','2.3','2.4','2.9','2.12'].includes(c.id)
+      );
+      const pdRed   = predeployChecks.filter(c => c.status === 'RED').length;
+      const pdAmber = predeployChecks.filter(c => c.status === 'AMBER').length;
+      const pdGreen = predeployChecks.filter(c => c.status === 'GREEN').length;
+      const pdPass  = pdRed === 0;
+      return new Response(JSON.stringify({
+        mode:    'predeploy',
+        pass:    pdPass,
+        summary: pdPass ? 'All pre-deploy checks passed' : `${pdRed} RED checks — do not deploy until resolved`,
+        greenCount: pdGreen, amberCount: pdAmber, redCount: pdRed,
+        checks:  predeployChecks,
+      }), { status: 200, headers });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
     // LAYER 3 — INTELLIGENCE SYSTEM HEALTH (6 checks)
     // ─────────────────────────────────────────────────────────────────────
 
@@ -427,16 +577,27 @@ export async function onRequestPost(context) {
         const sources = brief.signalSources;
         const connected = Object.entries(sources).filter(([,v]) => v).map(([k]) => k);
         const missing   = Object.entries(sources).filter(([,v]) => !v).map(([k]) => k);
-        if (missing.length >= 3) {
+        // Phase 2 signals (youtube, discord, email, calendar, knowledge, intelligence) are not yet built
+        // Only seo and ga4 are built — missing 6 is expected, not a RED
+        const phase2Signals = ['youtube','discord','email','calendar','knowledge','intelligence'];
+        const unexpectedMissing = missing.filter(m => !phase2Signals.includes(m));
+        const phase2Missing     = missing.filter(m => phase2Signals.includes(m));
+
+        if (unexpectedMissing.length >= 2) {
           checks.push({ id:'3.1', layer:3, name:'Signal sources connected', status:'RED',
-            detail:`Only ${connected.length}/8 signal sources read. Missing: ${missing.join(', ')}.`,
-            diagnosis:'Key signal KV entries are missing — engine is making decisions with incomplete data.',
-            fix:'Ensure seo:signals and ga4:signals are current. Run Analysis again.' });
-        } else if (missing.length > 0) {
+            detail:`Core signals missing: ${unexpectedMissing.join(', ')}. Only ${connected.length}/8 sources read.`,
+            diagnosis:'seo:signals or ga4:signals are missing — engine is making decisions with no data.',
+            fix:'Run Analysis from SEO dashboard. Check that Refresh Signals has been run on both SEO and Audience dashboards.' });
+        } else if (unexpectedMissing.length === 1) {
           checks.push({ id:'3.1', layer:3, name:'Signal sources connected', status:'AMBER',
-            detail:`${connected.length}/8 sources read. Not yet available: ${missing.join(', ')}.`,
-            diagnosis:'Some signals not yet built (youtube, discord, email signals are future builds).',
-            fix:'Normal for early stage. No action needed for unbuilt signal sources.' });
+            detail:`${unexpectedMissing[0]} signal missing. ${phase2Missing.length} Phase 2 signals not yet built.`,
+            diagnosis:'One core signal source is missing.',
+            fix:'Run Refresh Signals from the relevant dashboard.' });
+        } else if (phase2Missing.length > 0) {
+          checks.push({ id:'3.1', layer:3, name:'Signal sources connected', status:'AMBER',
+            detail:`Core signals (SEO, GA4) connected. ${phase2Missing.length} Phase 2 signals not yet built: ${phase2Missing.join(', ')}.`,
+            diagnosis:'Phase 2 signal sources (YouTube, Discord, Email etc) are planned future builds — not a system failure.',
+            fix:'No action needed. Phase 2 signals will be built in a future session.' });
         } else {
           checks.push({ id:'3.1', layer:3, name:'Signal sources connected', status:'GREEN',
             detail:`All ${connected.length} available signal sources read.` });
