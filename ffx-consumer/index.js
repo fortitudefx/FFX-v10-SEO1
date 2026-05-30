@@ -41,14 +41,8 @@ async function processJob(job, env) {
 
   let transcript;
   try {
-    const cached = await env.FFX_KV.get(`transcript:${videoId}`, { type: 'text' }).catch(() => null);
-    if (cached && cached.trim().length >= 100) {
-      transcript = cached;
-      console.log('[FFX] Transcript loaded from KV, length:', transcript.length);
-    } else {
-      transcript = await fetchTranscriptSupadata(youtubeUrl, env.SUPADATA_API_KEY);
-      console.log('[FFX] Transcript fetched from Supadata, length:', transcript?.length);
-    }
+    transcript = await fetchTranscriptSupadata(youtubeUrl, env.SUPADATA_API_KEY);
+    console.log('[FFX] Transcript fetched, length:', transcript?.length);
   } catch (err) {
     await failJob(env, jobId, videoId, 'transcript',
       `Transcript fetch failed: ${err.message}. Ensure captions are enabled on this video in YouTube Studio.`, false);
@@ -85,19 +79,10 @@ async function processJob(job, env) {
   const regionName = regions[regionIndex];
   console.log('[FFX] Region:', regionName);
 
-  // ── Fetch nuggets ONCE before global article ──────────────────────────
-  let nuggetInjection = { text: '', ids: [], tags: [], status: 'skipped_error', reason: '' };
-  try {
-    nuggetInjection = await fetchRelevantNuggets(transcript, env);
-  } catch (err) {
-    nuggetInjection = { text: '', ids: [], tags: [], status: 'skipped_error', reason: err.message };
-    console.error('[FFX] Nugget fetch failed (non-fatal):', err.message);
-  }
-
   await updateJob(env, jobId, videoId, 'processing', 'global_article');
   let globalArticle;
   try {
-    globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug, env, nuggetInjection);
+    globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug, env);
     console.log('[FFX] Global article done, slug:', globalArticle.slug);
   } catch (err) {
     await failJob(env, jobId, videoId, 'global_article', formatClaudeError(err, 'Global article'), true);
@@ -202,7 +187,7 @@ async function processJob(job, env) {
     return;
   }
 
-  // ── Write content:performance record ─────────────────────────────────────
+  // ── STEP 9b: Write content:performance record (measurement pipeline) ─────
   try {
     let targetQuery  = null;
     let briefVersion = null;
@@ -217,26 +202,22 @@ async function processJob(job, env) {
       : 0;
 
     const perfRecord = {
-      slug:                   globalContent.slug,
+      slug:           globalContent.slug,
       videoId,
       youtubeUrl,
-      title:                  globalContent.title,
-      contentPillar:          globalContent.category || 'Strategy',
-      region:                 regionName,
+      title:          globalContent.title,
+      contentPillar:  globalContent.category || 'Strategy',
+      region:         regionName,
       wordCount,
-      targetQuery:            targetQuery  || null,
-      briefVersion:           briefVersion || null,
-      promptInjected:         !!targetQuery,
-      nuggetIdsUsed:          nuggetInjection.ids,
-      nuggetTagsUsed:         nuggetInjection.tags,
-      nuggetInjectionStatus:  nuggetInjection.status,
-      nuggetInjectionReason:  nuggetInjection.reason,
-      generatedAt:            new Date().toISOString(),
-      publishedAt:            null,
-      status:                 'generated',
-      snapshot7:              null,
-      snapshot30:             null,
-      snapshot90:             null,
+      targetQuery:    targetQuery  || null,
+      briefVersion:   briefVersion || null,
+      promptInjected: !!targetQuery,
+      generatedAt:    new Date().toISOString(),
+      publishedAt:    null,
+      status:         'generated',
+      snapshot7:      null,
+      snapshot30:     null,
+      snapshot90:     null,
     };
 
     await env.FFX_KV.put(`content:performance:${globalContent.slug}`, JSON.stringify(perfRecord));
@@ -245,32 +226,7 @@ async function processJob(job, env) {
     console.error('[FFX] content:performance write failed (non-fatal):', perfErr.message);
   }
 
-  // ── Update usedInArticles on each injected nugget ─────────────────────
-  if (nuggetInjection.ids.length > 0) {
-    try {
-      for (const nuggetId of nuggetInjection.ids) {
-        const nuggetRaw = await env.FFX_KV.get(`nugget:${nuggetId}`, { type: 'json' }).catch(() => null);
-        if (!nuggetRaw) continue;
-        if (!Array.isArray(nuggetRaw.usedInArticles)) nuggetRaw.usedInArticles = [];
-        const alreadyRecorded = nuggetRaw.usedInArticles.some(a => a.slug === globalContent.slug);
-        if (!alreadyRecorded) {
-          nuggetRaw.usedInArticles.push({
-            slug:   globalContent.slug,
-            videoId,
-            title:  globalContent.title,
-            usedAt: new Date().toISOString(),
-          });
-          nuggetRaw.updatedAt = new Date().toISOString();
-          await env.FFX_KV.put(`nugget:${nuggetId}`, JSON.stringify(nuggetRaw));
-        }
-      }
-      console.log('[FFX] usedInArticles updated for', nuggetInjection.ids.length, 'nuggets');
-    } catch (err) {
-      console.error('[FFX] usedInArticles update failed (non-fatal):', err.message);
-    }
-  }
-
-  // ── Update queue:index ────────────────────────────────────────────────
+  // Update queue:index
   try {
     const queueRaw = await env.FFX_KV.get('queue:index', { type: 'json' });
     if (Array.isArray(queueRaw)) {
@@ -313,7 +269,18 @@ async function sendCompletionEmail(env, youtubeUrl, videoId, videoTitle) {
     hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
   });
 
-  const emailHtml = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;background:#0c0c0c;color:#e8e8e8;padding:40px 32px;border-radius:8px;"><div style="font-family:'Courier New',monospace;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#787878;margin-bottom:24px;">FortitudeFX&#8482; &#8212; Internal</div><h1 style="font-size:22px;font-weight:700;color:#ffffff;margin:0 0 8px;letter-spacing:-0.02em;">Content Ready for Review</h1><p style="font-size:14px;color:#b8b8b8;margin:0 0 24px;line-height:1.6;">Global + Regional articles generated. All platforms ready.</p><a href="${youtubeUrl}" style="display:block;margin-bottom:24px;border-radius:8px;overflow:hidden;text-decoration:none;"><img src="${thumbnailUrl}" alt="${videoTitle || 'Video thumbnail'}" style="width:100%;display:block;border-radius:8px;" /></a><p style="font-size:15px;font-weight:600;color:#ffffff;margin:0 0 24px;">${videoTitle || ''}</p><a href="${pressLink}" style="display:block;background:#ffffff;color:#000000;text-align:center;padding:16px 24px;border-radius:6px;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:24px;">Review &amp; Publish in FFX Press &#8594;</a><p style="font-family:'Courier New',monospace;font-size:11px;color:#484848;word-break:break-all;margin:0 0 8px;">${pressLink}</p><p style="font-size:12px;color:#484848;margin:0;">Expires: ${expiryStr}</p></div>`;
+  const emailHtml = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;background:#0c0c0c;color:#e8e8e8;padding:40px 32px;border-radius:8px;">
+  <div style="font-family:'Courier New',monospace;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#787878;margin-bottom:24px;">FortitudeFX&#8482; &#8212; Internal</div>
+  <h1 style="font-size:22px;font-weight:700;color:#ffffff;margin:0 0 8px;letter-spacing:-0.02em;">Content Ready for Review</h1>
+  <p style="font-size:14px;color:#b8b8b8;margin:0 0 24px;line-height:1.6;">Global + Regional articles generated. All platforms ready.</p>
+  <a href="${youtubeUrl}" style="display:block;margin-bottom:24px;border-radius:8px;overflow:hidden;text-decoration:none;">
+    <img src="${thumbnailUrl}" alt="${videoTitle || 'Video thumbnail'}" style="width:100%;display:block;border-radius:8px;" />
+  </a>
+  <p style="font-size:15px;font-weight:600;color:#ffffff;margin:0 0 24px;">${videoTitle || ''}</p>
+  <a href="${pressLink}" style="display:block;background:#ffffff;color:#000000;text-align:center;padding:16px 24px;border-radius:6px;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:24px;">Review &amp; Publish in FFX Press &#8594;</a>
+  <p style="font-family:'Courier New',monospace;font-size:11px;color:#484848;word-break:break-all;margin:0 0 8px;">${pressLink}</p>
+  <p style="font-size:12px;color:#484848;margin:0;">Expires: ${expiryStr}</p>
+</div>`;
 
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -372,40 +339,47 @@ async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
   throw new Error('Unexpected Supadata response: ' + JSON.stringify(data).slice(0, 200));
 }
 
-async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalSlug, existingSlug, env, nuggetInjection = null) {
+async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalSlug, existingSlug, env) {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
   const isRegional = region !== 'Global';
 
   // ── Read intelligence signals for prompt injection ────────────────────────
   let signalInjection = '';
-  if (env && region === 'Global') {
+  if (env && region === 'Global') { // Only inject on Global article — regional inherits same brief
     try {
       const [brief, learningSummary, targets] = await Promise.all([
-        env.FFX_KV.get('intelligence:brief',   { type: 'json' }).catch(() => null),
-        env.FFX_KV.get('seo:learning:summary', { type: 'json' }).catch(() => null),
-        env.FFX_KV.get('intelligence:targets', { type: 'json' }).catch(() => null),
+        env.FFX_KV.get('intelligence:brief',       { type: 'json' }).catch(() => null),
+        env.FFX_KV.get('seo:learning:summary',     { type: 'json' }).catch(() => null),
+        env.FFX_KV.get('intelligence:targets',     { type: 'json' }).catch(() => null),
       ]);
 
       const parts = [];
 
       if (brief?.promptInjection) {
         const pi = brief.promptInjection;
-        if (pi.currentSignals)     parts.push(`CURRENT SIGNALS (act on these now):\n${pi.currentSignals}`);
-        if (pi.historicalLearning) parts.push(`WHAT HAS WORKED ON FORTITUDEFX (last 12 weeks):\n${pi.historicalLearning}`);
-        if (pi.avoidance)          parts.push(`AVOID (based on poor performance data):\n${pi.avoidance}`);
+        if (pi.currentSignals)    parts.push(`CURRENT SIGNALS (act on these now):
+${pi.currentSignals}`);
+        if (pi.historicalLearning) parts.push(`WHAT HAS WORKED ON FORTITUDEFX (last 12 weeks):
+${pi.historicalLearning}`);
+        if (pi.avoidance)         parts.push(`AVOID (based on poor performance data):
+${pi.avoidance}`);
       }
 
       if (brief?.articleBrief) {
         const ab = brief.articleBrief;
         const briefLines = [];
-        if (ab.targetQuery)        briefLines.push(`Target query: "${ab.targetQuery}"`);
-        if (ab.suggestedTitle)     briefLines.push(`Suggested title: "${ab.suggestedTitle}"`);
-        if (ab.angle)              briefLines.push(`Angle: ${ab.angle}`);
-        if (ab.targetLength)       briefLines.push(`Target length: ${ab.targetLength} words`);
-        if (ab.contentPillar)      briefLines.push(`Content pillar: ${ab.contentPillar}`);
-        if (ab.keyPoints?.length)  briefLines.push(`Key points to cover:\n${ab.keyPoints.map(p => `  - ${p}`).join('\n')}`);
+        if (ab.targetQuery)    briefLines.push(`Target query: "${ab.targetQuery}"`);
+        if (ab.suggestedTitle) briefLines.push(`Suggested title: "${ab.suggestedTitle}"`);
+        if (ab.angle)          briefLines.push(`Angle: ${ab.angle}`);
+        if (ab.targetLength)   briefLines.push(`Target length: ${ab.targetLength} words`);
+        if (ab.contentPillar)  briefLines.push(`Content pillar: ${ab.contentPillar}`);
+        if (ab.keyPoints?.length) briefLines.push(`Key points to cover:
+${ab.keyPoints.map(p => `  - ${p}`).join('
+')}`);
         if (ab.nuggetTags?.length) briefLines.push(`Knowledge tags to draw from: ${ab.nuggetTags.join(', ')}`);
-        if (briefLines.length)     parts.push(`TODAY'S ARTICLE BRIEF (from intelligence analysis):\n${briefLines.join('\n')}`);
+        if (briefLines.length) parts.push(`TODAY'S ARTICLE BRIEF (from intelligence analysis):
+${briefLines.join('
+')}`);
       }
 
       if (learningSummary) {
@@ -415,43 +389,73 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
         if (ls.audienceSummary)  lsParts.push(ls.audienceSummary);
         if (ls.optimalLength)    lsParts.push(`Optimal article length for FFX: ${ls.optimalLength} words`);
         if (ls.optimalStructure) lsParts.push(`Best structure: ${ls.optimalStructure}`);
-        if (lsParts.length)      parts.push(`SITE LEARNING PATTERNS:\n${lsParts.join('\n')}`);
+        if (lsParts.length) parts.push(`SITE LEARNING PATTERNS:
+${lsParts.join('
+')}`);
       }
 
       if (targets?.current) {
-        const gap     = targets.current.primaryGap;
+        const gap = targets.current.primaryGap;
         const overall = targets.current.overallStatus;
         if (gap || overall) {
-          parts.push(`PERFORMANCE CONTEXT:\nSite momentum: ${overall || 'building'}${gap ? `. Primary gap to close: ${gap}` : ''}. Write content that drives organic traffic and Discord community engagement.`);
+          parts.push(`PERFORMANCE CONTEXT:
+Site momentum: ${overall || 'building'}${gap ? `. Primary gap to close: ${gap}` : ''}. Write content that drives organic traffic and Discord community engagement.`);
         }
       }
 
       if (parts.length > 0) {
-        signalInjection = `\n\n${'='.repeat(60)}\nINTELLIGENCE CONTEXT — READ BEFORE WRITING\n${'='.repeat(60)}\n${parts.join('\n\n')}\n${'='.repeat(60)}\n\nApply the above context to shape what you write and how you target it. Your voice rules and trademark rules below remain absolute.\n`;
+        signalInjection = `
+
+${'='.repeat(60)}
+INTELLIGENCE CONTEXT — READ BEFORE WRITING
+${'='.repeat(60)}
+${parts.join('
+
+')}
+${'='.repeat(60)}
+
+Apply the above context to shape what you write and how you target it. Your voice rules and trademark rules below remain absolute.
+`;
         console.log('[FFX] Signal injection built — targetQuery:', brief?.articleBrief?.targetQuery || 'none');
       }
     } catch (injErr) {
       console.error('[FFX] Signal injection failed (non-fatal — continuing without):', injErr.message);
     }
   }
+  const regionInstruction = isRegional ? `
+REGIONAL TARGETING - THIS ARTICLE IS FOR: ${region}
+This is the regional variant. The global slug is: ${globalSlug}.
+Append the region to the slug: e.g. "trading-london-session-gcc".
+Frame examples, market session times, currency pairs, and cultural context specifically for ${region} traders.
+Keep the core trading insight identical - only framing and examples shift.` : '';
 
-  // ── Nugget block ──────────────────────────────────────────────────────────
-  const nuggetBlock = (nuggetInjection && nuggetInjection.text && region === 'Global')
-    ? `\n\n${'='.repeat(60)}\nKNOWLEDGE LIBRARY — SALMAN'S METHODOLOGY\n${'='.repeat(60)}\nThese are real insights from Salman's trading methodology. Use them as intellectual foundation where genuinely relevant. Do not force them in. Do not copy verbatim — let them inform the thinking.\n${nuggetInjection.text}\n${'='.repeat(60)}\n`
-    : '';
+  const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.${signalInjection}
 
-  const regionInstruction = isRegional
-    ? `\nREGIONAL TARGETING - THIS ARTICLE IS FOR: ${region}\nThis is the regional variant. The global slug is: ${globalSlug}.\nAppend the region to the slug: e.g. "trading-london-session-gcc".\nFrame examples, market session times, currency pairs, and cultural context specifically for ${region} traders.\nKeep the core trading insight identical - only framing and examples shift.`
-    : '';
+TRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.
 
-  const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.${nuggetBlock}${signalInjection}\n\nTRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.\n\nArticle region: ${region}${regionInstruction}\n\nGenerate ONLY the blog article fields. Return a single valid JSON object with exactly these keys and no others:\n\n{\n  "slug": "url-safe-lowercase-hyphenated-3-to-6-words",\n  "title": "SEO title 50-60 characters including primary keyword",\n  "excerpt": "compelling meta description max 160 characters",\n  "category": "exactly one of: Strategy, Psychology, Risk Management, Market Analysis, Fundamentals",\n  "tags": "comma-separated 4-6 relevant tags",\n  "readTime": "7 min read",\n  "body": "full 2000-word SEO article as valid HTML using h2 and h3 tags. Include internal links to /bootcamp /vipdiscord /blog. End with CTA to join free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark."\n}\n\nCRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. No preamble. Start with { end with }.\nThe body field contains HTML - ensure all quotes inside HTML attributes use single quotes to avoid breaking JSON string parsing.`;
+Article region: ${region}${regionInstruction}
+
+Generate ONLY the blog article fields. Return a single valid JSON object with exactly these keys and no others:
+
+{
+  "slug": "url-safe-lowercase-hyphenated-3-to-6-words",
+  "title": "SEO title 50-60 characters including primary keyword",
+  "excerpt": "compelling meta description max 160 characters",
+  "category": "exactly one of: Strategy, Psychology, Risk Management, Market Analysis, Fundamentals",
+  "tags": "comma-separated 4-6 relevant tags",
+  "readTime": "7 min read",
+  "body": "full 2000-word SEO article as valid HTML using h2 and h3 tags. Include internal links to /bootcamp /vipdiscord /blog. End with CTA to join free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark."
+}
+
+CRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. No preamble. Start with { end with }.
+The body field contains HTML - ensure all quotes inside HTML attributes use single quotes to avoid breaking JSON string parsing.`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
-      max_tokens: 3500,
+      max_tokens: 6000,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Transcript:\n\n${transcript}\n\nVOICE: This is Salman speaking - founder of FortitudeFX. Write in his voice - direct, calm, experienced, institutional tone.${isRegional ? `\n\nREGIONAL: Write the ${region} variant.` : ''}` }],
     }),
@@ -460,12 +464,12 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
   console.log('[FFX] Claude article status:', res.status, 'region:', region);
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
 
-  const data    = await res.json();
-  const rawText = data.content[0].text.trim();
-  const first   = rawText.indexOf('{');
-  const last    = rawText.lastIndexOf('}');
+  const data     = await res.json();
+  const rawText  = data.content[0].text.trim();
+  const first    = rawText.indexOf('{');
+  const last     = rawText.lastIndexOf('}');
   if (first === -1 || last === -1) throw new Error('No JSON object found in Claude article response');
-  const cleaned = rawText.slice(first, last + 1);
+  const cleaned  = rawText.slice(first, last + 1);
 
   let parsed;
   try { parsed = JSON.parse(cleaned); } catch (e) {
@@ -488,7 +492,38 @@ async function callClaudePlatforms(transcript, youtubeUrl, apiKey, linkedinForma
   const articleUrl = `https://fortitudefx.com/article?slug=${slug}`;
   const isRegional = region !== 'Global';
 
-  const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.\n\nTRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.\n\nTHIS RUN'S FORMATS (follow exactly):\n- LinkedIn format: ${linkedinFormat}\n- Discord format: ${discordFormat}\n- X format: ${xFormat}\n- Region: ${region}\n\nABSOLUTELY BANNED OPENING WORDS - NEVER start any post with:\n- "Most traders" or any variation\n- "The reality is" / "One thing I've learned" / "The market doesn't care"\n- "This is why" / "Here's the truth" / "Trading is" / "Many traders" / "Many people"\n\nARTICLE URL for this content: ${articleUrl}\nYOUTUBE URL: ${youtubeUrl}\n\nGenerate ONLY the platform content fields. Return a single valid JSON object:\n\n{\n  "linkedin": "LinkedIn post - FORMAT: ${linkedinFormat}. WALL: 350-500w / SHORT: 80-150w / SINGLE: 60-100w / STORY: 200-350w / CONTRARIAN: 150-300w. End with: Full breakdown: ${articleUrl} and https://fortitudefx.com. Add 3-5 hashtags at end only.",\n  "x_thread": ["tweet 1", "tweet 2", "tweet 3", "tweet 4", "tweet 5", "tweet 6"],\n  "discord": "Discord post - FORMAT: ${discordFormat}. NUGGET: 40-80w / DROP: 100-200w / QUESTION: 80-150w. End with article and youtube URLs.",\n  "tumblr": "Tumblr post 300-600 words. Plain text. End with article and youtube URLs.",\n  "mediumIntro": "150-200 word rewritten article opening. Final line: Originally published at ${articleUrl}"\n}\n\nX THREAD RULES - THREAD format: exactly 6 tweets. Post 6 ends with ${articleUrl} and ${youtubeUrl} on their own lines.\n\nCRITICAL: Return ONLY the raw JSON object. Start with { end with }.\nx_thread must be a JSON array of strings.`;
+  const systemPrompt = `You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.
+
+TRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.
+
+THIS RUN'S FORMATS (follow exactly):
+- LinkedIn format: ${linkedinFormat}
+- Discord format: ${discordFormat}
+- X format: ${xFormat}
+- Region: ${region}
+
+ABSOLUTELY BANNED OPENING WORDS - NEVER start any post with:
+- "Most traders" or any variation
+- "The reality is" / "One thing I've learned" / "The market doesn't care"
+- "This is why" / "Here's the truth" / "Trading is" / "Many traders" / "Many people"
+
+ARTICLE URL for this content: ${articleUrl}
+YOUTUBE URL: ${youtubeUrl}
+
+Generate ONLY the platform content fields. Return a single valid JSON object:
+
+{
+  "linkedin": "LinkedIn post - FORMAT: ${linkedinFormat}. WALL: 350-500w / SHORT: 80-150w / SINGLE: 60-100w / STORY: 200-350w / CONTRARIAN: 150-300w. End with: Full breakdown: ${articleUrl} and https://fortitudefx.com. Add 3-5 hashtags at end only.",
+  "x_thread": ["tweet 1", "tweet 2", "tweet 3", "tweet 4", "tweet 5", "tweet 6"],
+  "discord": "Discord post - FORMAT: ${discordFormat}. NUGGET: 40-80w / DROP: 100-200w / QUESTION: 80-150w. End with article and youtube URLs.",
+  "tumblr": "Tumblr post 300-600 words. Plain text. End with article and youtube URLs.",
+  "mediumIntro": "150-200 word rewritten article opening. Final line: Originally published at ${articleUrl}"
+}
+
+X THREAD RULES - THREAD format: exactly 6 tweets. Post 6 ends with ${articleUrl} and ${youtubeUrl} on their own lines.
+
+CRITICAL: Return ONLY the raw JSON object. Start with { end with }.
+x_thread must be a JSON array of strings.`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -534,7 +569,29 @@ async function callClaudePlatforms(transcript, youtubeUrl, apiKey, linkedinForma
 async function extractLibrary(transcript, youtubeUrl, videoTitle, videoId, apiKey) {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
 
-  const systemPrompt = `You are extracting high-quality reusable community content from a FortitudeFX YouTube transcript.\n\nEXTRACTION STANDARD - MANDATORY:\nOnly extract an item if it passes ALL THREE tests:\n1. Would an experienced trader stop scrolling to read this?\n2. Does it add something the FFX community cannot get from generic trading content anywhere else?\n3. Is it specific enough to spark a real discussion?\n\nCATEGORIES (assign exactly one):\nCTW Framework, Market Psychology, Execution Discipline, Professional Thinking, Trading Reality, Lifestyle & Philosophy, Founder Observation, Hook/Viral\n\nFORMATS (assign exactly one): question, insight, contrarian, story, chart_game\n\nReturn a JSON array of objects:\n{\n  "category": "Psychology",\n  "format": "contrarian",\n  "content": "The full post content - 50-180 words",\n  "hook": "The opening line only",\n  "tags": ["tag1", "tag2", "tag3"]\n}\n\nReturn ONLY the raw JSON array. Start with [ end with ].`;
+  const systemPrompt = `You are extracting high-quality reusable community content from a FortitudeFX YouTube transcript.
+
+EXTRACTION STANDARD - MANDATORY:
+Only extract an item if it passes ALL THREE tests:
+1. Would an experienced trader stop scrolling to read this?
+2. Does it add something the FFX community cannot get from generic trading content anywhere else?
+3. Is it specific enough to spark a real discussion?
+
+CATEGORIES (assign exactly one):
+CTW Framework, Market Psychology, Execution Discipline, Professional Thinking, Trading Reality, Lifestyle & Philosophy, Founder Observation, Hook/Viral
+
+FORMATS (assign exactly one): question, insight, contrarian, story, chart_game
+
+Return a JSON array of objects:
+{
+  "category": "Psychology",
+  "format": "contrarian",
+  "content": "The full post content - 50-180 words",
+  "hook": "The opening line only",
+  "tags": ["tag1", "tag2", "tag3"]
+}
+
+Return ONLY the raw JSON array. Start with [ end with ].`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -563,72 +620,4 @@ async function extractLibrary(transcript, youtubeUrl, videoTitle, videoId, apiKe
 
   if (!Array.isArray(parsed)) throw new Error('Library extraction did not return array');
   return parsed.filter(item => item.category && item.format && item.content);
-}
-
-async function fetchRelevantNuggets(transcript, env) {
-  const result = { text: '', ids: [], tags: [], status: 'skipped_error', reason: '' };
-
-  try {
-    const indexRaw = await env.FFX_KV.get('nuggets:index', { type: 'json' }).catch(() => null);
-    if (!indexRaw || !Array.isArray(indexRaw) || indexRaw.length === 0) {
-      result.status = 'skipped_empty';
-      result.reason = 'nuggets:index is empty or not found';
-      console.log('[FFX] Nugget injection skipped:', result.reason);
-      return result;
-    }
-
-    const recentIds = indexRaw.slice(0, 50);
-    const nuggets = (await Promise.all(
-      recentIds.map(id => env.FFX_KV.get(`nugget:${id}`, { type: 'json' }).catch(() => null))
-    )).filter(Boolean);
-
-    if (nuggets.length === 0) {
-      result.status = 'skipped_empty';
-      result.reason = 'No nuggets could be read from KV';
-      console.log('[FFX] Nugget injection skipped:', result.reason);
-      return result;
-    }
-
-    const transcriptLower = transcript.toLowerCase();
-    const scored = nuggets.map(n => {
-      const tags  = Array.isArray(n.tags) ? n.tags : [];
-      const score = tags.reduce((total, tag) => {
-  const tagLower = tag.toLowerCase();
-  if (transcriptLower.includes(tagLower)) return total + 2;
-  const words = tagLower.split(/\s+/).filter(w => w.length > 3);
-  const wordMatches = words.filter(w => transcriptLower.includes(w)).length;
-  return total + wordMatches;
-}, 0);
-      return { nugget: n, score };
-    }).filter(s => s.score > 0);
-
-    if (scored.length === 0) {
-      result.status = 'skipped_no_match';
-      result.reason = 'No nugget tags matched transcript content';
-      console.log('[FFX] Nugget injection skipped:', result.reason);
-      return result;
-    }
-
-    scored.sort((a, b) => b.score - a.score);
-    const top = scored.slice(0, 5);
-
-    const lines = top.map(s =>
-      `[${s.nugget.category}] ${s.nugget.text}${s.nugget.tags?.length ? ' (tags: ' + s.nugget.tags.join(', ') + ')' : ''}`
-    ).join('\n\n');
-
-    result.text   = lines;
-    result.ids    = top.map(s => s.nugget.id);
-    result.tags   = [...new Set(top.flatMap(s => s.nugget.tags || []))];
-    result.status = 'injected';
-    result.reason = `${top.length} nuggets matched and injected`;
-
-    console.log('[FFX] Nugget injection:', result.reason, '| IDs:', result.ids.join(', '));
-    return result;
-
-  } catch (err) {
-    result.status = 'skipped_error';
-    result.reason = `KV read failed: ${err.message}`;
-    console.error('[FFX] Nugget injection error (non-fatal):', err.message);
-    return result;
-  }
 }
