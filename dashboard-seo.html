@@ -294,6 +294,47 @@
     .exec-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 20px 0; }
     .exec-section-title { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.36); margin-bottom: 14px; }
 
+    /* Daily Directive Panel */
+    .directive-panel {
+      border-radius: 16px;
+      margin-bottom: 24px;
+      border: 1px solid;
+      padding: 20px 28px;
+      position: relative;
+    }
+    .directive-panel.has-action  { background: rgba(201,168,76,0.05);  border-color: rgba(201,168,76,0.25); }
+    .directive-panel.no-action   { background: rgba(62,207,142,0.04);  border-color: rgba(62,207,142,0.20); }
+    .directive-panel.loading     { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.08); }
+    .directive-kicker {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .directive-panel.has-action .directive-kicker { color: rgba(201,168,76,0.70); }
+    .directive-panel.no-action  .directive-kicker { color: rgba(62,207,142,0.70); }
+    .directive-headline {
+      font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.90);
+      letter-spacing: -0.01em; margin-bottom: 8px; line-height: 1.35;
+    }
+    .directive-reason  { font-size: 13px; color: rgba(255,255,255,0.50); line-height: 1.6; margin-bottom: 16px; }
+    .directive-kpi     { font-size: 11px; color: rgba(255,255,255,0.36); margin-bottom: 16px; }
+    .directive-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-directive {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      border-radius: 6px; padding: 6px 14px; cursor: pointer; transition: all 0.15s; border: 1px solid;
+    }
+    .btn-directive-done    { background: rgba(62,207,142,0.10);  color: rgba(62,207,142,0.90);  border-color: rgba(62,207,142,0.30); }
+    .btn-directive-done:hover { background: rgba(62,207,142,0.18); }
+    .btn-directive-snooze  { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.50); border-color: rgba(255,255,255,0.12); }
+    .btn-directive-snooze:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.75); }
+    .btn-directive-dismiss { background: none; color: rgba(255,255,255,0.30); border-color: rgba(255,255,255,0.08); }
+    .btn-directive-dismiss:hover { color: rgba(248,113,113,0.70); border-color: rgba(248,113,113,0.25); }
+    .directive-confidence  {
+      position: absolute; top: 20px; right: 24px;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px;
+      background: rgba(201,168,76,0.10); color: rgba(201,168,76,0.70); border: 1px solid rgba(201,168,76,0.20);
+    }
+
     /* Disconnect */
     .btn-disconnect {
       font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
@@ -360,6 +401,12 @@
 
 
 
+
+    <!-- Daily Directive Panel -->
+    <div class="directive-panel loading" id="directivePanel">
+      <div class="directive-kicker">⚡ Today's Directive</div>
+      <div class="directive-headline" id="directiveHeadline" style="color:rgba(255,255,255,0.36);font-size:13px;">Loading directive…</div>
+    </div>
 
     <!-- Target Scorecard -->
     <div class="scorecard" id="targetScorecard" style="display:none;">
@@ -615,6 +662,113 @@ function renderScorecard(targets) {
     '<div class="scorecard-grid">' + grid + '</div>' + alerts;
 }
 
+// ── Daily Directive ───────────────────────────────────────────────────────
+async function loadDailyDirective() {
+  const panel = document.getElementById('directivePanel');
+  if (!panel) return;
+  try {
+    const res  = await fetch('/api/directive-feedback');
+    const data = await res.json();
+
+    if (!res.ok) {
+      panel.className = 'directive-panel loading';
+      document.getElementById('directiveHeadline').textContent = 'Could not load directive — ' + (data.error || 'Unknown error');
+      return;
+    }
+
+    if (!data.summary || !data.summary.dailyDirective) {
+      panel.className = 'directive-panel no-action';
+      panel.innerHTML = '<div class="directive-kicker">✓ Today&#39;s Directive</div>'
+        + '<div class="directive-headline">No action needed today</div>'
+        + '<div class="directive-reason">Run Analysis to generate today&#39;s directive based on all signals.</div>';
+      return;
+    }
+
+    const d = data.summary.dailyDirective;
+    const date = data.date;
+
+    // Check if already acted on or snoozed
+    if (d.actedOn === true) {
+      panel.className = 'directive-panel no-action';
+      panel.innerHTML = '<div class="directive-kicker">✓ Directive Complete</div>'
+        + '<div class="directive-headline">' + escD(d.headline || 'Done for today') + '</div>'
+        + '<div class="directive-reason">Marked complete ' + (d.actedOnAt ? new Date(d.actedOnAt).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : '') + '.</div>';
+      return;
+    }
+
+    if (d.snoozeUntil && new Date(d.snoozeUntil) > new Date()) {
+      panel.className = 'directive-panel no-action';
+      panel.innerHTML = '<div class="directive-kicker">⏸ Snoozed</div>'
+        + '<div class="directive-headline">' + escD(d.headline || '') + '</div>'
+        + '<div class="directive-reason">Returns tomorrow.</div>';
+      return;
+    }
+
+    const hasAction = d.type && d.type !== 'no_action';
+    panel.className = hasAction ? 'directive-panel has-action' : 'directive-panel no-action';
+
+    const confBadge = d.confidence
+      ? '<div class="directive-confidence">Confidence: ' + d.confidence.toUpperCase() + '</div>' : '';
+
+    const kpiLine = d.targetKpi
+      ? '<div class="directive-kpi">KPI at risk: ' + escD(d.targetKpi) + (d.suggestedTopic ? ' — Topic: ' + escD(d.suggestedTopic) : '') + '</div>' : '';
+
+        const safeDate = (date || '').replace(/[^0-9-]/g, '');
+    const actionBtns = hasAction
+      ? '<div class="directive-actions">'
+          + '<button class="btn-directive btn-directive-done" data-action="done" data-date="' + safeDate + '">✓ Done</button>'
+          + '<button class="btn-directive btn-directive-snooze" data-action="snooze" data-date="' + safeDate + '">⏸ Snooze 24hrs</button>'
+          + '<button class="btn-directive btn-directive-dismiss" data-action="not_applicable" data-date="' + safeDate + '">✗ Not applicable</button>'
+        + '</div>'
+      : '';
+
+    panel.innerHTML = confBadge
+      + '<div class="directive-kicker">' + (hasAction ? '⚡ Today&#39;s Directive' : '✓ No Action Needed Today') + '</div>'
+      + '<div class="directive-headline">' + escD(d.headline || 'Intelligence analysis complete') + '</div>'
+      + '<div class="directive-reason">' + escD(d.reason || '') + '</div>'
+      + kpiLine
+      + actionBtns;
+
+  } catch(err) {
+    console.error('[directive] Load error:', err.message);
+    if (panel) {
+      panel.className = 'directive-panel loading';
+      panel.innerHTML = '<div class="directive-kicker">Directive</div>'
+        + '<div class="directive-headline" style="color:rgba(255,255,255,0.36);font-size:13px;">Could not connect to directive endpoint</div>';
+    }
+  }
+}
+
+async function directiveFeedback(action, date) {
+  try {
+    const res = await fetch('/api/directive-feedback', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ action, date }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      loadDailyDirective(); // Reload to show updated state
+    } else {
+      console.error('[directive] Feedback error:', data.error);
+      alert('Could not update directive: ' + (data.detail || data.error || 'Unknown error'));
+    }
+  } catch(err) {
+    console.error('[directive] Feedback network error:', err.message);
+  }
+}
+
+function escD(str) { if(!str)return''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
+
+// Event delegation for directive buttons — avoids inline onclick quote issues
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action][data-date]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const date   = btn.dataset.date;
+  if (action && date) directiveFeedback(action, date);
+});
+
 // ── Intelligence engine trigger ───────────────────────────────────────────
 async function triggerIntelligence() {
   const btn = document.getElementById('intelBtn');
@@ -641,6 +795,7 @@ async function triggerIntelligence() {
           btn.style.color = 'rgba(62,207,142,0.80)';
           btn.disabled = false;
           if (typeof loadAll === 'function') loadAll(currentDays);
+          loadDailyDirective(); // Reload directive with fresh intelligence
           setTimeout(() => { btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; }, 4000);
         }
       }
@@ -1266,6 +1421,7 @@ function showDashboard() {
   document.getElementById('seedBtn').style.display = 'inline-block';
   loadAll(28);
   loadTargetScorecard();
+  loadDailyDirective();
   loadCharts(28);
 }
 
