@@ -650,9 +650,9 @@ async function loadDailyDirective() {
 
     if (!data.summary || !data.summary.dailyDirective) {
       panel.className = 'directive-panel no-action';
-      panel.innerHTML = '<div class="directive-kicker">✓ Today's Directive</div>'
+      panel.innerHTML = '<div class="directive-kicker">✓ Today&#39;s Directive</div>'
         + '<div class="directive-headline">No action needed today</div>'
-        + '<div class="directive-reason">Run Analysis to generate today's directive based on all signals.</div>';
+        + '<div class="directive-reason">Run Analysis to generate today&#39;s directive based on all signals.</div>';
       return;
     }
 
@@ -695,7 +695,7 @@ async function loadDailyDirective() {
       : '';
 
     panel.innerHTML = confBadge
-      + '<div class="directive-kicker">' + (hasAction ? '⚡ Today's Directive' : '✓ No Action Needed Today') + '</div>'
+      + '<div class="directive-kicker">' + (hasAction ? '⚡ Today&#39;s Directive' : '✓ No Action Needed Today') + '</div>'
       + '<div class="directive-headline">' + escD(d.headline || 'Intelligence analysis complete') + '</div>'
       + '<div class="directive-reason">' + escD(d.reason || '') + '</div>'
       + kpiLine
