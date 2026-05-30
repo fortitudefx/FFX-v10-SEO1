@@ -163,6 +163,7 @@ const LAYER_NAMES = {
   3: 'Intelligence System',
   4: 'Platform Distribution',
   5: 'External Dependencies',
+  6: 'Social Intelligence',
 };
 
 async function loadHealth() {
@@ -254,7 +255,7 @@ function renderHealth(results, history) {
   });
 
   // Render layers — RED/AMBER first within each layer, GREEN collapsed
-  [1,2,3,4,5].forEach(layerNum => {
+  [1,2,3,4,5,6].forEach(layerNum => {
     const layerChecks = byLayer[layerNum] || [];
     if (!layerChecks.length) return;
 
@@ -304,7 +305,7 @@ function renderHealth(results, history) {
   content.innerHTML = html;
 
   // Auto-collapse layers that are all GREEN
-  [1,2,3,4,5].forEach(layerNum => {
+  [1,2,3,4,5,6].forEach(layerNum => {
     const layerChecks = byLayer[layerNum] || [];
     const allGreen    = layerChecks.every(c => c.status === 'GREEN');
     if (allGreen) {
