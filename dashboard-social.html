@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFX Social</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/dashboard-styles.css">
+  <style>
+    .social-wrap {
+      max-width: var(--content-max);
+      width: calc(100% - 80px);
+      margin: 32px auto 80px;
+      position: relative; z-index: 1;
+    }
+
+    /* ── Stats row ── */
+    .social-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .social-stat {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: linear-gradient(160deg, rgba(255,255,255,0.03) 0%, rgba(45,20,114,0.05) 100%);
+      padding: 20px 22px;
+    }
+    .social-stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.34); margin-bottom: 8px; }
+    .social-stat-value { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: rgba(255,255,255,0.90); }
+    .social-stat-sub   { font-size: 11px; color: rgba(255,255,255,0.30); margin-top: 4px; }
+
+    /* ── Section headers ── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.38);
+    }
+    .section-count {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      background: rgba(201,168,76,0.10); color: rgba(201,168,76,0.80);
+      border: 1px solid rgba(201,168,76,0.20); border-radius: 4px; padding: 2px 8px;
+    }
+
+    /* ── Opportunity card ── */
+    .opp-card {
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: #14161d;
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .opp-card:hover { border-color: rgba(255,255,255,0.13); }
+    .opp-card.status-posted-as-is  { border-color: rgba(62,207,142,0.25); background: rgba(62,207,142,0.03); }
+    .opp-card.status-posted-edited { border-color: rgba(62,207,142,0.20); background: rgba(62,207,142,0.02); }
+    .opp-card.status-dismissed     { opacity: 0.45; border-color: rgba(255,255,255,0.05); }
+
+    .opp-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 18px 22px 14px; gap: 12px;
+    }
+    .opp-header-left { flex: 1; min-width: 0; }
+    .opp-meta {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
+    }
+
+    /* Platform badge */
+    .plat-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .plat-reddit    { background: rgba(255,86,0,0.12);    color: rgba(255,130,60,0.90);  border: 1px solid rgba(255,86,0,0.25); }
+    .plat-babypips  { background: rgba(62,207,142,0.10);  color: rgba(62,207,142,0.85); border: 1px solid rgba(62,207,142,0.22); }
+    .plat-forexfact { background: rgba(56,189,248,0.10);  color: rgba(56,189,248,0.85); border: 1px solid rgba(56,189,248,0.22); }
+    .plat-quora     { background: rgba(185,28,28,0.15);   color: rgba(252,100,100,0.90); border: 1px solid rgba(185,28,28,0.30); }
+    .plat-youtube   { background: rgba(220,38,38,0.12);   color: rgba(248,113,113,0.90); border: 1px solid rgba(220,38,38,0.25); }
+    .plat-default   { background: rgba(122,92,255,0.10);  color: rgba(167,139,250,0.85); border: 1px solid rgba(122,92,255,0.22); }
+
+    /* Urgency badge */
+    .urgency-badge {
+      font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .urgency-high   { background: rgba(248,113,113,0.12); color: rgba(248,113,113,0.90); border: 1px solid rgba(248,113,113,0.25); }
+    .urgency-medium { background: rgba(201,168,76,0.10);  color: rgba(201,168,76,0.90);  border: 1px solid rgba(201,168,76,0.22); }
+    .urgency-low    { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.40); border: 1px solid rgba(255,255,255,0.10); }
+
+    .opp-meta-text { font-size: 11px; color: rgba(255,255,255,0.34); }
+    .opp-title { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); line-height: 1.4; }
+    .opp-topic { font-size: 12px; color: rgba(255,255,255,0.42); margin-top: 4px; line-height: 1.5; }
+
+    /* Keyword tag */
+    .keyword-tag {
+      font-size: 10px; font-weight: 600; color: rgba(122,92,255,0.80);
+      background: rgba(122,92,255,0.08); border: 1px solid rgba(122,92,255,0.18);
+      border-radius: 4px; padding: 2px 7px; margin-top: 6px; display: inline-block;
+    }
+
+    /* Draft section */
+    .opp-draft-section {
+      padding: 0 22px 16px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .draft-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      color: rgba(255,255,255,0.30); padding: 12px 0 8px;
+    }
+    .draft-text {
+      font-size: 13px; line-height: 1.75; color: rgba(255,255,255,0.72);
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px; padding: 14px 16px; white-space: pre-wrap; font-family: inherit;
+    }
+
+    /* Link recommendation */
+    .link-rec {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin-top: 10px; padding: 10px 12px; border-radius: 7px;
+      font-size: 12px; line-height: 1.55;
+    }
+    .link-rec.recommend    { background: rgba(62,207,142,0.06);  border: 1px solid rgba(62,207,142,0.15);  color: rgba(62,207,142,0.80); }
+    .link-rec.no-recommend { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.40); }
+    .link-rec-icon { flex-shrink: 0; margin-top: 1px; }
+    .utm-url { font-size: 11px; color: rgba(122,92,255,0.65); margin-top: 4px; word-break: break-all; }
+
+    /* Link toggle */
+    .link-toggle {
+      display: flex; align-items: center; gap: 8px; margin-top: 10px;
+    }
+    .toggle-label { font-size: 11px; color: rgba(255,255,255,0.40); }
+    .toggle-switch {
+      position: relative; width: 36px; height: 20px; cursor: pointer;
+    }
+    .toggle-switch input { display: none; }
+    .toggle-track {
+      position: absolute; inset: 0; border-radius: 10px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+      transition: all 0.2s;
+    }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 3px; width: 12px; height: 12px;
+      border-radius: 50%; background: rgba(255,255,255,0.40); transition: all 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-track { background: rgba(62,207,142,0.25); border-color: rgba(62,207,142,0.40); }
+    .toggle-switch input:checked ~ .toggle-thumb { left: 19px; background: rgba(62,207,142,0.90); }
+
+    /* Actions row */
+    .opp-actions {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 14px 22px; border-top: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.01);
+    }
+    .btn-opp {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      border-radius: 6px; padding: 7px 14px; cursor: pointer; transition: all 0.15s;
+      border: 1px solid; white-space: nowrap;
+    }
+    .btn-view   { background: rgba(122,92,255,0.10); color: rgba(167,139,250,0.90); border-color: rgba(122,92,255,0.25); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+    .btn-view:hover { background: rgba(122,92,255,0.18); }
+    .btn-copy   { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.60); border-color: rgba(255,255,255,0.12); }
+    .btn-copy:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.80); }
+    .btn-posted { background: rgba(62,207,142,0.10);  color: rgba(62,207,142,0.90);  border-color: rgba(62,207,142,0.25); }
+    .btn-posted:hover { background: rgba(62,207,142,0.18); }
+    .btn-edited { background: rgba(201,168,76,0.10);  color: rgba(201,168,76,0.90);  border-color: rgba(201,168,76,0.25); }
+    .btn-edited:hover { background: rgba(201,168,76,0.18); }
+    .btn-dismiss { background: none; color: rgba(255,255,255,0.28); border-color: rgba(255,255,255,0.08); }
+    .btn-dismiss:hover { color: rgba(248,113,113,0.70); border-color: rgba(248,113,113,0.22); }
+    .btn-opp:disabled { opacity: 0.40; cursor: not-allowed; }
+
+    /* Status label */
+    .opp-status-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+      margin-left: auto;
+    }
+    .status-label-posted  { color: rgba(62,207,142,0.80); }
+    .status-label-dismiss { color: rgba(255,255,255,0.28); }
+
+    /* Edit textarea */
+    .edit-section {
+      padding: 0 22px 14px; display: none;
+    }
+    .edit-section.visible { display: block; }
+    .edit-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(201,168,76,0.70); margin-bottom: 8px; }
+    .edit-textarea {
+      width: 100%; box-sizing: border-box;
+      background: rgba(201,168,76,0.04); border: 1px solid rgba(201,168,76,0.20);
+      border-radius: 8px; padding: 12px 14px; color: rgba(255,255,255,0.80);
+      font-size: 13px; line-height: 1.7; font-family: inherit; resize: vertical;
+      min-height: 120px; outline: none; transition: border-color 0.15s;
+    }
+    .edit-textarea:focus { border-color: rgba(201,168,76,0.40); }
+    .btn-submit-edit {
+      margin-top: 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(201,168,76,0.12); color: rgba(201,168,76,0.90); border: 1px solid rgba(201,168,76,0.25);
+      border-radius: 6px; padding: 7px 16px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-submit-edit:hover { background: rgba(201,168,76,0.20); }
+
+    /* Dismiss reason */
+    .dismiss-section { padding: 0 22px 14px; display: none; }
+    .dismiss-section.visible { display: block; }
+    .dismiss-reasons { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .btn-reason {
+      font-size: 10px; font-weight: 600; padding: 5px 10px; border-radius: 5px;
+      background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.45);
+      border: 1px solid rgba(255,255,255,0.10); cursor: pointer; transition: all 0.15s;
+    }
+    .btn-reason:hover { background: rgba(248,113,113,0.10); color: rgba(248,113,113,0.80); border-color: rgba(248,113,113,0.22); }
+
+    /* Error / success inline */
+    .opp-feedback {
+      font-size: 11px; padding: 7px 12px; border-radius: 5px; margin: 0 22px 12px;
+    }
+    .opp-feedback.error   { background: rgba(248,113,113,0.08); color: rgba(248,113,113,0.80); border: 1px solid rgba(248,113,113,0.18); }
+    .opp-feedback.success { background: rgba(62,207,142,0.08);  color: rgba(62,207,142,0.80);  border: 1px solid rgba(62,207,142,0.18); }
+
+    /* Performance section */
+    .perf-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;
+    }
+    .perf-panel {
+      border-radius: 14px; border: 1px solid rgba(255,255,255,0.07);
+      background: #14161d; padding: 20px 22px;
+    }
+    .perf-panel-title { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.34); margin-bottom: 14px; }
+    .perf-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+    .perf-row:last-child { border-bottom: none; }
+    .perf-key   { color: rgba(255,255,255,0.50); }
+    .perf-val   { color: rgba(255,255,255,0.82); font-weight: 600; }
+    .perf-val.good { color: rgba(62,207,142,0.90); }
+
+    /* Voice calibration */
+    .cal-panel {
+      border-radius: 14px; border: 1px solid rgba(122,92,255,0.15);
+      background: rgba(122,92,255,0.04); padding: 20px 22px; margin-bottom: 24px;
+    }
+    .cal-title { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(122,92,255,0.60); margin-bottom: 12px; }
+    .cal-rule { font-size: 12px; color: rgba(255,255,255,0.60); padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); line-height: 1.5; }
+    .cal-rule:last-child { border-bottom: none; }
+    .cal-rule::before { content: '→ '; color: rgba(122,92,255,0.60); font-weight: 700; }
+    .cal-empty { font-size: 12px; color: rgba(255,255,255,0.28); }
+
+    /* Empty state */
+    .social-empty {
+      border-radius: 16px; border: 1px solid rgba(255,255,255,0.07);
+      background: #14161d; padding: 60px 40px; text-align: center;
+    }
+    .social-empty-icon  { font-size: 36px; margin-bottom: 16px; opacity: 0.5; }
+    .social-empty-title { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.60); margin-bottom: 8px; }
+    .social-empty-sub   { font-size: 13px; color: rgba(255,255,255,0.30); line-height: 1.7; max-width: 360px; margin: 0 auto; }
+
+    /* Run scan button */
+    .btn-run-scan {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+      background: rgba(201,168,76,0.10); color: rgba(201,168,76,0.80);
+      border: 1px solid rgba(201,168,76,0.25); border-radius: 8px;
+      padding: 8px 18px; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-run-scan:hover { background: rgba(201,168,76,0.18); border-color: rgba(201,168,76,0.40); }
+    .btn-run-scan:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Scan progress */
+    .scan-progress {
+      border-radius: 12px; border: 1px solid rgba(201,168,76,0.20);
+      background: rgba(201,168,76,0.05); padding: 20px 24px; margin-bottom: 20px;
+      display: none;
+    }
+    .scan-progress.visible { display: block; }
+    .scan-title { font-size: 12px; font-weight: 700; color: rgba(201,168,76,0.80); margin-bottom: 6px; }
+    .scan-sub   { font-size: 12px; color: rgba(255,255,255,0.38); }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-wordmark">FFX <span>·</span> Internal</div>
+    <div class="nav-links">
+      <a href="/dashboard.html"           class="nav-link">Dashboard</a>
+      <a href="/dashboard-press.html"     class="nav-link">Press</a>
+      <a href="/dashboard-queue.html"     class="nav-link">Queue</a>
+      <a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a>
+      <a href="/dashboard-seo.html"       class="nav-link">SEO</a>
+      <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
+      <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
+      <a href="/dashboard-health.html"    class="nav-link">Health</a>
+      <a href="/dashboard-social.html"    class="nav-link active">Social</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-header-left">
+      <div class="wordmark">FFX <span>Social</span></div>
+      <div class="header-count" id="headerCount">Intelligence</div>
+    </div>
+    <div class="header-right">
+      <div class="status-dot" id="statusDot" style="background:var(--muted);box-shadow:none;animation:none;"></div>
+      <button class="btn-run-scan" id="runScanBtn" onclick="runScan()">⚡ Run Scan</button>
+    </div>
+  </div>
+</div>
+
+<div class="social-wrap">
+
+  <!-- Stats -->
+  <div class="social-stats" id="statsRow">
+    <div class="social-stat">
+      <div class="social-stat-label">Today's Opportunities</div>
+      <div class="social-stat-value" id="statOpps">—</div>
+      <div class="social-stat-sub">Active threads found</div>
+    </div>
+    <div class="social-stat">
+      <div class="social-stat-label">Posted This Week</div>
+      <div class="social-stat-value" id="statPosted">—</div>
+      <div class="social-stat-sub">Replies you sent</div>
+    </div>
+    <div class="social-stat">
+      <div class="social-stat-label">Dismissed</div>
+      <div class="social-stat-value" id="statDismissed">—</div>
+      <div class="social-stat-sub">Not actionable</div>
+    </div>
+    <div class="social-stat">
+      <div class="social-stat-label">Traffic Generated</div>
+      <div class="social-stat-value" id="statTraffic">—</div>
+      <div class="social-stat-sub">Sessions from replies</div>
+    </div>
+  </div>
+
+  <!-- Scan progress -->
+  <div class="scan-progress" id="scanProgress">
+    <div class="scan-title">⚡ Scanning forums…</div>
+    <div class="scan-sub">Claude is searching Reddit, BabyPips, ForexFactory, Quora, and YouTube for active threads matching your rising keywords. This takes 30–60 seconds.</div>
+  </div>
+
+  <!-- Today's opportunities -->
+  <div class="section-header">
+    <div class="section-title">Today's Opportunities</div>
+    <div class="section-count" id="oppCount" style="display:none;"></div>
+  </div>
+  <div id="oppsList">
+    <div class="loading-state"><div class="loading-spin"></div><div class="loading-text">Loading opportunities…</div></div>
+  </div>
+
+  <!-- Performance -->
+  <div class="section-header" style="margin-top:32px;">
+    <div class="section-title">This Week's Performance</div>
+  </div>
+  <div class="perf-grid" id="perfGrid">
+    <div class="perf-panel">
+      <div class="perf-panel-title">Reply Outcomes</div>
+      <div id="perfOutcomes"><div style="font-size:12px;color:rgba(255,255,255,0.28);">No data yet — post your first reply.</div></div>
+    </div>
+    <div class="perf-panel">
+      <div class="perf-panel-title">Top Platforms</div>
+      <div id="perfPlatforms"><div style="font-size:12px;color:rgba(255,255,255,0.28);">Data builds as you post replies.</div></div>
+    </div>
+  </div>
+
+  <!-- Voice calibration -->
+  <div class="section-header">
+    <div class="section-title">Voice Calibration</div>
+  </div>
+  <div class="cal-panel" id="calPanel">
+    <div class="cal-title">Active Reply Rules (learned from your edits)</div>
+    <div id="calRules"><div class="cal-empty">No corrections yet. As you edit replies, the system learns your preferences and improves drafts automatically.</div></div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let allOpportunities = [];
+let linkStates = {}; // oppId → bool (link included)
+
+// ── Load ───────────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res  = await fetch('/api/social-intelligence');
+    const data = await res.json();
+    if (!res.ok) { showOppError(data.error || 'Load failed'); return; }
+
+    allOpportunities = data.opportunities || [];
+
+    // Update stats
+    updateStats(data);
+
+    // Render opportunities
+    renderOpportunities(allOpportunities);
+
+    // Render voice calibration
+    renderVoiceCalibration(data.voiceCalibration);
+
+    // Status dot
+    const dot = document.getElementById('statusDot');
+    if (allOpportunities.length > 0) dot.style.cssText = '';
+    else dot.style.cssText = 'background:var(--muted);box-shadow:none;animation:none;';
+
+  } catch (err) {
+    showOppError('Network error: ' + err.message);
+  }
+}
+
+function updateStats(data) {
+  const opps = data.opportunities || [];
+  const signals = data.signals || {};
+
+  document.getElementById('statOpps').textContent     = opps.length || '0';
+  document.getElementById('statPosted').textContent   = signals.acted     != null ? signals.acted     : '—';
+  document.getElementById('statDismissed').textContent= signals.dismissed != null ? signals.dismissed : '—';
+  document.getElementById('statTraffic').textContent  = '—'; // Updated from reply_performance
+  document.getElementById('headerCount').textContent  = opps.length
+    ? `${opps.length} opportunity${opps.length !== 1 ? 'ies' : 'y'} today`
+    : 'No scan today';
+}
+
+// ── Render opportunities ──────────────────────────────────────────────────
+function renderOpportunities(opps) {
+  const el = document.getElementById('oppsList');
+  const countEl = document.getElementById('oppCount');
+
+  const active = opps.filter(o => o.status === 'surfaced' || !o.status);
+
+  if (!opps.length) {
+    el.innerHTML = `<div class="social-empty">
+      <div class="social-empty-icon">🔍</div>
+      <div class="social-empty-title">No opportunities yet</div>
+      <div class="social-empty-sub">Click ⚡ Run Scan to search Reddit, BabyPips, ForexFactory, Quora, and YouTube for active threads where traders need your answer.</div>
+    </div>`;
+    countEl.style.display = 'none';
+    return;
+  }
+
+  countEl.textContent = active.length + ' active';
+  countEl.style.display = active.length > 0 ? 'inline-block' : 'none';
+
+  el.innerHTML = opps.map(opp => renderOppCard(opp)).join('');
+
+  // Initialise link states
+  opps.forEach(opp => {
+    linkStates[opp.id] = opp.includeLinkRecommendation !== false;
+  });
+}
+
+function renderOppCard(opp) {
+  const statusClass = opp.status && opp.status !== 'surfaced' ? `status-${opp.status}` : '';
+  const platClass   = getPlatClass(opp.platform);
+  const platDisplay = opp.platformDisplay || opp.platform || 'Forum';
+  const urgency     = opp.urgency || 'medium';
+  const ageDays     = opp.threadAgeDays != null ? opp.threadAgeDays : '?';
+  const replies     = opp.threadReplies  != null ? opp.threadReplies  : '?';
+  const isDone      = opp.status === 'posted-as-is' || opp.status === 'posted-edited';
+  const isDismissed = opp.status === 'dismissed';
+  const linkRec     = opp.includeLinkRecommendation !== false;
+  const safeId      = esc(opp.id);
+
+  const draftText   = esc(opp.draft || '');
+  const urlDisplay  = opp.utmTaggedUrl
+    ? esc(opp.utmTaggedUrl.length > 80 ? opp.utmTaggedUrl.slice(0, 80) + '…' : opp.utmTaggedUrl)
+    : '';
+
+  const linkRecHtml = opp.url ? `
+    <div class="link-rec ${linkRec ? 'recommend' : 'no-recommend'}">
+      <span class="link-rec-icon">${linkRec ? '🔗' : '∅'}</span>
+      <div>
+        ${esc(opp.linkRecommendationReason || (linkRec ? 'Link recommended' : 'Reply without link — build authority'))}
+        ${linkRec && opp.utmTaggedUrl ? `<div class="utm-url">${urlDisplay}</div>` : ''}
+      </div>
+    </div>
+    ${linkRec ? `
+    <div class="link-toggle">
+      <span class="toggle-label">Include link:</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggle-${safeId}" ${linkRec ? 'checked' : ''} onchange="toggleLink('${safeId}')">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>` : ''}
+  ` : '';
+
+  const actionBtns = isDone ? `
+    <span class="opp-status-label status-label-posted">✓ ${opp.status === 'posted-as-is' ? 'Posted as-is' : 'Posted edited'}</span>
+  ` : isDismissed ? `
+    <span class="opp-status-label status-label-dismiss">✗ Dismissed — ${esc(opp.dismissReason || 'not specified')}</span>
+  ` : `
+    ${opp.url ? `<a href="${esc(opp.url)}" target="_blank" rel="noopener" class="btn-opp btn-view">View Post →</a>` : ''}
+    <button class="btn-opp btn-copy"     onclick="copyReply('${safeId}')">Copy Reply</button>
+    <button class="btn-opp btn-posted"   onclick="markPosted('${safeId}')">✓ Posted as-is</button>
+    <button class="btn-opp btn-edited"   onclick="showEditSection('${safeId}')">✓ Posted edited</button>
+    <button class="btn-opp btn-dismiss"  onclick="showDismissSection('${safeId}')">✗ Dismiss</button>
+  `;
+
+  return `<div class="opp-card ${statusClass}" id="card-${safeId}">
+    <div class="opp-header">
+      <div class="opp-header-left">
+        <div class="opp-meta">
+          <span class="plat-badge ${platClass}">${esc(platDisplay)}</span>
+          <span class="urgency-badge urgency-${urgency}">${urgency.toUpperCase()}</span>
+          <span class="opp-meta-text">${esc(String(ageDays))} day${ageDays !== 1 ? 's' : ''} ago · ${esc(String(replies))} replies</span>
+        </div>
+        <div class="opp-title">${esc(opp.threadTitle || opp.topic || 'Thread')}</div>
+        ${opp.topic && opp.topic !== opp.threadTitle ? `<div class="opp-topic">${esc(opp.topic)}</div>` : ''}
+        ${opp.keyword ? `<span class="keyword-tag">${esc(opp.keyword)}</span>` : ''}
+      </div>
+    </div>
+
+    <div class="opp-draft-section">
+      <div class="draft-label">Draft Reply</div>
+      <div class="draft-text" id="draft-${safeId}">${draftText}</div>
+      ${linkRecHtml}
+    </div>
+
+    <div class="opp-actions" id="actions-${safeId}">
+      ${actionBtns}
+    </div>
+
+    <div class="edit-section" id="edit-${safeId}">
+      <div class="edit-label">Paste your edited version:</div>
+      <textarea class="edit-textarea" id="edittext-${safeId}" placeholder="Paste your edited reply here…"></textarea>
+      <button class="btn-submit-edit" onclick="submitEdited('${safeId}')">✓ Submit edited reply</button>
+    </div>
+
+    <div class="dismiss-section" id="dismiss-${safeId}">
+      <div class="edit-label">Reason for dismissing:</div>
+      <div class="dismiss-reasons">
+        <button class="btn-reason" onclick="submitDismiss('${safeId}', 'wrong_topic')">Wrong topic</button>
+        <button class="btn-reason" onclick="submitDismiss('${safeId}', 'wrong_platform')">Wrong platform</button>
+        <button class="btn-reason" onclick="submitDismiss('${safeId}', 'poor_quality')">Poor quality</button>
+        <button class="btn-reason" onclick="submitDismiss('${safeId}', 'not_timely')">Not timely</button>
+        <button class="btn-reason" onclick="submitDismiss('${safeId}', 'too_old')">Too old</button>
+        <button class="btn-reason" onclick="submitDismiss('${safeId}', 'not_specified')">Other</button>
+      </div>
+    </div>
+
+    <div id="feedback-${safeId}"></div>
+  </div>`;
+}
+
+// ── Platform CSS class ──────────────────────────────────────────────────
+function getPlatClass(platform) {
+  if (!platform) return 'plat-default';
+  const p = platform.toLowerCase();
+  if (p.includes('reddit'))      return 'plat-reddit';
+  if (p.includes('baby'))        return 'plat-babypips';
+  if (p.includes('forex') && p.includes('fact')) return 'plat-forexfact';
+  if (p.includes('quora'))       return 'plat-quora';
+  if (p.includes('youtube'))     return 'plat-youtube';
+  return 'plat-default';
+}
+
+// ── Toggle link inclusion ─────────────────────────────────────────────────
+function toggleLink(id) {
+  const cb = document.getElementById('toggle-' + id);
+  linkStates[id] = cb ? cb.checked : false;
+}
+
+// ── Copy reply to clipboard ───────────────────────────────────────────────
+async function copyReply(id) {
+  const opp      = allOpportunities.find(o => o.id === id);
+  if (!opp) return;
+
+  const useLink  = linkStates[id] !== false;
+  let text       = opp.draft || '';
+
+  if (useLink && opp.utmTaggedUrl) {
+    // Ensure link is at end if not already in draft
+    if (!text.includes(opp.utmTaggedUrl) && !text.includes('fortitudefx.com')) {
+      text = text.trimEnd() + '\n\n' + opp.utmTaggedUrl;
+    }
+  } else if (!useLink && opp.draftWithoutLink) {
+    text = opp.draftWithoutLink;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    showFeedback(id, '✓ Copied to clipboard', 'success');
+  } catch (err) {
+    showFeedback(id, '✗ Copy failed — select text manually', 'error');
+  }
+}
+
+// ── Post as-is ────────────────────────────────────────────────────────────
+async function markPosted(id) {
+  setCardLoading(id, true);
+  const result = await recordOutcome(id, 'posted_as_is');
+  setCardLoading(id, false);
+  if (result.success) {
+    showFeedback(id, '✓ Recorded as posted. Traffic tracked at 72hrs.', 'success');
+    updateCardStatus(id, 'posted-as-is');
+  } else {
+    showFeedback(id, '✗ ' + (result.error || 'Save failed'), 'error');
+  }
+}
+
+// ── Show edit section ────────────────────────────────────────────────────
+function showEditSection(id) {
+  const el = document.getElementById('edit-' + id);
+  if (el) el.classList.toggle('visible');
+  // Pre-fill with draft
+  const opp = allOpportunities.find(o => o.id === id);
+  const ta  = document.getElementById('edittext-' + id);
+  if (ta && opp && !ta.value) ta.value = opp.draft || '';
+}
+
+// ── Submit edited reply ───────────────────────────────────────────────────
+async function submitEdited(id) {
+  const ta = document.getElementById('edittext-' + id);
+  if (!ta || !ta.value.trim()) { showFeedback(id, '✗ Paste your edited reply first', 'error'); return; }
+  setCardLoading(id, true);
+  const result = await recordOutcome(id, 'posted_edited', ta.value.trim());
+  setCardLoading(id, false);
+  if (result.success) {
+    showFeedback(id, '✓ Edited reply recorded. Voice calibration updated.', 'success');
+    updateCardStatus(id, 'posted-edited');
+    const el = document.getElementById('edit-' + id);
+    if (el) el.classList.remove('visible');
+  } else {
+    showFeedback(id, '✗ ' + (result.error || 'Save failed'), 'error');
+  }
+}
+
+// ── Show dismiss section ──────────────────────────────────────────────────
+function showDismissSection(id) {
+  const el = document.getElementById('dismiss-' + id);
+  if (el) el.classList.toggle('visible');
+}
+
+// ── Submit dismiss ────────────────────────────────────────────────────────
+async function submitDismiss(id, reason) {
+  setCardLoading(id, true);
+  const result = await recordOutcome(id, 'dismissed', null, reason);
+  setCardLoading(id, false);
+  if (result.success) {
+    updateCardStatus(id, 'dismissed');
+    const el = document.getElementById('dismiss-' + id);
+    if (el) el.classList.remove('visible');
+  } else {
+    showFeedback(id, '✗ ' + (result.error || 'Save failed'), 'error');
+  }
+}
+
+// ── Record outcome API call ───────────────────────────────────────────────
+async function recordOutcome(id, action, editedReply, dismissReason) {
+  try {
+    const res  = await fetch('/api/social-intelligence', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ opportunityId: id, action, editedReply, dismissReason }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { success: false, error: data.error || 'Server error' };
+    if (!data.verified) return { success: false, error: 'KV write not verified — try again' };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: 'Network error: ' + err.message };
+  }
+}
+
+// ── Run scan ──────────────────────────────────────────────────────────────
+async function runScan() {
+  const btn = document.getElementById('runScanBtn');
+  const prog = document.getElementById('scanProgress');
+  btn.disabled = true;
+  btn.textContent = '⚡ Scanning…';
+  prog.classList.add('visible');
+
+  try {
+    const res  = await fetch('/api/social-intelligence', { method: 'POST' });
+    const data = await res.json();
+
+    prog.classList.remove('visible');
+
+    if (!res.ok) {
+      btn.textContent = '✗ Error';
+      btn.style.color = 'rgba(248,113,113,0.80)';
+      setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 3000);
+      return;
+    }
+
+    btn.textContent = `✓ Found ${data.opportunitiesFound || 0}`;
+    btn.style.color = 'rgba(62,207,142,0.80)';
+    setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 3000);
+
+    // Reload to show new opportunities
+    await loadData();
+
+  } catch (err) {
+    prog.classList.remove('visible');
+    btn.textContent = '✗ Network error';
+    setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 3000);
+  }
+}
+
+// ── Voice calibration ─────────────────────────────────────────────────────
+function renderVoiceCalibration(cal) {
+  const el = document.getElementById('calRules');
+  if (!cal || !cal.corrections || !cal.corrections.length) return;
+  el.innerHTML = cal.corrections.map(c => `<div class="cal-rule">${esc(c)}</div>`).join('');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function setCardLoading(id, loading) {
+  const btns = document.querySelectorAll(`#card-${id} .btn-opp`);
+  btns.forEach(b => { b.disabled = loading; b.style.opacity = loading ? '0.4' : ''; });
+}
+
+function updateCardStatus(id, status) {
+  const card = document.getElementById('card-' + id);
+  if (!card) return;
+  card.className = `opp-card status-${status}`;
+  const actions = document.getElementById('actions-' + id);
+  if (!actions) return;
+  if (status === 'posted-as-is') {
+    actions.innerHTML = '<span class="opp-status-label status-label-posted">✓ Posted as-is</span>';
+  } else if (status === 'posted-edited') {
+    actions.innerHTML = '<span class="opp-status-label status-label-posted">✓ Posted edited</span>';
+  } else if (status === 'dismissed') {
+    actions.innerHTML = '<span class="opp-status-label status-label-dismiss">✗ Dismissed</span>';
+  }
+  // Update local state
+  const opp = allOpportunities.find(o => o.id === id);
+  if (opp) opp.status = status;
+}
+
+function showFeedback(id, msg, type) {
+  const el = document.getElementById('feedback-' + id);
+  if (!el) return;
+  el.innerHTML = `<div class="opp-feedback ${type}">${esc(msg)}</div>`;
+  if (type === 'success') setTimeout(() => { el.innerHTML = ''; }, 5000);
+}
+
+function showOppError(msg) {
+  document.getElementById('oppsList').innerHTML =
+    `<div class="social-empty"><div class="social-empty-title" style="color:rgba(248,113,113,0.80);">Error</div><div class="social-empty-sub">${esc(msg)}</div></div>`;
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+document.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>
