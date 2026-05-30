@@ -672,23 +672,52 @@ async function addToQueue(){
 }
 
 async function moveQueueItem(videoId, direction){
+  // Visual feedback — flash the button
+  const btns = document.querySelectorAll('.queue-row[data-videoid="'+videoId+'"] .btn-reorder');
+  btns.forEach(b => { b.style.opacity='0.4'; b.disabled=true; });
+
   try{
+    // Fetch current queue state
     const res  = await fetch('/queue');
+    if(!res.ok){ console.error('Queue fetch failed:', res.status); btns.forEach(b=>{b.style.opacity='';b.disabled=false;}); return; }
     const data = await res.json();
     const queue = data.queue || [];
-    const idx   = queue.findIndex(q => q.videoId === videoId);
-    if(idx === -1) return;
+
+    if(queue.length < 2){ btns.forEach(b=>{b.style.opacity='';b.disabled=false;}); return; }
+
+    const idx = queue.findIndex(q => q.videoId === videoId);
+    if(idx === -1){ console.error('videoId not found in queue:', videoId, 'queue:', queue.map(q=>q.videoId)); btns.forEach(b=>{b.style.opacity='';b.disabled=false;}); return; }
+
     const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if(newIdx < 0 || newIdx >= queue.length) return;
-    // Swap
+    if(newIdx < 0 || newIdx >= queue.length){ btns.forEach(b=>{b.style.opacity='';b.disabled=false;}); return; }
+
+    // Swap positions
     const temp     = queue[idx];
     queue[idx]     = queue[newIdx];
     queue[newIdx]  = temp;
+
     const order = queue.map(q => q.videoId);
-    await fetch('/queue/reorder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order})});
+    console.log('[reorder] Moving', videoId, direction, '— new order:', order);
+
+    const reorderRes = await fetch('/queue/reorder',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({order})
+    });
+    const reorderData = await reorderRes.json();
+
+    if(!reorderRes.ok){
+      console.error('[reorder] Failed:', reorderData);
+      btns.forEach(b=>{b.style.opacity='';b.disabled=false;});
+      return;
+    }
+
+    console.log('[reorder] Success:', reorderData);
     await loadQueue();
+
   }catch(err){
-    console.error('Reorder error:',err);
+    console.error('[reorder] Error:', err);
+    btns.forEach(b=>{b.style.opacity='';b.disabled=false;});
   }
 }
 
