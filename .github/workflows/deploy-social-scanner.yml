@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'ffx-social-scanner/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -18,4 +19,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
           workingDirectory: ffx-social-scanner
