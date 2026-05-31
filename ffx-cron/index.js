@@ -121,6 +121,17 @@ async function runCron(env) {
       console.error('[ffx-cron] Intelligence engine error:', e.message);
     }
 
+    // ── Step 7: Check 72hr reply performance ──────────────────────────────
+    // Reads reply_performance records older than 72hrs, queries GA4 referral
+    // traffic for each UTM source, updates overallResult, feeds intelligence engine
+    console.log('[ffx-cron] Checking 72hr reply performance...');
+    try {
+      await checkReplyPerformance(env);
+      console.log('[ffx-cron] Reply performance check complete');
+    } catch(e) {
+      console.error('[ffx-cron] Reply performance check error (non-fatal):', e.message);
+    }
+
     console.log('[ffx-cron] Cron run complete');
 
   } catch (err) {
@@ -457,12 +468,79 @@ async function triggerGeneration(env, item) {
   });
 
   const queue = await getQueue(env);
-const idx   = queue.findIndex(q => q.videoId === item.videoId);
-if (idx !== -1) {
-  queue[idx].jobId = jobId;
-  await env.FFX_KV.put(QUEUE_KEY, JSON.stringify(queue));
-}
+  const idx   = queue.findIndex(q => q.videoId === item.videoId);
+  if (idx !== -1) {
+    queue[idx].wasGenerated = true;
+    queue[idx].jobId        = jobId;
+    await env.FFX_KV.put(QUEUE_KEY, JSON.stringify(queue));
+  }
+
   console.log('[ffx-cron] Generation triggered:', item.videoId, 'jobId:', jobId);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 7: CHECK 72HR REPLY PERFORMANCE
+// Reads all reply_performance records, finds those 72hrs+ old still pending,
+// fetches GA4 referral data for UTM source, updates overallResult
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function checkReplyPerformance(env) {
+  const list = await env.FFX_KV.list({ prefix: 'intelligence:reply_performance:' }).catch(() => null);
+  if (!list || !list.keys.length) {
+    console.log('[ffx-cron] No reply performance records to check');
+    return;
+  }
+
+  const now       = new Date();
+  const ga4Signals = await env.FFX_KV.get('ga4:signals', { type: 'json' }).catch(() => null);
+
+  let updated = 0;
+
+  for (const key of list.keys) {
+    try {
+      const perf = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
+      if (!perf) continue;
+      if (perf.overallResult !== 'pending') continue; // Already scored
+
+      const postedAt = new Date(perf.postedAt || 0);
+      const ageHrs   = (now - postedAt) / 3600000;
+      if (ageHrs < 72) continue; // Not yet 72hrs
+
+      // ── Score based on GA4 referral traffic ────────────────────────────
+      // GA4 signals track topSources — check if platform appears as referral
+      let trafficGenerated = 0;
+      if (ga4Signals && ga4Signals.topSources && perf.platform) {
+        const platformLower = perf.platform.toLowerCase();
+        const match = ga4Signals.topSources.find(s =>
+          s.source && s.source.toLowerCase().includes(platformLower)
+        );
+        if (match) trafficGenerated = match.sessions || 0;
+      }
+
+      // ── Determine overall result ────────────────────────────────────────
+      // high: 5+ sessions from this platform referral
+      // medium: 1-4 sessions
+      // low: 0 sessions but reply was posted (engagement value)
+      let overallResult;
+      if (trafficGenerated >= 5)      overallResult = 'high';
+      else if (trafficGenerated >= 1) overallResult = 'medium';
+      else                            overallResult = 'low';
+
+      perf.trafficGenerated = trafficGenerated;
+      perf.overallResult    = overallResult;
+      perf.checkedAt        = now.toISOString();
+      perf.accurate         = trafficGenerated > 0; // Generated any traffic = accurate prediction
+
+      await env.FFX_KV.put(key.name, JSON.stringify(perf), { expirationTtl: 86400 * 30 });
+      updated++;
+      console.log('[ffx-cron] Reply performance scored:', perf.id, '| result:', overallResult, '| traffic:', trafficGenerated);
+
+    } catch(perfErr) {
+      console.error('[ffx-cron] Reply performance check error for key:', key.name, perfErr.message);
+    }
+  }
+
+  console.log('[ffx-cron] Reply performance: scored', updated, 'records');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
