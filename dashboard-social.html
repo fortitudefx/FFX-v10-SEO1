@@ -334,8 +334,9 @@
 
   <!-- Scan progress -->
   <div class="scan-progress" id="scanProgress">
-    <div class="scan-title">⚡ Scanning forums…</div>
-    <div class="scan-sub">Claude is searching Reddit, BabyPips, ForexFactory, Quora, and YouTube for active threads matching your rising keywords. This runs in the background — results will appear automatically when ready (45–90 seconds).</div>
+    <div class="scan-title" id="scanProgressTitle">⚡ Starting scan…</div>
+    <div class="scan-steps" id="scanSteps" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;"></div>
+    <div class="scan-sub" id="scanProgressMsg" style="margin-top:10px;">Dispatching to scanner Worker…</div>
   </div>
 
   <!-- Today's opportunities -->
@@ -728,6 +729,23 @@ async function runScan() {
         const pollRes  = await fetch('/api/social-intelligence');
         const pollData = await pollRes.json();
         const signals  = pollData.signals || {};
+
+        // Update live progress steps during scan
+        if (signals.scanning === true) {
+          const stepsEl = document.getElementById('scanSteps');
+          const msgEl   = document.getElementById('scanProgressMsg');
+          const titleEl = document.getElementById('scanProgressTitle');
+          if (titleEl) titleEl.textContent = '⚡ Scanning forums…';
+          if (msgEl && signals.progressMsg) msgEl.textContent = signals.progressMsg;
+          if (stepsEl && signals.progress && signals.progress.length) {
+            stepsEl.innerHTML = signals.progress.map(s => {
+              const done   = s.startsWith('✓');
+              const active = s.startsWith('⚡');
+              const color  = done ? 'rgba(62,207,142,0.80)' : active ? 'rgba(201,168,76,0.90)' : 'rgba(255,255,255,0.25)';
+              return '<div style="font-size:12px;font-weight:600;color:'+color+';display:flex;align-items:center;gap:8px;">' + esc(s) + '</div>';
+            }).join('');
+          }
+        }
 
         if (signals.scanning === false || attempts >= maxAttempts) {
           clearInterval(poll);
