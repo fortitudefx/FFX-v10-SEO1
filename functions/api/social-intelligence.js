@@ -171,15 +171,32 @@ CTW FRAMEWORK:
 - The wick that hits your stop IS the institutional fill — price reverses after
 - Entry on close of wick candle. Stop beyond wick extreme. Mechanical, not subjective.
 
-PLATFORMS: reddit.com/r/Forex, reddit.com/r/Daytrading, babypips.com/forum, forexfactory.com, quora.com, YouTube comments on forex education videos.
+EXACT PLATFORMS — search ONLY these, do not invent variations:
+- https://www.reddit.com/r/Forex/ (NOT r/forex, NOT r/forexes, NOT r/FX)
+- https://www.reddit.com/r/Daytrading/ (NOT r/DayTrading, NOT r/daytraders)
+- https://forums.babypips.com/
+- https://www.forexfactory.com/forum
+- https://www.quora.com/ (forex trading questions only)
+- YouTube comments on high-traffic generic forex education videos
 
-FRESHNESS: Only threads active within last 14 days. Discard older.
-KEYWORDS: ${keywordList}${perfContext}
-Today: ${today}.`;
+FRESHNESS — CRITICAL RULE:
+Today is ${today}.
+A thread is only valid if it had activity (post or reply) AFTER ${today} minus 14 days.
+Before including any thread, check the date shown in the search snippet.
+If the most recent activity date is from 2024 or more than 14 days ago — DISCARD IT. Do not include it.
+If you cannot confirm the date — DISCARD IT.
+Only include threads where you can confirm activity within the last 14 days.
+
+KEYWORDS: ${keywordList}${perfContext}`;
 
   const userPrompt = `Search for 3-5 active forum threads where traders ask questions that Catch The Wick answers.
 
-Filter: last 14 days activity, question format, at least 3 replies, max 5 opportunities.
+Filter ruthlessly — ALL conditions must be met:
+1. Thread activity confirmed within last 14 days — check the date in the snippet. Today is ${today}. Any thread from 2024 or older than 14 days is REJECTED.
+2. Question format — someone asking for help or strategy advice
+3. At least 3 replies — active discussion not a dead thread
+4. Only from the exact platforms listed — do not use r/forexes or any invented subreddit
+5. Maximum 5 opportunities total
 
 Fetch each thread URL before drafting the reply.
 
