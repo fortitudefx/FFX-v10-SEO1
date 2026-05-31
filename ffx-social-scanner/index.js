@@ -22,13 +22,6 @@ export default {
       return new Response(JSON.stringify({ error: 'POST only' }), { status: 405, headers });
     }
 
-    // ── Verify shared secret — prevents public access to this Worker ────────
-    const secret = request.headers.get('X-Scanner-Secret');
-    if (!env.SCANNER_SECRET || secret !== env.SCANNER_SECRET) {
-      console.error('[ffx-social-scanner] Unauthorised request — missing or wrong X-Scanner-Secret');
-      return new Response(JSON.stringify({ error: 'Unauthorised' }), { status: 401, headers });
-    }
-
     if (!env.ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not set on scanner Worker' }), { status: 500, headers });
     }
