@@ -125,6 +125,12 @@ export async function onRequestPost(context) {
         : (output.priorityActions?.[0] || null);
       const directiveType = directiveAction ? detectDirectiveType(directiveAction) : 'no_action';
 
+      // ── Preserve actedOn state if directive was already acted on today ─────
+      const existingExec = await env.FFX_KV.get(`ga4:exec_summary:${today}`, { type: 'json' }).catch(() => null);
+      const alreadyActedOn   = existingExec?.dailyDirective?.actedOn === true;
+      const alreadySnoozed   = existingExec?.dailyDirective?.snoozeUntil
+                               && new Date(existingExec.dailyDirective.snoozeUntil) > new Date();
+
       const execSummary = {
         date:            today,
         generatedAt:     output.generatedAt,
@@ -146,9 +152,11 @@ export async function onRequestPost(context) {
           triggerSignals:  output.learningUpdate?.newPattern ? [output.learningUpdate.newPattern] : [],
           issuedAt:        output.generatedAt,
           suppressedRepeat: suppressDirective,
-          actedOn:         null,
-          actedOnAt:       null,
-          actedOnMethod:   null,
+          // ── Preserve actedOn — NEVER overwrite true with null ──────────
+          actedOn:         alreadyActedOn ? true : null,
+          actedOnAt:       alreadyActedOn ? existingExec.dailyDirective.actedOnAt : null,
+          actedOnMethod:   alreadyActedOn ? existingExec.dailyDirective.actedOnMethod : null,
+          snoozeUntil:     alreadySnoozed ? existingExec.dailyDirective.snoozeUntil : null,
           outcome:         null,
           accurate:        null,
           directiveType:   directiveType,
