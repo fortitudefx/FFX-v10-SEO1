@@ -80,103 +80,60 @@ export async function onRequestPost(context) {
     return json({ error: 'ANTHROPIC_API_KEY not set' }, 500, headers);
   }
 
-  // Mark scan as in-progress immediately so dashboard can poll
+  // ── Mark scan as in-progress in KV so dashboard shows scanning state ──────
   const today = new Date().toISOString().split('T')[0];
   try {
-    const inProgress = {
-      date:      today,
-      scannedAt: new Date().toISOString(),
-      scanning:  true,
+    await env.FFX_KV.put('intelligence:signals', JSON.stringify({
+      date:               today,
+      scannedAt:          new Date().toISOString(),
+      scanning:           true,
       opportunitiesFound: 0,
-      keywords:  [],
-      acted:     0,
-      dismissed: 0,
-    };
-    await env.FFX_KV.put('intelligence:signals', JSON.stringify(inProgress), { expirationTtl: 86400 * 30 });
+      keywords:           [],
+      acted:              0,
+      dismissed:          0,
+    }), { expirationTtl: 86400 * 30 });
   } catch(e) {
-    console.error('[social-intelligence] Failed to write scanning state:', e.message);
+    console.error('[social-intelligence] Failed to write scanning state (non-fatal):', e.message);
   }
 
-  // Run the actual scan in background — does not block the response
-  const scanPromise = (async () => {
-    try {
-      const [seoSignals, brief, voiceCalibration, existingPerf] = await Promise.all([
-        env.FFX_KV.get('seo:signals',                    { type: 'json' }).catch(() => null),
-        env.FFX_KV.get('intelligence:brief',              { type: 'json' }).catch(() => null),
-        env.FFX_KV.get('intelligence:voice_calibration',  { type: 'json' }).catch(() => null),
-        getReplyPerformanceSummary(env).catch(() => null),
-      ]);
-
-      const keywords = buildKeywords(seoSignals, brief);
-
-      if (!keywords.length) {
-        console.error('[social-intelligence] No keywords available for scan');
-        await env.FFX_KV.put('intelligence:signals', JSON.stringify({
-          date: today, scannedAt: new Date().toISOString(), scanning: false,
-          opportunitiesFound: 0, error: 'No keywords — run SEO signals and analysis first',
-          keywords: [], acted: 0, dismissed: 0,
-        }), { expirationTtl: 86400 * 30 });
-        return;
-      }
-
-      console.log('[social-intelligence] Background scan starting with keywords:', keywords.slice(0, 5).join(', '));
-
-      const opportunities = await runScan(keywords, brief, voiceCalibration, existingPerf, env.ANTHROPIC_API_KEY);
-
-      let written = 0;
-      const writtenIds = [];
-
-      if (opportunities && opportunities.length) {
-        for (const opp of opportunities.slice(0, 5)) {
-          try {
-            if (!opp.id) opp.id = generateId(opp.platform, opp.keyword);
-            opp.detectedAt = new Date().toISOString();
-            opp.status     = 'surfaced';
-            await env.FFX_KV.put(`intelligence:opportunities:${opp.id}`, JSON.stringify(opp), { expirationTtl: 86400 * 7 });
-            const verify = await env.FFX_KV.get(`intelligence:opportunities:${opp.id}`, { type: 'json' }).catch(() => null);
-            if (!verify) { console.error('[social-intelligence] KV verify FAILED for:', opp.id); continue; }
-            written++;
-            writtenIds.push(opp.id);
-            console.log('[social-intelligence] Opportunity written:', opp.id, opp.platform, opp.urgency);
-          } catch (writeErr) {
-            console.error('[social-intelligence] Opportunity write failed:', writeErr.message);
-          }
-        }
-      }
-
-      // Write final scan summary — scanning:false signals completion to dashboard
-      const signals = {
-        date:               today,
-        scannedAt:          new Date().toISOString(),
-        scanning:           false,
-        opportunitiesFound: written,
-        keywords:           keywords.slice(0, 5),
-        topPlatform:        opportunities?.[0]?.platform || null,
-        topKeywords:        [...new Set((opportunities || []).map(o => o.keyword).filter(Boolean))].slice(0, 3),
-        acted:              0,
-        dismissed:          0,
-      };
-      await env.FFX_KV.put('intelligence:signals', JSON.stringify(signals), { expirationTtl: 86400 * 30 });
-      console.log('[social-intelligence] Background scan complete. Written:', written);
-
-    } catch (err) {
-      console.error('[social-intelligence] Background scan error:', err.message);
-      try {
-        await env.FFX_KV.put('intelligence:signals', JSON.stringify({
-          date: today, scannedAt: new Date().toISOString(), scanning: false,
-          opportunitiesFound: 0, error: err.message, keywords: [], acted: 0, dismissed: 0,
-        }), { expirationTtl: 86400 * 30 });
-      } catch {}
-    }
-  })();
-
-  // Register background task — keeps Worker alive after response is sent
-  if (typeof waitUntil === 'function') {
-    waitUntil(scanPromise);
+  // ── Fire request to standalone Worker — returns immediately, scan runs there ─
+  // SOCIAL_SCANNER_URL env var = https://ffx-social-scanner.YOUR-SUBDOMAIN.workers.dev
+  if (!env.SOCIAL_SCANNER_URL) {
+    // Fallback error — SOCIAL_SCANNER_URL not configured
+    console.error('[social-intelligence] SOCIAL_SCANNER_URL not set in Pages env vars');
+    await env.FFX_KV.put('intelligence:signals', JSON.stringify({
+      date: today, scannedAt: new Date().toISOString(), scanning: false,
+      opportunitiesFound: 0, error: 'SOCIAL_SCANNER_URL not configured in Pages environment variables',
+      keywords: [], acted: 0, dismissed: 0,
+    }), { expirationTtl: 86400 * 30 });
+    return json({ error: 'SOCIAL_SCANNER_URL not set — add it to Cloudflare Pages environment variables' }, 500, headers);
   }
 
-  // Return immediately — dashboard polls GET for results
-  return json({ success: true, scanning: true, message: 'Scan started in background. Poll GET /api/social-intelligence for results.' }, 200, headers);
+  if (!env.SCANNER_SECRET) {
+    console.error('[social-intelligence] SCANNER_SECRET not set in Pages env vars');
+    return json({ error: 'SCANNER_SECRET not set — add it to Cloudflare Pages environment variables' }, 500, headers);
+  }
+
+  try {
+    // Fire and forget — do NOT await. Scanner Worker handles everything.
+    fetch(env.SOCIAL_SCANNER_URL, {
+      method:  'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'X-Scanner-Secret':  env.SCANNER_SECRET,
+      },
+      body: JSON.stringify({ today }),
+    }).then(r => {
+      console.log('[social-intelligence] Scanner Worker responded:', r.status);
+    }).catch(err => {
+      console.error('[social-intelligence] Scanner Worker fetch error:', err.message);
+    });
+  } catch(fetchErr) {
+    console.error('[social-intelligence] Failed to fire scanner request:', fetchErr.message);
+  }
+
+  // Return immediately — dashboard polls GET /api/social-intelligence every 5s for results
+  return json({ success: true, scanning: true, message: 'Scan dispatched to scanner Worker. Poll GET for results.' }, 200, headers);
 }
 
 // ── Record outcome (posted / dismissed / edited) ──────────────────────────
