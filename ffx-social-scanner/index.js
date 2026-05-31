@@ -41,7 +41,9 @@ export default {
     console.log('[ffx-social-scanner] Scan started for date:', today);
 
     try {
-      // ── Read all signal sources from KV ──────────────────────────────────
+      // ── Step 1: Reading signals ───────────────────────────────────────────
+      await writeProgress(env, today, 1, 'Reading your SEO signals and intelligence brief…', null);
+
       const [seoSignals, brief, voiceCalibration, existingPerf] = await Promise.all([
         env.FFX_KV.get('seo:signals',                    { type: 'json' }).catch(() => null),
         env.FFX_KV.get('intelligence:brief',              { type: 'json' }).catch(() => null),
@@ -49,14 +51,15 @@ export default {
         getReplyPerformanceSummary(env).catch(() => null),
       ]);
 
-      // ── Build keyword list ────────────────────────────────────────────────
+      // ── Step 2: Building keywords ─────────────────────────────────────────
       const keywords = buildKeywords(seoSignals, brief);
+      await writeProgress(env, today, 2, `Built keyword list: ${keywords.slice(0, 4).join(', ')}`, null);
 
       if (!keywords.length) {
         const errSignal = {
           date: today, scannedAt: new Date().toISOString(), scanning: false,
           opportunitiesFound: 0, error: 'No keywords — run SEO signals and Run Analysis first',
-          keywords: [], acted: 0, dismissed: 0,
+          keywords: [], acted: 0, dismissed: 0, progress: [], progressStep: 0,
         };
         await env.FFX_KV.put('intelligence:signals', JSON.stringify(errSignal), { expirationTtl: 86400 * 30 });
         console.error('[ffx-social-scanner] No keywords available');
@@ -65,8 +68,14 @@ export default {
 
       console.log('[ffx-social-scanner] Scanning with keywords:', keywords.slice(0, 5).join(', '));
 
+      // ── Step 3: Claude searching ──────────────────────────────────────────
+      await writeProgress(env, today, 3, 'Claude is searching Reddit, BabyPips, ForexFactory, Quora and YouTube for active threads…', null);
+
       // ── Run Claude scan — this is the slow step (60-90s) — no timeout here ─
       const opportunities = await runScan(keywords, brief, voiceCalibration, existingPerf, env.ANTHROPIC_API_KEY);
+
+      // ── Step 4: Drafting replies ──────────────────────────────────────────
+      await writeProgress(env, today, 4, `Found ${opportunities.length} qualifying threads. Drafting replies in your voice…`, null);
 
       // ── Write each opportunity to KV ──────────────────────────────────────
       let written = 0;
@@ -114,6 +123,9 @@ export default {
         dismissed:          0,
       };
 
+      // ── Step 5: Complete ─────────────────────────────────────────────────
+      signals.progress     = ['✓ Signals read', '✓ Keywords built', '✓ Forums searched', '✓ Replies drafted', `✓ ${written} opportunit${written !== 1 ? 'ies' : 'y'} saved`];
+      signals.progressStep = 5;
       await env.FFX_KV.put('intelligence:signals', JSON.stringify(signals), { expirationTtl: 86400 * 30 });
 
       // Verify signals write
@@ -372,6 +384,35 @@ async function getReplyPerformanceSummary(env) {
   } catch (err) {
     console.error('[ffx-social-scanner] getReplyPerformanceSummary error:', err.message);
     return null;
+  }
+}
+
+// ── Write progress to KV so dashboard can show live status ──────────────
+async function writeProgress(env, today, step, message, error) {
+  try {
+    const existing = await env.FFX_KV.get('intelligence:signals', { type: 'json' }).catch(() => null) || {};
+    const progressSteps = [
+      'Reading signals',
+      'Building keywords',
+      'Searching forums',
+      'Drafting replies',
+      'Saving results',
+    ];
+    const progress = progressSteps.map((label, i) => {
+      if (i + 1 < step)  return `✓ ${label}`;
+      if (i + 1 === step) return `⚡ ${label}`;
+      return `○ ${label}`;
+    });
+    await env.FFX_KV.put('intelligence:signals', JSON.stringify({
+      ...existing,
+      scanning:    true,
+      progressStep: step,
+      progressMsg:  message,
+      progress,
+      error:        error || null,
+    }), { expirationTtl: 86400 * 30 });
+  } catch(e) {
+    console.error('[ffx-social-scanner] writeProgress failed (non-fatal):', e.message);
   }
 }
 
