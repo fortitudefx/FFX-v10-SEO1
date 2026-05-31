@@ -761,7 +761,8 @@ async function runScan() {
     btn.style.color = found > 0 ? 'rgba(62,207,142,0.80)' : 'rgba(255,255,255,0.50)';
     setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 5000);
 
-    await loadData();
+    // loadData in its own try/catch — do not let it mask scan success
+    try { await loadData(); } catch(loadErr) { console.error('[social] loadData after scan failed:', loadErr.message); }
 
   } catch (err) {
     clearStepTimers();
