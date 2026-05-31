@@ -334,9 +334,9 @@
 
   <!-- Scan progress -->
   <div class="scan-progress" id="scanProgress">
-    <div class="scan-title" id="scanProgressTitle">⚡ Starting scan…</div>
-    <div class="scan-steps" id="scanSteps" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;"></div>
-    <div class="scan-sub" id="scanProgressMsg" style="margin-top:10px;">Dispatching to scanner Worker…</div>
+    <div class="scan-title" id="scanProgressTitle">⚡ Scanning forums…</div>
+    <div class="scan-steps" id="scanSteps" style="margin-top:14px;display:flex;flex-direction:column;gap:8px;"></div>
+    <div class="scan-sub" id="scanProgressMsg" style="margin-top:12px;font-size:13px;color:rgba(255,255,255,0.55);">Claude is searching Reddit, BabyPips, ForexFactory, Quora and YouTube for active threads matching your keywords. This takes 60–90 seconds.</div>
   </div>
 
   <!-- Today's opportunities -->
@@ -686,105 +686,90 @@ async function recordOutcome(id, action, editedReply, dismissReason) {
 }
 
 // ── Run scan ──────────────────────────────────────────────────────────────
+// ── Scan step definitions ────────────────────────────────────────────────
+const SCAN_STEPS = [
+  { label: 'Reading your SEO signals and intelligence brief',  delay: 0    },
+  { label: 'Building keyword list from your rising queries',   delay: 3000 },
+  { label: 'Searching Reddit, BabyPips, ForexFactory, Quora', delay: 8000 },
+  { label: 'Claude reading active threads (this takes a while)', delay: 20000 },
+  { label: 'Drafting replies in your voice',                   delay: 55000 },
+  { label: 'Saving opportunities to dashboard',               delay: 75000 },
+];
+
+function renderScanSteps(activeIndex) {
+  const el = document.getElementById('scanSteps');
+  if (!el) return;
+  el.innerHTML = SCAN_STEPS.map((s, i) => {
+    const done   = i < activeIndex;
+    const active = i === activeIndex;
+    const color  = done   ? 'rgba(62,207,142,0.85)'
+                 : active ? 'rgba(201,168,76,0.95)'
+                 :          'rgba(255,255,255,0.28)';
+    const icon   = done ? '✓' : active ? '⚡' : '○';
+    const weight = active ? '700' : '600';
+    return '<div style="font-size:13px;font-weight:'+weight+';color:'+color+';display:flex;align-items:center;gap:10px;transition:color 0.3s;">'
+         + '<span style="min-width:14px;text-align:center;">'+icon+'</span>'
+         + '<span>'+esc(s.label)+'</span>'
+         + '</div>';
+  }).join('');
+}
+
 async function runScan() {
   const btn  = document.getElementById('runScanBtn');
   const prog = document.getElementById('scanProgress');
   btn.disabled = true;
-  btn.textContent = '⚡ Starting…';
+  btn.textContent = '⚡ Scanning…';
   prog.classList.add('visible');
 
+  // Remove any existing error banner
+  const existing = document.getElementById('scanErrorBanner');
+  if (existing) existing.remove();
+
+  // ── Show step 0 immediately ─────────────────────────────────────────
+  renderScanSteps(0);
+
+  // ── Schedule animated step progression ──────────────────────────────
+  // Steps advance on a timer while fetch runs in background
+  const stepTimers = [];
+  SCAN_STEPS.forEach((s, i) => {
+    if (i === 0) return; // already shown
+    const t = setTimeout(() => renderScanSteps(i), s.delay);
+    stepTimers.push(t);
+  });
+
+  function clearStepTimers() { stepTimers.forEach(t => clearTimeout(t)); }
+
   try {
-    // POST returns immediately — scan runs in background Worker
+    // POST awaits full scan — same pattern as intelligence engine (~60-90s)
     const res  = await fetch('/api/social-intelligence', { method: 'POST' });
     const data = await res.json();
 
-    if (!res.ok) {
-      prog.classList.remove('visible');
-      const errMsg = data.error || 'Unknown error';
-      btn.textContent = '✗ Error';
+    clearStepTimers();
+    prog.classList.remove('visible');
+
+    if (!res.ok || data.error) {
+      const errMsg = data.error || `Server error ${res.status}`;
+      btn.textContent = '✗ Scan failed';
       btn.style.color = 'rgba(248,113,113,0.80)';
       showScanError(errMsg);
-      setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
+      setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 5000);
       return;
     }
 
-    // Even if res.ok, check if the response contains an error (scanner connection failed)
-    if (data.error) {
-      prog.classList.remove('visible');
-      btn.textContent = '✗ Scanner error';
-      btn.style.color = 'rgba(248,113,113,0.80)';
-      showScanError(data.error);
-      setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
-      return;
-    }
+    const found = data.opportunitiesFound || 0;
+    btn.textContent = found > 0 ? `✓ Found ${found} opportunit${found !== 1 ? 'ies' : 'y'}` : '✓ Done — no qualifying threads today';
+    btn.style.color = found > 0 ? 'rgba(62,207,142,0.80)' : 'rgba(255,255,255,0.50)';
+    setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 5000);
 
-    // Scan is running in background — poll GET until scanning:false
-    btn.textContent = '⚡ Scanning…';
-    let attempts = 0;
-    const maxAttempts = 60; // 5 minutes at 5s intervals
-
-    const poll = setInterval(async () => {
-      attempts++;
-      try {
-        const pollRes  = await fetch('/api/social-intelligence');
-        const pollData = await pollRes.json();
-        const signals  = pollData.signals || {};
-
-        // Update live progress steps during scan
-        if (signals.scanning === true) {
-          const stepsEl = document.getElementById('scanSteps');
-          const msgEl   = document.getElementById('scanProgressMsg');
-          const titleEl = document.getElementById('scanProgressTitle');
-          if (titleEl) titleEl.textContent = '⚡ Scanning forums…';
-          if (msgEl && signals.progressMsg) msgEl.textContent = signals.progressMsg;
-          if (stepsEl && signals.progress && signals.progress.length) {
-            stepsEl.innerHTML = signals.progress.map(s => {
-              const done   = s.startsWith('✓');
-              const active = s.startsWith('⚡');
-              const color  = done ? 'rgba(62,207,142,0.80)' : active ? 'rgba(201,168,76,0.90)' : 'rgba(255,255,255,0.25)';
-              return '<div style="font-size:12px;font-weight:600;color:'+color+';display:flex;align-items:center;gap:8px;">' + esc(s) + '</div>';
-            }).join('');
-          }
-        }
-
-        if (signals.scanning === false || attempts >= maxAttempts) {
-          clearInterval(poll);
-          prog.classList.remove('visible');
-
-          if (signals.error) {
-            btn.textContent = '✗ Scan failed';
-            btn.style.color = 'rgba(248,113,113,0.80)';
-            showScanError(signals.error);
-            setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
-            return;
-          }
-
-          if (attempts >= maxAttempts && signals.scanning !== false) {
-            btn.textContent = '✗ Timed out';
-            btn.style.color = 'rgba(248,113,113,0.80)';
-            showScanError('Scan did not complete within 5 minutes. The scanner Worker may still be running — try refreshing the page in a few minutes to see if results appeared.');
-            setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
-            return;
-          }
-
-          const found = signals.opportunitiesFound || 0;
-          btn.textContent = found > 0 ? `✓ Found ${found}` : '✓ Done — no new threads';
-          btn.style.color = found > 0 ? 'rgba(62,207,142,0.80)' : 'rgba(255,255,255,0.50)';
-          setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
-
-          await loadData();
-        }
-        // else: still scanning, continue polling
-      } catch(pollErr) {
-        console.error('[social] Poll error:', pollErr.message);
-      }
-    }, 5000);
+    await loadData();
 
   } catch (err) {
+    clearStepTimers();
     prog.classList.remove('visible');
-    btn.textContent = '✗ Network error — ' + err.message;
+    btn.textContent = '✗ Error';
     btn.style.color = 'rgba(248,113,113,0.80)';
-    setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
+    showScanError('Network error: ' + err.message + '. Check your internet connection and try again.');
+    setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 5000);
   }
 }
 
