@@ -407,16 +407,39 @@ async function loadData() {
 }
 
 function updateStats(data) {
-  const opps = data.opportunities || [];
+  const opps    = data.opportunities || [];
   const signals = data.signals || {};
 
-  document.getElementById('statOpps').textContent     = opps.length || '0';
-  document.getElementById('statPosted').textContent   = signals.acted     != null ? signals.acted     : '—';
-  document.getElementById('statDismissed').textContent= signals.dismissed != null ? signals.dismissed : '—';
-  document.getElementById('statTraffic').textContent  = '—'; // Updated from reply_performance
-  document.getElementById('headerCount').textContent  = opps.length
-    ? `${opps.length} opportunity${opps.length !== 1 ? 'ies' : 'y'} today`
-    : 'No scan today';
+  document.getElementById('statOpps').textContent      = opps.length || '0';
+  document.getElementById('statPosted').textContent    = signals.acted     != null ? signals.acted     : '—';
+  document.getElementById('statDismissed').textContent = signals.dismissed != null ? signals.dismissed : '—';
+  document.getElementById('statTraffic').textContent   = '—';
+
+  if (signals.error) {
+    document.getElementById('headerCount').textContent = '✗ Scan failed';
+    // Show error banner
+    showScanError(signals.error);
+  } else if (signals.scanning === true) {
+    document.getElementById('headerCount').textContent = '⚡ Scanning…';
+  } else if (opps.length) {
+    document.getElementById('headerCount').textContent = `${opps.length} opportunit${opps.length !== 1 ? 'ies' : 'y'} today`;
+  } else {
+    document.getElementById('headerCount').textContent = 'No scan today';
+  }
+}
+
+function showScanError(msg) {
+  // Remove any existing error banner
+  const existing = document.getElementById('scanErrorBanner');
+  if (existing) existing.remove();
+
+  const banner = document.createElement('div');
+  banner.id = 'scanErrorBanner';
+  banner.style.cssText = 'margin-bottom:16px;padding:14px 20px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:12px;color:rgba(248,113,113,0.90);font-size:13px;line-height:1.6;';
+  banner.innerHTML = '<strong>✗ Scan failed:</strong> ' + esc(msg) + '<br><span style="font-size:11px;color:rgba(255,255,255,0.40);margin-top:4px;display:block;">Check that SOCIAL_SCANNER_URL and SCANNER_SECRET are set correctly in Cloudflare Pages environment variables, and that the ffx-social-scanner Worker has ANTHROPIC_API_KEY and SCANNER_SECRET set in its Variables and Secrets.</span>';
+
+  const oppsList = document.getElementById('oppsList');
+  if (oppsList) oppsList.parentNode.insertBefore(banner, oppsList);
 }
 
 // ── Render opportunities ──────────────────────────────────────────────────
@@ -676,8 +699,20 @@ async function runScan() {
 
     if (!res.ok) {
       prog.classList.remove('visible');
-      btn.textContent = '✗ ' + (data.error || 'Error');
+      const errMsg = data.error || 'Unknown error';
+      btn.textContent = '✗ Error';
       btn.style.color = 'rgba(248,113,113,0.80)';
+      showScanError(errMsg);
+      setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
+      return;
+    }
+
+    // Even if res.ok, check if the response contains an error (scanner connection failed)
+    if (data.error) {
+      prog.classList.remove('visible');
+      btn.textContent = '✗ Scanner error';
+      btn.style.color = 'rgba(248,113,113,0.80)';
+      showScanError(data.error);
       setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
       return;
     }
@@ -701,6 +736,15 @@ async function runScan() {
           if (signals.error) {
             btn.textContent = '✗ Scan failed';
             btn.style.color = 'rgba(248,113,113,0.80)';
+            showScanError(signals.error);
+            setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
+            return;
+          }
+
+          if (attempts >= maxAttempts && signals.scanning !== false) {
+            btn.textContent = '✗ Timed out';
+            btn.style.color = 'rgba(248,113,113,0.80)';
+            showScanError('Scan did not complete within 2 minutes. Check ffx-social-scanner Worker logs in Cloudflare for errors.');
             setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
             return;
           }
