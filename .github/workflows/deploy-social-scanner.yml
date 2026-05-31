@@ -1,0 +1,21 @@
+name: Deploy FFX Social Scanner Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ffx-social-scanner/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy Social Scanner Worker
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: ffx-social-scanner
