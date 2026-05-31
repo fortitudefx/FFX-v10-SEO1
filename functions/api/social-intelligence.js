@@ -75,10 +75,8 @@ export async function onRequestPost(context) {
     return recordOutcome(body, env, headers);
   }
 
-  // ── Run scan — fire-and-forget via waitUntil to avoid 30s timeout ────────
-  if (!env.ANTHROPIC_API_KEY) {
-    return json({ error: 'ANTHROPIC_API_KEY not set' }, 500, headers);
-  }
+  // ── Run scan — dispatched to standalone ffx-social-scanner Worker ──────────
+  // ANTHROPIC_API_KEY lives on the scanner Worker, not here
 
   // ── Mark scan as in-progress in KV so dashboard shows scanning state ──────
   const today = new Date().toISOString().split('T')[0];
@@ -560,4 +558,3 @@ export async function onRequestOptions() {
     'Access-Control-Allow-Headers': 'Content-Type',
   }});
 }
-
