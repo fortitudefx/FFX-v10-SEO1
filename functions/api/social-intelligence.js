@@ -89,7 +89,7 @@ export async function onRequestPost(context) {
           await env.FFX_KV.put(
             `intelligence:opportunities:${opp.id}`,
             JSON.stringify(opp),
-            { expirationTtl: 86400 * 7 }
+            { expirationTtl: 86400 * 30 }
           );
           const verify = await env.FFX_KV.get(`intelligence:opportunities:${opp.id}`, { type: 'json' }).catch(() => null);
           if (!verify) { console.error('[social-intelligence] KV verify FAILED:', opp.id); continue; }
@@ -287,7 +287,7 @@ async function recordOutcome(body, env, headers) {
       return json({ error: `Unknown action: ${action}` }, 400, headers);
     }
 
-    await env.FFX_KV.put(key, JSON.stringify(opp), { expirationTtl: 86400 * 7 });
+    await env.FFX_KV.put(key, JSON.stringify(opp), { expirationTtl: 86400 * 30 });
     const verify = await env.FFX_KV.get(key, { type: 'json' }).catch(() => null);
     if (!verify || verify.status !== opp.status) {
       return json({ error: 'KV write verification failed', verified: false }, 500, headers);
@@ -296,9 +296,19 @@ async function recordOutcome(body, env, headers) {
     if (action === 'posted_as_is' || action === 'posted_edited') {
       try {
         await env.FFX_KV.put(`intelligence:reply_performance:${opportunityId}`, JSON.stringify({
-          id: opportunityId, platform: opp.platform, keyword: opp.keyword,
-          postedAt: now, trafficGenerated: 0, overallResult: 'pending',
-        }), { expirationTtl: 86400 * 30 });
+          id:               opportunityId,
+          platform:         opp.platform,
+          keyword:          opp.keyword,
+          topic:            opp.topic || null,
+          threadTitle:      opp.threadTitle || null,
+          linkIncluded:     opp.includeLinkRecommendation || false,
+          utmUrl:           opp.utmTaggedUrl || null,
+          postedAt:         now,
+          trafficGenerated: 0,
+          overallResult:    'pending',
+          checkedAt:        null,
+          accurate:         null,
+        })); // No TTL — permanent record for intelligence engine history
         const sig = await env.FFX_KV.get('intelligence:signals', { type: 'json' }).catch(() => null);
         if (sig) { sig.acted = (sig.acted || 0) + 1; await env.FFX_KV.put('intelligence:signals', JSON.stringify(sig), { expirationTtl: 86400 * 30 }); }
       } catch {}
