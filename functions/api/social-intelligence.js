@@ -64,7 +64,7 @@ export async function onRequestGet(context) {
 
 // ── POST — run scan OR record outcome ────────────────────────────────────
 export async function onRequestPost(context) {
-  const { request, env } = context;
+  const { request, env, waitUntil } = context;
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
   let body = {};
@@ -75,92 +75,108 @@ export async function onRequestPost(context) {
     return recordOutcome(body, env, headers);
   }
 
-  // ── Run scan ──────────────────────────────────────────────────────────
+  // ── Run scan — fire-and-forget via waitUntil to avoid 30s timeout ────────
   if (!env.ANTHROPIC_API_KEY) {
     return json({ error: 'ANTHROPIC_API_KEY not set' }, 500, headers);
   }
 
+  // Mark scan as in-progress immediately so dashboard can poll
+  const today = new Date().toISOString().split('T')[0];
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const inProgress = {
+      date:      today,
+      scannedAt: new Date().toISOString(),
+      scanning:  true,
+      opportunitiesFound: 0,
+      keywords:  [],
+      acted:     0,
+      dismissed: 0,
+    };
+    await env.FFX_KV.put('intelligence:signals', JSON.stringify(inProgress), { expirationTtl: 86400 * 30 });
+  } catch(e) {
+    console.error('[social-intelligence] Failed to write scanning state:', e.message);
+  }
 
-    // Read signal sources from KV
-    const [seoSignals, brief, voiceCalibration, existingPerf] = await Promise.all([
-      env.FFX_KV.get('seo:signals',                { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('intelligence:brief',          { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('intelligence:voice_calibration', { type: 'json' }).catch(() => null),
-      getReplyPerformanceSummary(env).catch(() => null),
-    ]);
-
-    // Build keyword list from signals
-    const keywords = buildKeywords(seoSignals, brief);
-
-    if (!keywords.length) {
-      return json({ error: 'No keywords available — run SEO signals and intelligence analysis first' }, 400, headers);
-    }
-
-    console.log('[social-intelligence] Running scan with keywords:', keywords.slice(0, 5).join(', '));
-
-    // Call Claude with web search to find opportunities
-    const opportunities = await runScan(keywords, brief, voiceCalibration, existingPerf, env.ANTHROPIC_API_KEY);
-
-    if (!opportunities || !opportunities.length) {
-      return json({ success: true, opportunitiesFound: 0, message: 'No qualifying opportunities found in this scan. Try again tomorrow when threads may be more active.' }, 200, headers);
-    }
-
-    // Write each opportunity to KV
-    let written = 0;
-    const writtenIds = [];
-    for (const opp of opportunities.slice(0, 5)) {
-      try {
-        if (!opp.id) opp.id = generateId(opp.platform, opp.keyword);
-        opp.detectedAt = new Date().toISOString();
-        opp.status     = 'surfaced';
-
-        await env.FFX_KV.put(
-          `intelligence:opportunities:${opp.id}`,
-          JSON.stringify(opp),
-          { expirationTtl: 86400 * 7 } // Keep for 7 days
-        );
-
-        // Verify write
-        const verify = await env.FFX_KV.get(`intelligence:opportunities:${opp.id}`, { type: 'json' }).catch(() => null);
-        if (!verify) {
-          console.error('[social-intelligence] KV write verification FAILED for:', opp.id);
-          continue;
-        }
-
-        written++;
-        writtenIds.push(opp.id);
-        console.log('[social-intelligence] Opportunity written and verified:', opp.id, opp.platform, opp.urgency);
-      } catch (writeErr) {
-        console.error('[social-intelligence] Opportunity write failed (non-fatal):', writeErr.message);
-      }
-    }
-
-    // Write daily scan summary to intelligence:signals
+  // Run the actual scan in background — does not block the response
+  const scanPromise = (async () => {
     try {
+      const [seoSignals, brief, voiceCalibration, existingPerf] = await Promise.all([
+        env.FFX_KV.get('seo:signals',                    { type: 'json' }).catch(() => null),
+        env.FFX_KV.get('intelligence:brief',              { type: 'json' }).catch(() => null),
+        env.FFX_KV.get('intelligence:voice_calibration',  { type: 'json' }).catch(() => null),
+        getReplyPerformanceSummary(env).catch(() => null),
+      ]);
+
+      const keywords = buildKeywords(seoSignals, brief);
+
+      if (!keywords.length) {
+        console.error('[social-intelligence] No keywords available for scan');
+        await env.FFX_KV.put('intelligence:signals', JSON.stringify({
+          date: today, scannedAt: new Date().toISOString(), scanning: false,
+          opportunitiesFound: 0, error: 'No keywords — run SEO signals and analysis first',
+          keywords: [], acted: 0, dismissed: 0,
+        }), { expirationTtl: 86400 * 30 });
+        return;
+      }
+
+      console.log('[social-intelligence] Background scan starting with keywords:', keywords.slice(0, 5).join(', '));
+
+      const opportunities = await runScan(keywords, brief, voiceCalibration, existingPerf, env.ANTHROPIC_API_KEY);
+
+      let written = 0;
+      const writtenIds = [];
+
+      if (opportunities && opportunities.length) {
+        for (const opp of opportunities.slice(0, 5)) {
+          try {
+            if (!opp.id) opp.id = generateId(opp.platform, opp.keyword);
+            opp.detectedAt = new Date().toISOString();
+            opp.status     = 'surfaced';
+            await env.FFX_KV.put(`intelligence:opportunities:${opp.id}`, JSON.stringify(opp), { expirationTtl: 86400 * 7 });
+            const verify = await env.FFX_KV.get(`intelligence:opportunities:${opp.id}`, { type: 'json' }).catch(() => null);
+            if (!verify) { console.error('[social-intelligence] KV verify FAILED for:', opp.id); continue; }
+            written++;
+            writtenIds.push(opp.id);
+            console.log('[social-intelligence] Opportunity written:', opp.id, opp.platform, opp.urgency);
+          } catch (writeErr) {
+            console.error('[social-intelligence] Opportunity write failed:', writeErr.message);
+          }
+        }
+      }
+
+      // Write final scan summary — scanning:false signals completion to dashboard
       const signals = {
         date:               today,
         scannedAt:          new Date().toISOString(),
+        scanning:           false,
         opportunitiesFound: written,
         keywords:           keywords.slice(0, 5),
-        topPlatform:        opportunities[0]?.platform || null,
-        topKeywords:        [...new Set(opportunities.map(o => o.keyword).filter(Boolean))].slice(0, 3),
+        topPlatform:        opportunities?.[0]?.platform || null,
+        topKeywords:        [...new Set((opportunities || []).map(o => o.keyword).filter(Boolean))].slice(0, 3),
         acted:              0,
         dismissed:          0,
       };
       await env.FFX_KV.put('intelligence:signals', JSON.stringify(signals), { expirationTtl: 86400 * 30 });
-      console.log('[social-intelligence] intelligence:signals written for:', today);
-    } catch (sigErr) {
-      console.error('[social-intelligence] intelligence:signals write failed (non-fatal):', sigErr.message);
+      console.log('[social-intelligence] Background scan complete. Written:', written);
+
+    } catch (err) {
+      console.error('[social-intelligence] Background scan error:', err.message);
+      try {
+        await env.FFX_KV.put('intelligence:signals', JSON.stringify({
+          date: today, scannedAt: new Date().toISOString(), scanning: false,
+          opportunitiesFound: 0, error: err.message, keywords: [], acted: 0, dismissed: 0,
+        }), { expirationTtl: 86400 * 30 });
+      } catch {}
     }
+  })();
 
-    return json({ success: true, opportunitiesFound: written, ids: writtenIds, keywords: keywords.slice(0, 5) }, 200, headers);
-
-  } catch (err) {
-    console.error('[social-intelligence] Scan error:', err.message);
-    return json({ error: err.message }, 500, headers);
+  // Register background task — keeps Worker alive after response is sent
+  if (typeof waitUntil === 'function') {
+    waitUntil(scanPromise);
   }
+
+  // Return immediately — dashboard polls GET for results
+  return json({ success: true, scanning: true, message: 'Scan started in background. Poll GET /api/social-intelligence for results.' }, 200, headers);
 }
 
 // ── Record outcome (posted / dismissed / edited) ──────────────────────────
