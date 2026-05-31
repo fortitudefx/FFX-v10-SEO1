@@ -395,6 +395,7 @@ function buildQueueRow(item) {
     const min = item.expiresInMs ? Math.max(0,Math.floor((item.expiresInMs%3600000)/60000)) : 0;
     badgeHtml = '<span class="state-badge badge-ready">\u2713 Ready &middot; '+hrs+'h '+min+'m</span>';
     if (item.hasQueueEdits) badgeHtml += '<br><span class="state-badge badge-edited" style="margin-top:6px;">\u26a0 Edited</span>';
+    actionHtml = '<br><button class="btn-gen-row" style="background:rgba(248,113,113,0.10);color:rgba(248,113,113,0.80);border-color:rgba(248,113,113,0.25);" onclick="regenerateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\',\'full\')">↺ Regenerate</button>';
   } else if (item.state === 'red') {
     badgeHtml  = '<span class="state-badge badge-expired">\u2715 Expired</span>';
     actionHtml = '<br><button class="btn-gen-row" onclick="generateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Regenerate</button>';
@@ -616,8 +617,25 @@ async function publishQueueItem(videoId,slug,actionRow,pubBtn,container,videoRec
   }catch(err){showPubResult(container,'Network error: '+err.message,false);pubBtn.disabled=false;pubBtn.textContent='Publish';}
 }
 
+async function regenerateItem(event, videoId, ytUrl, mode) {
+  if (event) event.stopPropagation();
+  if (!confirm('Discard current generated content and regenerate from scratch?')) return;
+  // Clear the existing generated state
+  try {
+    await fetch('/api/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'clear_generated', videoId }),
+    });
+  } catch(e) { console.error('clear_generated failed (non-fatal):', e.message); }
+  // Create a fake event object since generateItem needs e.target
+  const btn = document.querySelector('[onclick*="'+videoId+'"]');
+  const fakeEvent = { stopPropagation: () => {}, target: btn || document.createElement('button') };
+  await generateItem(fakeEvent, videoId, ytUrl);
+}
+
 async function generateItem(e,videoId,youtubeUrl){
-  e.stopPropagation();
+  if (e && e.stopPropagation) e.stopPropagation();
   const btn=e.target; const row=btn.closest('.queue-row');
   btn.disabled=true; btn.textContent='Queuing\u2026';
   try{
