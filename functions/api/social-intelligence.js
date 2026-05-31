@@ -107,89 +107,21 @@ export async function onRequestPost(context) {
     return json({ error: 'SOCIAL_SCANNER_URL not set — add it to Cloudflare Pages environment variables' }, 500, headers);
   }
 
-  if (!env.SCANNER_SECRET) {
-    console.error('[social-intelligence] SCANNER_SECRET not set in Pages env vars');
-    return json({ error: 'SCANNER_SECRET not set — add it to Cloudflare Pages environment variables' }, 500, headers);
-  }
+  // ── Fire request to scanner Worker — do NOT await — it runs for 60-90s ─────
+  // The scanner Worker handles everything and writes to KV when done.
+  // Dashboard polls GET every 5s and renders results when scanning:false appears.
+  fetch(env.SOCIAL_SCANNER_URL, {
+    method:  'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ today }),
+  }).catch(err => {
+    // Log connection errors but do not block — KV already has scanning:true
+    console.error('[social-intelligence] Scanner Worker connection error:', err.message);
+  });
 
-  // ── Call scanner Worker and capture response for dashboard visibility ───────
-  // We await the fetch but with a short timeout — scanner Worker responds immediately
-  // then continues running. This lets us capture any connection/auth errors.
-  try {
-    const controller = new AbortController();
-    const timeoutId  = setTimeout(() => controller.abort(), 10000); // 10s to get initial response
-
-    let scannerStatus = null;
-    let scannerError  = null;
-
-    try {
-      const scannerRes = await fetch(env.SOCIAL_SCANNER_URL, {
-        method:  'POST',
-        headers: {
-          'Content-Type':      'application/json',
-          'X-Scanner-Secret':  env.SCANNER_SECRET,
-        },
-        body:   JSON.stringify({ today }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      scannerStatus = scannerRes.status;
-
-      if (!scannerRes.ok) {
-        // Scanner Worker returned an error — read the body
-        const errBody = await scannerRes.json().catch(() => ({ error: 'Could not parse scanner error response' }));
-        scannerError = `Scanner Worker returned ${scannerRes.status}: ${errBody.error || JSON.stringify(errBody)}`;
-        console.error('[social-intelligence] Scanner Worker error:', scannerError);
-
-        // Write error to KV so dashboard shows it
-        await env.FFX_KV.put('intelligence:signals', JSON.stringify({
-          date:               today,
-          scannedAt:          new Date().toISOString(),
-          scanning:           false,
-          opportunitiesFound: 0,
-          error:              scannerError,
-          keywords:           [],
-          acted:              0,
-          dismissed:          0,
-        }), { expirationTtl: 86400 * 30 });
-
-        return json({ success: false, error: scannerError, scannerStatus }, 200, headers);
-      }
-
-      // Scanner Worker accepted the request — it will write results to KV when done
-      console.log('[social-intelligence] Scanner Worker accepted scan:', scannerStatus);
-
-    } catch(fetchErr) {
-      clearTimeout(timeoutId);
-      if (fetchErr.name === 'AbortError') {
-        // Timeout reaching scanner — may still be running but connection failed
-        scannerError = `Could not reach scanner Worker within 10 seconds. Check SOCIAL_SCANNER_URL is correct: ${env.SOCIAL_SCANNER_URL}`;
-      } else {
-        scannerError = `Network error reaching scanner Worker: ${fetchErr.message}. URL: ${env.SOCIAL_SCANNER_URL}`;
-      }
-      console.error('[social-intelligence]', scannerError);
-
-      await env.FFX_KV.put('intelligence:signals', JSON.stringify({
-        date:               today,
-        scannedAt:          new Date().toISOString(),
-        scanning:           false,
-        opportunitiesFound: 0,
-        error:              scannerError,
-        keywords:           [],
-        acted:              0,
-        dismissed:          0,
-      }), { expirationTtl: 86400 * 30 });
-
-      return json({ success: false, error: scannerError }, 200, headers);
-    }
-
-  } catch(outerErr) {
-    console.error('[social-intelligence] Outer fetch error:', outerErr.message);
-    return json({ success: false, error: outerErr.message }, 200, headers);
-  }
-
-  return json({ success: true, scanning: true, message: 'Scan dispatched to scanner Worker. Poll GET for results.' }, 200, headers);
+  return json({ success: true, scanning: true, message: 'Scan dispatched. Poll GET for results.' }, 200, headers);
 }
 
 // ── Record outcome (posted / dismissed / edited) ──────────────────────────
