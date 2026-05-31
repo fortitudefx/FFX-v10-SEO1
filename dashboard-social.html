@@ -335,7 +335,7 @@
   <!-- Scan progress -->
   <div class="scan-progress" id="scanProgress">
     <div class="scan-title">⚡ Scanning forums…</div>
-    <div class="scan-sub">Claude is searching Reddit, BabyPips, ForexFactory, Quora, and YouTube for active threads matching your rising keywords. This takes 30–60 seconds.</div>
+    <div class="scan-sub">Claude is searching Reddit, BabyPips, ForexFactory, Quora, and YouTube for active threads matching your rising keywords. This runs in the background — results will appear automatically when ready (45–90 seconds).</div>
   </div>
 
   <!-- Today's opportunities -->
@@ -663,36 +663,66 @@ async function recordOutcome(id, action, editedReply, dismissReason) {
 
 // ── Run scan ──────────────────────────────────────────────────────────────
 async function runScan() {
-  const btn = document.getElementById('runScanBtn');
+  const btn  = document.getElementById('runScanBtn');
   const prog = document.getElementById('scanProgress');
   btn.disabled = true;
-  btn.textContent = '⚡ Scanning…';
+  btn.textContent = '⚡ Starting…';
   prog.classList.add('visible');
 
   try {
+    // POST returns immediately — scan runs in background Worker
     const res  = await fetch('/api/social-intelligence', { method: 'POST' });
     const data = await res.json();
 
-    prog.classList.remove('visible');
-
     if (!res.ok) {
-      btn.textContent = '✗ Error';
+      prog.classList.remove('visible');
+      btn.textContent = '✗ ' + (data.error || 'Error');
       btn.style.color = 'rgba(248,113,113,0.80)';
-      setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 3000);
+      setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
       return;
     }
 
-    btn.textContent = `✓ Found ${data.opportunitiesFound || 0}`;
-    btn.style.color = 'rgba(62,207,142,0.80)';
-    setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 3000);
+    // Scan is running in background — poll GET until scanning:false
+    btn.textContent = '⚡ Scanning…';
+    let attempts = 0;
+    const maxAttempts = 24; // 2 minutes at 5s intervals
 
-    // Reload to show new opportunities
-    await loadData();
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const pollRes  = await fetch('/api/social-intelligence');
+        const pollData = await pollRes.json();
+        const signals  = pollData.signals || {};
+
+        if (signals.scanning === false || attempts >= maxAttempts) {
+          clearInterval(poll);
+          prog.classList.remove('visible');
+
+          if (signals.error) {
+            btn.textContent = '✗ Scan failed';
+            btn.style.color = 'rgba(248,113,113,0.80)';
+            setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
+            return;
+          }
+
+          const found = signals.opportunitiesFound || 0;
+          btn.textContent = found > 0 ? `✓ Found ${found}` : '✓ Done — no new threads';
+          btn.style.color = found > 0 ? 'rgba(62,207,142,0.80)' : 'rgba(255,255,255,0.50)';
+          setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
+
+          await loadData();
+        }
+        // else: still scanning, continue polling
+      } catch(pollErr) {
+        console.error('[social] Poll error:', pollErr.message);
+      }
+    }, 5000);
 
   } catch (err) {
     prog.classList.remove('visible');
-    btn.textContent = '✗ Network error';
-    setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 3000);
+    btn.textContent = '✗ Network error — ' + err.message;
+    btn.style.color = 'rgba(248,113,113,0.80)';
+    setTimeout(() => { btn.textContent = '⚡ Run Scan'; btn.style.color = ''; btn.disabled = false; }, 4000);
   }
 }
 
