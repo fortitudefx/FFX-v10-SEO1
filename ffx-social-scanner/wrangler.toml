@@ -1,0 +1,11 @@
+name = "ffx-social-scanner"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+[[kv_namespaces]]
+binding = "FFX_KV"
+id = "6660064783ba4b2fbe4f8a0031818e99"
+
+# Secrets set via: wrangler secret put ANTHROPIC_API_KEY
+# Secrets set via: wrangler secret put SCANNER_SECRET
+# SCANNER_SECRET must match the value set in Pages environment variables
