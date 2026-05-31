@@ -1,18 +1,12 @@
 // functions/api/social-intelligence.js
-// POST /api/social-intelligence → runs scan via Claude + web search, drafts replies
-// POST /api/social-intelligence (action) → records outcome for an opportunity
+// POST /api/social-intelligence → runs Claude web search scan directly (same pattern as intelligence-engine.js)
+// POST /api/social-intelligence + {opportunityId, action} → records outcome
 // GET  /api/social-intelligence → returns today's opportunities from KV
 
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 
-// ── Helpers ───────────────────────────────────────────────────────────────
 function json(data, status, headers) {
   return new Response(JSON.stringify(data), { status, headers });
-}
-
-function escHtml(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function generateId(platform, keyword) {
@@ -22,363 +16,211 @@ function generateId(platform, keyword) {
   return `opp_${today}_${safe}_${hash}`;
 }
 
-// ── GET — return today's opportunities ────────────────────────────────────
+// ── GET — return today's opportunities and scan status ────────────────────
 export async function onRequestGet(context) {
   const { env } = context;
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
-
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const list  = await env.FFX_KV.list({ prefix: 'intelligence:opportunities:' }).catch(() => null);
-
-    if (!list || !list.keys.length) {
-      return json({ opportunities: [], scanStatus: 'not_run', date: today }, 200, headers);
-    }
-
+    const today   = new Date().toISOString().split('T')[0];
+    const signals = await env.FFX_KV.get('intelligence:signals', { type: 'json' }).catch(() => null);
+    const list    = await env.FFX_KV.list({ prefix: 'intelligence:opportunities:' }).catch(() => null);
     const opportunities = [];
-    for (const key of list.keys) {
-      const opp = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
-      if (!opp) continue;
-      // Only return today's opportunities
-      if (opp.detectedAt && !opp.detectedAt.startsWith(today)) continue;
-      opportunities.push(opp);
+    if (list && list.keys.length) {
+      for (const key of list.keys) {
+        const opp = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
+        if (!opp) continue;
+        if (opp.detectedAt && !opp.detectedAt.startsWith(today)) continue;
+        opportunities.push(opp);
+      }
     }
-
-    // Sort: high urgency first, then medium, then low
     const urgencyOrder = { high: 0, medium: 1, low: 2 };
     opportunities.sort((a, b) => (urgencyOrder[a.urgency] ?? 2) - (urgencyOrder[b.urgency] ?? 2));
-
-    // Read voice calibration for context
     const voiceCalibration = await env.FFX_KV.get('intelligence:voice_calibration', { type: 'json' }).catch(() => null);
-
-    // Read weekly performance summary
-    const signals = await env.FFX_KV.get('intelligence:signals', { type: 'json' }).catch(() => null);
-
-    return json({ opportunities, scanStatus: 'complete', date: today, voiceCalibration, signals }, 200, headers);
-
+    return json({ opportunities, date: today, signals, voiceCalibration }, 200, headers);
   } catch (err) {
-    console.error('[social-intelligence] GET error:', err.message);
     return json({ error: err.message }, 500, headers);
   }
 }
 
 // ── POST — run scan OR record outcome ────────────────────────────────────
 export async function onRequestPost(context) {
-  const { request, env, waitUntil } = context;
+  const { request, env } = context;
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
   let body = {};
   try { body = await request.json(); } catch { body = {}; }
 
-  // ── Record outcome for an existing opportunity ──────────────────────────
+  // ── Record outcome for existing opportunity ───────────────────────────
   if (body.opportunityId && body.action) {
     return recordOutcome(body, env, headers);
   }
 
-  // ── Run scan — dispatched to standalone ffx-social-scanner Worker ──────────
-  // ANTHROPIC_API_KEY lives on the scanner Worker, not here
+  // ── Run scan — same pattern as intelligence-engine.js ─────────────────
+  if (!env.ANTHROPIC_API_KEY) {
+    return json({ error: 'ANTHROPIC_API_KEY not set in Pages environment variables' }, 500, headers);
+  }
 
-  // ── Mark scan as in-progress in KV so dashboard shows scanning state ──────
   const today = new Date().toISOString().split('T')[0];
+
   try {
-    await env.FFX_KV.put('intelligence:signals', JSON.stringify({
+    // ── Read signals from KV ────────────────────────────────────────────
+    const [seoSignals, brief, voiceCalibration, existingPerf] = await Promise.all([
+      env.FFX_KV.get('seo:signals',                   { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('intelligence:brief',             { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('intelligence:voice_calibration', { type: 'json' }).catch(() => null),
+      getReplyPerformanceSummary(env).catch(() => null),
+    ]);
+
+    // ── Build keywords ──────────────────────────────────────────────────
+    const keywords = buildKeywords(seoSignals, brief);
+    console.log('[social-intelligence] Scanning with keywords:', keywords.slice(0, 5).join(', '));
+
+    // ── Call Claude with web search — awaited, same as intelligence engine
+    const opportunities = await runScan(keywords, brief, voiceCalibration, existingPerf, env.ANTHROPIC_API_KEY);
+
+    // ── Write opportunities to KV ───────────────────────────────────────
+    let written = 0;
+    if (opportunities && opportunities.length) {
+      for (const opp of opportunities.slice(0, 5)) {
+        try {
+          if (!opp.id) opp.id = generateId(opp.platform, opp.keyword);
+          opp.detectedAt = new Date().toISOString();
+          opp.status     = 'surfaced';
+          await env.FFX_KV.put(
+            `intelligence:opportunities:${opp.id}`,
+            JSON.stringify(opp),
+            { expirationTtl: 86400 * 7 }
+          );
+          const verify = await env.FFX_KV.get(`intelligence:opportunities:${opp.id}`, { type: 'json' }).catch(() => null);
+          if (!verify) { console.error('[social-intelligence] KV verify FAILED:', opp.id); continue; }
+          written++;
+          console.log('[social-intelligence] Opportunity written:', opp.id, opp.platform);
+        } catch (writeErr) {
+          console.error('[social-intelligence] Write error (non-fatal):', writeErr.message);
+        }
+      }
+    }
+
+    // ── Write scan summary ──────────────────────────────────────────────
+    const signals = {
       date:               today,
       scannedAt:          new Date().toISOString(),
-      scanning:           true,
-      opportunitiesFound: 0,
-      keywords:           [],
+      scanning:           false,
+      opportunitiesFound: written,
+      keywords:           keywords.slice(0, 5),
+      topPlatform:        opportunities?.[0]?.platform || null,
+      topKeywords:        [...new Set((opportunities || []).map(o => o.keyword).filter(Boolean))].slice(0, 3),
       acted:              0,
       dismissed:          0,
-    }), { expirationTtl: 86400 * 30 });
-  } catch(e) {
-    console.error('[social-intelligence] Failed to write scanning state (non-fatal):', e.message);
-  }
+    };
+    await env.FFX_KV.put('intelligence:signals', JSON.stringify(signals), { expirationTtl: 86400 * 30 });
 
-  // ── Fire request to standalone Worker — returns immediately, scan runs there ─
-  // SOCIAL_SCANNER_URL env var = https://ffx-social-scanner.YOUR-SUBDOMAIN.workers.dev
-  if (!env.SOCIAL_SCANNER_URL) {
-    // Fallback error — SOCIAL_SCANNER_URL not configured
-    console.error('[social-intelligence] SOCIAL_SCANNER_URL not set in Pages env vars');
-    await env.FFX_KV.put('intelligence:signals', JSON.stringify({
-      date: today, scannedAt: new Date().toISOString(), scanning: false,
-      opportunitiesFound: 0, error: 'SOCIAL_SCANNER_URL not configured in Pages environment variables',
-      keywords: [], acted: 0, dismissed: 0,
-    }), { expirationTtl: 86400 * 30 });
-    return json({ error: 'SOCIAL_SCANNER_URL not set — add it to Cloudflare Pages environment variables' }, 500, headers);
-  }
-
-  // ── Fire request to scanner Worker — do NOT await — it runs for 60-90s ─────
-  // The scanner Worker handles everything and writes to KV when done.
-  // Dashboard polls GET every 5s and renders results when scanning:false appears.
-  fetch(env.SOCIAL_SCANNER_URL, {
-    method:  'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ today }),
-  }).catch(err => {
-    // Log connection errors but do not block — KV already has scanning:true
-    console.error('[social-intelligence] Scanner Worker connection error:', err.message);
-  });
-
-  return json({ success: true, scanning: true, message: 'Scan dispatched. Poll GET for results.' }, 200, headers);
-}
-
-// ── Record outcome (posted / dismissed / edited) ──────────────────────────
-async function recordOutcome(body, env, headers) {
-  const { opportunityId, action, editedReply, dismissReason } = body;
-
-  try {
-    const key = `intelligence:opportunities:${opportunityId}`;
-    const opp = await env.FFX_KV.get(key, { type: 'json' }).catch(() => null);
-
-    if (!opp) {
-      return json({ error: `Opportunity ${opportunityId} not found in KV` }, 404, headers);
-    }
-
-    const now = new Date().toISOString();
-
-    if (action === 'posted_as_is') {
-      opp.status       = 'posted-as-is';
-      opp.postedAt     = now;
-      opp.editDistance = 0;
-      opp.editType     = null;
-      opp.finalReply   = opp.draft;
-      opp.linkIncluded = opp.includeLinkRecommendation || false;
-    } else if (action === 'posted_edited') {
-      const original = opp.draft || '';
-      const edited   = editedReply || '';
-      const editDist = levenshteinApprox(original, edited);
-      opp.status        = 'posted-edited';
-      opp.postedAt      = now;
-      opp.editedVersion = edited;
-      opp.editDistance  = editDist;
-      opp.editType      = classifyEdit(original, edited);
-      opp.finalReply    = edited;
-      opp.linkIncluded  = opp.includeLinkRecommendation || false;
-
-      // Update voice calibration with edit pattern
-      await updateVoiceCalibration(env, opp.editType, original, edited);
-
-    } else if (action === 'dismissed') {
-      opp.status        = 'dismissed';
-      opp.dismissedAt   = now;
-      opp.dismissReason = dismissReason || 'not_specified';
-    } else {
-      return json({ error: `Unknown action: ${action}` }, 400, headers);
-    }
-
-    // Write updated opportunity
-    await env.FFX_KV.put(key, JSON.stringify(opp), { expirationTtl: 86400 * 7 });
-
-    // Verify write
-    const verify = await env.FFX_KV.get(key, { type: 'json' }).catch(() => null);
-    if (!verify || verify.status !== opp.status) {
-      return json({ error: 'KV write verification failed — outcome not saved', verified: false }, 500, headers);
-    }
-
-    // Write performance record for posted replies (72hr tracking)
-    if (action === 'posted_as_is' || action === 'posted_edited') {
-      try {
-        const perfKey = `intelligence:reply_performance:${opportunityId}`;
-        const perf = {
-          id:               opportunityId,
-          platform:         opp.platform,
-          keyword:          opp.keyword,
-          topic:            opp.topic,
-          linkIncluded:     opp.linkIncluded,
-          utmUrl:           opp.utmTaggedUrl || null,
-          postedAt:         now,
-          editDistance:     opp.editDistance || 0,
-          trafficGenerated: 0,   // Updated at 72hrs
-          discordClicks:    0,
-          followUpReplies:  0,
-          overallResult:    'pending',
-          checkedAt:        null,
-          accurate:         null,
-        };
-        await env.FFX_KV.put(perfKey, JSON.stringify(perf), { expirationTtl: 86400 * 30 });
-        console.log('[social-intelligence] Reply performance record created:', perfKey);
-      } catch (perfErr) {
-        console.error('[social-intelligence] Performance record write failed (non-fatal):', perfErr.message);
-      }
-
-      // Update signals acted count
-      try {
-        const signals = await env.FFX_KV.get('intelligence:signals', { type: 'json' }).catch(() => null);
-        if (signals) {
-          signals.acted = (signals.acted || 0) + 1;
-          await env.FFX_KV.put('intelligence:signals', JSON.stringify(signals), { expirationTtl: 86400 * 30 });
-        }
-      } catch (sigErr) {
-        console.error('[social-intelligence] Signals acted count update failed (non-fatal):', sigErr.message);
-      }
-    }
-
-    if (action === 'dismissed') {
-      try {
-        const signals = await env.FFX_KV.get('intelligence:signals', { type: 'json' }).catch(() => null);
-        if (signals) {
-          signals.dismissed = (signals.dismissed || 0) + 1;
-          await env.FFX_KV.put('intelligence:signals', JSON.stringify(signals), { expirationTtl: 86400 * 30 });
-        }
-      } catch {}
-    }
-
-    console.log('[social-intelligence] Outcome recorded and verified:', opportunityId, action);
-    return json({ success: true, verified: true, opportunityId, action, status: opp.status }, 200, headers);
+    console.log('[social-intelligence] Scan complete. Written:', written);
+    return json({ success: true, opportunitiesFound: written }, 200, headers);
 
   } catch (err) {
-    console.error('[social-intelligence] recordOutcome error:', err.message);
-    return json({ error: err.message, verified: false }, 500, headers);
+    console.error('[social-intelligence] Scan error:', err.message);
+    // Write error to KV so dashboard can show it
+    try {
+      await env.FFX_KV.put('intelligence:signals', JSON.stringify({
+        date: today, scannedAt: new Date().toISOString(), scanning: false,
+        opportunitiesFound: 0, error: err.message, keywords: [], acted: 0, dismissed: 0,
+      }), { expirationTtl: 86400 * 30 });
+    } catch {}
+    return json({ error: err.message }, 500, headers);
   }
 }
 
-// ── Build keyword list from signals ──────────────────────────────────────
+// ── Build keywords from signals ───────────────────────────────────────────
 function buildKeywords(seoSignals, brief) {
   const keywords = new Set();
-
-  // Rising queries from Search Console
-  if (seoSignals && Array.isArray(seoSignals.risingQueries)) {
-    seoSignals.risingQueries.slice(0, 5).forEach(q => {
-      if (q.query) keywords.add(q.query);
-    });
-  }
-
-  // Today's target query from brief
-  if (brief && brief.articleBrief && brief.articleBrief.targetQuery) {
-    keywords.add(brief.articleBrief.targetQuery);
-  }
-
-  // Nugget tags from brief
-  if (brief && brief.articleBrief && Array.isArray(brief.articleBrief.nuggetTags)) {
-    brief.articleBrief.nuggetTags.slice(0, 3).forEach(t => keywords.add(t));
-  }
-
-  // Always include these high-value CTW-aligned keywords as fallback
-  const fallbackKeywords = [
-    'forex wick trading strategy',
-    'stop loss hunting forex',
-    'price action entry strategy',
-    'london session forex setup',
-    'liquidity sweep trading',
-    'candle wick entry forex',
-    'institutional order flow trading',
-    'how to trade wicks',
-  ];
-
-  fallbackKeywords.forEach(k => keywords.add(k));
-
+  if (seoSignals?.risingQueries) seoSignals.risingQueries.slice(0, 5).forEach(q => { if (q.query) keywords.add(q.query); });
+  if (brief?.articleBrief?.targetQuery) keywords.add(brief.articleBrief.targetQuery);
+  if (brief?.articleBrief?.nuggetTags) brief.articleBrief.nuggetTags.slice(0, 3).forEach(t => keywords.add(t));
+  ['forex wick trading strategy','stop loss hunting forex','price action entry strategy',
+   'london session forex setup','liquidity sweep trading','candle wick entry forex',
+   'institutional order flow trading','how to trade wicks'].forEach(k => keywords.add(k));
   return [...keywords].slice(0, 8);
 }
 
 // ── Run Claude scan with web search ──────────────────────────────────────
 async function runScan(keywords, brief, voiceCalibration, existingPerf, apiKey) {
   const keywordList = keywords.slice(0, 6).map(k => `"${k}"`).join(', ');
-
-  const voiceRules = voiceCalibration && voiceCalibration.corrections && voiceCalibration.corrections.length > 0
-    ? `\nVoice calibration corrections (apply to every draft):\n${voiceCalibration.corrections.slice(0, 5).map(c => `- ${c}`).join('\n')}`
-    : '';
-
-  const perfContext = existingPerf && existingPerf.totalPosted > 0
-    ? `\nPast reply performance: ${existingPerf.totalPosted} replies posted. Best platform: ${existingPerf.topPlatform || 'unknown'}. Best keyword: "${existingPerf.topKeyword || 'unknown'}". Traffic generated: ${existingPerf.totalTraffic} sessions.`
-    : '';
-
   const today = new Date().toISOString().split('T')[0];
+
+  const voiceRules = voiceCalibration?.corrections?.length > 0
+    ? `\nVoice calibration corrections:\n${voiceCalibration.corrections.slice(0, 5).map(c => `- ${c}`).join('\n')}`
+    : '';
+
+  const perfContext = existingPerf?.totalPosted > 0
+    ? `\nPast performance: ${existingPerf.totalPosted} replies. Best platform: ${existingPerf.topPlatform}. Best keyword: "${existingPerf.topKeyword}".`
+    : '';
 
   const systemPrompt = `You are the Social Intelligence Agent for FortitudeFX, a forex trading education brand built around the Catch The Wick™ (CTW) methodology by Salman Khan.
 
-Your job is to find 3-5 active forum threads where traders are asking questions that the CTW methodology directly answers, then draft genuine, value-adding replies in Salman's voice.
+Find 3-5 active forum threads where traders ask questions that CTW directly answers. Draft genuine replies in Salman's voice.
 
 SALMAN'S VOICE:
 - Direct, institutional, slightly contrarian
 - First sentence is a direct answer — never a preamble
 - Never: "Great question!", "As a trader myself...", "I highly recommend..."
-- Never self-promotional in the opening paragraph
-- Maximum 3 paragraphs per reply
-- CTW methodology explained in plain language, not jargon-heavy
-- If linking: link goes in the final paragraph naturally, never forced
-- Tone: calm authority, like someone who has seen this question a hundred times and knows the exact answer${voiceRules}
+- Max 3 paragraphs. Calm authority.${voiceRules}
 
-THE CTW FRAMEWORK (use this to answer questions):
+CTW FRAMEWORK:
 - Wicks form because institutions sweep liquidity before reversing
 - The wick that hits your stop IS the institutional fill — price reverses after
-- Entry is on the close of the wick candle, not the next candle
-- Stop goes beyond the wick extreme — tight, mechanical
-- The two-candle sequence: wick candle + confirmation close = complete setup
-- Works across all pairs, all sessions — it is mechanical, not subjective
+- Entry on close of wick candle. Stop beyond wick extreme. Mechanical, not subjective.
 
-TARGET PLATFORMS (search these specifically):
-- site:reddit.com/r/Forex
-- site:reddit.com/r/Daytrading  
-- site:babypips.com/forum
-- site:forexfactory.com
-- site:quora.com (forex trading questions)
-- YouTube comments on high-traffic generic forex education videos (NOT competitor channels)
+PLATFORMS: reddit.com/r/Forex, reddit.com/r/Daytrading, babypips.com/forum, forexfactory.com, quora.com, YouTube comments on forex education videos.
 
-FRESHNESS REQUIREMENT: Only surface threads with activity within the last 14 days. Discard anything older. Check dates in search snippets.
+FRESHNESS: Only threads active within last 14 days. Discard older.
+KEYWORDS: ${keywordList}${perfContext}
+Today: ${today}.`;
 
-KEYWORDS TO SEARCH: ${keywordList}${perfContext}
+  const userPrompt = `Search for 3-5 active forum threads where traders ask questions that Catch The Wick answers.
 
-Today is ${today}.`;
+Filter: last 14 days activity, question format, at least 3 replies, max 5 opportunities.
 
-  const userPrompt = `Search for 3-5 active forum threads where traders are asking questions that the Catch The Wick methodology directly answers.
+Fetch each thread URL before drafting the reply.
 
-For each keyword, search the target platforms. Filter ruthlessly:
-1. Thread must have had activity in the last 14 days (check snippet dates)
-2. Question format — someone is asking for help or strategy advice
-3. CTW methodology is a direct, complete answer to their question
-4. Thread has at least 3 replies (active discussion, not dead)
-5. Maximum 5 opportunities total — quality over volume
-
-For each qualifying thread, fetch the URL to read the actual thread content before drafting the reply.
-
-Then return a JSON array of opportunity objects. Return ONLY the raw JSON array — no markdown, no preamble, start with [ and end with ].
+Return ONLY a raw JSON array — no markdown, no preamble. Start with [ end with ].
 
 Each object:
 {
   "platform": "reddit|babypips|forexfactory|quora|youtube",
   "platformDisplay": "r/Forex|r/Daytrading|BabyPips|ForexFactory|Quora|YouTube",
-  "url": "exact URL to the thread",
-  "replyUrl": "direct URL to reply/comment section (same as url for most, comment URL for YouTube)",
-  "topic": "what the thread is asking in one sentence",
-  "threadTitle": "the actual title or first line of the thread",
-  "keyword": "which keyword triggered this find",
+  "url": "exact thread URL",
+  "replyUrl": "direct reply URL",
+  "topic": "what the thread asks in one sentence",
+  "threadTitle": "actual thread title",
+  "keyword": "which keyword triggered this",
   "threadAgeDays": 3,
   "threadReplies": 14,
   "urgency": "high|medium|low",
-  "urgencyReason": "why this urgency level — freshness, reply count, keyword alignment",
-  "draft": "full reply draft in Salman's voice — max 3 paragraphs, direct answer first",
-  "draftWithoutLink": "version of draft with no article link — standalone value",
+  "urgencyReason": "why this urgency",
+  "draft": "full reply in Salman's voice — max 3 paragraphs, direct answer first",
+  "draftWithoutLink": "reply without article link",
   "includeLinkRecommendation": true,
-  "linkRecommendationReason": "why link is or is not recommended here",
-  "articleToLink": "which article slug is most relevant (or null if none yet)",
+  "linkRecommendationReason": "why link is or is not recommended",
+  "articleToLink": "slug or null",
   "utmTaggedUrl": "https://fortitudefx.com/article?slug=SLUG&utm_source=PLATFORM&utm_medium=reply&utm_campaign=organic&utm_content=KEYWORD or null",
-  "nuggetTagsUsed": ["wick", "institutional", "liquidity"],
-  "noLinkDraft": false
-}
-
-Search now. Find real active threads. Draft genuine helpful replies.`;
+  "nuggetTagsUsed": ["wick", "institutional"]
+}`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Content-Type':       'application/json',
-      'x-api-key':          apiKey,
-      'anthropic-version':  '2023-06-01',
-      'anthropic-beta':     'web-search-2025-03-05',
+      'Content-Type':      'application/json',
+      'x-api-key':         apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta':    'web-search-2025-03-05',
     },
     body: JSON.stringify({
       model:      ANTHROPIC_MODEL,
       max_tokens: 8000,
-      tools: [
-        {
-          type: 'web_search_20250305',
-          name: 'web_search',
-        },
-      ],
-      system:   systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
+      tools:      [{ type: 'web_search_20250305', name: 'web_search' }],
+      system:     systemPrompt,
+      messages:   [{ role: 'user', content: userPrompt }],
     }),
   });
 
@@ -388,14 +230,8 @@ Search now. Find real active threads. Draft genuine helpful replies.`;
   }
 
   const data = await res.json();
+  console.log('[social-intelligence] Claude stop_reason:', data.stop_reason, 'blocks:', data.content?.length);
 
-  // Log stop reason and content structure for debugging
-  console.log('[social-intelligence] Claude stop_reason:', data.stop_reason, 'content blocks:', data.content?.length);
-  if (data.content) {
-    data.content.forEach((block, i) => console.log(`  block[${i}]: type=${block.type}`));
-  }
-
-  // Extract text from response — may have tool use blocks before final text
   let rawText = '';
   if (data.content && Array.isArray(data.content)) {
     for (const block of data.content) {
@@ -404,15 +240,14 @@ Search now. Find real active threads. Draft genuine helpful replies.`;
   }
 
   if (!rawText.trim()) {
-    console.error('[social-intelligence] No text in Claude response. Stop reason:', data.stop_reason, 'Full response:', JSON.stringify(data).slice(0, 1000));
+    console.error('[social-intelligence] No text in Claude response:', JSON.stringify(data).slice(0, 500));
     return [];
   }
 
-  // Parse JSON array from response
   const first = rawText.indexOf('[');
   const last  = rawText.lastIndexOf(']');
   if (first === -1 || last === -1) {
-    console.error('[social-intelligence] No JSON array in Claude response. Raw:', rawText.slice(0, 500));
+    console.error('[social-intelligence] No JSON array in response:', rawText.slice(0, 300));
     return [];
   }
 
@@ -420,125 +255,125 @@ Search now. Find real active threads. Draft genuine helpful replies.`;
   try {
     opportunities = JSON.parse(rawText.slice(first, last + 1));
   } catch (parseErr) {
-    console.error('[social-intelligence] JSON parse failed:', parseErr.message, rawText.slice(first, first + 500));
+    console.error('[social-intelligence] JSON parse failed:', parseErr.message);
     return [];
   }
 
-  if (!Array.isArray(opportunities)) {
-    console.error('[social-intelligence] Parsed result is not an array');
-    return [];
-  }
+  if (!Array.isArray(opportunities)) return [];
 
-  // Filter and validate
-  const valid = opportunities.filter(opp => {
-    if (!opp.url || !opp.draft || !opp.platform) return false;
-    if (!opp.threadTitle && !opp.topic) return false;
-    return true;
-  });
-
-  console.log('[social-intelligence] Claude returned', opportunities.length, 'opportunities,', valid.length, 'valid after filtering');
+  const valid = opportunities.filter(o => o.url && o.draft && o.platform && (o.threadTitle || o.topic));
+  console.log('[social-intelligence] Claude returned', opportunities.length, 'raw,', valid.length, 'valid');
   return valid;
 }
 
-// ── Update voice calibration from edit pattern ────────────────────────────
+// ── Record outcome ────────────────────────────────────────────────────────
+async function recordOutcome(body, env, headers) {
+  const { opportunityId, action, editedReply, dismissReason } = body;
+  try {
+    const key = `intelligence:opportunities:${opportunityId}`;
+    const opp = await env.FFX_KV.get(key, { type: 'json' }).catch(() => null);
+    if (!opp) return json({ error: `Opportunity ${opportunityId} not found` }, 404, headers);
+
+    const now = new Date().toISOString();
+    if (action === 'posted_as_is') {
+      opp.status = 'posted-as-is'; opp.postedAt = now; opp.finalReply = opp.draft;
+    } else if (action === 'posted_edited') {
+      opp.status = 'posted-edited'; opp.postedAt = now;
+      opp.editedVersion = editedReply; opp.finalReply = editedReply;
+      await updateVoiceCalibration(env, classifyEdit(opp.draft, editedReply), opp.draft, editedReply);
+    } else if (action === 'dismissed') {
+      opp.status = 'dismissed'; opp.dismissedAt = now; opp.dismissReason = dismissReason || 'not_specified';
+    } else {
+      return json({ error: `Unknown action: ${action}` }, 400, headers);
+    }
+
+    await env.FFX_KV.put(key, JSON.stringify(opp), { expirationTtl: 86400 * 7 });
+    const verify = await env.FFX_KV.get(key, { type: 'json' }).catch(() => null);
+    if (!verify || verify.status !== opp.status) {
+      return json({ error: 'KV write verification failed', verified: false }, 500, headers);
+    }
+
+    if (action === 'posted_as_is' || action === 'posted_edited') {
+      try {
+        await env.FFX_KV.put(`intelligence:reply_performance:${opportunityId}`, JSON.stringify({
+          id: opportunityId, platform: opp.platform, keyword: opp.keyword,
+          postedAt: now, trafficGenerated: 0, overallResult: 'pending',
+        }), { expirationTtl: 86400 * 30 });
+        const sig = await env.FFX_KV.get('intelligence:signals', { type: 'json' }).catch(() => null);
+        if (sig) { sig.acted = (sig.acted || 0) + 1; await env.FFX_KV.put('intelligence:signals', JSON.stringify(sig), { expirationTtl: 86400 * 30 }); }
+      } catch {}
+    }
+    if (action === 'dismissed') {
+      try {
+        const sig = await env.FFX_KV.get('intelligence:signals', { type: 'json' }).catch(() => null);
+        if (sig) { sig.dismissed = (sig.dismissed || 0) + 1; await env.FFX_KV.put('intelligence:signals', JSON.stringify(sig), { expirationTtl: 86400 * 30 }); }
+      } catch {}
+    }
+
+    return json({ success: true, verified: true, opportunityId, action, status: opp.status }, 200, headers);
+  } catch (err) {
+    return json({ error: err.message, verified: false }, 500, headers);
+  }
+}
+
+// ── Voice calibration ─────────────────────────────────────────────────────
 async function updateVoiceCalibration(env, editType, original, edited) {
   try {
     const cal = await env.FFX_KV.get('intelligence:voice_calibration', { type: 'json' }).catch(() => null)
       || { corrections: [], editHistory: [], lastUpdated: null };
-
     cal.editHistory = cal.editHistory || [];
-    cal.editHistory.push({
-      editType,
-      recordedAt: new Date().toISOString(),
-    });
-
-    // Count edit types — after 10 of same type, add correction
+    cal.editHistory.push({ editType, recordedAt: new Date().toISOString() });
     const counts = {};
     cal.editHistory.forEach(e => { if (e.editType) counts[e.editType] = (counts[e.editType] || 0) + 1; });
-
-    cal.corrections = cal.corrections || [];
-
-    // Auto-generate corrections at 10+ repeats
     const correctionMap = {
-      length_reduction:    'Shorten replies — opening paragraph max 2 sentences. Total max 150 words.',
-      tone_adjustment:     'Soften tone — less assertive, more advisory in delivery.',
-      removed_promo:       'Never include self-promotional language in first 2 paragraphs.',
-      added_personal:      'Include specific personal trading observation in middle paragraph.',
-      factual_correction:  'Double-check all specific numbers, pairs, and timeframes before including.',
+      length_reduction: 'Shorten replies — max 150 words.',
+      tone_adjustment:  'Soften tone — more advisory in delivery.',
+      removed_promo:    'Never self-promotional in first 2 paragraphs.',
+      added_personal:   'Include personal trading observation in middle paragraph.',
     };
-
+    cal.corrections = cal.corrections || [];
     Object.entries(counts).forEach(([type, count]) => {
       if (count >= 10) {
-        const correction = correctionMap[type];
-        if (correction && !cal.corrections.includes(correction)) {
-          cal.corrections.push(correction);
-          console.log('[social-intelligence] Voice calibration correction added:', correction);
-        }
+        const c = correctionMap[type];
+        if (c && !cal.corrections.includes(c)) cal.corrections.push(c);
       }
     });
-
-    // Keep last 50 edit history entries
     if (cal.editHistory.length > 50) cal.editHistory = cal.editHistory.slice(-50);
-
     cal.lastUpdated = new Date().toISOString();
     await env.FFX_KV.put('intelligence:voice_calibration', JSON.stringify(cal), { expirationTtl: 86400 * 365 });
-  } catch (err) {
-    console.error('[social-intelligence] Voice calibration update failed (non-fatal):', err.message);
-  }
+  } catch {}
 }
 
-// ── Get reply performance summary ─────────────────────────────────────────
+// ── Reply performance summary ─────────────────────────────────────────────
 async function getReplyPerformanceSummary(env) {
   try {
     const list = await env.FFX_KV.list({ prefix: 'intelligence:reply_performance:' }).catch(() => null);
     if (!list || !list.keys.length) return null;
-
-    let totalPosted = 0, highCount = 0, totalTraffic = 0;
+    let totalPosted = 0, totalTraffic = 0;
     const platformCounts = {}, keywordCounts = {};
-
     for (const key of list.keys.slice(0, 30)) {
       const perf = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
       if (!perf) continue;
       totalPosted++;
-      if (perf.overallResult === 'high') highCount++;
       totalTraffic += perf.trafficGenerated || 0;
       if (perf.platform) platformCounts[perf.platform] = (platformCounts[perf.platform] || 0) + 1;
       if (perf.keyword)  keywordCounts[perf.keyword]   = (keywordCounts[perf.keyword]  || 0) + 1;
     }
-
     const topPlatform = Object.entries(platformCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
-    const topKeyword  = Object.entries(keywordCounts).sort((a, b) => b[1] - a[1])[0]?.[0]  || null;
-
-    return { totalPosted, highCount, totalTraffic, topPlatform, topKeyword };
-  } catch (err) {
-    console.error('[social-intelligence] getReplyPerformanceSummary error:', err.message);
-    return null;
-  }
+    const topKeyword  = Object.entries(keywordCounts).sort((a, b)  => b[1] - a[1])[0]?.[0]  || null;
+    return { totalPosted, totalTraffic, topPlatform, topKeyword };
+  } catch { return null; }
 }
 
 // ── Classify edit type ────────────────────────────────────────────────────
 function classifyEdit(original, edited) {
   if (!original || !edited) return 'unknown';
-  const origWords  = original.split(/\s+/).length;
-  const editWords  = edited.split(/\s+/).length;
-  const lengthDiff = origWords - editWords;
-
-  if (lengthDiff > origWords * 0.25) return 'length_reduction';
-  if (edited.toLowerCase().includes('i ') && !original.toLowerCase().includes('i ')) return 'added_personal';
+  const origWords = original.split(/\s+/).length;
+  const editWords = edited.split(/\s+/).length;
+  if (origWords - editWords > origWords * 0.25) return 'length_reduction';
   if (!edited.toLowerCase().includes('fortitudefx') && original.toLowerCase().includes('fortitudefx')) return 'removed_promo';
+  if (edited.toLowerCase().includes(' i ') && !original.toLowerCase().includes(' i ')) return 'added_personal';
   return 'tone_adjustment';
-}
-
-// ── Approximate edit distance (fast) ────────────────────────────────────
-function levenshteinApprox(a, b) {
-  if (!a || !b) return Math.max((a || '').length, (b || '').length);
-  const aLen = a.length, bLen = b.length;
-  if (Math.abs(aLen - bLen) > 500) return Math.abs(aLen - bLen);
-  // Simple character difference for large strings
-  const minLen = Math.min(aLen, bLen);
-  let diff = Math.abs(aLen - bLen);
-  for (let i = 0; i < minLen; i++) if (a[i] !== b[i]) diff++;
-  return diff;
 }
 
 export async function onRequestOptions() {
