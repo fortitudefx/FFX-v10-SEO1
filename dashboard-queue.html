@@ -7,17 +7,42 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="/dashboard-styles.css">
   <style>
-    /* Two-column layout */
+    /* Tab layout */
     .queue-layout {
       max-width: var(--content-max);
       width: calc(100% - 80px);
       margin: 32px auto 80px;
-      display: grid;
-      grid-template-columns: 1fr 600px;
-      gap: 20px;
-      align-items: start;
+      display: block;
       position: relative; z-index: 1;
     }
+    .queue-tab-bar {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 24px;
+    }
+    .queue-tab {
+      font-family: var(--font); font-size: 13px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(255,255,255,0.38); background: none; border: none;
+      padding: 14px 28px; cursor: pointer; position: relative;
+      transition: color 0.15s;
+    }
+    .queue-tab:hover { color: rgba(255,255,255,0.65); }
+    .queue-tab.active { color: rgba(255,255,255,0.92); }
+    .queue-tab.active::after {
+      content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+      height: 2px; background: var(--accent);
+    }
+    .queue-tab-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 20px; height: 20px; padding: 0 6px;
+      background: rgba(255,255,255,0.08); border-radius: 10px;
+      font-size: 11px; font-weight: 700; margin-left: 8px;
+      color: rgba(255,255,255,0.50);
+    }
+    .queue-tab-panel { display: none; }
+    .queue-tab-panel.active { display: block; }
 
     /* Active queue — same styling as content-wrap */
     .queue-active {
@@ -191,6 +216,16 @@
 </div>
 
 <div class="queue-layout">
+  <!-- Tab bar -->
+  <div class="queue-tab-bar">
+    <button class="queue-tab active" onclick="switchQueueTab('active')" id="tab-active">
+      Queue <span class="queue-tab-count" id="queueTabCount">0</span>
+    </button>
+    <button class="queue-tab" onclick="switchQueueTab('parked')" id="tab-parked">
+      Parked <span class="queue-tab-count" id="parkedTabCount">0</span>
+    </button>
+  </div>
+  <div class="queue-tab-panel active" id="panel-active">
 
   <!-- Active Queue -->
   <div class="queue-active">
@@ -210,7 +245,9 @@
   </div>
 
   <!-- Parked -->
-  <div class="queue-parked">
+  </div><!-- end panel-active -->
+  <div class="queue-tab-panel" id="panel-parked">
+  <div class="queue-parked" style="padding-top:0;">
     <div class="queue-col-header">
       <span class="queue-col-title">Parked</span>
       <span class="queue-col-count" id="parkedCount">0</span>
@@ -219,7 +256,7 @@
       <div class="parked-empty">Move videos here<br>to skip them.<br>Cron ignores parked videos.</div>
     </div>
   </div>
-
+  </div><!-- end panel-parked -->
 </div>
 
 <script>
@@ -335,6 +372,8 @@ async function renderParked() {
   const el      = document.getElementById('parkedRows');
   const countEl = document.getElementById('parkedCount');
   countEl.textContent = parked.length;
+  const ptc = document.getElementById('parkedTabCount');
+  if (ptc) ptc.textContent = parked.length;
 
   if (!parked.length) {
     el.innerHTML = '<div class="parked-empty">Move videos here<br>to skip them.<br>Cron ignores parked videos.</div>';
@@ -362,6 +401,8 @@ async function loadQueue() {
     if (!res.ok) { document.getElementById('queueRows').innerHTML='<div class="empty-state"><p>Error: '+escHtml(data.error||'Unknown')+'</p></div>'; return; }
     const queue = data.queue || [];
     document.getElementById('headerCount').textContent = queue.length + ' items';
+    const qtc = document.getElementById('queueTabCount');
+    if (qtc) qtc.textContent = queue.length;
     renderQueue(queue);
     renderParked();
   } catch (err) {
@@ -370,6 +411,7 @@ async function loadQueue() {
 }
 
 function renderQueue(queue) {
+  window._queueItems = queue; // Store globally for regen auto-reload
   const container = document.getElementById('queueRows');
   if (!queue.length) { container.innerHTML='<div class="empty-state"><p>Queue is empty. Cron will add videos automatically at 9am Dubai time.</p></div>'; return; }
   container.innerHTML = '';
@@ -573,7 +615,13 @@ function makeQueueEditable(el,videoId,field,editsData,tabBar){
   if(!bar||!bar.classList.contains('edit-save-bar')){bar=document.createElement('div');bar.className='edit-save-bar';bar.innerHTML='<span class="edit-save-bar-label">Editing '+field+' \u2014 unsaved</span><button class="btn-edit-discard">Discard</button><button class="btn-edit-save">Save</button>';el.parentNode.insertBefore(bar,el.nextSibling);}
   bar.classList.add('visible');
   bar.querySelector('.btn-edit-save').onclick=()=>saveQueueEdit(el,bar,videoId,field,editsData,tabBar);
-  bar.querySelector('.btn-edit-discard').onclick=()=>{el.setAttribute('contenteditable','false');el.innerText=original;el.dataset.editActive='false';bar.classList.remove('visible');};
+  bar.querySelector('.btn-edit-discard').onclick=()=>{
+    el.setAttribute('contenteditable','false');
+    el.innerText=original;
+    el.dataset.editActive='false';
+    bar.classList.remove('visible');
+    bar.remove();
+  };
 }
 
 async function saveQueueEdit(el,bar,videoId,field,editsData,tabBar){
@@ -975,15 +1023,40 @@ async function regenPlatform(event, videoId, platform, slug, encodedYtUrl) {
       return;
     }
 
-    btn.textContent = '✓ Done — click row to reload';
+    btn.textContent = '✓ Reloading content…';
     btn.style.color = '#3ecf8e';
-    setTimeout(() => { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 3000);
+
+    // Auto-reload the expanded content immediately — no manual click needed
+    const rowEl = btn.closest('.queue-row');
+    if (rowEl) {
+      const expanded = rowEl.querySelector('.row-expanded');
+      if (expanded) {
+        expanded.dataset.built = '';
+        // Find the queue item from the row's data
+        const videoIdAttr = rowEl.dataset.videoid;
+        if (videoIdAttr && window._queueItems) {
+          const queueItem = window._queueItems.find(i => i.videoId === videoIdAttr);
+          if (queueItem) {
+            await loadExpandedContent(expanded, queueItem);
+          }
+        }
+      }
+    }
+
+    setTimeout(() => { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 2000);
 
   } catch(err) {
     btn.textContent = '✗ Network error';
     btn.style.color = '#ff4444';
     setTimeout(() => { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 4000);
   }
+}
+
+function switchQueueTab(tab) {
+  document.querySelectorAll('.queue-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.queue-tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
 }
 
 function switchTab(pc,tb,key){
