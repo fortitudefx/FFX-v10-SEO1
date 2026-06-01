@@ -461,6 +461,10 @@ body > * { position: relative; z-index: 1; }
 .psb-chip-pend   { background: var(--panel);              color: rgba(255,255,255,0.40);    border: 1px solid var(--border); }
 .psb-chip-edited { background: var(--accent-orange-soft); color: var(--accent-orange-text); border: 1px solid var(--accent-orange-line); }
 .psb-chip-regen  { background: var(--cyan-bg);            color: var(--cyan);               border: 1px solid var(--cyan-bd); }
+.psb-right { display: flex; align-items: center; margin-left: auto; }
+.btn-regen-platform { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); border-radius: 6px; padding: 4px 10px; cursor: pointer; transition: all 0.15s; }
+.btn-regen-platform:hover { color: rgba(255,255,255,0.80); background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.22); }
+.btn-regen-platform:disabled { opacity: 0.45; cursor: not-allowed; }
 .psb-link { font-size: 12px; color: rgba(122,92,255,0.80); text-decoration: none; transition: color 0.15s; }
 .psb-link:hover { color: var(--accent-text); }
 .psb-date { font-size: 11px; color: rgba(255,255,255,0.28); }
