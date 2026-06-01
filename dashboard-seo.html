@@ -373,19 +373,19 @@
 
     <!-- Executive Summary -->
     <!-- Daily Directive Panel — rendered from intelligence:brief -->
-    <div id="directivePanel" style="display:none;margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(201,168,76,0.20);border-radius:12px;padding:20px 24px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div style="font-size:10px;font-weight:800;letter-spacing:0.20em;text-transform:uppercase;color:rgba(201,168,76,0.70);">⚡ Today's Directive</div>
-        <div id="directiveConfidence" style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.40);border:1px solid rgba(255,255,255,0.10);border-radius:4px;padding:3px 10px;"></div>
+    <div id="directivePanel" style="display:none;margin-bottom:20px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.30);border-radius:14px;padding:24px 28px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:#C9A84C;">⚡ TODAY'S DIRECTIVE</div>
+        <div id="directiveConfidence" style="font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#C9A84C;border:1px solid rgba(201,168,76,0.40);border-radius:5px;padding:4px 12px;background:rgba(201,168,76,0.10);"></div>
       </div>
-      <div id="directiveText" style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.92);line-height:1.5;margin-bottom:8px;"></div>
-      <div id="directiveSubtext" style="font-size:12px;color:rgba(255,255,255,0.40);margin-bottom:16px;line-height:1.5;"></div>
-      <div id="directiveNote" style="font-size:11px;color:rgba(201,168,76,0.60);margin-bottom:16px;font-style:italic;"></div>
+      <div id="directiveText" style="font-size:17px;font-weight:700;color:#ffffff;line-height:1.5;margin-bottom:10px;"></div>
+      <div id="directiveSubtext" style="font-size:14px;color:rgba(255,255,255,0.75);margin-bottom:14px;line-height:1.6;"></div>
+      <div id="directiveNote" style="font-size:13px;color:#C9A84C;margin-bottom:18px;line-height:1.5;"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <div id="directiveActionBtn"></div>
-        <button onclick="markDirectiveDone()" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.10);color:rgba(62,207,142,0.80);border:1px solid rgba(62,207,142,0.25);border-radius:5px;padding:6px 14px;cursor:pointer;">✓ Done</button>
-        <button onclick="snoozeDirective()" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:6px 14px;cursor:pointer;">∥ Snooze 24hrs</button>
-        <button onclick="dismissDirective()" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:6px 14px;cursor:pointer;">✗ Not Applicable</button>
+        <button onclick="markDirectiveDone()" style="font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.15);color:#3ecf8e;border:1px solid rgba(62,207,142,0.40);border-radius:6px;padding:8px 18px;cursor:pointer;">✓ Done</button>
+        <button onclick="snoozeDirective()" style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.70);border:1px solid rgba(255,255,255,0.18);border-radius:6px;padding:8px 18px;cursor:pointer;">∥ Snooze 24hrs</button>
+        <button onclick="dismissDirective()" style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:none;color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:8px 18px;cursor:pointer;">✗ Not Applicable</button>
       </div>
     </div>
 
@@ -514,18 +514,27 @@ async function seedTargets() {
   try {
     const res  = await fetch('/api/seed-targets', { method: 'POST' });
     const data = await res.json();
+    if (res.status === 409 || data.alreadySeeded) {
+      btn.textContent = '✓ Already seeded';
+      btn.style.color = 'rgba(62,207,142,0.70)';
+      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 3000);
+      loadTargetScorecard();
+      return;
+    }
     if (data.success) {
       btn.textContent = '✓ Targets seeded';
       btn.style.color = 'rgba(62,207,142,0.90)';
       setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 3000);
       loadTargetScorecard();
     } else {
-      btn.textContent = '✗ Error';
-      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; }, 3000);
+      btn.textContent = '✗ ' + (data.error || 'Error');
+      btn.style.color = '#ff4444';
+      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 4000);
     }
   } catch(e) {
-    btn.textContent = '✗ Error';
-    setTimeout(() => { btn.textContent = '⊕ Seed Targets'; }, 3000);
+    btn.textContent = '✗ Network error';
+    btn.style.color = '#ff4444';
+    setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 4000);
   }
 }
 
@@ -596,14 +605,30 @@ function renderScorecard(targets) {
 // ── Intelligence engine trigger ───────────────────────────────────────────
 async function triggerIntelligence() {
   const btn = document.getElementById('intelBtn');
-  btn.textContent = '⚡ Running — ~90s';
-  btn.style.color = 'rgba(201,168,76,0.90)';
   btn.disabled = true;
 
-  // Fire and forget — engine takes ~80s, don't wait for response
+  const STEPS = [
+    { t: 0,  label: '⚡ Reading signals…' },
+    { t: 8,  label: '⚡ Analysing SEO data…' },
+    { t: 20, label: '⚡ Calling Claude analyst…' },
+    { t: 40, label: '⚡ Generating brief…' },
+    { t: 65, label: '⚡ Computing directive…' },
+    { t: 80, label: '⚡ Finalising — almost done…' },
+  ];
+
+  let stepTimers = [];
+  STEPS.forEach(s => {
+    const t = setTimeout(() => {
+      btn.textContent = s.label;
+      btn.style.color = 'rgba(201,168,76,0.90)';
+    }, s.t * 1000);
+    stepTimers.push(t);
+  });
+
+  // Fire — don't await, engine takes ~80-90s
   fetch('/api/intelligence-engine', { method: 'POST' }).catch(() => {});
 
-  // Poll every 5s for up to 2 minutes to detect completion
+  // Poll every 5s up to 3 minutes
   let attempts = 0;
   const poll = setInterval(async () => {
     attempts++;
@@ -612,22 +637,25 @@ async function triggerIntelligence() {
       const data = await res.json();
       if (data.brief && data.brief.generatedAt) {
         const genTime = new Date(data.brief.generatedAt).getTime();
-        const now     = Date.now();
-        if (now - genTime < 180000) { // Generated within last 3 mins
+        if (Date.now() - genTime < 300000) { // Within last 5 mins
           clearInterval(poll);
+          stepTimers.forEach(t => clearTimeout(t));
           btn.textContent = '✓ Analysis complete';
-          btn.style.color = 'rgba(62,207,142,0.80)';
+          btn.style.color = '#3ecf8e';
           btn.disabled = false;
+          loadAndRenderDirective();
           if (typeof loadAll === 'function') loadAll(currentDays);
-          setTimeout(() => { btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; }, 4000);
+          setTimeout(() => { btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; }, 5000);
         }
       }
     } catch(e) {}
-    if (attempts >= 24) { // 2 minutes
+    if (attempts >= 36) { // 3 minutes
       clearInterval(poll);
-      btn.textContent = '⚡ Run Analysis';
-      btn.style.color = 'rgba(201,168,76,0.70)';
+      stepTimers.forEach(t => clearTimeout(t));
+      btn.textContent = '✗ Timed out — check logs';
+      btn.style.color = '#ff4444';
       btn.disabled = false;
+      setTimeout(() => { btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; }, 5000);
     }
   }, 5000);
 }
@@ -1167,7 +1195,7 @@ function renderDirectiveActionButton(container, resolution, brief) {
   if (!resolution || !resolution.action) return;
 
   const action = resolution.action;
-  const btnStyle = 'font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;border-radius:5px;padding:6px 14px;cursor:pointer;border:none;';
+  const btnStyle = 'font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;border-radius:6px;padding:8px 18px;cursor:pointer;';
 
   if (action.type === 'title_rewrite' || resolution.type === 'title_rewrite') {
     // Apply Title — calls title-test API directly
