@@ -31,7 +31,7 @@ export async function onRequestPost(context) {
     return json({ error: 'Invalid JSON body' }, 400, headers);
   }
 
-  const { videoId, platform } = body;
+  const { videoId, platform, slug: bodySlug, youtubeUrl: bodyYtUrl } = body;
   if (!videoId)  return json({ error: 'videoId is required' }, 400, headers);
   if (!platform) return json({ error: 'platform is required' }, 400, headers);
   if (!PLATFORM_FIELDS[platform]) {
@@ -46,15 +46,24 @@ export async function onRequestPost(context) {
     }, 404, headers);
   }
 
-  // ── 2. Pull published record for slug + youtubeUrl context only ──────────
-  const published = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' }).catch(() => null);
-  if (!published) {
-    return json({ error: `No published record found for videoId: ${videoId}` }, 404, headers);
+  // ── 2. Get slug + youtubeUrl — from body first, fall back to published KV ─
+  // Body values are passed from queue dashboard for pre-published articles.
+  // published:{videoId} only exists after an article has been published.
+  let slug       = bodySlug  || '';
+  let youtubeUrl = bodyYtUrl || '';
+
+  if (!slug || !youtubeUrl) {
+    const published = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' }).catch(() => null);
+    if (published) {
+      slug       = slug       || published.slug       || '';
+      youtubeUrl = youtubeUrl || published.youtubeUrl || '';
+    }
   }
 
-  const slug       = published.slug       || '';
-  const youtubeUrl = published.youtubeUrl || '';
-  const articleUrl = `https://fortitudefx.com/article?slug=${slug}`;
+  // slug is required to build article URL — fall back to videoId if missing
+  const articleUrl = slug
+    ? `https://fortitudefx.com/article?slug=${slug}`
+    : `https://fortitudefx.com`;
 
   // ── 3. Call Claude — transcript is the only content input ────────────────
   let newFields;
@@ -132,7 +141,7 @@ The body field contains HTML — ensure all quotes inside HTML attributes use si
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-5',
       max_tokens: 6000,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Transcript:\n\n${transcript}\n\nVOICE: This is Salman speaking — founder of FortitudeFX™. Write in his voice — direct, calm, experienced, institutional tone. Study his sentence rhythm and phrasing from the transcript before writing.` }],
