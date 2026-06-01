@@ -1002,12 +1002,31 @@ function startPolling(jobId,videoId,summaryEl){
 
 async function regenPlatform(event, videoId, platform, slug, encodedYtUrl) {
   event.stopPropagation();
-  const btn = event.target;
+  const btn    = event.target;
+  const panel  = btn.closest('.ppanel');
   const originalText = btn.textContent;
+
+  // Disable button and show inline progress inside the panel
   btn.disabled = true;
   btn.textContent = '↻ Regenerating…';
 
+  // Show progress overlay inside the active panel
+  let progressEl = null;
+  if (panel) {
+    progressEl = document.createElement('div');
+    progressEl.style.cssText = 'padding:20px 0 8px;font-size:13px;font-weight:600;color:rgba(255,255,255,0.70);display:flex;flex-direction:column;gap:8px;';
+    progressEl.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;"><div class="loading-spin" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div><span id="regenStatus-'+videoId+'">Sending transcript to Claude…</span></div>';
+    panel.appendChild(progressEl);
+  }
+
+  const setStatus = (msg, color) => {
+    const el = document.getElementById('regenStatus-'+videoId);
+    if (el) { el.textContent = msg; if(color) el.style.color = color; }
+  };
+
   try {
+    setStatus('Claude is regenerating '+platform+' content…');
     const ytUrl = decodeURIComponent(encodedYtUrl || '');
     const res = await fetch('/api/regenerate-platform', {
       method: 'POST',
@@ -1017,35 +1036,33 @@ async function regenPlatform(event, videoId, platform, slug, encodedYtUrl) {
     const data = await res.json();
 
     if (!res.ok || data.error) {
+      if (progressEl) progressEl.remove();
       btn.textContent = '✗ ' + (data.error || 'Error');
       btn.style.color = '#ff4444';
-      setTimeout(() => { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 4000);
+      setTimeout(() => { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 5000);
       return;
     }
 
-    btn.textContent = '✓ Reloading content…';
+    setStatus('Done — loading updated content…', '#3ecf8e');
+    btn.textContent = '✓ Done';
     btn.style.color = '#3ecf8e';
 
-    // Auto-reload the expanded content immediately — no manual click needed
+    // Auto-reload expanded content — video-content.js now merges regen:* keys
     const rowEl = btn.closest('.queue-row');
     if (rowEl) {
       const expanded = rowEl.querySelector('.row-expanded');
       if (expanded) {
         expanded.dataset.built = '';
-        // Find the queue item from the row's data
-        const videoIdAttr = rowEl.dataset.videoid;
-        if (videoIdAttr && window._queueItems) {
-          const queueItem = window._queueItems.find(i => i.videoId === videoIdAttr);
-          if (queueItem) {
-            await loadExpandedContent(expanded, queueItem);
-          }
-        }
+        const queueItem = (window._queueItems||[]).find(i => i.videoId === rowEl.dataset.videoid);
+        if (queueItem) await loadExpandedContent(expanded, queueItem);
       }
     }
 
+    if (progressEl) progressEl.remove();
     setTimeout(() => { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 2000);
 
   } catch(err) {
+    if (progressEl) progressEl.remove();
     btn.textContent = '✗ Network error';
     btn.style.color = '#ff4444';
     setTimeout(() => { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 4000);
