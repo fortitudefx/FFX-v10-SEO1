@@ -3,7 +3,7 @@
 // Called by cron daily after signals are collected
 // Reads all available signal KV keys, calls Claude analyst, writes intelligence:brief
 
-const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -13,9 +13,6 @@ export async function onRequestPost(context) {
 
   try {
     // ── Read all available signal sources ────────────────────────────────
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-
     const [
       seoSignals,    seoLearning,
       ga4Signals,    ga4Learning,
@@ -23,32 +20,20 @@ export async function onRequestPost(context) {
       emailSignals,  intelSignals,
       calSignals,    knowledgeTaxonomy,
       knowledgePerf, prevBrief,
-      accuracyScores, healthResults,
-      socialSignals, voiceCalibration,
     ] = await Promise.all([
-      env.FFX_KV.get('seo:signals',            { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('seo:learning',            { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('ga4:signals',             { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('ga4:learning',            { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('youtube:signals',         { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('discord:signals',         { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('email:signals',           { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('intelligence:signals',    { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('calendar:signals',        { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('knowledge:taxonomy',      { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('knowledge:performance',   { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('intelligence:brief',      { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('intelligence:accuracy_scores', { type: 'json' }).catch(() => null),
-      env.FFX_KV.get(`health:results:${today}`, { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('intelligence:signals',         { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('intelligence:voice_calibration',{ type: 'json' }).catch(() => null),
+      env.FFX_KV.get('seo:signals',           { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('seo:learning',           { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('ga4:signals',            { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('ga4:learning',           { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('youtube:signals',        { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('discord:signals',        { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('email:signals',          { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('intelligence:signals',   { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('calendar:signals',       { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('knowledge:taxonomy',     { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('knowledge:performance',  { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('intelligence:brief',     { type: 'json' }).catch(() => null),
     ]);
-
-    // ── Read list-based signals (cannot go in Promise.all — need KV.list) ──
-    const contentPerfHistory  = await getContentPerformanceHistory(env).catch(() => null);
-    const recentBriefSummary  = await getRecentBriefLogSummary(env, yesterday).catch(() => null);
-    const titleTestLearnings  = await getTitleTestLearnings(env).catch(() => null);
-    const replyPerformance    = await getReplyPerformanceSummary(env).catch(() => null);
 
     if (!seoSignals && !ga4Signals) {
       return json({ error: 'No signal data available. Run signal collection first.' }, 400, headers);
@@ -59,9 +44,6 @@ export async function onRequestPost(context) {
       seoSignals, seoLearning, ga4Signals, ga4Learning,
       ytSignals, discordSignals, emailSignals, intelSignals,
       calSignals, knowledgeTaxonomy, knowledgePerf, prevBrief,
-      accuracyScores, healthResults,
-      contentPerfHistory, recentBriefSummary, titleTestLearnings,
-      socialSignals, voiceCalibration, replyPerformance,
     });
 
     // ── Call Claude analyst ───────────────────────────────────────────────
@@ -83,113 +65,22 @@ export async function onRequestPost(context) {
       },
     };
 
-    await env.FFX_KV.put('intelligence:brief', JSON.stringify(output));
-
-    // ── Verify intelligence:brief was written correctly ───────────────────
-    const briefVerify = await env.FFX_KV.get('intelligence:brief', { type: 'json' }).catch(() => null);
-    if (!briefVerify || !briefVerify.generatedAt) {
-      console.error('[intelligence-engine] CRITICAL: intelligence:brief write verification FAILED');
-      return json({ error: 'intelligence:brief write failed verification — KV write did not persist' }, 500, headers);
-    }
-    console.log('[intelligence-engine] intelligence:brief write VERIFIED:', briefVerify.generatedAt);
-
-    // ── Write ga4:exec_summary:{today} for Daily Directive dashboard panel ──
-    // REQUIRED for directive feedback — elevated to surface failure clearly
+    // ── Part A: Compute directive resolution ─────────────────────────────
+    // Pre-compute the solution for today's directive so dashboard can render
+    // action buttons instead of just showing text
     try {
-      // ── Check if same directive type was acted on in last 3 days — skip repeat ──
-      const candidateType = output.priorityActions?.[0] ? detectDirectiveType(output.priorityActions[0]) : 'no_action';
-      const candidateHeadline = output.priorityActions?.[0]?.action || '';
-      let suppressDirective = false;
-      let suppressReason    = null;
-      try {
-        // Check today AND last 3 days (d=0 is today)
-        for (let d = 0; d <= 3; d++) {
-          const pastDate = new Date(Date.now() - d * 86400000).toISOString().split('T')[0];
-          const pastDir  = await env.FFX_KV.get(`intelligence:daily_directive:${pastDate}`, { type: 'json' }).catch(() => null);
-          if (pastDir && pastDir.actedOn === true && pastDir.directiveType === candidateType) {
-            suppressDirective = true;
-            suppressReason    = d === 0
-              ? `Same directive type "${candidateType}" was already acted on today. Showing next priority action instead.`
-              : `Same directive type "${candidateType}" was acted on ${d} day${d>1?'s':''} ago (${pastDate}). Showing next priority action instead.`;
-            console.log('[intelligence-engine] Suppressing repeat directive:', suppressReason);
-            break;
-          }
-        }
-      } catch(suppressErr) {
-        console.error('[intelligence-engine] Directive repeat check failed (non-fatal):', suppressErr.message);
-      }
-
-      // If suppressed, use second priority action or no_action
-      const directiveAction = suppressDirective
-        ? (output.priorityActions?.[1] || null)
-        : (output.priorityActions?.[0] || null);
-      const directiveType = directiveAction ? detectDirectiveType(directiveAction) : 'no_action';
-
-      // ── Preserve actedOn state if directive was already acted on today ─────
-      const existingExec = await env.FFX_KV.get(`ga4:exec_summary:${today}`, { type: 'json' }).catch(() => null);
-      const alreadyActedOn   = existingExec?.dailyDirective?.actedOn === true;
-      const alreadySnoozed   = existingExec?.dailyDirective?.snoozeUntil
-                               && new Date(existingExec.dailyDirective.snoozeUntil) > new Date();
-
-      const execSummary = {
-        date:            today,
-        generatedAt:     output.generatedAt,
-        momentum:        output.weeklyInsight?.momentum || 'stable',
-        momentumText:    output.weeklyInsight?.headline || '',
-        keyWin:          output.weeklyInsight?.keyWin   || null,
-        keyRisk:         output.weeklyInsight?.keyRisk  || null,
-        forecast:        output.weeklyInsight?.forecast || null,
-        dailyDirective: {
-          type:            directiveType,
-          headline:        directiveAction?.action || 'No critical action needed today',
-          reason:          suppressDirective
-                             ? suppressReason
-                             : (directiveAction?.reasoning || 'All KPIs within acceptable range'),
-          targetKpi:       directiveAction?.impact === 'high' ? 'impressions' : null,
-          suggestedTopic:  output.articleBrief?.targetQuery || null,
-          expectedOutcome: output.articleBrief?.reasoning || null,
-          confidence:      directiveAction?.impact === 'high' ? 'high' : 'medium',
-          triggerSignals:  output.learningUpdate?.newPattern ? [output.learningUpdate.newPattern] : [],
-          issuedAt:        output.generatedAt,
-          suppressedRepeat: suppressDirective,
-          // ── Preserve actedOn — NEVER overwrite true with null ──────────
-          actedOn:         alreadyActedOn ? true : null,
-          actedOnAt:       alreadyActedOn ? existingExec.dailyDirective.actedOnAt : null,
-          actedOnMethod:   alreadyActedOn ? existingExec.dailyDirective.actedOnMethod : null,
-          snoozeUntil:     alreadySnoozed ? existingExec.dailyDirective.snoozeUntil : null,
-          outcome:         null,
-          accurate:        null,
-          directiveType:   directiveType,
-        },
-        crossSignalInsights: [
-          output.weeklyInsight?.keyWin,
-          output.weeklyInsight?.keyRisk,
-          output.learningUpdate?.confirmedPattern,
-        ].filter(Boolean),
-        topOpportunity:  output.replyOpportunities?.[0] || null,
-        signalSourcesRead: Object.keys(output.signalSources || {}).filter(k => output.signalSources[k]),
-      };
-      await env.FFX_KV.put(`ga4:exec_summary:${today}`, JSON.stringify(execSummary), { expirationTtl: 86400 * 30 });
-
-      // ── Verify ga4:exec_summary was written — CRITICAL for directive feedback ──
-      const execVerify = await env.FFX_KV.get(`ga4:exec_summary:${today}`, { type: 'json' }).catch(() => null);
-      if (!execVerify || !execVerify.dailyDirective) {
-        console.error('[intelligence-engine] CRITICAL: ga4:exec_summary write verification FAILED for:', today);
-        // Do not throw — brief is already written and verified. Surface clearly in response.
-        output._execSummaryWriteVerified = false;
-        output._execSummaryWriteError = 'Read-back verification failed — directive buttons may not work until next Run Analysis';
-      } else {
-        output._execSummaryWriteVerified = true;
-        console.log('[intelligence-engine] ga4:exec_summary write VERIFIED for:', today);
-      }
-    } catch(execErr) {
-      console.error('[intelligence-engine] ga4:exec_summary write FAILED:', execErr.message);
-      output._execSummaryWriteVerified = false;
-      output._execSummaryWriteError = execErr.message;
+      const resolution = await computeDirectiveResolution(brief, env);
+      output.directiveResolution = resolution;
+      console.log('[intelligence-engine] Directive resolution computed:', resolution.type, '| match:', resolution.matchType);
+    } catch (resErr) {
+      console.error('[intelligence-engine] Directive resolution failed (non-fatal):', resErr.message);
     }
+
+    await env.FFX_KV.put('intelligence:brief', JSON.stringify(output));
 
     // ── Write intelligence:brief_log (recommendation tracking) ───────────
     try {
+      const today    = new Date().toISOString().split('T')[0];
       const briefLog = {
         briefId:    today,
         generatedAt: output.generatedAt,
@@ -270,10 +161,7 @@ export async function onRequestPost(context) {
 function buildSignalContext(signals) {
   const { seoSignals, seoLearning, ga4Signals, ga4Learning, ytSignals,
           discordSignals, emailSignals, intelSignals, calSignals,
-          knowledgeTaxonomy, knowledgePerf, prevBrief,
-          accuracyScores, healthResults,
-          contentPerfHistory, recentBriefSummary, titleTestLearnings,
-          socialSignals, voiceCalibration, replyPerformance } = signals;
+          knowledgeTaxonomy, knowledgePerf, prevBrief } = signals;
 
   let ctx = `You are the intelligence analyst for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick™ mechanical entry system by Salman Khan.
 
@@ -418,195 +306,219 @@ Yesterday's momentum: ${prevBrief.weeklyInsight?.momentum || 'N/A'}
 `;
   }
 
-
-  // ── Section 30: Content performance history ──────────────────────────
-  if (contentPerfHistory && contentPerfHistory.length > 0) {
-    ctx += `
-━━ CONTENT PERFORMANCE HISTORY (published articles with ranking data) ━━
-`;
-    const ranked    = contentPerfHistory.filter(p => p.snapshot7?.position).sort((a,b) => a.snapshot7.position - b.snapshot7.position).slice(0,5);
-    const engaged   = contentPerfHistory.filter(p => p.snapshot7?.avgDuration > 0).sort((a,b) => b.snapshot7.avgDuration - a.snapshot7.avgDuration).slice(0,3);
-    const pillars   = {};
-    contentPerfHistory.forEach(p => { if (p.contentPillar) pillars[p.contentPillar] = (pillars[p.contentPillar]||0)+1; });
-    const topPillar = Object.entries(pillars).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'unknown';
-
-    if (ranked.length > 0) {
-      ctx += `Top ranking articles:
-${ranked.map(p => `  - "${p.title}" — pos ${p.snapshot7.position?.toFixed(1)}, ${p.snapshot7.impressions} impr, pillar: ${p.contentPillar}, query: "${p.targetQuery}"`).join('\n')}\n`;
-    }
-    if (engaged.length > 0) {
-      ctx += `Best session quality:
-${engaged.map(p => `  - "${p.title}" — ${Math.round(p.snapshot7.avgDuration)}s avg, ${p.snapshot7.sessions} sessions`).join('\n')}\n`;
-    }
-    ctx += `Most published pillar: ${topPillar}. Total articles tracked: ${contentPerfHistory.length}.\n`;
-  }
-
-  // ── Section 30: Accuracy track record ────────────────────────────────
-  if (accuracyScores && Array.isArray(accuracyScores) && accuracyScores.length > 0) {
-    const recent4 = accuracyScores.slice(-4);
-    const latest  = recent4[recent4.length - 1];
-    ctx += `
-━━ YOUR RECOMMENDATION TRACK RECORD (last ${recent4.length} weeks) ━━
-Overall accuracy: ${latest.accuracyRate ? (latest.accuracyRate*100).toFixed(0)+'%' : 'building'} | Acted on: ${latest.usefulnessRate ? (latest.usefulnessRate*100).toFixed(0)+'%' : 'building'}
-`;
-    if (latest.byType) {
-      Object.entries(latest.byType).forEach(([type, stats]) => {
-        ctx += `  ${type}: ${stats.accurate}/${stats.measured} accurate, ${stats.actedOn}/${stats.made} acted on\n`;
-      });
-    }
-    ctx += `CALIBRATION: Focus on recommendation types with highest acted-on rate. Reduce types with <30% accuracy.\n`;
-  }
-
-  // ── Section 30: Recent brief outcomes ────────────────────────────────
-  if (recentBriefSummary) {
-    ctx += `
-━━ RECENT BRIEF OUTCOMES (last 7 days) ━━
-${recentBriefSummary}
-`;
-  }
-
-  // ── Section 30: Title format learnings ───────────────────────────────
-  if (titleTestLearnings) {
-    ctx += `
-━━ TITLE FORMAT LEARNINGS (completed A/B tests on this site) ━━
-${titleTestLearnings}
-Apply these format learnings to every title suggestion in this brief.
-`;
-  }
-
-  // ── Section 4: Social intelligence context ──────────────────────────
-  if (socialSignals || replyPerformance || voiceCalibration) {
-    ctx += `
-━━ SOCIAL INTELLIGENCE (community engagement) ━━
-`;
-
-    if (socialSignals) {
-      const opps = socialSignals.opportunitiesFound || 0;
-      const acted = socialSignals.acted || 0;
-      const dismissed = socialSignals.dismissed || 0;
-      ctx += `Opportunities found today: ${opps} | Posted: ${acted} | Dismissed: ${dismissed}\n`;
-      if (socialSignals.topKeywords && socialSignals.topKeywords.length > 0) {
-        ctx += `Top engagement keywords: ${socialSignals.topKeywords.join(', ')}\n`;
-      }
-      if (socialSignals.topPlatform) {
-        ctx += `Most active platform: ${socialSignals.topPlatform}\n`;
-      }
-    }
-
-    if (replyPerformance) {
-      ctx += `\nReply performance (last 30 days):\n`;
-      if (replyPerformance.totalPosted > 0) {
-        ctx += `  Posted: ${replyPerformance.totalPosted} | High result: ${replyPerformance.highCount} | Traffic generated: ${replyPerformance.totalTraffic} sessions\n`;
-        if (replyPerformance.topPlatform) ctx += `  Best platform: ${replyPerformance.topPlatform} (${replyPerformance.topPlatformResult})\n`;
-        if (replyPerformance.topKeyword) ctx += `  Best keyword: "${replyPerformance.topKeyword}"\n`;
-      } else {
-        ctx += `  No posted replies yet — social intelligence launching\n`;
-      }
-    }
-
-    if (voiceCalibration && voiceCalibration.corrections && voiceCalibration.corrections.length > 0) {
-      ctx += `\nVoice calibration (apply to reply drafts):\n`;
-      voiceCalibration.corrections.slice(0, 5).forEach(c => {
-        ctx += `  - ${c}\n`;
-      });
-    }
-  }
-
-  // ── Section 31: System health context ────────────────────────────────
-  if (healthResults) {
-    const redChecks   = (healthResults.checks||[]).filter(c => c.status === 'RED');
-    const amberChecks = (healthResults.checks||[]).filter(c => c.status === 'AMBER');
-    if (redChecks.length > 0 || amberChecks.length > 0) {
-      ctx += `
-━━ SYSTEM HEALTH (from last health check: ${healthResults.ranAt?.split('T')[0] || 'unknown'}) ━━
-Overall: ${healthResults.overall}
-`;
-      if (redChecks.length > 0) {
-        ctx += `CRITICAL issues: ${redChecks.map(c => c.name).join(', ')}\n`;
-        ctx += `NOTE: Some recommendations may be affected by these system issues. Flag if relevant.\n`;
-      }
-      if (amberChecks.length > 0) {
-        ctx += `Degraded: ${amberChecks.map(c => c.name).join(', ')}\n`;
-      }
-    }
-  }
-
   return ctx;
 }
 
-// ── Section 30: Helper — get content performance history ─────────────────
-async function getContentPerformanceHistory(env) {
-  try {
-    const list = await env.FFX_KV.list({ prefix: 'content:performance:' }).catch(() => null);
-    if (!list || !list.keys.length) return [];
-    const results = [];
-    for (const key of list.keys.slice(0, 20)) {
-      const perf = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
-      if (!perf || perf.status !== 'published') continue;
-      if (!perf.snapshot7) continue; // Only include articles with at least 7-day snapshot
-      results.push({
-        slug:          perf.slug,
-        title:         perf.title,
-        contentPillar: perf.contentPillar,
-        targetQuery:   perf.targetQuery,
-        briefVersion:  perf.briefVersion,
-        nuggetTagsUsed: perf.nuggetTagsUsed || [],
-        snapshot7:     perf.snapshot7,
-        snapshot30:    perf.snapshot30 || null,
-      });
-    }
-    return results;
-  } catch(e) {
-    console.error('[intelligence-engine] getContentPerformanceHistory error:', e.message);
-    return [];
-  }
-}
+// ── Compute directive resolution ─────────────────────────────────────────
+// For each directive type, search existing content and pre-compute the action
+// so the dashboard can render buttons instead of just text
+async function computeDirectiveResolution(brief, env) {
+  const resolution = {
+    type:        'none',
+    matchType:   'none',
+    directiveText: '',
+    action:      null,
+  };
 
-// ── Section 30: Helper — get recent brief log summary ────────────────────
-async function getRecentBriefLogSummary(env, yesterday) {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const keys  = [today, yesterday];
-    const lines = [];
-    for (const date of keys) {
-      const log = await env.FFX_KV.get(`intelligence:brief_log:${date}`, { type: 'json' }).catch(() => null);
-      if (!log || !log.recommendations) continue;
-      const actedOn = log.recommendations.filter(r => r.actedOn).length;
-      const accurate = log.recommendations.filter(r => r.accurate === true).length;
-      const total   = log.recommendations.length;
-      lines.push(`${date}: ${total} recommendations, ${actedOn} acted on, ${accurate} confirmed accurate`);
-      log.recommendations.filter(r => r.actedOn && r.outcome).slice(0,3).forEach(r => {
-        lines.push(`  - ${r.type} for "${r.target}" → ${r.outcome}`);
-      });
-    }
-    return lines.length > 0 ? lines.join('\n') : null;
-  } catch(e) {
-    console.error('[intelligence-engine] getRecentBriefLogSummary error:', e.message);
-    return null;
-  }
-}
+    // Determine primary directive type
+    const hasArticleBrief  = !!brief.articleBrief?.targetQuery;
+    const hasTitleRewrite  = brief.titleRewrites?.length > 0;
+    const hasPriorityAction = brief.priorityActions?.length > 0;
 
-// ── Section 30: Helper — get title test learnings ────────────────────────
-async function getTitleTestLearnings(env) {
-  try {
-    const list = await env.FFX_KV.list({ prefix: 'seo:title_tests:' }).catch(() => null);
-    if (!list || !list.keys.length) return null;
-    const improved    = [];
-    const notImproved = [];
-    for (const key of list.keys.slice(0, 15)) {
-      const test = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
-      if (!test || test.status !== 'complete') continue;
-      if (test.improvement) improved.push(test.newTitle || 'unknown');
-      else notImproved.push(test.newTitle || 'unknown');
+    // Read available data sources in parallel
+    const [articlesIndex, nuggetsIndex, queueIndex] = await Promise.all([
+      env.FFX_KV.get('articles:index', { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('nuggets:index',  { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('queue:index',    { type: 'json' }).catch(() => null),
+    ]);
+
+    const articles = Array.isArray(articlesIndex) ? articlesIndex : [];
+    const nuggetIds = Array.isArray(nuggetsIndex) ? nuggetsIndex : [];
+    const queue = Array.isArray(queueIndex) ? queueIndex : [];
+
+    // ── Title rewrite directive ───────────────────────────────────────────
+    if (hasTitleRewrite) {
+      const rewrite = brief.titleRewrites[0];
+      const slug = rewrite.currentUrl?.replace('/article?slug=', '') || '';
+      const existing = articles.find(a => a.slug === slug);
+      resolution.type = 'title_rewrite';
+      resolution.directiveText = `Rewrite title for: ${rewrite.currentUrl}`;
+      resolution.action = {
+        label:          'Apply Title',
+        endpoint:       '/api/title-test',
+        slug:           slug,
+        currentTitle:   existing?.title || '',
+        suggestedTitle: rewrite.suggestedTitle,
+        reasoning:      rewrite.reasoning,
+      };
+      resolution.matchType = existing ? 'found_article' : 'slug_only';
+      return resolution;
     }
-    if (improved.length === 0 && notImproved.length === 0) return null;
-    let result = '';
-    if (improved.length > 0)    result += `Improved CTR: ${improved.join(' | ')}\n`;
-    if (notImproved.length > 0) result += `No improvement: ${notImproved.join(' | ')}\n`;
-    return result;
-  } catch(e) {
-    console.error('[intelligence-engine] getTitleTestLearnings error:', e.message);
-    return null;
+
+    // ── Article brief directive ───────────────────────────────────────────
+    if (hasArticleBrief) {
+      const targetQuery  = brief.articleBrief.targetQuery.toLowerCase();
+      const nuggetTags   = (brief.articleBrief.nuggetTags || []).map(t => t.toLowerCase());
+      const queryWords   = targetQuery.split(/\s+/).filter(w => w.length > 3);
+
+      resolution.type = 'article_brief';
+      resolution.directiveText = `Generate article targeting: "${brief.articleBrief.targetQuery}"`;
+
+      // 1. Check if a published article already covers this topic
+      const matchedArticle = articles.find(a => {
+        const titleLower = a.title.toLowerCase();
+        const tagsLower  = (a.tags || []).map(t => t.toLowerCase());
+        const titleMatch = queryWords.some(w => titleLower.includes(w));
+        const tagMatch   = nuggetTags.some(nt => tagsLower.some(t => t.includes(nt) || nt.includes(t)));
+        return titleMatch || tagMatch;
+      });
+
+      if (matchedArticle) {
+        resolution.matchType = 'found_published_article';
+        resolution.action = {
+          label:       'Update Title',
+          type:        'title_rewrite',
+          slug:        matchedArticle.slug,
+          currentTitle: matchedArticle.title,
+          suggestedTitle: brief.articleBrief.suggestedTitle,
+          articleUrl:  `https://fortitudefx.com/article?slug=${matchedArticle.slug}`,
+          note:        'You already have a published article on this topic. Update its title to match the target query.',
+        };
+        return resolution;
+      }
+
+      // 2. Check if a queue item exists for this topic
+      const matchedQueueItem = queue.find(q => {
+        if (!q.title) return false;
+        const titleLower = q.title.toLowerCase();
+        return queryWords.some(w => titleLower.includes(w));
+      });
+
+      if (matchedQueueItem && matchedQueueItem.wasGenerated) {
+        resolution.matchType = 'found_queue_ready';
+        resolution.action = {
+          label:   'Go to Article',
+          type:    'queue_ready',
+          videoId: matchedQueueItem.videoId,
+          title:   matchedQueueItem.title,
+          note:    'Content generated and ready to review.',
+        };
+        return resolution;
+      }
+
+      if (matchedQueueItem && !matchedQueueItem.wasGenerated) {
+        resolution.matchType = 'found_queue_pending';
+        resolution.action = {
+          label:   'Generate Now',
+          type:    'queue_pending',
+          videoId: matchedQueueItem.videoId,
+          title:   matchedQueueItem.title,
+          note:    'Video in queue — generate article now.',
+        };
+        return resolution;
+      }
+
+      // 3. Check nuggets for this topic
+      if (nuggetIds.length > 0 && nuggetTags.length > 0) {
+        // Sample first 30 nuggets for tag match (avoid excessive KV reads)
+        const sampleIds = nuggetIds.slice(0, 30);
+        const nuggets = (await Promise.all(
+          sampleIds.map(id => env.FFX_KV.get(`nugget:${id}`, { type: 'json' }).catch(() => null))
+        )).filter(Boolean);
+
+        const matchedNuggets = nuggets.filter(n => {
+          const nTags = (n.tags || []).map(t => t.toLowerCase());
+          return nuggetTags.some(nt => nTags.some(t => t.includes(nt) || nt.includes(t)));
+        });
+
+        if (matchedNuggets.length >= 2) {
+          resolution.matchType = 'found_nuggets';
+          resolution.action = {
+            label:        'Generate with Nuggets',
+            type:         'nugget_generate',
+            nuggetCount:  matchedNuggets.length,
+            nuggetIds:    matchedNuggets.slice(0, 5).map(n => n.id),
+            nuggetTags:   nuggetTags,
+            suggestedTitle: brief.articleBrief.suggestedTitle,
+            targetQuery:  brief.articleBrief.targetQuery,
+            note:         `${matchedNuggets.length} existing nuggets match this topic — inject them for a stronger article.`,
+          };
+          return resolution;
+        }
+      }
+
+      // 4. No existing content — new article needed
+      resolution.matchType = 'no_existing_content';
+      resolution.action = {
+        label:        'Add Video to Queue',
+        type:         'new_article',
+        targetQuery:  brief.articleBrief.targetQuery,
+        suggestedTitle: brief.articleBrief.suggestedTitle,
+        angle:        brief.articleBrief.angle,
+        note:         'No existing content on this topic. Add a relevant video URL to generate a new article.',
+      };
+      return resolution;
+    }
+
+    // ── Priority action directive — retroactive linking (Component 3) ─────
+    if (hasPriorityAction) {
+      const action = brief.priorityActions[0];
+      const actionText = (action.action || '').toLowerCase();
+
+      if (actionText.includes('internal link') || actionText.includes('link between') || actionText.includes('add link')) {
+        // Find the two most topically related articles to cross-link
+        if (articles.length >= 2) {
+          // Sort by most recently published first
+          const sorted = [...articles].sort((a, b) =>
+            new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0)
+          );
+          const newest   = sorted[0];
+          const related  = sorted.slice(1).find(a => {
+            const sharedTags = a.tags.filter(t =>
+              newest.tags.some(nt => nt.toLowerCase() === t.toLowerCase())
+            );
+            return sharedTags.length > 0;
+          }) || sorted[1];
+
+          if (newest && related) {
+            resolution.type = 'retroactive_link';
+            resolution.directiveText = `Add internal link from "${related.title}" to "${newest.title}"`;
+            resolution.matchType = 'found_link_pair';
+            resolution.action = {
+              label:        'Apply Link',
+              type:         'retroactive_link',
+              sourceSlug:   related.slug,
+              sourceTitle:  related.title,
+              targetSlug:   newest.slug,
+              targetTitle:  newest.title,
+              targetUrl:    `https://fortitudefx.com/article?slug=${newest.slug}`,
+              note:         `Add a link from "${related.title}" to your newest article "${newest.title}" to boost its ranking.`,
+            };
+            return resolution;
+          }
+        }
+      }
+
+      // Generic priority action
+      resolution.type = 'priority_action';
+      resolution.directiveText = action.action || '';
+      resolution.matchType = 'action_only';
+      resolution.action = {
+        label: 'Mark Done',
+        type:  'generic',
+        note:  action.action,
+      };
+      return resolution;
+    }
+
+    resolution.matchType = 'no_directive';
+    return resolution;
+
+  } catch (err) {
+    console.error('[intelligence-engine] computeDirectiveResolution error:', err.message);
+    resolution.matchType = 'error';
+    return resolution;
   }
 }
 
@@ -762,48 +674,6 @@ Return ONLY raw JSON. No markdown. No preamble.`;
     console.log('[intelligence-engine] Learning summary updated');
   } catch(e) {
     console.error('[intelligence-engine] Learning summary error:', e.message);
-  }
-}
-
-// ── Helper: detect directive type from priority action ───────────────────
-function detectDirectiveType(action) {
-  if (!action || !action.action) return 'no_action';
-  const a = action.action.toLowerCase();
-  if (a.includes('record') || a.includes('video')) return 'record_and_generate';
-  if (a.includes('title') || a.includes('rewrite')) return 'title_rewrite';
-  if (a.includes('publish') || a.includes('pending')) return 'publish_pending';
-  if (a.includes('linkedin') || a.includes('post') || a.includes('discord')) return 'platform_post';
-  if (a.includes('reply') || a.includes('community')) return 'community_reply';
-  return 'priority_action';
-}
-
-// ── Section 4: Helper — get reply performance summary ────────────────────
-async function getReplyPerformanceSummary(env) {
-  try {
-    const list = await env.FFX_KV.list({ prefix: 'intelligence:reply_performance:' }).catch(() => null);
-    if (!list || !list.keys.length) return null;
-
-    let totalPosted = 0, highCount = 0, totalTraffic = 0;
-    const platformCounts = {}, keywordCounts = {};
-
-    for (const key of list.keys.slice(0, 30)) {
-      const perf = await env.FFX_KV.get(key.name, { type: 'json' }).catch(() => null);
-      if (!perf) continue;
-      totalPosted++;
-      if (perf.overallResult === 'high') highCount++;
-      totalTraffic += perf.trafficGenerated || 0;
-      if (perf.platform) platformCounts[perf.platform] = (platformCounts[perf.platform]||0)+1;
-      if (perf.keyword)  keywordCounts[perf.keyword]   = (keywordCounts[perf.keyword]||0)+1;
-    }
-
-    const topPlatform = Object.entries(platformCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || null;
-    const topKeyword  = Object.entries(keywordCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]  || null;
-
-    return { totalPosted, highCount, totalTraffic, topPlatform, topKeyword,
-             topPlatformResult: topPlatform ? `${platformCounts[topPlatform]} replies` : null };
-  } catch(e) {
-    console.error('[intelligence-engine] getReplyPerformanceSummary error:', e.message);
-    return null;
   }
 }
 
