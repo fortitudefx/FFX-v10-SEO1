@@ -370,18 +370,30 @@ async function computeDirectiveResolution(brief, env, articlesIndexPrefetched) {
       var rewrite = brief.titleRewrites[0];
       var slug = rewrite.currentUrl ? rewrite.currentUrl.replace('/article?slug=', '') : '';
       var existing = articles.find(function(a){ return a.slug === slug; });
+
+      // If not in articles:index, read article:{slug} directly from KV
+      var currentTitle = existing ? existing.title : '';
+      if (!currentTitle && slug) {
+        try {
+          var kvMeta = await env.FFX_KV.get('article:' + slug, { type: 'json' }).catch(function(){ return null; });
+          if (kvMeta && kvMeta.title) currentTitle = kvMeta.title;
+        } catch(kvErr) {
+          console.error('[intelligence-engine] article KV fallback failed (non-fatal):', kvErr.message);
+        }
+      }
+
       resolution.type = 'title_rewrite';
-      resolution.directiveText = 'Rewrite title for: ' + rewrite.currentUrl;
+      resolution.directiveText = 'Rewrite title for: ' + (currentTitle || slug);
       resolution.action = {
         label: 'Apply Title', type: 'title_rewrite',
         slug: slug,
-        currentTitle:   existing ? existing.title : '',
+        currentTitle:   currentTitle,
         suggestedTitle: rewrite.suggestedTitle,
         reasoning:      rewrite.reasoning,
         ctrBefore:      rewrite.currentClicks && rewrite.currentImpressions ? (rewrite.currentClicks / rewrite.currentImpressions) : null,
         position:       rewrite.currentPosition || null,
       };
-      resolution.matchType = existing ? 'found_article' : 'slug_only';
+      resolution.matchType = currentTitle ? 'found_article' : 'slug_only';
       return resolution;
     }
 
