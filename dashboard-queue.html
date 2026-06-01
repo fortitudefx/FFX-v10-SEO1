@@ -970,18 +970,18 @@ async function regenPlatform(event, videoId, platform, slug, encodedYtUrl) {
 
     if (!res.ok || data.error) {
       btn.textContent = '✗ ' + (data.error || 'Error');
-      btn.style.color = 'rgba(248,113,113,0.80)';
+      btn.style.color = '#ff4444';
       setTimeout(() => { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 4000);
       return;
     }
 
     btn.textContent = '✓ Done — click row to reload';
-    btn.style.color = 'rgba(62,207,142,0.80)';
+    btn.style.color = '#3ecf8e';
     setTimeout(() => { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 3000);
 
   } catch(err) {
     btn.textContent = '✗ Network error';
-    btn.style.color = 'rgba(248,113,113,0.80)';
+    btn.style.color = '#ff4444';
     setTimeout(() => { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 4000);
   }
 }
