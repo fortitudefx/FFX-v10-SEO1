@@ -1431,8 +1431,12 @@ function renderDirectiveFromBrief(brief) {
 
   if (brief.titleRewrites && brief.titleRewrites.length > 0) {
     var r = brief.titleRewrites[0];
-    // Use human-readable title from resolution.action if available
-    var artTitle = (resolution.action && resolution.action.currentTitle) || r.currentUrl || '';
+    var artTitle = (resolution.action && resolution.action.currentTitle) || '';
+    // If still empty, format slug as readable text — never show raw URL
+    if (!artTitle && r.currentUrl) {
+      var rawSlug = r.currentUrl.replace('/article?slug=', '').replace(/-/g, ' ');
+      artTitle = rawSlug.charAt(0).toUpperCase() + rawSlug.slice(1);
+    }
     directiveText    = 'Rewrite title: "' + artTitle + '"';
     directiveSubtext = 'New title: "' + r.suggestedTitle + '"';
     confidence       = r.currentPosition < 15 ? 'HIGH' : 'MEDIUM';
@@ -1545,16 +1549,16 @@ async function executeApplyTitle(btn, action, resolution, brief) {
       btn.textContent = '✗ Failed'; btn.style.color = '#ff4444'; btn.disabled = false; return;
     }
     for (var i = 0; i < 4; i++) updateDirectiveStep(steps, i, 'done');
-    steps[3].note = 'Old: "' + (action.currentTitle || '') + '" → New: "' + action.suggestedTitle + '"';
+    var displayOld = action.currentTitle || '(title not found — check article KV)';
+    steps[3].note = 'Changed: "' + displayOld + '" to "' + action.suggestedTitle + '"';
     showDirectiveSteps(steps);
     btn.textContent = '✓ Applied'; btn.style.color = '#3ecf8e';
     // Add verification link
-    var verifyLink = document.createElement('a');
-    verifyLink.href = 'https://fortitudefx.com/article?slug=' + action.slug;
-    verifyLink.target = '_blank';
-    verifyLink.textContent = 'Verify on live site →';
-    verifyLink.style.cssText = 'display:inline-block;margin-top:10px;font-size:12px;color:#C9A84C;text-decoration:none;font-weight:700;';
-    document.getElementById('directiveStepList').appendChild(verifyLink);
+    var verifyDiv = document.createElement('div');
+    verifyDiv.style.cssText = 'margin-top:12px;';
+    verifyDiv.innerHTML = '<a href="https://fortitudefx.com/article?slug=' + action.slug + '" target="_blank" style="font-size:13px;font-weight:700;color:#C9A84C;text-decoration:none;">Verify on live site →</a>'
+      + '<div style="font-size:12px;color:rgba(255,255,255,0.40);margin-top:6px;line-height:1.6;">Title updated in KV. If the article page shows a blank body, the article needs to be re-published through the Queue dashboard to restore the full content.</div>';
+    document.getElementById('directiveStepList').appendChild(verifyDiv);
     loadDirectiveHistory();
   } catch(e) {
     updateDirectiveStep(steps, 0, 'error', e.message); showDirectiveSteps(steps);
@@ -1629,7 +1633,25 @@ async function loadAndRenderDirective() {
     var res  = await fetch('/api/intelligence-engine');
     if (!res.ok) return;
     var data = await res.json();
-    if (data.brief) renderDirectiveFromBrief(data.brief);
+    if (!data.brief) return;
+    var brief      = data.brief;
+    var resolution = brief.directiveResolution || {};
+    var dtype      = resolution.type || 'unknown';
+    var today      = new Date().toISOString().split('T')[0];
+    // Check sessionStorage first
+    if (sessionStorage.getItem('ffx_directive_done_' + today + '_' + dtype)) return;
+    // Check KV for persistence across sessions
+    try {
+      var fbRes = await fetch('/api/directive-feedback?date=' + today + '&type=' + encodeURIComponent(dtype));
+      if (fbRes.ok) {
+        var fbData = await fbRes.json();
+        if (fbData.actedOn === true) {
+          sessionStorage.setItem('ffx_directive_done_' + today + '_' + dtype, '1');
+          return;
+        }
+      }
+    } catch(fbErr) { /* non-fatal */ }
+    renderDirectiveFromBrief(brief);
   } catch(e) { console.error('[FFX] Directive load failed:', e.message); }
 }
 
@@ -1712,22 +1734,30 @@ function renderLinkGraph(data) {
   var rows = data.graph.map(function(a) {
     var outColor = a.outbound === 0 ? '#f87171' : a.outbound < 2 ? '#C9A84C' : '#3ecf8e';
     var inColor  = a.inbound  === 0 ? '#f87171' : a.inbound  < 2 ? '#C9A84C' : '#3ecf8e';
-    var outSlugs = a.outboundSlugs.length ? a.outboundSlugs.join(', ') : 'none';
-    var inSlugs  = a.inboundSlugs.length  ? a.inboundSlugs.join(', ')  : 'none';
-    return '<div style="display:grid;grid-template-columns:1fr 80px 80px;align-items:start;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,0.05);gap:12px;">'
+    var baseUrl  = 'https://fortitudefx.com/article?slug=';
+    function fmtSlug(s) { return s.replace(/-/g,' ').split(' ').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1);}).join(' '); }
+    function slugLink(s) {
+      var found = data.graph.find(function(x){ return x.slug === s; });
+      var t = found ? found.title : fmtSlug(s);
+      return '<a href="' + baseUrl + escHtml(s) + '" target="_blank" style="color:#a78bfa;text-decoration:none;font-size:14px;font-weight:600;line-height:1.8;">' + escHtml(t) + '</a>';
+    }
+    var outLinks = a.outboundSlugs.map(slugLink).join('<span style="color:rgba(255,255,255,0.25);margin:0 8px;">&#124;</span>');
+    var inLinks  = a.inboundSlugs.map(slugLink).join('<span style="color:rgba(255,255,255,0.25);margin:0 8px;">&#124;</span>');
+    return '<div style="display:grid;grid-template-columns:1fr 80px 80px;align-items:start;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.06);gap:16px;">'
       + '<div>'
-      + '<div style="font-size:13px;font-weight:600;color:#ffffff;margin-bottom:4px;">' + escHtml(a.title) + '</div>'
-      + '<div style="font-size:11px;color:rgba(255,255,255,0.30);">' + escHtml(a.slug) + '</div>'
-      + (a.outbound > 0 ? '<div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:3px;">Links to: ' + escHtml(outSlugs) + '</div>' : '')
-      + (a.inbound  > 0 ? '<div style="font-size:11px;color:rgba(255,255,255,0.35);">Linked from: ' + escHtml(inSlugs) + '</div>' : '')
+      + '<a href="' + baseUrl + escHtml(a.slug) + '" target="_blank" style="font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;line-height:1.4;display:block;margin-bottom:10px;">' + escHtml(a.title) + '</a>'
+      + '<div style="margin-bottom:6px;"><span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:rgba(255,255,255,0.45);">Links to: </span>'
+        + (a.outbound > 0 ? outLinks : '<span style="font-size:13px;color:#f87171;">None</span>') + '</div>'
+      + '<div><span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:rgba(255,255,255,0.45);">Linked from: </span>'
+        + (a.inbound > 0 ? inLinks : '<span style="font-size:13px;color:#f87171;">None</span>') + '</div>'
       + '</div>'
-      + '<div style="text-align:center;">'
-      + '<div style="font-size:20px;font-weight:800;color:' + outColor + ';">' + a.outbound + '</div>'
-      + '<div style="font-size:10px;color:rgba(255,255,255,0.30);text-transform:uppercase;letter-spacing:0.10em;">Out</div>'
+      + '<div style="text-align:center;padding-top:4px;">'
+        + '<div style="font-size:28px;font-weight:800;color:' + outColor + ';line-height:1;">' + a.outbound + '</div>'
+        + '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.50);text-transform:uppercase;letter-spacing:0.10em;margin-top:4px;">Out</div>'
       + '</div>'
-      + '<div style="text-align:center;">'
-      + '<div style="font-size:20px;font-weight:800;color:' + inColor + ';">' + a.inbound + '</div>'
-      + '<div style="font-size:10px;color:rgba(255,255,255,0.30);text-transform:uppercase;letter-spacing:0.10em;">In</div>'
+      + '<div style="text-align:center;padding-top:4px;">'
+        + '<div style="font-size:28px;font-weight:800;color:' + inColor + ';line-height:1;">' + a.inbound + '</div>'
+        + '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.50);text-transform:uppercase;letter-spacing:0.10em;margin-top:4px;">In</div>'
       + '</div>'
       + '</div>';
   }).join('');
