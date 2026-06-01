@@ -79,19 +79,10 @@ async function processJob(job, env) {
   const regionName = regions[regionIndex];
   console.log('[FFX] Region:', regionName);
 
-  // ── CHANGE 4: Fetch relevant nuggets for injection ───────────────────────
-  let nuggetResult = { nuggets: [], status: 'skipped_empty', reason: 'Not fetched', nuggetIds: [], nuggetTags: [] };
-  try {
-    nuggetResult = await fetchRelevantNuggets(env, transcript);
-    console.log('[FFX] Nugget fetch:', nuggetResult.status, '—', nuggetResult.reason);
-  } catch (nuggetErr) {
-    console.error('[FFX] Nugget fetch failed (non-fatal):', nuggetErr.message);
-  }
-
   await updateJob(env, jobId, videoId, 'processing', 'global_article');
   let globalArticle;
   try {
-    globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug, env, nuggetResult);
+    globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug, env);
     console.log('[FFX] Global article done, slug:', globalArticle.slug);
   } catch (err) {
     await failJob(env, jobId, videoId, 'global_article', formatClaudeError(err, 'Global article'), true);
@@ -114,7 +105,7 @@ async function processJob(job, env) {
   await updateJob(env, jobId, videoId, 'processing', 'regional_article');
   let regionalArticle;
   try {
-    regionalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, regionName, globalArticle.slug, existingSlug, env, nuggetResult);
+    regionalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, regionName, globalArticle.slug, existingSlug);
     console.log('[FFX] Regional article done, region:', regionName);
   } catch (err) {
     await failJob(env, jobId, videoId, 'regional_article', formatClaudeError(err, `Regional article (${regionName})`), true);
@@ -220,11 +211,7 @@ async function processJob(job, env) {
       wordCount,
       targetQuery:    targetQuery  || null,
       briefVersion:   briefVersion || null,
-      promptInjected:        !!targetQuery,
-      nuggetInjectionStatus: nuggetResult.status || 'skipped_empty',
-      nuggetInjectionReason: nuggetResult.reason || null,
-      nuggetIdsUsed:         nuggetResult.nuggetIds || [],
-      nuggetTagsUsed:        nuggetResult.nuggetTags || [],
+      promptInjected: !!targetQuery,
       generatedAt:    new Date().toISOString(),
       publishedAt:    null,
       status:         'generated',
@@ -352,7 +339,7 @@ async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
   throw new Error('Unexpected Supadata response: ' + JSON.stringify(data).slice(0, 200));
 }
 
-async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalSlug, existingSlug, env, nuggetResult) {
+async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalSlug, existingSlug, env) {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
   const isRegional = region !== 'Global';
 
@@ -386,9 +373,13 @@ ${pi.avoidance}`);
         if (ab.angle)          briefLines.push(`Angle: ${ab.angle}`);
         if (ab.targetLength)   briefLines.push(`Target length: ${ab.targetLength} words`);
         if (ab.contentPillar)  briefLines.push(`Content pillar: ${ab.contentPillar}`);
-        if (ab.keyPoints?.length) briefLines.push(`Key points to cover:\n${ab.keyPoints.map(p => '  - ' + p).join('\n')}`);
+        if (ab.keyPoints?.length) briefLines.push(`Key points to cover:
+${ab.keyPoints.map(p => `  - ${p}`).join('
+')}`);
         if (ab.nuggetTags?.length) briefLines.push(`Knowledge tags to draw from: ${ab.nuggetTags.join(', ')}`);
-        if (briefLines.length) parts.push(`TODAY'S ARTICLE BRIEF (from intelligence analysis):\n${briefLines.join('\n')}`);
+        if (briefLines.length) parts.push(`TODAY'S ARTICLE BRIEF (from intelligence analysis):
+${briefLines.join('
+')}`);
       }
 
       if (learningSummary) {
@@ -398,14 +389,17 @@ ${pi.avoidance}`);
         if (ls.audienceSummary)  lsParts.push(ls.audienceSummary);
         if (ls.optimalLength)    lsParts.push(`Optimal article length for FFX: ${ls.optimalLength} words`);
         if (ls.optimalStructure) lsParts.push(`Best structure: ${ls.optimalStructure}`);
-        if (lsParts.length) parts.push(`SITE LEARNING PATTERNS:\n${lsParts.join('\n')}`);
+        if (lsParts.length) parts.push(`SITE LEARNING PATTERNS:
+${lsParts.join('
+')}`);
       }
 
       if (targets?.current) {
         const gap = targets.current.primaryGap;
         const overall = targets.current.overallStatus;
         if (gap || overall) {
-          parts.push(`PERFORMANCE CONTEXT:\nSite momentum: ${overall || 'building'}${gap ? `. Primary gap to close: ${gap}` : ''}. Write content that drives organic traffic and Discord community engagement.`);
+          parts.push(`PERFORMANCE CONTEXT:
+Site momentum: ${overall || 'building'}${gap ? `. Primary gap to close: ${gap}` : ''}. Write content that drives organic traffic and Discord community engagement.`);
         }
       }
 
@@ -415,19 +409,14 @@ ${pi.avoidance}`);
 ${'='.repeat(60)}
 INTELLIGENCE CONTEXT — READ BEFORE WRITING
 ${'='.repeat(60)}
-${parts.join('\n\n')}
+${parts.join('
+
+')}
 ${'='.repeat(60)}
 
 Apply the above context to shape what you write and how you target it. Your voice rules and trademark rules below remain absolute.
 `;
         console.log('[FFX] Signal injection built — targetQuery:', brief?.articleBrief?.targetQuery || 'none');
-      }
-
-      // ── CHANGE 4: Inject matching nuggets from knowledge library ───────────
-      if (nuggetResult && nuggetResult.nuggets && nuggetResult.nuggets.length > 0) {
-        const nuggetBlock = nuggetResult.nuggets.map((n, i) => (i + 1) + '. ' + n).join('\n\n');
-        signalInjection += '\n\n' + '='.repeat(60) + '\nKNOWLEDGE LIBRARY — SALMAN\'S PROVEN INSIGHTS (inject naturally)\n' + '='.repeat(60) + '\nThe following insights are from Salman\'s existing content. Weave 2-3 of these naturally into the article where relevant. Do not copy verbatim — rephrase in context:\n\n' + nuggetBlock + '\n' + '='.repeat(60);
-        console.log('[FFX] Nugget injection added —', nuggetResult.nuggets.length, 'nuggets');
       }
     } catch (injErr) {
       console.error('[FFX] Signal injection failed (non-fatal — continuing without):', injErr.message);
@@ -465,8 +454,8 @@ The body field contains HTML - ensure all quotes inside HTML attributes use sing
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 6000,
+      model: 'claude-sonnet-4-5',
+      max_tokens: 3500,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Transcript:\n\n${transcript}\n\nVOICE: This is Salman speaking - founder of FortitudeFX. Write in his voice - direct, calm, experienced, institutional tone.${isRegional ? `\n\nREGIONAL: Write the ${region} variant.` : ''}` }],
     }),
@@ -531,7 +520,11 @@ Generate ONLY the platform content fields. Return a single valid JSON object:
   "mediumIntro": "150-200 word rewritten article opening. Final line: Originally published at ${articleUrl}"
 }
 
-X THREAD RULES - THREAD format: exactly 6 tweets. Post 6 ends with ${articleUrl} and ${youtubeUrl} on their own lines.
+X THREAD RULES - THREAD format: exactly 6 tweets.
+Tweet 1: hook only, no links, no URLs.
+Tweet 2: first reply tweet, ends with fortitudefx.com on its own line.
+Tweets 3-5: content only, no links, no URLs.
+Tweet 6: ends with fortitudefx.com on its own line, then ${articleUrl} on its own line, then ${youtubeUrl} on its own line.
 
 CRITICAL: Return ONLY the raw JSON object. Start with { end with }.
 x_thread must be a JSON array of strings.`;
@@ -540,7 +533,7 @@ x_thread must be a JSON array of strings.`;
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-5',
       max_tokens: 3000,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Transcript:\n\n${transcript}\n\nVOICE: Salman Khan - founder. Direct, calm, slightly contrarian, institutional.${isRegional ? `\n\nREGIONAL: Frame for ${region}.` : ''}` }],
@@ -608,7 +601,7 @@ Return ONLY the raw JSON array. Start with [ end with ].`;
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-5',
       max_tokens: 4000,
       system: systemPrompt,
       messages: [{ role: 'user', content: `Video: ${videoTitle}\nURL: ${youtubeUrl}\n\nTranscript:\n\n${transcript}\n\nExtract 10-15 high-quality items. Apply three-test filter strictly. Salman's voice - calm, direct, experienced.` }],
@@ -631,71 +624,4 @@ Return ONLY the raw JSON array. Start with [ end with ].`;
 
   if (!Array.isArray(parsed)) throw new Error('Library extraction did not return array');
   return parsed.filter(item => item.category && item.format && item.content);
-}
-
-// ── CHANGE 4: Fetch relevant nuggets from library for injection ──────────────
-// CHANGE 11: broader tag matching — partial word scores via split scoring
-async function fetchRelevantNuggets(env, transcript) {
-  try {
-    const indexRaw = await env.FFX_KV.get('nuggets:index').catch(() => null);
-    if (!indexRaw) return { nuggets: [], status: 'skipped_empty', reason: 'No nuggets index found' };
-
-    const index = JSON.parse(indexRaw);
-    if (!Array.isArray(index) || index.length === 0) {
-      return { nuggets: [], status: 'skipped_empty', reason: 'Nuggets index is empty' };
-    }
-
-    const transcriptLower = transcript.toLowerCase();
-
-    // Score each nugget against transcript — CHANGE 11: partial word matching
-    const scored = [];
-    for (const nuggetId of index.slice(0, 80)) {
-      try {
-        const nuggetRaw = await env.FFX_KV.get(`nugget:${nuggetId}`).catch(() => null);
-        if (!nuggetRaw) continue;
-        const nugget = JSON.parse(nuggetRaw);
-        if (!nugget || !nugget.text) continue;
-
-        const tags = (nugget.tags || '').toLowerCase().split(',').map(t => t.trim()).filter(t => t.length >= 3);
-        if (tags.length === 0) continue;
-
-        // CHANGE 11: score = sum of tag matches, including partial word matches
-        const score = tags.reduce((total, tag) => {
-          // Full tag match
-          if (transcriptLower.includes(tag)) return total + 2;
-          // Partial: any word in tag appears in transcript
-          const words = tag.split(/\s+/).filter(w => w.length >= 4);
-          const partialMatches = words.filter(w => transcriptLower.includes(w)).length;
-          return total + partialMatches;
-        }, 0);
-
-        if (score > 0) {
-          scored.push({ nuggetId, nugget, score, tags });
-        }
-      } catch { continue; }
-    }
-
-    if (scored.length === 0) {
-      return { nuggets: [], status: 'skipped_no_match', reason: 'No nuggets matched transcript topics' };
-    }
-
-    // Sort by score descending, take top 5
-    scored.sort((a, b) => b.score - a.score);
-    const top = scored.slice(0, 5);
-
-    const nuggetIds   = top.map(n => n.nuggetId);
-    const nuggetTexts = top.map(n => n.nugget.text);
-    const nuggetTags  = [...new Set(top.flatMap(n => n.tags))].slice(0, 10);
-
-    return {
-      nuggets:    nuggetTexts,
-      nuggetIds,
-      nuggetTags,
-      status:     'injected',
-      reason:     `${top.length} nuggets matched (top score: ${top[0].score})`,
-    };
-  } catch (err) {
-    console.error('[FFX] fetchRelevantNuggets error:', err.message);
-    return { nuggets: [], status: 'error', reason: err.message };
-  }
 }
