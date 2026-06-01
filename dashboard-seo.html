@@ -344,7 +344,8 @@
     </div>
     <div class="header-right">
       <button onclick="seedTargets()" id="seedBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.08);color:rgba(62,207,142,0.60);border:1px solid rgba(62,207,142,0.15);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Seed founding targets (run once)">⊕ Seed Targets</button>
-      <button onclick="triggerIntelligence()" id="intelBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(201,168,76,0.10);color:rgba(201,168,76,0.70);border:1px solid rgba(201,168,76,0.20);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Run intelligence analysis">⚡ Run Analysis</button>
+            <button onclick="runBackfill()" id="backfillBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(56,189,248,0.08);color:rgba(56,189,248,0.70);border:1px solid rgba(56,189,248,0.18);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Backfill articles index from KV">↻ Backfill Index</button>
+<button onclick="triggerIntelligence()" id="intelBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(201,168,76,0.10);color:rgba(201,168,76,0.70);border:1px solid rgba(201,168,76,0.20);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Run intelligence analysis">⚡ Run Analysis</button>
       <button onclick="triggerSignals()" id="signalBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Refresh SEO signals">⟳ Refresh Signals</button>
       <div class="date-selector" id="dateSelector" style="display:none;">
         <button class="date-btn" data-days="7">7D</button>
@@ -1417,8 +1418,16 @@ function renderDirectiveFromBrief(brief) {
   var panel = document.getElementById('directivePanel');
   if (!panel) return;
 
-  var directiveText = '', directiveSubtext = '', confidence = 'MEDIUM', note = '';
+  // Check if this directive was already acted on this session
+  var today = new Date().toISOString().split('T')[0];
   var resolution = brief.directiveResolution || {};
+  var dtype = resolution.type || 'unknown';
+  if (sessionStorage.getItem('ffx_directive_done_' + today + '_' + dtype)) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  var directiveText = '', directiveSubtext = '', confidence = 'MEDIUM', note = '';
 
   if (brief.titleRewrites && brief.titleRewrites.length > 0) {
     var r = brief.titleRewrites[0];
@@ -1626,12 +1635,15 @@ async function loadAndRenderDirective() {
 
 async function markDirectiveDone() {
   var today = new Date().toISOString().split('T')[0];
+  var dtype = (window._currentBrief && window._currentBrief.directiveResolution && window._currentBrief.directiveResolution.type) || 'unknown';
   try {
     await fetch('/api/directive-feedback', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: today, directiveType: (window._currentBrief && window._currentBrief.directiveResolution && window._currentBrief.directiveResolution.type) || 'unknown', actedOn: true }),
+      body: JSON.stringify({ date: today, directiveType: dtype, actedOn: true }),
     });
   } catch(e) {}
+  // Store actedOn in sessionStorage so directive stays hidden this session
+  sessionStorage.setItem('ffx_directive_done_' + today + '_' + dtype, '1');
   document.getElementById('directivePanel').style.display = 'none';
 }
 
@@ -1647,16 +1659,37 @@ function dismissDirective() {
 
 // ── Link Graph Panel ─────────────────────────────────────────────────────
 async function loadLinkGraph() {
-  var panel = document.getElementById('linkGraphPanel');
+  var panel     = document.getElementById('linkGraphPanel');
+  var tableEl   = document.getElementById('linkGraphTable');
+  var scoreEl   = document.getElementById('linkCoverageScore');
+  var oppEl     = document.getElementById('linkOpportunityCount');
   if (!panel) return;
+
+  // Always show the panel — show state inside it
+  panel.style.display = 'block';
+  if (tableEl) tableEl.innerHTML = '<div style="padding:24px;font-size:13px;color:rgba(255,255,255,0.40);">Loading link graph&#8230;</div>';
+
   try {
     var res  = await fetch('/api/bulk-link-scan');
-    if (!res.ok) { console.error('[FFX] Link graph load failed:', res.status); return; }
     var data = await res.json();
-    if (data.error) { console.error('[FFX] Link graph error:', data.error); return; }
+
+    if (!res.ok || data.error) {
+      // articles:index empty — show backfill prompt
+      if (scoreEl) { scoreEl.style.color = '#f87171'; scoreEl.textContent = 'Index not built yet'; }
+      if (oppEl)   oppEl.textContent = '';
+      if (tableEl) tableEl.innerHTML = '<div style="padding:28px 24px;">'
+        + '<div style="font-size:14px;color:rgba(255,255,255,0.70);margin-bottom:12px;">&#9888; articles:index has not been built yet.</div>'
+        + '<div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.7;margin-bottom:16px;">Click <strong style="color:#38bdf8;">&#8635; Backfill Index</strong> in the header to scan all your existing articles and build the index. This runs once and takes a few seconds.</div>'
+        + '<button onclick="runBackfill()" style="font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(56,189,248,0.15);color:rgba(56,189,248,1);border:1px solid rgba(56,189,248,0.35);border-radius:6px;padding:8px 18px;cursor:pointer;">&#8635; Run Backfill Now</button>'
+        + '</div>';
+      return;
+    }
+
     renderLinkGraph(data);
-    panel.style.display = 'block';
-  } catch(e) { console.error('[FFX] Link graph load error:', e.message); }
+  } catch(e) {
+    console.error('[FFX] Link graph load error:', e.message);
+    if (tableEl) tableEl.innerHTML = '<div style="padding:24px;font-size:13px;color:#f87171;">Could not load link graph: ' + escHtml(e.message) + '</div>';
+  }
 }
 
 function renderLinkGraph(data) {
@@ -1704,6 +1737,38 @@ function renderLinkGraph(data) {
     + '<div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(196,181,253,0.60);text-align:center;">Outbound</div>'
     + '<div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(196,181,253,0.60);text-align:center;">Inbound</div>'
     + '</div>' + rows;
+}
+
+async function runBackfill() {
+  var btn = document.getElementById('backfillBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '&#8635; Running&#8230;'; btn.style.color = 'rgba(56,189,248,0.90)'; }
+
+  var tableEl = document.getElementById('linkGraphTable');
+  if (tableEl) tableEl.innerHTML = '<div style="padding:24px;font-size:13px;color:rgba(255,255,255,0.60);">&#9889; Scanning all article KV keys&#8230;</div>';
+
+  try {
+    var res  = await fetch('/api/backfill-articles-index', { method: 'POST' });
+    var data = await res.json();
+
+    if (!res.ok || data.error) {
+      if (tableEl) tableEl.innerHTML = '<div style="padding:24px;font-size:13px;color:#f87171;">&#10007; Backfill failed: ' + escHtml(data.error || 'Unknown error') + '</div>';
+      if (btn) { btn.disabled = false; btn.textContent = '&#8635; Backfill Index'; btn.style.color = 'rgba(56,189,248,0.70)'; }
+      return;
+    }
+
+    if (btn) {
+      btn.textContent = '&#10003; Backfilled (' + data.total + ' articles)';
+      btn.style.color = '#3ecf8e';
+      setTimeout(function() { btn.disabled = false; btn.textContent = '&#8635; Backfill Index'; btn.style.color = 'rgba(56,189,248,0.70)'; }, 4000);
+    }
+
+    // Reload link graph with the now-populated index
+    loadLinkGraph();
+
+  } catch(e) {
+    if (tableEl) tableEl.innerHTML = '<div style="padding:24px;font-size:13px;color:#f87171;">&#10007; Network error: ' + escHtml(e.message) + '</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '&#8635; Backfill Index'; btn.style.color = 'rgba(56,189,248,0.70)'; }
+  }
 }
 
 async function runBulkLinkScan(dryRun) {
@@ -1778,6 +1843,7 @@ function showDashboard() {
   document.getElementById('signalBtn').style.display = 'inline-block';
   document.getElementById('intelBtn').style.display = 'inline-block';
   document.getElementById('seedBtn').style.display = 'inline-block';
+  document.getElementById('backfillBtn').style.display = 'inline-block';
   loadAll(28);
   loadTargetScorecard();
   loadCharts(28);
