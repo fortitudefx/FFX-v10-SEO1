@@ -226,6 +226,23 @@ async function processJob(job, env) {
     console.error('[FFX] content:performance write failed (non-fatal):', perfErr.message);
   }
 
+  // ── Component 2: Write content:link_graph record ──────────────────────
+  // Records which articles this new article links to — feeds intelligence engine
+  try {
+    if (globalArticle._linkedArticles && globalArticle._linkedArticles.length > 0) {
+      const linkGraph = {
+        slug:        globalContent.slug,
+        title:       globalContent.title,
+        linksTo:     globalArticle._linkedArticles,
+        generatedAt: new Date().toISOString(),
+      };
+      await env.FFX_KV.put(`content:link_graph:${globalContent.slug}`, JSON.stringify(linkGraph));
+      console.log('[FFX] content:link_graph written, links to:', globalArticle._linkedArticles.map(a => a.slug).join(', '));
+    }
+  } catch (lgErr) {
+    console.error('[FFX] content:link_graph write failed (non-fatal):', lgErr.message);
+  }
+
   // Update queue:index
   try {
     const queueRaw = await env.FFX_KV.get('queue:index', { type: 'json' });
@@ -421,6 +438,12 @@ Apply the above context to shape what you write and how you target it. Your voic
     } catch (injErr) {
       console.error('[FFX] Signal injection failed (non-fatal — continuing without):', injErr.message);
     }
+
+    // Append related articles link block to signal injection (non-fatal)
+    if (relatedArticles && relatedArticles.linkBlock) {
+      signalInjection += relatedArticles.linkBlock;
+      console.log('[FFX] Internal link injection appended — status:', relatedArticles.status);
+    }
   }
   const regionInstruction = isRegional ? `
 REGIONAL TARGETING - THIS ARTICLE IS FOR: ${region}
@@ -483,6 +506,13 @@ The body field contains HTML - ensure all quotes inside HTML attributes use sing
 
   if (existingSlug && existingSlug.trim() && region === 'Global') parsed.slug = existingSlug;
 
+  // Attach internal link data to result for link_graph write in processJob
+  if (region === 'Global' && relatedArticles && relatedArticles.articles.length > 0) {
+    parsed._linkedArticles = relatedArticles.articles.map(a => ({
+      slug: a.slug, title: a.title, score: a.score,
+    }));
+  }
+
   console.log('[FFX] Article complete, slug:', parsed.slug, 'region:', region);
   return parsed;
 }
@@ -520,11 +550,7 @@ Generate ONLY the platform content fields. Return a single valid JSON object:
   "mediumIntro": "150-200 word rewritten article opening. Final line: Originally published at ${articleUrl}"
 }
 
-X THREAD RULES - THREAD format: exactly 6 tweets.
-Tweet 1: hook only, no links, no URLs.
-Tweet 2: first reply tweet, ends with fortitudefx.com on its own line.
-Tweets 3-5: content only, no links, no URLs.
-Tweet 6: ends with fortitudefx.com on its own line, then ${articleUrl} on its own line, then ${youtubeUrl} on its own line.
+X THREAD RULES - THREAD format: exactly 6 tweets. Post 6 ends with ${articleUrl} and ${youtubeUrl} on their own lines.
 
 CRITICAL: Return ONLY the raw JSON object. Start with { end with }.
 x_thread must be a JSON array of strings.`;
