@@ -74,6 +74,38 @@ export async function onRequestPost(context) {
         };
         await env.FFX_KV.put(`article:${slug}`, JSON.stringify(articleMeta));
         console.log('[FFX] KV article metadata written for slug:', slug);
+
+        // ── Component 1: Update articles:index ────────────────────────────
+        // Permanent lookup table of all published articles for internal
+        // linking (consumer) and directive resolution (intelligence engine)
+        try {
+          const indexRaw = await env.FFX_KV.get('articles:index', { type: 'json' }).catch(() => null);
+          const index = Array.isArray(indexRaw) ? indexRaw : [];
+
+          // Build index entry — lightweight, only what linking needs
+          const indexEntry = {
+            slug,
+            title,
+            excerpt:    excerpt || '',
+            category:   category || 'Strategy',
+            tags:       Array.isArray(articleMeta.tags) ? articleMeta.tags : [],
+            publishedAt: new Date().toISOString(),
+            youtubeUrl: youtubeUrl || yt_url || '',
+          };
+
+          // Update existing or prepend new
+          const existingIdx = index.findIndex(a => a.slug === slug);
+          if (existingIdx !== -1) {
+            index[existingIdx] = indexEntry;
+          } else {
+            index.unshift(indexEntry);
+          }
+
+          await env.FFX_KV.put('articles:index', JSON.stringify(index));
+          console.log('[FFX] articles:index updated, total articles:', index.length);
+        } catch (idxErr) {
+          console.error('[FFX] articles:index update failed (non-fatal):', idxErr.message);
+        }
       } catch (kvErr) {
         console.log('[FFX] KV article write failed (non-fatal):', kvErr.message);
       }
