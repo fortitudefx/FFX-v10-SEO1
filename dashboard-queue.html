@@ -448,7 +448,8 @@ function buildExpandedContent(container, videoRecord, editsData, queueItem) {
     const sbCls = isEdited ? 'psb-chip-edited' : 'psb-chip-pend';
     const sbTxt = isEdited ? '\u26a0 Edited \u2014 not published' : '\u25cb Not published';
     const regenPlatformKey = p.platformKey || p.key;
-    panel.innerHTML='<div class="platform-status-bar"><div class="psb-left"><span class="psb-status-chip '+sbCls+'">'+sbTxt+'</span></div><div class="psb-right"><button class="btn-regen-platform" onclick="regenPlatform(event,\''+videoId+'\',\''+regenPlatformKey+'\',\''+slug+'\',\''+encodeURIComponent(youtubeUrl || '')+'\')">↺ Regenerate '+p.label+'</button></div></div>'+p.html();
+    const regenYtUrl = encodeURIComponent(queueItem.youtubeUrl || '');
+    panel.innerHTML='<div class="platform-status-bar"><div class="psb-left"><span class="psb-status-chip '+sbCls+'">'+sbTxt+'</span></div><div class="psb-right"><button class="btn-regen-platform" onclick="regenPlatform(event,\''+videoId+'\',\''+regenPlatformKey+'\',\''+slug+'\',\''+regenYtUrl+'\')">↺ Regenerate '+p.label+'</button></div></div>'+p.html();
     panelContainer.appendChild(panel);
   });
 
