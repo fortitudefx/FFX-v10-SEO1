@@ -107,6 +107,56 @@ export async function onRequestGet(context) {
       } catch {}
     }
 
+    // 4. Final fallback — articles.json on GitHub raw
+    // For manually written articles with no videoId that were added directly to articles.json
+    if (!body) {
+      try {
+        const GITHUB_RAW = 'https://raw.githubusercontent.com/fortitudefx/FFX-v10-SEO1/main/articles.json';
+        const ghRes = await fetch(GITHUB_RAW, { headers: { 'Cache-Control': 'no-cache' } });
+        if (ghRes.ok) {
+          const allArticles = await ghRes.json();
+          const found = Array.isArray(allArticles) ? allArticles.find(a => a.slug === slug) : null;
+          if (found && found.body) {
+            body = found.body;
+            fullContent = found;
+            console.log('[FFX Article] Served from articles.json GitHub fallback:', slug);
+          }
+        }
+      } catch (ghErr) {
+        console.log('[FFX Article] GitHub fallback failed (non-fatal):', ghErr.message);
+      }
+    }
+
+    // 5. Read article:links:{slug} — pending internal links added without touching published
+    // Appended to body on the fly — published record is never modified
+    if (body) {
+      try {
+        const pendingLinks = await env.FFX_KV.get('article:links:' + slug, { type: 'json' }).catch(() => null);
+        if (pendingLinks && Array.isArray(pendingLinks.links) && pendingLinks.links.length > 0) {
+          // Insert each link as a paragraph before the CTA section
+          let linksHtml = pendingLinks.links.map(function(l) {
+            return '<p>For further reading, see <a href="' + l.targetUrl + '">' + l.targetTitle + '</a>.</p>';
+          }).join('');
+          // Insert before discord CTA if present, otherwise append
+          const ctaIdx = body.indexOf('discord.gg/fortitudefx');
+          if (ctaIdx !== -1) {
+            // Find the start of the paragraph containing the CTA
+            const paraStart = body.lastIndexOf('<p', ctaIdx);
+            if (paraStart !== -1) {
+              body = body.slice(0, paraStart) + linksHtml + body.slice(paraStart);
+            } else {
+              body = body + linksHtml;
+            }
+          } else {
+            body = body + linksHtml;
+          }
+          console.log('[FFX Article] Appended', pendingLinks.links.length, 'pending links for:', slug);
+        }
+      } catch (linkErr) {
+        console.log('[FFX Article] Pending links read failed (non-fatal):', linkErr.message);
+      }
+    }
+
     const article = {
       slug:         articleMeta.slug,
       title:        articleMeta.title    || fullContent.title    || '',
