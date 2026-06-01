@@ -294,47 +294,6 @@
     .exec-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 20px 0; }
     .exec-section-title { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.36); margin-bottom: 14px; }
 
-    /* Daily Directive Panel */
-    .directive-panel {
-      border-radius: 16px;
-      margin-bottom: 24px;
-      border: 1px solid;
-      padding: 20px 28px;
-      position: relative;
-    }
-    .directive-panel.has-action  { background: rgba(201,168,76,0.05);  border-color: rgba(201,168,76,0.25); }
-    .directive-panel.no-action   { background: rgba(62,207,142,0.04);  border-color: rgba(62,207,142,0.20); }
-    .directive-panel.loading     { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.08); }
-    .directive-kicker {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-    .directive-panel.has-action .directive-kicker { color: rgba(201,168,76,0.70); }
-    .directive-panel.no-action  .directive-kicker { color: rgba(62,207,142,0.70); }
-    .directive-headline {
-      font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.90);
-      letter-spacing: -0.01em; margin-bottom: 8px; line-height: 1.35;
-    }
-    .directive-reason  { font-size: 13px; color: rgba(255,255,255,0.50); line-height: 1.6; margin-bottom: 16px; }
-    .directive-kpi     { font-size: 11px; color: rgba(255,255,255,0.36); margin-bottom: 16px; }
-    .directive-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .btn-directive {
-      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-      border-radius: 6px; padding: 6px 14px; cursor: pointer; transition: all 0.15s; border: 1px solid;
-    }
-    .btn-directive-done    { background: rgba(62,207,142,0.10);  color: rgba(62,207,142,0.90);  border-color: rgba(62,207,142,0.30); }
-    .btn-directive-done:hover { background: rgba(62,207,142,0.18); }
-    .btn-directive-snooze  { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.50); border-color: rgba(255,255,255,0.12); }
-    .btn-directive-snooze:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.75); }
-    .btn-directive-dismiss { background: none; color: rgba(255,255,255,0.30); border-color: rgba(255,255,255,0.08); }
-    .btn-directive-dismiss:hover { color: rgba(248,113,113,0.70); border-color: rgba(248,113,113,0.25); }
-    .directive-confidence  {
-      position: absolute; top: 20px; right: 24px;
-      font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      padding: 3px 8px; border-radius: 4px;
-      background: rgba(201,168,76,0.10); color: rgba(201,168,76,0.70); border: 1px solid rgba(201,168,76,0.20);
-    }
-
     /* Disconnect */
     .btn-disconnect {
       font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
@@ -358,8 +317,6 @@
       <a href="/dashboard-seo.html"       class="nav-link active">SEO</a>
       <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
       <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
-      <a href="/dashboard-health.html"    class="nav-link">Health</a>
-      <a href="/dashboard-social.html"    class="nav-link">Social</a>
     </div>
   </div>
 </nav>
@@ -403,12 +360,6 @@
 
 
 
-    <!-- Daily Directive Panel -->
-    <div class="directive-panel loading" id="directivePanel">
-      <div class="directive-kicker">⚡ Today's Directive</div>
-      <div class="directive-headline" id="directiveHeadline" style="color:rgba(255,255,255,0.36);font-size:13px;">Loading directive…</div>
-    </div>
-
     <!-- Target Scorecard -->
     <div class="scorecard" id="targetScorecard" style="display:none;">
       <div class="scorecard-header">
@@ -421,6 +372,23 @@
     </div>
 
     <!-- Executive Summary -->
+    <!-- Daily Directive Panel — rendered from intelligence:brief -->
+    <div id="directivePanel" style="display:none;margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(201,168,76,0.20);border-radius:12px;padding:20px 24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:0.20em;text-transform:uppercase;color:rgba(201,168,76,0.70);">⚡ Today's Directive</div>
+        <div id="directiveConfidence" style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.40);border:1px solid rgba(255,255,255,0.10);border-radius:4px;padding:3px 10px;"></div>
+      </div>
+      <div id="directiveText" style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.92);line-height:1.5;margin-bottom:8px;"></div>
+      <div id="directiveSubtext" style="font-size:12px;color:rgba(255,255,255,0.40);margin-bottom:16px;line-height:1.5;"></div>
+      <div id="directiveNote" style="font-size:11px;color:rgba(201,168,76,0.60);margin-bottom:16px;font-style:italic;"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <div id="directiveActionBtn"></div>
+        <button onclick="markDirectiveDone()" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.10);color:rgba(62,207,142,0.80);border:1px solid rgba(62,207,142,0.25);border-radius:5px;padding:6px 14px;cursor:pointer;">✓ Done</button>
+        <button onclick="snoozeDirective()" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:6px 14px;cursor:pointer;">∥ Snooze 24hrs</button>
+        <button onclick="dismissDirective()" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:6px 14px;cursor:pointer;">✗ Not Applicable</button>
+      </div>
+    </div>
+
     <div class="exec-summary" id="execSummary" style="display:none;">
       <div class="exec-header" onclick="toggleExec()">
         <div class="exec-header-left">
@@ -546,28 +514,18 @@ async function seedTargets() {
   try {
     const res  = await fetch('/api/seed-targets', { method: 'POST' });
     const data = await res.json();
-    if (res.status === 409) {
-      // Already seeded — this is correct, not an error
-      btn.textContent = '✓ Already seeded';
-      btn.style.color = 'rgba(62,207,142,0.70)';
-      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 3000);
-      loadTargetScorecard(); // Still load the scorecard
-      return;
-    }
     if (data.success) {
       btn.textContent = '✓ Targets seeded';
       btn.style.color = 'rgba(62,207,142,0.90)';
       setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 3000);
       loadTargetScorecard();
     } else {
-      btn.textContent = '✗ ' + (data.error || 'Error');
-      btn.style.color = 'rgba(248,113,113,0.80)';
-      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 4000);
+      btn.textContent = '✗ Error';
+      setTimeout(() => { btn.textContent = '⊕ Seed Targets'; }, 3000);
     }
   } catch(e) {
-    btn.textContent = '✗ Network error';
-    btn.style.color = 'rgba(248,113,113,0.80)';
-    setTimeout(() => { btn.textContent = '⊕ Seed Targets'; btn.style.color = 'rgba(62,207,142,0.60)'; }, 4000);
+    btn.textContent = '✗ Error';
+    setTimeout(() => { btn.textContent = '⊕ Seed Targets'; }, 3000);
   }
 }
 
@@ -576,35 +534,7 @@ async function loadTargetScorecard() {
     const res  = await fetch('/api/seed-targets');
     const data = await res.json();
     if (!data.targets) return;
-
-    const targets = data.targets;
-    const current = targets.current;
-
-    // Always read current signals to populate actuals
-    if (current && current.targets) {
-      try {
-        const [seoRes, ga4Res] = await Promise.all([
-          fetch('/api/seo-signals'),
-          fetch('/api/ga4-signals'),
-        ]);
-        const seoData = seoRes.ok ? await seoRes.json() : null;
-        const ga4Data = ga4Res.ok ? await ga4Res.json() : null;
-        const seo = seoData?.signals;
-        const ga4 = ga4Data?.signals;
-        if (seo?.totals) {
-          if (current.targets.impressions) current.targets.impressions.actual = seo.totals.impressions || 0;
-          if (current.targets.clicks)      current.targets.clicks.actual      = seo.totals.clicks      || 0;
-        }
-        if (ga4?.totals) {
-          if (current.targets.users)       current.targets.users.actual       = ga4.totals.users       || 0;
-          if (current.targets.sessions)    current.targets.sessions.actual    = ga4.totals.sessions    || 0;
-          if (current.targets.avgDuration) current.targets.avgDuration.actual = ga4.totals.avgDuration || 0;
-          if (current.targets.bounceRate)  current.targets.bounceRate.actual  = ga4.totals.bounceRate  || 0;
-        }
-      } catch(sigErr) { console.error('[scorecard] Signal read failed:', sigErr); }
-    }
-
-    renderScorecard(targets);
+    renderScorecard(data.targets);
     document.getElementById('targetScorecard').style.display = 'block';
   } catch(e) { console.error('Scorecard error:', e); }
 }
@@ -663,138 +593,6 @@ function renderScorecard(targets) {
     '<div class="scorecard-grid">' + grid + '</div>' + alerts;
 }
 
-// ── Daily Directive ───────────────────────────────────────────────────────
-async function loadDailyDirective() {
-  const panel = document.getElementById('directivePanel');
-  if (!panel) return;
-  try {
-    const res  = await fetch('/api/directive-feedback');
-    const data = await res.json();
-
-    if (!res.ok) {
-      panel.className = 'directive-panel loading';
-      document.getElementById('directiveHeadline').textContent = 'Could not load directive — ' + (data.error || 'Unknown error');
-      return;
-    }
-
-    if (!data.summary || !data.summary.dailyDirective) {
-      panel.className = 'directive-panel no-action';
-      panel.innerHTML = '<div class="directive-kicker">✓ Today&#39;s Directive</div>'
-        + '<div class="directive-headline">No action needed today</div>'
-        + '<div class="directive-reason">Run Analysis to generate today&#39;s directive based on all signals.</div>';
-      return;
-    }
-
-    const d = data.summary.dailyDirective;
-    const date = data.date;
-
-    // Check if already acted on or snoozed
-    if (d.actedOn === true) {
-      panel.className = 'directive-panel no-action';
-      panel.innerHTML = '<div class="directive-kicker">✓ Directive Complete</div>'
-        + '<div class="directive-headline">' + escD(d.headline || 'Done for today') + '</div>'
-        + '<div class="directive-reason">Marked complete ' + (d.actedOnAt ? new Date(d.actedOnAt).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : '') + '.</div>';
-      return;
-    }
-
-    if (d.snoozeUntil && new Date(d.snoozeUntil) > new Date()) {
-      panel.className = 'directive-panel no-action';
-      panel.innerHTML = '<div class="directive-kicker">⏸ Snoozed</div>'
-        + '<div class="directive-headline">' + escD(d.headline || '') + '</div>'
-        + '<div class="directive-reason">Returns tomorrow.</div>';
-      return;
-    }
-
-    const hasAction = d.type && d.type !== 'no_action';
-    panel.className = hasAction ? 'directive-panel has-action' : 'directive-panel no-action';
-
-    const confBadge = d.confidence
-      ? '<div class="directive-confidence">Confidence: ' + d.confidence.toUpperCase() + '</div>' : '';
-
-    const kpiLine = d.targetKpi
-      ? '<div class="directive-kpi">KPI at risk: ' + escD(d.targetKpi) + (d.suggestedTopic ? ' — Topic: ' + escD(d.suggestedTopic) : '') + '</div>' : '';
-
-        const safeDate = (date || '').replace(/[^0-9-]/g, '');
-    const actionBtns = hasAction
-      ? '<div class="directive-actions">'
-          + '<button class="btn-directive btn-directive-done" data-action="done" data-date="' + safeDate + '">✓ Done</button>'
-          + '<button class="btn-directive btn-directive-snooze" data-action="snooze" data-date="' + safeDate + '">⏸ Snooze 24hrs</button>'
-          + '<button class="btn-directive btn-directive-dismiss" data-action="not_applicable" data-date="' + safeDate + '">✗ Not applicable</button>'
-        + '</div>'
-      : '';
-
-    panel.innerHTML = confBadge
-      + '<div class="directive-kicker">' + (hasAction ? '⚡ Today&#39;s Directive' : '✓ No Action Needed Today') + '</div>'
-      + '<div class="directive-headline">' + escD(d.headline || 'Intelligence analysis complete') + '</div>'
-      + '<div class="directive-reason">' + escD(d.reason || '') + '</div>'
-      + kpiLine
-      + actionBtns;
-
-  } catch(err) {
-    console.error('[directive] Load error:', err.message);
-    if (panel) {
-      panel.className = 'directive-panel loading';
-      panel.innerHTML = '<div class="directive-kicker">Directive</div>'
-        + '<div class="directive-headline" style="color:rgba(255,255,255,0.36);font-size:13px;">Could not connect to directive endpoint</div>';
-    }
-  }
-}
-
-async function directiveFeedback(action, date) {
-  const panel = document.getElementById('directivePanel');
-  const btns  = panel ? panel.querySelectorAll('.btn-directive') : [];
-  btns.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
-
-  function showPanelError(msg) {
-    if (!panel) return;
-    // Remove any existing error
-    panel.querySelectorAll('.directive-error').forEach(el => el.remove());
-    const errDiv = document.createElement('div');
-    errDiv.className = 'directive-error';
-    errDiv.style.cssText = 'margin-top:10px;font-size:12px;color:rgba(248,113,113,0.80);padding:8px 10px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.20);border-radius:6px;';
-    errDiv.textContent = msg;
-    panel.appendChild(errDiv);
-    setTimeout(() => errDiv.remove(), 8000);
-    btns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
-  }
-
-  try {
-    const res  = await fetch('/api/directive-feedback', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ action, date }),
-    });
-    const data = await res.json();
-
-    if (res.ok && data.verified === true) {
-      // Both KV writes confirmed by server read-back
-      console.log('[directive] Confirmed — execSummary:', data.execSummaryKey, 'directive:', data.directiveKey, 'directiveVerified:', data.directiveWriteVerified);
-      if (!data.directiveWriteVerified) {
-        console.warn('[directive] WARNING: intelligence:daily_directive write not verified — accuracy tracking may be incomplete');
-      }
-      loadDailyDirective();
-    } else if (res.ok && data.verified !== true) {
-      showPanelError('⚠ Saved but KV verification incomplete. Run Analysis first so the directive exists, then try again.');
-    } else {
-      showPanelError('✗ Could not save: ' + (data.detail || data.error || 'Unknown error'));
-    }
-  } catch(err) {
-    console.error('[directive] Network error:', err.message);
-    showPanelError('✗ Network error — could not reach server');
-  }
-}
-
-function escD(str) { if(!str)return''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
-
-// Event delegation for directive buttons — avoids inline onclick quote issues
-document.addEventListener('click', function(e) {
-  const btn = e.target.closest('[data-action][data-date]');
-  if (!btn) return;
-  const action = btn.dataset.action;
-  const date   = btn.dataset.date;
-  if (action && date) directiveFeedback(action, date);
-});
-
 // ── Intelligence engine trigger ───────────────────────────────────────────
 async function triggerIntelligence() {
   const btn = document.getElementById('intelBtn');
@@ -821,7 +619,6 @@ async function triggerIntelligence() {
           btn.style.color = 'rgba(62,207,142,0.80)';
           btn.disabled = false;
           if (typeof loadAll === 'function') loadAll(currentDays);
-          loadDailyDirective(); // Reload directive with fresh intelligence
           setTimeout(() => { btn.textContent = '⚡ Run Analysis'; btn.style.color = 'rgba(201,168,76,0.70)'; }, 4000);
         }
       }
@@ -1304,6 +1101,191 @@ function toggleExec() {
   document.getElementById('execSummary').classList.toggle('open');
 }
 
+// ── Part B: Render directive panel from intelligence:brief ───────────────
+async function loadAndRenderDirective() {
+  try {
+    const res = await fetch('/api/intelligence-engine', { method: 'GET' });
+    if (!res.ok) return;
+    const data = await res.json();
+    const brief = data.brief;
+    if (!brief) return;
+
+    const panel = document.getElementById('directivePanel');
+    if (!panel) return;
+
+    // Check if already snoozed
+    const snoozedUntil = localStorage.getItem('ffx_directive_snoozed');
+    if (snoozedUntil && new Date(snoozedUntil) > new Date()) return;
+
+    // Build directive text from brief
+    let directiveText = '';
+    let directiveSubtext = '';
+    let confidence = 'MEDIUM';
+    let note = '';
+    const resolution = brief.directiveResolution || {};
+
+    if (brief.titleRewrites && brief.titleRewrites.length > 0) {
+      const r = brief.titleRewrites[0];
+      directiveText = `Rewrite title for ${r.currentUrl}`;
+      directiveSubtext = `Suggested: "${r.suggestedTitle}"`;
+      confidence = r.currentPosition < 15 ? 'HIGH' : 'MEDIUM';
+      note = r.reasoning || '';
+    } else if (brief.articleBrief?.targetQuery) {
+      directiveText = `${brief.articleBrief.suggestedTitle || 'Generate article'} targeting "${brief.articleBrief.targetQuery}"`;
+      directiveSubtext = brief.articleBrief.angle || '';
+      confidence = 'HIGH';
+      note = resolution.action?.note || brief.articleBrief.reasoning || '';
+    } else if (brief.priorityActions && brief.priorityActions.length > 0) {
+      const a = brief.priorityActions[0];
+      directiveText = a.action;
+      confidence = a.impact === 'high' ? 'HIGH' : 'MEDIUM';
+      note = a.reasoning || '';
+    }
+
+    if (!directiveText) return;
+
+    document.getElementById('directiveText').textContent = directiveText;
+    document.getElementById('directiveSubtext').textContent = directiveSubtext;
+    document.getElementById('directiveConfidence').textContent = 'CONFIDENCE: ' + confidence;
+    document.getElementById('directiveNote').textContent = note;
+
+    // Render action button based on resolution
+    const actionContainer = document.getElementById('directiveActionBtn');
+    actionContainer.innerHTML = '';
+    renderDirectiveActionButton(actionContainer, resolution, brief);
+
+    panel.style.display = 'block';
+
+    // Store brief for action handlers
+    window._currentBrief = brief;
+  } catch (err) {
+    console.error('[FFX] Directive load failed:', err.message);
+  }
+}
+
+function renderDirectiveActionButton(container, resolution, brief) {
+  if (!resolution || !resolution.action) return;
+
+  const action = resolution.action;
+  const btnStyle = 'font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;border-radius:5px;padding:6px 14px;cursor:pointer;border:none;';
+
+  if (action.type === 'title_rewrite' || resolution.type === 'title_rewrite') {
+    // Apply Title — calls title-test API directly
+    const btn = document.createElement('button');
+    btn.textContent = action.label || 'Apply Title';
+    btn.style.cssText = btnStyle + 'background:rgba(122,92,255,0.20);color:rgba(167,139,250,1);border:1px solid rgba(122,92,255,0.40);';
+    btn.onclick = async () => {
+      if (!action.slug || !action.suggestedTitle) return;
+      btn.disabled = true; btn.textContent = 'Applying…';
+      try {
+        await fetch('/api/title-test', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug: action.slug, newTitle: action.suggestedTitle, oldTitle: action.currentTitle || '' }) });
+        btn.textContent = '✓ Applied';
+        btn.style.color = '#3ecf8e';
+      } catch(e) { btn.textContent = '✗ Error'; btn.style.color = '#ff4444'; }
+    };
+    container.appendChild(btn);
+
+  } else if (action.type === 'queue_ready') {
+    // Go to Article — opens queue dashboard to that video
+    const btn = document.createElement('button');
+    btn.textContent = action.label || 'Go to Article';
+    btn.style.cssText = btnStyle + 'background:rgba(201,168,76,0.15);color:rgba(201,168,76,1);border:1px solid rgba(201,168,76,0.35);';
+    btn.onclick = () => {
+      window.open(`/dashboard-queue.html?video=${action.videoId}`, '_blank');
+    };
+    container.appendChild(btn);
+
+  } else if (action.type === 'queue_pending') {
+    // Generate Now — triggers generation
+    const btn = document.createElement('button');
+    btn.textContent = action.label || 'Generate Now';
+    btn.style.cssText = btnStyle + 'background:rgba(249,115,22,0.15);color:rgba(249,115,22,1);border:1px solid rgba(249,115,22,0.35);';
+    btn.onclick = () => {
+      window.open('/dashboard-queue.html', '_blank');
+    };
+    container.appendChild(btn);
+
+  } else if (action.type === 'nugget_generate') {
+    // Generate with Nuggets — opens queue with nugget context
+    const btn = document.createElement('button');
+    btn.textContent = `${action.label} (${action.nuggetCount} nuggets)`;
+    btn.style.cssText = btnStyle + 'background:rgba(56,189,248,0.15);color:rgba(56,189,248,1);border:1px solid rgba(56,189,248,0.30);';
+    btn.onclick = () => {
+      window.open('/dashboard-queue.html', '_blank');
+    };
+    container.appendChild(btn);
+
+  } else if (action.type === 'retroactive_link') {
+    // Apply Link — Component 3: write retroactive link directive to queue-edits
+    const btn = document.createElement('button');
+    btn.textContent = action.label || 'Apply Link';
+    btn.style.cssText = btnStyle + 'background:rgba(62,207,142,0.12);color:rgba(62,207,142,1);border:1px solid rgba(62,207,142,0.25);';
+    btn.onclick = async () => {
+      btn.disabled = true; btn.textContent = 'Applying…';
+      try {
+        // Write to queue-edits for the source article to add internal link
+        const res = await fetch('/api/queue-edits', { method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoId:   action.sourceSlug, // use slug as identifier for press articles
+            field:     'retroactive_link',
+            value:     JSON.stringify({ targetSlug: action.targetSlug, targetTitle: action.targetTitle, targetUrl: action.targetUrl }),
+            note:      `Add internal link to "${action.targetTitle}"`,
+          })
+        });
+        if (res.ok) {
+          btn.textContent = '✓ Link Queued';
+          btn.style.color = '#3ecf8e';
+          // Record in intelligence:brief_log
+          await fetch('/api/directive-feedback', { method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: new Date().toISOString().split('T')[0], directiveType: 'retroactive_link', actedOn: true })
+          }).catch(() => {});
+        } else {
+          btn.textContent = '✗ Error';
+          btn.style.color = '#ff4444';
+          setTimeout(() => { btn.disabled = false; btn.textContent = action.label; btn.style.color = ''; }, 3000);
+        }
+      } catch(e) {
+        btn.textContent = '✗ Network error';
+        btn.style.color = '#ff4444';
+        setTimeout(() => { btn.disabled = false; btn.textContent = action.label; btn.style.color = ''; }, 3000);
+      }
+    };
+    container.appendChild(btn);
+
+  } else if (action.type === 'new_article') {
+    // New article — no existing content, open queue
+    const btn = document.createElement('button');
+    btn.textContent = action.label || 'Add to Queue';
+    btn.style.cssText = btnStyle + 'background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.70);border:1px solid rgba(255,255,255,0.14);';
+    btn.onclick = () => { window.open('/dashboard-queue.html', '_blank'); };
+    container.appendChild(btn);
+  }
+}
+
+async function markDirectiveDone() {
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    await fetch('/api/directive-feedback', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: today, directiveType: window._currentBrief?.directiveResolution?.type || 'unknown', actedOn: true })
+    });
+  } catch(e) {}
+  document.getElementById('directivePanel').style.display = 'none';
+}
+
+function snoozeDirective() {
+  const until = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  localStorage.setItem('ffx_directive_snoozed', until);
+  document.getElementById('directivePanel').style.display = 'none';
+}
+
+function dismissDirective() {
+  document.getElementById('directivePanel').style.display = 'none';
+}
+
 function buildExecSummary(currData, prevData, queriesData, pagesData, prevPagesData) {
   const c = currData.rows?.[0] || {};
   const p = prevData.rows?.[0] || {};
@@ -1426,6 +1408,9 @@ function buildExecSummary(currData, prevData, queriesData, pagesData, prevPagesD
 }
 
 // ── Date selector ─────────────────────────────────────────────────────────
+// Load directive panel on page init
+loadAndRenderDirective();
+
 document.getElementById('dateSelector').addEventListener('click', e => {
   const btn = e.target.closest('.date-btn');
   if (!btn || btn.id === 'customBtn') return;
@@ -1447,7 +1432,6 @@ function showDashboard() {
   document.getElementById('seedBtn').style.display = 'inline-block';
   loadAll(28);
   loadTargetScorecard();
-  loadDailyDirective();
   loadCharts(28);
 }
 
