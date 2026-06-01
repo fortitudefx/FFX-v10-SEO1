@@ -458,6 +458,23 @@
       <div id="directiveHistoryList" style="padding:20px 24px;font-size:13px;color:rgba(255,255,255,0.40);">Loading...</div>
     </div>
 
+    <!-- Link Graph Panel -->
+    <div id="linkGraphPanel" style="display:none;border-radius:14px;border:1px solid rgba(255,255,255,0.09);background:#13151b;margin-bottom:24px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div style="display:flex;align-items:center;gap:16px;">
+          <span style="font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.70);">Internal Link Graph</span>
+          <span id="linkCoverageScore" style="font-size:13px;font-weight:800;color:#C9A84C;">—</span>
+          <span id="linkOpportunityCount" style="font-size:11px;color:rgba(255,255,255,0.35);"></span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="runBulkLinkScan(true)" id="dryRunBtn" style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.12);border-radius:5px;padding:5px 12px;cursor:pointer;">&#128065; Preview Links</button>
+          <button onclick="runBulkLinkScan(false)" id="bulkLinkBtn" style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.10);color:rgba(62,207,142,0.80);border:1px solid rgba(62,207,142,0.25);border-radius:5px;padding:5px 12px;cursor:pointer;">&#9889; Auto-Link All</button>
+        </div>
+      </div>
+      <div id="bulkLinkStatus" style="display:none;padding:14px 24px;border-bottom:1px solid rgba(255,255,255,0.07);"></div>
+      <div id="linkGraphTable" style="padding:0;"></div>
+    </div>
+
 
 
 
@@ -715,10 +732,14 @@ async function triggerIntelligence() {
       var pr   = await fetch('/api/intelligence-engine?progress=1');
       var pd   = await pr.json();
       if (pd.progress && pd.progress.step) {
-        var s = pd.progress.step - 1; // 0-indexed
-        if (s !== lastStep) {
-          lastStep = s;
-          intelStepSet(s, pd.progress.status === 'error' ? 'error' : 'active');
+        var currentStep = pd.progress.step - 1; // 0-indexed
+        if (currentStep !== lastStep) {
+          // Mark all steps before current as done
+          for (var prev = lastStep + 1; prev < currentStep; prev++) {
+            intelStepSet(prev, 'done');
+          }
+          lastStep = currentStep;
+          intelStepSet(currentStep, pd.progress.status === 'error' ? 'error' : 'active');
         }
       }
     } catch(e) {}
@@ -759,6 +780,7 @@ async function triggerIntelligence() {
       renderDirectiveFromBrief(data.brief);
       loadDirectiveHistory();
       loadReplyOpportunities(data.brief);
+      loadLinkGraph();
     }
     if (typeof loadAll === 'function') loadAll(currentDays);
 
@@ -1400,8 +1422,10 @@ function renderDirectiveFromBrief(brief) {
 
   if (brief.titleRewrites && brief.titleRewrites.length > 0) {
     var r = brief.titleRewrites[0];
-    directiveText    = 'Rewrite title for ' + (r.currentUrl || '');
-    directiveSubtext = 'Suggested: "' + r.suggestedTitle + '"';
+    // Use human-readable title from resolution.action if available
+    var artTitle = (resolution.action && resolution.action.currentTitle) || r.currentUrl || '';
+    directiveText    = 'Rewrite title: "' + artTitle + '"';
+    directiveSubtext = 'New title: "' + r.suggestedTitle + '"';
     confidence       = r.currentPosition < 15 ? 'HIGH' : 'MEDIUM';
     note             = r.reasoning || '';
   } else if (brief.articleBrief && brief.articleBrief.targetQuery) {
@@ -1512,9 +1536,16 @@ async function executeApplyTitle(btn, action, resolution, brief) {
       btn.textContent = '✗ Failed'; btn.style.color = '#ff4444'; btn.disabled = false; return;
     }
     for (var i = 0; i < 4; i++) updateDirectiveStep(steps, i, 'done');
-    steps[3].note = data.message || 'Title applied. Monitoring CTR for 14 days.';
+    steps[3].note = 'Old: "' + (action.currentTitle || '') + '" → New: "' + action.suggestedTitle + '"';
     showDirectiveSteps(steps);
     btn.textContent = '✓ Applied'; btn.style.color = '#3ecf8e';
+    // Add verification link
+    var verifyLink = document.createElement('a');
+    verifyLink.href = 'https://fortitudefx.com/article?slug=' + action.slug;
+    verifyLink.target = '_blank';
+    verifyLink.textContent = 'Verify on live site →';
+    verifyLink.style.cssText = 'display:inline-block;margin-top:10px;font-size:12px;color:#C9A84C;text-decoration:none;font-weight:700;';
+    document.getElementById('directiveStepList').appendChild(verifyLink);
     loadDirectiveHistory();
   } catch(e) {
     updateDirectiveStep(steps, 0, 'error', e.message); showDirectiveSteps(steps);
@@ -1614,6 +1645,119 @@ function dismissDirective() {
   document.getElementById('directivePanel').style.display = 'none';
 }
 
+// ── Link Graph Panel ─────────────────────────────────────────────────────
+async function loadLinkGraph() {
+  var panel = document.getElementById('linkGraphPanel');
+  if (!panel) return;
+  try {
+    var res  = await fetch('/api/bulk-link-scan');
+    if (!res.ok) { console.error('[FFX] Link graph load failed:', res.status); return; }
+    var data = await res.json();
+    if (data.error) { console.error('[FFX] Link graph error:', data.error); return; }
+    renderLinkGraph(data);
+    panel.style.display = 'block';
+  } catch(e) { console.error('[FFX] Link graph load error:', e.message); }
+}
+
+function renderLinkGraph(data) {
+  // Coverage score
+  var scoreEl = document.getElementById('linkCoverageScore');
+  var oppEl   = document.getElementById('linkOpportunityCount');
+  if (scoreEl) {
+    var color = data.coverage >= 80 ? '#3ecf8e' : data.coverage >= 50 ? '#C9A84C' : '#f87171';
+    scoreEl.style.color = color;
+    scoreEl.textContent = data.coverage + '% linked (' + data.linkedArticles + '/' + data.totalArticles + ' articles)';
+  }
+  if (oppEl) {
+    oppEl.textContent = data.totalOpportunities + ' link opportunities found';
+  }
+
+  // Article graph table
+  var tableEl = document.getElementById('linkGraphTable');
+  if (!tableEl || !data.graph) return;
+
+  var rows = data.graph.map(function(a) {
+    var outColor = a.outbound === 0 ? '#f87171' : a.outbound < 2 ? '#C9A84C' : '#3ecf8e';
+    var inColor  = a.inbound  === 0 ? '#f87171' : a.inbound  < 2 ? '#C9A84C' : '#3ecf8e';
+    var outSlugs = a.outboundSlugs.length ? a.outboundSlugs.join(', ') : 'none';
+    var inSlugs  = a.inboundSlugs.length  ? a.inboundSlugs.join(', ')  : 'none';
+    return '<div style="display:grid;grid-template-columns:1fr 80px 80px;align-items:start;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,0.05);gap:12px;">'
+      + '<div>'
+      + '<div style="font-size:13px;font-weight:600;color:#ffffff;margin-bottom:4px;">' + escHtml(a.title) + '</div>'
+      + '<div style="font-size:11px;color:rgba(255,255,255,0.30);">' + escHtml(a.slug) + '</div>'
+      + (a.outbound > 0 ? '<div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:3px;">Links to: ' + escHtml(outSlugs) + '</div>' : '')
+      + (a.inbound  > 0 ? '<div style="font-size:11px;color:rgba(255,255,255,0.35);">Linked from: ' + escHtml(inSlugs) + '</div>' : '')
+      + '</div>'
+      + '<div style="text-align:center;">'
+      + '<div style="font-size:20px;font-weight:800;color:' + outColor + ';">' + a.outbound + '</div>'
+      + '<div style="font-size:10px;color:rgba(255,255,255,0.30);text-transform:uppercase;letter-spacing:0.10em;">Out</div>'
+      + '</div>'
+      + '<div style="text-align:center;">'
+      + '<div style="font-size:20px;font-weight:800;color:' + inColor + ';">' + a.inbound + '</div>'
+      + '<div style="font-size:10px;color:rgba(255,255,255,0.30);text-transform:uppercase;letter-spacing:0.10em;">In</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+
+  tableEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 80px 80px;padding:10px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">'
+    + '<div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(196,181,253,0.60);">Article</div>'
+    + '<div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(196,181,253,0.60);text-align:center;">Outbound</div>'
+    + '<div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(196,181,253,0.60);text-align:center;">Inbound</div>'
+    + '</div>' + rows;
+}
+
+async function runBulkLinkScan(dryRun) {
+  var statusEl = document.getElementById('bulkLinkStatus');
+  var btn      = document.getElementById(dryRun ? 'dryRunBtn' : 'bulkLinkBtn');
+  if (!statusEl || !btn) return;
+
+  btn.disabled = true;
+  btn.textContent = dryRun ? '&#128065; Scanning...' : '&#9889; Running...';
+
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<div style="font-size:13px;color:rgba(255,255,255,0.60);">&#9889; ' + (dryRun ? 'Scanning for link opportunities...' : 'Inserting missing internal links...') + '</div>';
+
+  try {
+    var res  = await fetch('/api/bulk-link-scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dryRun: dryRun, maxLinks: 50 }),
+    });
+    var data = await res.json();
+
+    if (!res.ok || data.error) {
+      statusEl.innerHTML = '<div style="font-size:13px;color:#ff4444;">&#10007; Error: ' + escHtml(data.error || 'Unknown error') + '</div>';
+      btn.disabled = false;
+      btn.textContent = dryRun ? '&#128065; Preview Links' : '&#9889; Auto-Link All';
+      return;
+    }
+
+    if (dryRun) {
+      var pairsHtml = (data.pairs || []).slice(0, 10).map(function(p) {
+        return '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:rgba(255,255,255,0.70);">'
+          + '"' + escHtml(p.fromTitle) + '" &#8594; "' + escHtml(p.toTitle) + '"'
+          + '<span style="color:rgba(255,255,255,0.35);margin-left:8px;">shared: ' + escHtml(p.sharedTags.join(', ')) + '</span>'
+          + '</div>';
+      }).join('');
+      statusEl.innerHTML = '<div style="font-size:13px;color:#3ecf8e;margin-bottom:10px;">&#10003; Found ' + data.totalPairs + ' link opportunities. Would process ' + data.wouldProcess + '.</div>'
+        + (pairsHtml ? '<div style="max-height:200px;overflow-y:auto;">' + pairsHtml + '</div>' : '');
+    } else {
+      statusEl.innerHTML = '<div style="font-size:13px;color:#3ecf8e;margin-bottom:8px;">&#10003; Complete: ' + data.inserted + ' links inserted, ' + data.skipped + ' skipped, ' + data.failed + ' failed.</div>'
+        + (data.failed > 0 ? '<div style="font-size:12px;color:#f87171;">' + data.results.filter(function(r){ return r.status === 'failed'; }).map(function(r){ return escHtml(r.fromSlug) + ': ' + escHtml(r.reason); }).join('<br>') + '</div>' : '');
+      // Reload link graph after scan
+      loadLinkGraph();
+    }
+
+    btn.disabled = false;
+    btn.textContent = dryRun ? '&#128065; Preview Links' : '&#9889; Auto-Link All';
+
+  } catch(e) {
+    statusEl.innerHTML = '<div style="font-size:13px;color:#ff4444;">&#10007; Network error: ' + escHtml(e.message) + '</div>';
+    btn.disabled = false;
+    btn.textContent = dryRun ? '&#128065; Preview Links' : '&#9889; Auto-Link All';
+  }
+}
+
 // ── Date selector ─────────────────────────────────────────────────────────
 document.getElementById('dateSelector').addEventListener('click', e => {
   const btn = e.target.closest('.date-btn');
@@ -1639,6 +1783,7 @@ function showDashboard() {
   loadCharts(28);
   loadAndRenderDirective();
   loadDirectiveHistory();
+  loadLinkGraph();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
