@@ -1,7 +1,9 @@
 // functions/api/title-test.js
-// POST /api/title-test — applies a title change AND records test for outcome tracking
-// GET  /api/title-test?slug=X — returns title test record for a slug
-// GET  /api/title-test — returns all title tests
+// POST /api/title-test — updates article title in KV and records test for outcome tracking
+// Touches ONLY: article:{slug} and articles:index
+// published:{videoId} is NEVER touched — it is permanent and immutable
+// The live article heading reads from article:{slug} via article-content.js (articleMeta.title first)
+// so the heading updates immediately without touching published
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -22,21 +24,37 @@ export async function onRequestPost(context) {
   }
 
   try {
-    // ── Step 1: Read current article:{slug} from KV ───────────────────────
+    // ── Step 1: Read current article:{slug} ──────────────────────────────
     const articleMeta = await env.FFX_KV.get('article:' + slug, { type: 'json' }).catch(function(){ return null; });
     if (!articleMeta) {
-      return json({ error: 'Article not found in KV for slug: ' + slug, step: 'lookup' }, 404, headers);
+      return json({ error: 'Article not found in KV: ' + slug, step: 'lookup' }, 404, headers);
+    }
+
+    // Verify article has a published body before allowing title change
+    // Directive should never surface title rewrites for articles without body
+    // but this is a safety check in case it does
+    const videoId = articleMeta.videoId;
+    if (videoId) {
+      const published = await env.FFX_KV.get('published:' + videoId, { type: 'json' }).catch(function(){ return null; });
+      // Read-only check — never write to published
+      const hasBody = !!(published && published.globalContent && published.globalContent.body);
+      if (!hasBody) {
+        return json({
+          error: 'This article has no published body. Title change skipped. The directive should not have surfaced this article.',
+          step: 'verify_body', slug,
+        }, 422, headers);
+      }
     }
 
     const resolvedOldTitle = oldTitle || articleMeta.title || '';
 
-    // ── Step 2: Update article:{slug} with new title ──────────────────────
+    // ── Step 2: Update article:{slug} title ──────────────────────────────
     articleMeta.title     = newTitle;
     articleMeta.updatedAt = new Date().toISOString();
     await env.FFX_KV.put('article:' + slug, JSON.stringify(articleMeta));
     console.log('[title-test] article:' + slug + ' title updated:', resolvedOldTitle, '->', newTitle);
 
-    // ── Step 3: Update articles:index entry ───────────────────────────────
+    // ── Step 3: Update articles:index entry ──────────────────────────────
     try {
       const indexRaw = await env.FFX_KV.get('articles:index', { type: 'json' }).catch(function(){ return null; });
       if (Array.isArray(indexRaw)) {
@@ -51,56 +69,32 @@ export async function onRequestPost(context) {
       console.error('[title-test] articles:index update failed (non-fatal):', idxErr.message);
     }
 
-    // ── Step 4: Update published:{videoId} globalContent.title ───────────
-    try {
-      const videoId = articleMeta.videoId;
-      if (videoId) {
-        const published = await env.FFX_KV.get('published:' + videoId, { type: 'json' }).catch(function(){ return null; });
-        if (published && published.globalContent) {
-          published.globalContent.title = newTitle;
-          await env.FFX_KV.put('published:' + videoId, JSON.stringify(published));
-          console.log('[title-test] published:' + videoId + ' title updated');
-        }
-      }
-    } catch(pubErr) {
-      console.error('[title-test] published record update failed (non-fatal):', pubErr.message);
-    }
-
-    // ── Step 5: Write seo:title_tests:{slug} for outcome tracking ─────────
+    // ── Step 4: Write seo:title_tests:{slug} for outcome tracking ─────────
     const testRecord = {
-      slug,
-      oldTitle:            resolvedOldTitle,
-      newTitle,
+      slug, oldTitle: resolvedOldTitle, newTitle,
       changedAt:           new Date().toISOString(),
       positionAtChange:    positionAtChange    || null,
       ctrAtChange:         ctrAtChange         || 0,
       clicksAtChange:      clicksAtChange      || 0,
       impressionsAtChange: impressionsAtChange || 0,
-      status:              'monitoring',
-      result:              null,
-      positionAfter:       null,
-      ctrAfter:            null,
-      clicksAfter:         null,
-      impressionsAfter:    null,
-      improvement:         null,
-      completedAt:         null,
-      briefLogId:          directiveDate ? (directiveDate + '_title_0') : null,
+      status:   'monitoring',
+      result:   null, positionAfter: null, ctrAfter: null,
+      clicksAfter: null, impressionsAfter: null,
+      improvement: null, completedAt: null,
+      briefLogId: directiveDate ? (directiveDate + '_title_0') : null,
     };
     await env.FFX_KV.put('seo:title_tests:' + slug, JSON.stringify(testRecord));
-    console.log('[title-test] Test record written for slug:', slug);
 
-    // ── Step 6: Record directive outcome for feedback loop ─────────────────
+    // ── Step 5: Record directive outcome for feedback loop ─────────────────
     try {
-      const today = (directiveDate || new Date().toISOString().split('T')[0]);
+      const today = directiveDate || new Date().toISOString().split('T')[0];
       await env.FFX_KV.put(
         'intelligence:directive_outcome:' + today + ':title_rewrite',
         JSON.stringify({
-          directiveType: 'title_rewrite',
-          actedOn:       true,
-          actedOnAt:     new Date().toISOString(),
+          directiveType: 'title_rewrite', actedOn: true,
+          actedOnAt: new Date().toISOString(),
           slug, oldTitle: resolvedOldTitle, newTitle,
-          outcome:   null, // populated after 14 days by SEO signals
-          accurate:  null,
+          outcome: null, accurate: null, date: today,
         })
       );
     } catch(outcomeErr) {
@@ -108,9 +102,11 @@ export async function onRequestPost(context) {
     }
 
     return json({
-      success:   true, slug, newTitle,
+      success: true, slug, oldTitle: resolvedOldTitle, newTitle,
       updatedAt: new Date().toISOString(),
-      message:   'Title updated across all KV records. Monitoring CTR for 14 days.',
+      message: 'Title updated in article:' + slug + ' and articles:index. '
+        + 'Heading on live site updates immediately. '
+        + 'Monitoring CTR for 14 days.',
     }, 200, headers);
 
   } catch(err) {
@@ -122,7 +118,6 @@ export async function onRequestPost(context) {
 export async function onRequestGet(context) {
   const { request, env } = context;
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
-
   try {
     const slug = new URL(request.url).searchParams.get('slug');
     if (!slug) {

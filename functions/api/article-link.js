@@ -1,8 +1,11 @@
 // functions/api/article-link.js
-// POST /api/article-link — inserts an internal link into a published article body
-// Reads published:{videoId} from KV, finds articleMeta to get videoId from slug,
-// inserts link into body HTML, writes back to published:{videoId}
-// Records outcome in intelligence:directive_outcome
+// POST /api/article-link — records an internal link for an article
+// Writes to article:links:{slug} KV key ONLY
+// article-content.js reads this key and appends links to body on the fly
+// published:{videoId} is NEVER touched — it is permanent and immutable
+//
+// KV key: article:links:{slug}
+// Structure: { slug, links: [{ targetSlug, targetTitle, targetUrl, insertedAt }], updatedAt }
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -22,89 +25,57 @@ export async function onRequestPost(context) {
   }
 
   try {
-    // ── Step 1: Find videoId for sourceSlug via article:{slug} KV ────────
+    // ── Step 1: Verify source article exists and has a published body ─────
     const articleMeta = await env.FFX_KV.get('article:' + sourceSlug, { type: 'json' }).catch(function(){ return null; });
     if (!articleMeta) {
-      return json({ error: 'Source article not found in KV for slug: ' + sourceSlug, step: 'lookup' }, 404, headers);
+      return json({ error: 'Source article not found: ' + sourceSlug, step: 'verify_source' }, 404, headers);
     }
 
+    // Check published body exists — only link from articles with real content
     const videoId = articleMeta.videoId;
-    if (!videoId) {
-      return json({ error: 'Source article has no videoId — cannot locate published body', step: 'lookup' }, 400, headers);
+    let hasBody = false;
+    if (videoId) {
+      const published = await env.FFX_KV.get('published:' + videoId, { type: 'json' }).catch(function(){ return null; });
+      // Read-only check — never write to published
+      hasBody = !!(published && published.globalContent && published.globalContent.body);
+    }
+    // Also accept articles served from articles.json (no videoId) — they have body via GitHub fallback
+    if (!hasBody && !videoId) hasBody = true; // Will be served via GitHub fallback
+
+    if (!hasBody && videoId) {
+      return json({
+        error: 'Source article has no published body. Cannot add internal link to an article without content.',
+        step: 'verify_body', sourceSlug,
+      }, 422, headers);
     }
 
-    // ── Step 2: Read published:{videoId} ─────────────────────────────────
-    const publishedEntry = await env.FFX_KV.get('published:' + videoId, { type: 'json' }).catch(function(){ return null; });
-    if (!publishedEntry || !publishedEntry.globalContent || !publishedEntry.globalContent.body) {
-      return json({ error: 'Published body not found for videoId: ' + videoId, step: 'read_body' }, 404, headers);
-    }
+    // ── Step 2: Read existing article:links:{sourceSlug} ─────────────────
+    const existing = await env.FFX_KV.get('article:links:' + sourceSlug, { type: 'json' }).catch(function(){ return null; });
+    const record = existing || { slug: sourceSlug, links: [], updatedAt: null };
 
-    // ── Step 3: Insert internal link into body ────────────────────────────
-    // Strategy: find the last </p> tag and insert a natural link sentence before it
-    // This is the safest insertion — avoids breaking existing HTML structure
-    const originalBody = publishedEntry.globalContent.body;
-    const linkHtml = ' For further reading, see <a href="' + targetUrl + '">' + targetTitle + '</a>.';
-
-    // Find a good paragraph to insert into — look for </p> that isn't the last one
-    // and isn't inside the CTA section (which contains 'discord.gg/fortitudefx')
-    var insertIdx = -1;
-    var searchFrom = 0;
-    var occurrences = [];
-
-    // Find all </p> positions
-    while (true) {
-      var idx = originalBody.indexOf('</p>', searchFrom);
-      if (idx === -1) break;
-      occurrences.push(idx);
-      searchFrom = idx + 4;
-    }
-
-    // Use the second-to-last </p> that is not in the CTA block
-    // CTA is usually the last paragraph containing 'discord.gg'
-    var ctaStart = originalBody.indexOf('discord.gg/fortitudefx');
-    var candidates = occurrences.filter(function(idx) {
-      // Skip if inside or after the CTA section
-      return ctaStart === -1 || idx < ctaStart;
-    });
-
-    if (candidates.length >= 2) {
-      // Insert after second-to-last candidate paragraph
-      insertIdx = candidates[candidates.length - 2] + 4; // after </p>
-    } else if (candidates.length === 1) {
-      insertIdx = candidates[0] + 4;
-    } else if (occurrences.length > 0) {
-      // Fallback: second-to-last </p> anywhere
-      insertIdx = occurrences[Math.max(0, occurrences.length - 2)] + 4;
-    }
-
-    if (insertIdx === -1) {
-      return json({ error: 'Could not find a safe insertion point in article body', step: 'insert' }, 422, headers);
-    }
-
-    // Check if link already exists — avoid duplicates
-    if (originalBody.includes(targetUrl)) {
+    // ── Step 3: Check if link to this target already exists ──────────────
+    const alreadyExists = record.links.some(function(l){ return l.targetSlug === targetSlug; });
+    if (alreadyExists) {
       return json({
         success: true, skipped: true,
-        message: 'Link to ' + targetUrl + ' already exists in this article',
-        slug: sourceSlug,
+        message: 'Link from "' + sourceSlug + '" to "' + targetTitle + '" already exists.',
+        sourceSlug, targetSlug,
       }, 200, headers);
     }
 
-    const newBody = originalBody.slice(0, insertIdx) + '<p>' + linkHtml + '</p>' + originalBody.slice(insertIdx);
-
-    // ── Step 4: Write updated body back to published:{videoId} ───────────
-    publishedEntry.globalContent.body = newBody;
-    publishedEntry.linkInsertedAt     = new Date().toISOString();
-    if (!publishedEntry.internalLinks) publishedEntry.internalLinks = [];
-    publishedEntry.internalLinks.push({
-      targetSlug, targetTitle, targetUrl,
+    // ── Step 4: Add link to record ────────────────────────────────────────
+    record.links.push({
+      targetSlug,
+      targetTitle,
+      targetUrl,
       insertedAt: new Date().toISOString(),
     });
+    record.updatedAt = new Date().toISOString();
 
-    await env.FFX_KV.put('published:' + videoId, JSON.stringify(publishedEntry));
-    console.log('[article-link] Link inserted:', sourceSlug, '->', targetSlug);
+    await env.FFX_KV.put('article:links:' + sourceSlug, JSON.stringify(record));
+    console.log('[article-link] Written article:links:' + sourceSlug + ' -> ' + targetSlug);
 
-    // ── Step 5: Update articles:index entry for sourceSlug ───────────────
+    // ── Step 5: Update articles:index entry with link record ──────────────
     try {
       const indexRaw = await env.FFX_KV.get('articles:index', { type: 'json' }).catch(function(){ return null; });
       if (Array.isArray(indexRaw)) {
@@ -121,16 +92,14 @@ export async function onRequestPost(context) {
 
     // ── Step 6: Record directive outcome for feedback loop ────────────────
     try {
-      const today = (directiveDate || new Date().toISOString().split('T')[0]);
+      const today = directiveDate || new Date().toISOString().split('T')[0];
       await env.FFX_KV.put(
         'intelligence:directive_outcome:' + today + ':retroactive_link',
         JSON.stringify({
-          directiveType: 'retroactive_link',
-          actedOn:       true,
-          actedOnAt:     new Date().toISOString(),
+          directiveType: 'retroactive_link', actedOn: true,
+          actedOnAt: new Date().toISOString(),
           sourceSlug, targetSlug, targetTitle,
-          outcome:   null, // populated by future signal analysis
-          accurate:  null,
+          outcome: null, accurate: null, date: today,
         })
       );
     } catch(outcomeErr) {
@@ -138,11 +107,10 @@ export async function onRequestPost(context) {
     }
 
     return json({
-      success:     true,
-      sourceSlug,
-      targetSlug,
-      insertedAt:  new Date().toISOString(),
-      message:     'Link to "' + targetTitle + '" inserted into "' + (articleMeta.title || sourceSlug) + '"',
+      success: true, sourceSlug, targetSlug,
+      insertedAt: new Date().toISOString(),
+      message: 'Link to "' + targetTitle + '" added to "' + (articleMeta.title || sourceSlug) + '". '
+        + 'Link will appear on next page load via article:links:' + sourceSlug + ' KV key.',
     }, 200, headers);
 
   } catch(err) {

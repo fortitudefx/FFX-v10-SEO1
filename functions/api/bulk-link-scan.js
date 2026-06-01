@@ -209,69 +209,47 @@ export async function onRequestPost(context) {
         }
 
         const videoId = articleMeta.videoId;
+        // Read-only check — verify article has a published body before linking
+        // published:{videoId} is never modified — permanent and immutable
         const published = await env.FFX_KV.get('published:' + videoId, { type: 'json' }).catch(function(){ return null; });
         if (!published || !published.globalContent || !published.globalContent.body) {
-          results.push({ fromSlug: pair.fromSlug, toSlug: pair.toSlug, status: 'skipped', reason: 'No published body found' });
+          results.push({ fromSlug: pair.fromSlug, toSlug: pair.toSlug, status: 'skipped', reason: 'No published body — article cannot receive links' });
           skipped++;
           continue;
         }
 
-        const body = published.globalContent.body;
+        // Write link to article:links:{slug} — never touches published:{videoId}
+        // article-content.js reads article:links:{slug} and appends on the fly
+        const existingLinks = await env.FFX_KV.get('article:links:' + pair.fromSlug, { type: 'json' }).catch(function(){ return null; });
+        const linkRecord = existingLinks || { slug: pair.fromSlug, links: [], updatedAt: null };
 
-        // Check if link already exists
-        if (body.includes(pair.toUrl)) {
-          results.push({ fromSlug: pair.fromSlug, toSlug: pair.toSlug, status: 'skipped', reason: 'Link already exists' });
+        // Check if link already exists in article:links
+        const alreadyExists = linkRecord.links.some(function(l){ return l.targetSlug === pair.toSlug; });
+        if (alreadyExists) {
+          results.push({ fromSlug: pair.fromSlug, toSlug: pair.toSlug, status: 'skipped', reason: 'Link already exists in article:links' });
           skipped++;
           continue;
         }
 
-        // Find insertion point — second to last </p> before CTA
-        var occurrences = [];
-        var searchFrom = 0;
-        while (true) {
-          var idx = body.indexOf('</p>', searchFrom);
-          if (idx === -1) break;
-          occurrences.push(idx);
-          searchFrom = idx + 4;
-        }
-        var ctaStart = body.indexOf('discord.gg/fortitudefx');
-        var candidates = occurrences.filter(function(idx){ return ctaStart === -1 || idx < ctaStart; });
-        var insertIdx = candidates.length >= 2 ? candidates[candidates.length - 2] + 4
-          : candidates.length === 1 ? candidates[0] + 4
-          : occurrences.length > 0 ? occurrences[Math.max(0, occurrences.length - 2)] + 4 : -1;
-
-        if (insertIdx === -1) {
-          results.push({ fromSlug: pair.fromSlug, toSlug: pair.toSlug, status: 'failed', reason: 'No safe insertion point found' });
-          failed++;
-          continue;
-        }
-
-        const linkHtml = ' For further reading, see <a href="' + pair.toUrl + '">' + pair.toTitle + '</a>.';
-        const newBody = body.slice(0, insertIdx) + '<p>' + linkHtml + '</p>' + body.slice(insertIdx);
-
-        // Write back
-        published.globalContent.body = newBody;
-        if (!published.internalLinks) published.internalLinks = [];
-        published.internalLinks.push({ targetSlug: pair.toSlug, targetTitle: pair.toTitle, targetUrl: pair.toUrl, insertedAt: new Date().toISOString() });
-        await env.FFX_KV.put('published:' + videoId, JSON.stringify(published));
-
-        // Update articles:index entry
-        try {
-          const indexRaw = await env.FFX_KV.get('articles:index', { type: 'json' }).catch(function(){ return null; });
-          if (Array.isArray(indexRaw)) {
-            var aIdx = indexRaw.findIndex(function(a){ return a.slug === pair.fromSlug; });
-            if (aIdx !== -1) {
-              if (!indexRaw[aIdx].internalLinks) indexRaw[aIdx].internalLinks = [];
-              indexRaw[aIdx].internalLinks.push({ targetSlug: pair.toSlug, targetUrl: pair.toUrl, insertedAt: new Date().toISOString() });
-              // Update linkMap for subsequent iterations
-              if (!linkMap[pair.fromSlug]) linkMap[pair.fromSlug] = [];
-              linkMap[pair.fromSlug].push(pair.toSlug);
-              await env.FFX_KV.put('articles:index', JSON.stringify(indexRaw));
-            }
+        // Also check published body for pre-existing links (read-only)
+        if (published && published.globalContent && published.globalContent.body) {
+          if (published.globalContent.body.includes(pair.toUrl)) {
+            results.push({ fromSlug: pair.fromSlug, toSlug: pair.toSlug, status: 'skipped', reason: 'Link already exists in published body' });
+            skipped++;
+            continue;
           }
-        } catch(idxErr) {
-          console.error('[bulk-link-scan] articles:index update failed (non-fatal):', idxErr.message);
         }
+
+        linkRecord.links.push({
+          targetSlug: pair.toSlug, targetTitle: pair.toTitle,
+          targetUrl: pair.toUrl, insertedAt: new Date().toISOString(),
+        });
+        linkRecord.updatedAt = new Date().toISOString();
+        await env.FFX_KV.put('article:links:' + pair.fromSlug, JSON.stringify(linkRecord));
+
+        // Update local linkMap to prevent duplicate pairs in this run
+        if (!linkMap[pair.fromSlug]) linkMap[pair.fromSlug] = [];
+        linkMap[pair.fromSlug].push(pair.toSlug);
 
         results.push({ fromSlug: pair.fromSlug, fromTitle: pair.fromTitle, toSlug: pair.toSlug, toTitle: pair.toTitle, status: 'inserted', sharedTags: pair.sharedTags });
         inserted++;

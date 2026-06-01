@@ -35,6 +35,29 @@ export async function onRequestPost(context) {
       var meta = metas[i];
       if (!meta.slug || !meta.title) { skipped++; continue; }
 
+      // Verify article has a published body before indexing
+      // Articles without body cannot receive title rewrites or internal links
+      var hasBody = false;
+      if (meta.videoId) {
+        try {
+          var pub = await env.FFX_KV.get('published:' + meta.videoId, { type: 'json' }).catch(function(){ return null; });
+          // Read-only check — never write to published
+          hasBody = !!(pub && pub.globalContent && pub.globalContent.body);
+        } catch(pubErr) {
+          console.error('[backfill] published check failed for ' + meta.slug + ' (non-fatal):', pubErr.message);
+        }
+      } else {
+        // No videoId — served from articles.json via GitHub fallback
+        // These are valid articles, mark as has body
+        hasBody = true;
+      }
+
+      if (!hasBody) {
+        console.log('[backfill] Skipping ' + meta.slug + ' — no published body found');
+        skipped++;
+        continue;
+      }
+
       var entry = {
         slug:        meta.slug,
         title:       meta.title,
@@ -43,6 +66,7 @@ export async function onRequestPost(context) {
         tags:        Array.isArray(meta.tags) ? meta.tags : (meta.tags ? meta.tags.split(',').map(function(t){ return t.trim(); }) : []),
         publishedAt: meta.createdAt  || meta.date || new Date().toISOString(),
         youtubeUrl:  meta.youtubeUrl || meta.yt_url || '',
+        hasBody:     true,
       };
 
       var existingIdx = index.findIndex(function(a){ return a.slug === meta.slug; });

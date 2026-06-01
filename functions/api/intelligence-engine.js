@@ -367,34 +367,57 @@ async function computeDirectiveResolution(brief, env, articlesIndexPrefetched) {
 
     // ── Title rewrite directive ─────────────────────────────────────────
     if (hasTitleRewrite) {
-      var rewrite = brief.titleRewrites[0];
-      var slug = rewrite.currentUrl ? rewrite.currentUrl.replace('/article?slug=', '') : '';
-      var existing = articles.find(function(a){ return a.slug === slug; });
-
-      // If not in articles:index, read article:{slug} directly from KV
-      var currentTitle = existing ? existing.title : '';
-      if (!currentTitle && slug) {
+      // Validate that article has a published body before surfacing title rewrite
+      // Never suggest title changes for articles that have no live content
+      var validRewrite = null;
+      for (var ri = 0; ri < brief.titleRewrites.length; ri++) {
+        var candidate = brief.titleRewrites[ri];
+        var cSlug = candidate.currentUrl ? candidate.currentUrl.replace('/article?slug=', '') : '';
+        if (!cSlug) continue;
         try {
-          var kvMeta = await env.FFX_KV.get('article:' + slug, { type: 'json' }).catch(function(){ return null; });
-          if (kvMeta && kvMeta.title) currentTitle = kvMeta.title;
-        } catch(kvErr) {
-          console.error('[intelligence-engine] article KV fallback failed (non-fatal):', kvErr.message);
+          var cMeta = await env.FFX_KV.get('article:' + cSlug, { type: 'json' }).catch(function(){ return null; });
+          if (!cMeta) continue;
+          // Read-only check on published record — never write
+          var cVid = cMeta.videoId;
+          if (cVid) {
+            var cPub = await env.FFX_KV.get('published:' + cVid, { type: 'json' }).catch(function(){ return null; });
+            var hasBody = !!(cPub && cPub.globalContent && cPub.globalContent.body);
+            if (!hasBody) {
+              console.log('[intelligence-engine] Skipping title rewrite for ' + cSlug + ' — no published body');
+              continue;
+            }
+          }
+          // Article has body (or no videoId meaning it serves from articles.json) — valid
+          validRewrite = { rewrite: candidate, slug: cSlug, meta: cMeta };
+          break;
+        } catch(valErr) {
+          console.error('[intelligence-engine] Title rewrite validation error (non-fatal):', valErr.message);
         }
       }
 
-      resolution.type = 'title_rewrite';
-      resolution.directiveText = 'Rewrite title for: ' + (currentTitle || slug);
-      resolution.action = {
-        label: 'Apply Title', type: 'title_rewrite',
-        slug: slug,
-        currentTitle:   currentTitle,
-        suggestedTitle: rewrite.suggestedTitle,
-        reasoning:      rewrite.reasoning,
-        ctrBefore:      rewrite.currentClicks && rewrite.currentImpressions ? (rewrite.currentClicks / rewrite.currentImpressions) : null,
-        position:       rewrite.currentPosition || null,
-      };
-      resolution.matchType = currentTitle ? 'found_article' : 'slug_only';
-      return resolution;
+      if (!validRewrite) {
+        // No valid title rewrites — fall through to article brief
+        console.log('[intelligence-engine] All title rewrites skipped — no articles with published body');
+      } else {
+        var rewrite = validRewrite.rewrite;
+        var slug    = validRewrite.slug;
+        var cMeta   = validRewrite.meta;
+        var currentTitle = cMeta.title || '';
+
+        resolution.type = 'title_rewrite';
+        resolution.directiveText = 'Rewrite title for: ' + (currentTitle || slug);
+        resolution.action = {
+          label: 'Apply Title', type: 'title_rewrite',
+          slug: slug,
+          currentTitle:   currentTitle,
+          suggestedTitle: rewrite.suggestedTitle,
+          reasoning:      rewrite.reasoning,
+          ctrBefore:      rewrite.currentClicks && rewrite.currentImpressions ? (rewrite.currentClicks / rewrite.currentImpressions) : null,
+          position:       rewrite.currentPosition || null,
+        };
+        resolution.matchType = 'found_article';
+        return resolution;
+      }
     }
 
     // ── Article brief directive ─────────────────────────────────────────
