@@ -1365,7 +1365,7 @@ function renderDailyMandates(brief) {
       + '</div>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
       + '<div id="' + btnId + '"></div>'
-      + '<button onclick="markMandateDone(' + idx + ', '' + escHtml(mandate.type || 'unknown') + '')" style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.12);color:#3ecf8e;border:1px solid rgba(62,207,142,0.30);border-radius:5px;padding:6px 14px;cursor:pointer;">&#10003; Done</button>'
+      + '<button onclick="markMandateDone(' + idx + ', &quot;' + escHtml(mandate.type || 'unknown') + '&quot;)" style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.12);color:#3ecf8e;border:1px solid rgba(62,207,142,0.30);border-radius:5px;padding:6px 14px;cursor:pointer;">&#10003; Done</button>'
       + '</div>'
       + '</div>'
     );
