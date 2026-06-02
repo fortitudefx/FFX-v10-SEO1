@@ -33,7 +33,7 @@ export async function onRequestGet(context) {
       }
     });
 
-    // Also check articles:index internalLinks field (set by article-link.js)
+    // Check articles:index internalLinks field (set by article-link.js)
     articles.forEach(function(a) {
       if (Array.isArray(a.internalLinks) && a.internalLinks.length > 0) {
         var existing = linkMap[a.slug] || [];
@@ -43,6 +43,23 @@ export async function onRequestGet(context) {
         linkMap[a.slug] = existing;
       }
     });
+
+    // Read article:links:{slug} KV keys — these are links inserted by article-link.js
+    // without touching published records. Must be included to avoid double-counting.
+    const alList = await env.FFX_KV.list({ prefix: 'article:links:' }).catch(function(){ return { keys: [] }; });
+    if (alList.keys.length > 0) {
+      const alEntries = (await Promise.all(
+        alList.keys.map(function(k){ return env.FFX_KV.get(k.name, { type: 'json' }).catch(function(){ return null; }); })
+      )).filter(Boolean);
+      alEntries.forEach(function(entry) {
+        if (!entry.slug || !Array.isArray(entry.links)) return;
+        var existing = linkMap[entry.slug] || [];
+        entry.links.forEach(function(l) {
+          if (l.targetSlug && !existing.includes(l.targetSlug)) existing.push(l.targetSlug);
+        });
+        linkMap[entry.slug] = existing;
+      });
+    }
 
     // Compute stats
     var totalArticles  = articles.length;
