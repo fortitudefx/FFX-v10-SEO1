@@ -104,15 +104,56 @@ export async function onRequestPost(context) {
     await env.FFX_KV.put('intelligence:brief', JSON.stringify(output));
     await writeProgress(env, 4, 'Writing intelligence brief to KV', 'done');
 
-    // ── STEP 5: Compute directive resolution ──────────────────────────────
+    // ── STEP 5: Compute directive resolutions (up to 3 daily mandates) ────
     await writeProgress(env, 5, 'Computing directive resolution', 'active');
 
     try {
+      // Primary directive (existing single resolution - backward compat)
       const resolution = await computeDirectiveResolution(brief, env, articlesIndex);
       output.directiveResolution = resolution;
-      // Re-write with resolution included
+
+      // All mandates: resolve each priority action into an actionable directive
+      // Up to 3 mandates, each independently trackable
+      const mandates = [];
+      if (resolution && resolution.type !== 'none' && resolution.type !== 'no_directive') {
+        mandates.push(resolution);
+      }
+
+      // Resolve remaining priority actions into mandates (up to 2 more)
+      if (brief.priorityActions && brief.priorityActions.length > 1 && mandates.length < 3) {
+        for (var pi = 1; pi < brief.priorityActions.length && mandates.length < 3; pi++) {
+          try {
+            var pa = brief.priorityActions[pi];
+            var paResolution = {
+              type: 'priority_action',
+              matchType: 'action_only',
+              directiveText: pa.action || '',
+              action: {
+                label: 'Mark Done',
+                type: 'generic',
+                note: pa.action,
+                impact: pa.impact || 'medium',
+                reasoning: pa.reasoning || '',
+              },
+              rank: pi + 1,
+            };
+            // Check if this priority action is a link action — resolve it properly
+            var paText = (pa.action || '').toLowerCase();
+            if (paText.includes('internal link') || paText.includes('link between') || paText.includes('add link')) {
+              var linkRes = await computeLinkMandate(brief, env, articlesIndex);
+              if (linkRes) { paResolution = linkRes; paResolution.rank = pi + 1; }
+            }
+            mandates.push(paResolution);
+          } catch(paErr) {
+            console.error('[intelligence-engine] Mandate', pi, 'resolution failed (non-fatal):', paErr.message);
+          }
+        }
+      }
+
+      output.directiveResolutions = mandates;
+      // Re-write with resolutions included
       await env.FFX_KV.put('intelligence:brief', JSON.stringify(output));
-      console.log('[intelligence-engine] Resolution computed:', resolution.type, resolution.matchType);
+      console.log('[intelligence-engine] Resolutions computed:', mandates.length, 'mandates');
     } catch(resErr) {
       console.error('[intelligence-engine] Resolution failed (non-fatal):', resErr.message);
     }
@@ -560,6 +601,32 @@ async function computeDirectiveResolution(brief, env, articlesIndexPrefetched) {
     resolution.matchType = 'error';
     return resolution;
   }
+}
+
+// ── Compute retroactive link mandate ─────────────────────────────────────
+// Finds the best cross-link pair from articles:index
+async function computeLinkMandate(brief, env, articles) {
+  if (!articles || articles.length < 2) return null;
+  try {
+    var sorted = articles.slice().sort(function(a, b){ return new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0); });
+    var newest = sorted[0];
+    var related = sorted.slice(1).find(function(a) {
+      return (a.tags || []).some(function(t){ return (newest.tags || []).some(function(nt){ return nt.toLowerCase() === t.toLowerCase(); }); });
+    }) || sorted[1];
+    if (!newest || !related) return null;
+    return {
+      type: 'retroactive_link',
+      matchType: 'found_link_pair',
+      directiveText: 'Add internal link from "' + related.title + '" to "' + newest.title + '"',
+      action: {
+        label: 'Apply Link', type: 'retroactive_link',
+        sourceSlug: related.slug, sourceTitle: related.title,
+        targetSlug: newest.slug, targetTitle: newest.title,
+        targetUrl: 'https://fortitudefx.com/article?slug=' + newest.slug,
+        note: 'Add a link from "' + related.title + '" to "' + newest.title + '" to boost its ranking.',
+      },
+    };
+  } catch(e) { return null; }
 }
 
 // ── Call Claude analyst ───────────────────────────────────────────────────
