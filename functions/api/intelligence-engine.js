@@ -101,6 +101,13 @@ export async function onRequestPost(context) {
       },
     };
 
+    // Add today's platform schedule to threadMandate
+    if (output.threadMandate) {
+      var dow = new Date().getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+      var schedule = { 1:'babypips', 2:'forexfactory', 3:'reddit', 4:'quora' };
+      output.threadMandate.scheduledPlatform = schedule[dow] || output.threadMandate.platform || null;
+      output.threadMandate.isScheduledToday  = !!(schedule[dow]);
+    }
     await env.FFX_KV.put('intelligence:brief', JSON.stringify(output));
     await writeProgress(env, 4, 'Writing intelligence brief to KV', 'done');
 
@@ -681,7 +688,7 @@ async function callClaudeAnalyst(signalContext, apiKey) {
     + '    "avoidance": "1-2 sentences on what to avoid"\n'
     + '  }\n'
     + '}\n\n'
-    + 'CRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. Start with { end with }.';
+    + '  },\n'    + '  "threadMandate": {\n'    + '    "platform": "babypips|forexfactory|reddit|quora",\n'    + '    "topic": "specific thread topic based on signals",\n'    + '    "angle": "mentor educator angle — experienced practitioner sharing insight, never question-asker",\n'    + '    "draftPost": "full draft post in Salman Khan voice — calm institutional slightly contrarian. Platform-formatted. No self-promotion. No product links. 150-400 words.",\n'    + '    "suggestedTitle": "thread title or opening line",\n'    + '    "reasoning": "why this topic on this platform now"\n'    + '  }\n'    + '}\n\n'    + 'THREAD MANDATE: Platform by day of week: Monday=babypips, Tuesday=forexfactory, Wednesday=reddit, Thursday=quora. Voice: babypips=educational structured, forexfactory=journal-style practitioner honest, reddit=contrarian direct challenges beliefs, quora=expert answer 300w senior practitioner. Never mention FortitudeFX Discord Bootcamp or any product in draftPost.\n'    + 'CRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. Start with { end with }';;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
