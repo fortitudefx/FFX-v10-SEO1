@@ -1364,9 +1364,11 @@ function renderDailyMandates(brief) {
   // Show indices 1 and 2 as the two supporting daily mandates
   // Show only one supporting mandate — avoids duplicate action buttons
   mandates.slice(1, 2).forEach(function(mandate, idx) {
-    var doneKey = 'ffx_mandate_done_' + today + '_' + idx;
-    var isDone  = !!sessionStorage.getItem(doneKey);
-    if (isDone) return; // Already done today — skip rendering
+    var doneKey    = 'ffx_mandate_done_' + today + '_' + idx;
+    var ignoreKey  = 'ffx_mandate_ignored_' + (mandate.type || 'unknown');
+    var isDone     = !!sessionStorage.getItem(doneKey);
+    var isIgnored  = !!localStorage.getItem(ignoreKey);
+    if (isDone || isIgnored) return; // Done today or permanently ignored
 
     var action = mandate.action || {};
     var text   = mandate.directiveText || action.note || '';
@@ -1387,7 +1389,7 @@ function renderDailyMandates(brief) {
       + '</div>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
       + '<div id="' + btnId + '"></div>'
-      + '<button onclick="markMandateDone(' + idx + ', &quot;' + escHtml(mandate.type || 'unknown') + '&quot;)" style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.12);color:#3ecf8e;border:1px solid rgba(62,207,142,0.30);border-radius:5px;padding:6px 14px;cursor:pointer;">&#10003; Done</button>'
+      + '<button onclick="markMandateDone(' + idx + ', &quot;' + escHtml(mandate.type || 'unknown') + '&quot;)" style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.12);color:#3ecf8e;border:1px solid rgba(62,207,142,0.30);border-radius:5px;padding:6px 14px;cursor:pointer;">✓ Done</button>'      + '<button onclick="ignoreMandateDirective(' + idx + ', &quot;' + escHtml(mandate.type || 'unknown') + '&quot;)" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:none;color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:6px 14px;cursor:pointer;">Ignore</button>'
       + '</div>'
       + '</div>'
     );
@@ -1436,27 +1438,37 @@ function renderMandateActionButton(container, mandate, brief, idx) {
 }
 
 function markMandateDone(idx, dtype) {
-  var today  = new Date().toISOString().split('T')[0];
+  var today   = new Date().toISOString().split('T')[0];
   var doneKey = 'ffx_mandate_done_' + today + '_' + idx;
   sessionStorage.setItem(doneKey, '1');
-  // Remove card from DOM immediately
   var card = document.getElementById('mandate-card-' + idx);
   if (card) card.style.display = 'none';
-  // Check if all mandates done — show completion message
-  var el = document.getElementById('dailyMandates');
-  if (el) {
-    var visible = el.querySelectorAll('[id^="mandate-card-"]');
-    var anyVisible = false;
-    visible.forEach(function(c){ if (c.style.display !== 'none') anyVisible = true; });
-    if (!anyVisible) {
-      el.innerHTML = '<div style="font-size:14px;color:#3ecf8e;padding:12px 0;">&#10003; All mandates completed for today.</div>';
-    }
-  }
-  // Write to KV for persistence across sessions
+  _checkAllMandatesDone();
   fetch('/api/directive-feedback', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ date: today, directiveType: dtype + '_mandate_' + idx, actedOn: true }),
   }).catch(function(){});
+}
+
+function ignoreMandateDirective(idx, dtype) {
+  // Ignore = this directive is not applicable — hide permanently until next Run Analysis
+  // Store in localStorage so it persists across sessions
+  var ignoreKey = 'ffx_mandate_ignored_' + dtype;
+  localStorage.setItem(ignoreKey, new Date().toISOString());
+  var card = document.getElementById('mandate-card-' + idx);
+  if (card) card.style.display = 'none';
+  _checkAllMandatesDone();
+}
+
+function _checkAllMandatesDone() {
+  var el = document.getElementById('dailyMandates');
+  if (!el) return;
+  var cards = el.querySelectorAll('[id^="mandate-card-"]');
+  var anyVisible = false;
+  cards.forEach(function(c){ if (c.style.display !== 'none') anyVisible = true; });
+  if (!anyVisible) {
+    el.innerHTML = '<div style="font-size:14px;color:#3ecf8e;padding:12px 0;">✓ All mandates completed for today.</div>';
+  }
 }
 
 // ── Thread Mandate ───────────────────────────────────────────────────────
