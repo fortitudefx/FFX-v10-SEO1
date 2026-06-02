@@ -1362,7 +1362,8 @@ function renderDailyMandates(brief) {
 
   // Skip index 0 — that is the Today's Directive panel
   // Show indices 1 and 2 as the two supporting daily mandates
-  mandates.slice(1, 3).forEach(function(mandate, idx) {
+  // Show only one supporting mandate — avoids duplicate action buttons
+  mandates.slice(1, 2).forEach(function(mandate, idx) {
     var doneKey = 'ffx_mandate_done_' + today + '_' + idx;
     var isDone  = !!sessionStorage.getItem(doneKey);
     if (isDone) return; // Already done today — skip rendering
@@ -1956,14 +1957,14 @@ async function runBackfill() {
 
     if (!res.ok || data.error) {
       if (tableEl) tableEl.innerHTML = '<div style="padding:24px;font-size:13px;color:#f87171;">&#10007; Backfill failed: ' + escHtml(data.error || 'Unknown error') + '</div>';
-      if (btn) { btn.disabled = false; btn.textContent = '&#8635; Backfill Index'; btn.style.color = 'rgba(56,189,248,0.70)'; }
+      if (btn) { btn.disabled = false; btn.textContent = '↻ Backfill Index'; btn.style.color = 'rgba(56,189,248,0.70)'; }
       return;
     }
 
     if (btn) {
       btn.textContent = '✓ Backfilled — ' + data.total + ' articles indexed';
       btn.style.color = '#3ecf8e';
-      setTimeout(function() { btn.disabled = false; btn.textContent = '&#8635; Backfill Index'; btn.style.color = 'rgba(56,189,248,0.70)'; }, 4000);
+      setTimeout(function() { btn.disabled = false; btn.textContent = '↻ Backfill Index'; btn.style.color = 'rgba(56,189,248,0.70)'; }, 4000);
     }
 
     // Reload link graph with the now-populated index
@@ -1971,7 +1972,7 @@ async function runBackfill() {
 
   } catch(e) {
     if (tableEl) tableEl.innerHTML = '<div style="padding:24px;font-size:13px;color:#f87171;">&#10007; Network error: ' + escHtml(e.message) + '</div>';
-    if (btn) { btn.disabled = false; btn.textContent = '&#8635; Backfill Index'; btn.style.color = 'rgba(56,189,248,0.70)'; }
+    if (btn) { btn.disabled = false; btn.textContent = '↻ Backfill Index'; btn.style.color = 'rgba(56,189,248,0.70)'; }
   }
 }
 
