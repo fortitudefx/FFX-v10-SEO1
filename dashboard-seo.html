@@ -426,8 +426,11 @@
         </div>
       </div>
       <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:12px;">Priority Actions</div>
-        <div id="briefPriorityActions" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);">Daily Mandates</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.25);">Complete both each day</div>
+        </div>
+        <div id="dailyMandates" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;">
         <div style="padding:20px 24px;border-right:1px solid rgba(255,255,255,0.07);">
@@ -1271,6 +1274,7 @@ async function loadIntelBrief() {
     var data = await res.json();
     if (data.brief) {
       renderIntelBrief(data.brief);
+      renderDailyMandates(data.brief);
       renderDirectiveFromBrief(data.brief);
       loadReplyOpportunities(data.brief);
     }
@@ -1307,21 +1311,8 @@ function renderIntelBrief(brief) {
   if (risk)     risk.textContent     = (brief.weeklyInsight && brief.weeklyInsight.keyRisk)  || '—';
   if (forecast) forecast.textContent = (brief.weeklyInsight && brief.weeklyInsight.forecast) || '—';
 
-  var actionsEl = document.getElementById('briefPriorityActions');
-  if (actionsEl) {
-    if (brief.priorityActions && brief.priorityActions.length > 0) {
-      actionsEl.innerHTML = brief.priorityActions.slice(0, 3).map(function(a, i) {
-        var ic = a.impact === 'high' ? '#C9A84C' : a.impact === 'medium' ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.40)';
-        return '<div style="display:flex;align-items:flex-start;gap:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;">'
-          + '<span style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.28);min-width:18px;">' + (i+1) + '</span>'
-          + '<div><div style="font-size:14px;color:#fff;font-weight:600;line-height:1.5;margin-bottom:4px;">' + escHtml(a.action) + '</div>'
-          + '<span style="font-size:11px;font-weight:700;color:' + ic + ';text-transform:uppercase;letter-spacing:0.08em;">' + (a.impact||'').toUpperCase() + ' IMPACT</span>'
-          + '</div></div>';
-      }).join('');
-    } else {
-      actionsEl.innerHTML = '<div style="font-size:14px;color:rgba(255,255,255,0.35);">Run Analysis to generate priority actions.</div>';
-    }
-  }
+  // Render daily mandates from directiveResolutions array
+  renderDailyMandates(brief);
 
   var targetEl = document.getElementById('briefArticleTarget');
   var angleEl  = document.getElementById('briefArticleAngle');
@@ -1332,6 +1323,118 @@ function renderIntelBrief(brief) {
   if (patternEl) patternEl.textContent = (brief.learningUpdate && (brief.learningUpdate.newPattern || brief.learningUpdate.confirmedPattern)) || '—';
 
   panel.style.display = 'block';
+}
+
+// ── Daily Mandates ───────────────────────────────────────────────────────
+var _mandateDoneState = {}; // { 0: true/false, 1: true/false }
+
+function renderDailyMandates(brief) {
+  var el = document.getElementById('dailyMandates');
+  if (!el) return;
+
+  var mandates = brief.directiveResolutions || [];
+  if (!mandates.length) {
+    el.innerHTML = '<div style="font-size:14px;color:rgba(255,255,255,0.35);">Run Analysis to generate daily mandates.</div>';
+    return;
+  }
+
+  var today    = new Date().toISOString().split('T')[0];
+  var rendered = [];
+
+  mandates.slice(0, 2).forEach(function(mandate, idx) {
+    var doneKey = 'ffx_mandate_done_' + today + '_' + idx;
+    var isDone  = !!sessionStorage.getItem(doneKey);
+    if (isDone) return; // Already done today — skip rendering
+
+    var action = mandate.action || {};
+    var text   = mandate.directiveText || action.note || '';
+    var impact = (action.impact || 'medium').toUpperCase();
+    var ic     = impact === 'HIGH' ? '#C9A84C' : impact === 'MEDIUM' ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.40)';
+
+    // Build action button HTML based on action type
+    var btnId = 'mandate-btn-' + idx;
+
+    rendered.push(
+      '<div id="mandate-card-' + idx + '" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.09);border-radius:10px;padding:16px 18px;">'
+      + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;">'
+      + '<div>'
+      + '<div style="font-size:14px;color:#ffffff;font-weight:600;line-height:1.5;margin-bottom:4px;">' + escHtml(text) + '</div>'
+      + (action.note && action.note !== text ? '<div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.5;">' + escHtml(action.note) + '</div>' : '')
+      + '</div>'
+      + '<span style="font-size:10px;font-weight:700;color:' + ic + ';text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;padding-top:2px;">' + impact + '</span>'
+      + '</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
+      + '<div id="' + btnId + '"></div>'
+      + '<button onclick="markMandateDone(' + idx + ', '' + escHtml(mandate.type || 'unknown') + '')" style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.12);color:#3ecf8e;border:1px solid rgba(62,207,142,0.30);border-radius:5px;padding:6px 14px;cursor:pointer;">&#10003; Done</button>'
+      + '</div>'
+      + '</div>'
+    );
+
+    // Attach action button after render (needs DOM element)
+    setTimeout(function() {
+      var btnEl = document.getElementById(btnId);
+      if (!btnEl) return;
+      renderMandateActionButton(btnEl, mandate, brief, idx);
+    }, 0);
+  });
+
+  if (!rendered.length) {
+    el.innerHTML = '<div style="font-size:14px;color:#3ecf8e;padding:12px 0;">&#10003; All mandates completed for today.</div>';
+  } else {
+    el.innerHTML = rendered.join('');
+  }
+}
+
+function renderMandateActionButton(container, mandate, brief, idx) {
+  var action = mandate.action || {};
+  var bs = 'font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;border-radius:5px;padding:6px 14px;cursor:pointer;';
+  var btn = document.createElement('button');
+
+  if (action.type === 'title_rewrite') {
+    btn.textContent = action.label || 'Apply Title';
+    btn.style.cssText = bs + 'background:rgba(122,92,255,0.20);color:rgba(167,139,250,1);border:1px solid rgba(122,92,255,0.40);';
+    btn.onclick = function() { executeApplyTitle(btn, action, mandate, brief); };
+  } else if (action.type === 'retroactive_link') {
+    btn.textContent = action.label || 'Apply Link';
+    btn.style.cssText = bs + 'background:rgba(62,207,142,0.10);color:rgba(62,207,142,1);border:1px solid rgba(62,207,142,0.22);';
+    btn.onclick = function() { executeApplyLink(btn, action, brief); };
+  } else if (action.type === 'queue_ready') {
+    btn.textContent = action.label || 'Go to Article';
+    btn.style.cssText = bs + 'background:rgba(201,168,76,0.12);color:rgba(201,168,76,1);border:1px solid rgba(201,168,76,0.30);';
+    btn.onclick = function() { window.open('/dashboard-queue.html?video=' + action.videoId, '_blank'); };
+  } else if (action.type === 'new_article') {
+    btn.textContent = action.label || 'Add to Queue';
+    btn.style.cssText = bs + 'background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.70);border:1px solid rgba(255,255,255,0.14);';
+    btn.onclick = function() { window.open('/dashboard-queue.html', '_blank'); };
+  } else {
+    // generic — no action button, only the Done button suffices
+    return;
+  }
+  container.appendChild(btn);
+}
+
+function markMandateDone(idx, dtype) {
+  var today  = new Date().toISOString().split('T')[0];
+  var doneKey = 'ffx_mandate_done_' + today + '_' + idx;
+  sessionStorage.setItem(doneKey, '1');
+  // Remove card from DOM immediately
+  var card = document.getElementById('mandate-card-' + idx);
+  if (card) card.style.display = 'none';
+  // Check if all mandates done — show completion message
+  var el = document.getElementById('dailyMandates');
+  if (el) {
+    var visible = el.querySelectorAll('[id^="mandate-card-"]');
+    var anyVisible = false;
+    visible.forEach(function(c){ if (c.style.display !== 'none') anyVisible = true; });
+    if (!anyVisible) {
+      el.innerHTML = '<div style="font-size:14px;color:#3ecf8e;padding:12px 0;">&#10003; All mandates completed for today.</div>';
+    }
+  }
+  // Write to KV for persistence across sessions
+  fetch('/api/directive-feedback', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: today, directiveType: dtype + '_mandate_' + idx, actedOn: true }),
+  }).catch(function(){});
 }
 
 // ── Reply Opportunities ───────────────────────────────────────────────────
@@ -1739,7 +1842,7 @@ function renderLinkGraph(data) {
     function slugLink(s) {
       var found = data.graph.find(function(x){ return x.slug === s; });
       var t = found ? found.title : fmtSlug(s);
-      return '<a href="' + baseUrl + escHtml(s) + '" target="_blank" style="color:#a78bfa;text-decoration:none;font-size:14px;font-weight:600;line-height:1.8;">' + escHtml(t) + '</a>';
+      return '<a href="' + baseUrl + escHtml(s) + '" target="_blank" style="color:rgba(255,255,255,0.75);text-decoration:none;font-size:13px;font-weight:500;line-height:1.8;">' + escHtml(t) + '</a>';
     }
     var outLinks = a.outboundSlugs.map(slugLink).join('<span style="color:rgba(255,255,255,0.25);margin:0 8px;">&#124;</span>');
     var inLinks  = a.inboundSlugs.map(slugLink).join('<span style="color:rgba(255,255,255,0.25);margin:0 8px;">&#124;</span>');
