@@ -348,6 +348,16 @@ function buildSignalContext(signals) {
       + 'Yesterday momentum: ' + (prevBrief.weeklyInsight && prevBrief.weeklyInsight.momentum || 'N/A') + '\n';
   }
 
+  // ── Open title tests — Claude must never recommend these slugs for rewrite ──
+  if (titleTests && titleTests.length > 0) {
+    var openTests = titleTests.filter(function(t){ return t.status === 'monitoring'; });
+    if (openTests.length > 0) {
+      ctx += '\n\u2501\u2501 TITLE TESTS IN MONITORING (DO NOT RECOMMEND THESE FOR REWRITE) \u2501\u2501\n'
+        + 'The following articles already have a pending title test. Do NOT recommend title rewrites for any of these slugs. Wait until their 14-day test completes.\n'
+        + openTests.map(function(t){ return '  - ' + t.slug + ' (changed ' + (t.changedAt || '').split('T')[0] + ': "' + (t.oldTitle || '') + '" -> "' + (t.newTitle || '') + '")'; }).join('\n') + '\n';
+    }
+  }
+
   // ── Content gap detection ─────────────────────────────────────────────
   if (articlesIndex && articlesIndex.length > 0) {
     const pillars = {};
@@ -398,6 +408,34 @@ async function computeDirectiveResolution(brief, env, articlesIndexPrefetched) {
   const resolution = { type: 'none', matchType: 'none', directiveText: '', action: null };
 
   try {
+    // ── Permanent suppression + same-day block ────────────────────────────
+    var today = new Date().toISOString().split('T')[0];
+    var actedOnSlugs = {}; // slug -> [types acted on]
+    var actedOnToday = false;
+    try {
+      var oList = await env.FFX_KV.list({ prefix: 'intelligence:directive_outcome:' }).catch(function(){ return null; });
+      if (oList && oList.keys.length) {
+        var outcomes = (await Promise.all(
+          oList.keys.map(function(k){ return env.FFX_KV.get(k.name, { type: 'json' }).catch(function(){ return null; }); })
+        )).filter(Boolean);
+        outcomes.forEach(function(o) {
+          if (!o.actedOn) return;
+          if (o.slug && o.directiveType) {
+            if (!actedOnSlugs[o.slug]) actedOnSlugs[o.slug] = [];
+            actedOnSlugs[o.slug].push(o.directiveType);
+          }
+          if (o.actedOnAt && o.actedOnAt.startsWith(today)) actedOnToday = true;
+        });
+      }
+    } catch(suppErr) {
+      console.error('[intelligence-engine] Suppression read (non-fatal):', suppErr.message);
+    }
+    // If anything acted on today — no directive until tomorrow
+    if (actedOnToday) {
+      resolution.matchType = 'acted_on_today';
+      return resolution;
+    }
+
     const hasArticleBrief   = !!(brief.articleBrief && brief.articleBrief.targetQuery);
     const hasTitleRewrite   = !!(brief.titleRewrites && brief.titleRewrites.length > 0);
     const hasPriorityAction = !!(brief.priorityActions && brief.priorityActions.length > 0);
@@ -422,6 +460,11 @@ async function computeDirectiveResolution(brief, env, articlesIndexPrefetched) {
         var candidate = brief.titleRewrites[ri];
         var cSlug = candidate.currentUrl ? candidate.currentUrl.replace('/article?slug=', '') : '';
         if (!cSlug) continue;
+        // Permanently suppress if this slug was already acted on for title_rewrite
+        if (actedOnSlugs[cSlug] && actedOnSlugs[cSlug].indexOf('title_rewrite') !== -1) {
+          console.log('[intelligence-engine] Title rewrite suppressed for acted-on slug:', cSlug);
+          continue;
+        }
         try {
           var cMeta = await env.FFX_KV.get('article:' + cSlug, { type: 'json' }).catch(function(){ return null; });
           if (!cMeta) continue;
