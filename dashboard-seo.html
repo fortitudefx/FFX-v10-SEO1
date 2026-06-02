@@ -445,13 +445,32 @@
       </div>
     </div>
 
-    <!-- Reply Opportunities Panel -->
-    <div id="replyOppPanel" style="display:none;border-radius:14px;border:1px solid rgba(255,255,255,0.09);background:#13151b;margin-bottom:24px;overflow:hidden;">
-      <div style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <span style="font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.70);">Reply Opportunities</span>
-        <span style="font-size:11px;color:rgba(255,255,255,0.28);margin-left:12px;">Post on these platforms for zero-cost distribution</span>
+    <!-- Thread Mandate Panel -->
+    <div id="threadMandatePanel" style="display:none;border-radius:14px;border:1px solid rgba(122,92,255,0.20);background:#13151b;margin-bottom:24px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.70);">Thread Mandate</span>
+          <span id="threadPlatformBadge" style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border-radius:5px;background:rgba(122,92,255,0.12);color:rgba(167,139,250,1);border:1px solid rgba(122,92,255,0.30);"></span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="threadSnoozeBtn" onclick="snoozeThreadMandate()" style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:none;color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 12px;cursor:pointer;">Snooze 24hrs</button>
+          <button id="threadIgnoreBtn" onclick="ignoreThreadMandate()" style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:none;color:rgba(255,255,255,0.25);border:none;padding:5px 8px;cursor:pointer;">Not today</button>
+        </div>
       </div>
-      <div id="replyOppList" style="padding:0;"></div>
+      <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div id="threadTopic" style="font-size:16px;font-weight:700;color:#ffffff;line-height:1.5;margin-bottom:6px;"></div>
+        <div id="threadAngle" style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.5;margin-bottom:4px;"></div>
+        <div id="threadReasoning" style="font-size:12px;color:rgba(122,92,255,0.70);line-height:1.5;"></div>
+      </div>
+      <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">Draft Post</div>
+        <div id="threadDraftPost" style="font-size:14px;color:rgba(255,255,255,0.80);line-height:1.7;white-space:pre-wrap;"></div>
+      </div>
+      <div style="padding:16px 24px;display:flex;gap:10px;align-items:center;">
+        <button onclick="copyThreadDraft()" style="font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(122,92,255,0.15);color:rgba(167,139,250,1);border:1px solid rgba(122,92,255,0.35);border-radius:6px;padding:8px 18px;cursor:pointer;">Copy Draft</button>
+        <button id="threadDoneBtn" onclick="markThreadDone()" style="font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.12);color:#3ecf8e;border:1px solid rgba(62,207,142,0.30);border-radius:6px;padding:8px 18px;cursor:pointer;">&#10003; Posted</button>
+        <span id="threadPlatformLink" style="font-size:12px;color:rgba(255,255,255,0.35);"></span>
+      </div>
     </div>
 
     <!-- Directive History Panel -->
@@ -783,7 +802,7 @@ async function triggerIntelligence() {
       renderIntelBrief(data.brief);
       renderDirectiveFromBrief(data.brief);
       loadDirectiveHistory();
-      loadReplyOpportunities(data.brief);
+      loadThreadMandate(data.brief);
       loadLinkGraph();
     }
     if (typeof loadAll === 'function') loadAll(currentDays);
@@ -1276,7 +1295,7 @@ async function loadIntelBrief() {
       renderIntelBrief(data.brief);
       renderDailyMandates(data.brief);
       renderDirectiveFromBrief(data.brief);
-      loadReplyOpportunities(data.brief);
+      loadThreadMandate(data.brief);
     }
   } catch(e) { console.error('[FFX] Intel brief load failed:', e.message); }
 }
@@ -1341,7 +1360,9 @@ function renderDailyMandates(brief) {
   var today    = new Date().toISOString().split('T')[0];
   var rendered = [];
 
-  mandates.slice(0, 2).forEach(function(mandate, idx) {
+  // Skip index 0 — that is the Today's Directive panel
+  // Show indices 1 and 2 as the two supporting daily mandates
+  mandates.slice(1, 3).forEach(function(mandate, idx) {
     var doneKey = 'ffx_mandate_done_' + today + '_' + idx;
     var isDone  = !!sessionStorage.getItem(doneKey);
     if (isDone) return; // Already done today — skip rendering
@@ -1437,56 +1458,106 @@ function markMandateDone(idx, dtype) {
   }).catch(function(){});
 }
 
-// ── Reply Opportunities ───────────────────────────────────────────────────
-function loadReplyOpportunities(brief) {
-  var panel = document.getElementById('replyOppPanel');
-  var list  = document.getElementById('replyOppList');
-  if (!panel || !list) return;
-  if (!brief.replyOpportunities || !brief.replyOpportunities.length) { panel.style.display = 'none'; return; }
+// ── Thread Mandate ───────────────────────────────────────────────────────
+var PLATFORM_URLS = {
+  babypips:     'https://www.babypips.com/community',
+  forexfactory: 'https://www.forexfactory.com/forum',
+  reddit:       'https://www.reddit.com/r/Forex/submit',
+  quora:        'https://www.quora.com/answer/new',
+};
+var PLATFORM_COLORS = {
+  babypips:     '#3ecf8e',
+  forexfactory: '#C9A84C',
+  reddit:       '#FF4500',
+  quora:        '#B92B27',
+};
 
-  list.innerHTML = brief.replyOpportunities.slice(0, 3).map(function(opp, i) {
-    var urgColor = opp.urgency === 'high' ? '#ff4444' : opp.urgency === 'medium' ? '#C9A84C' : 'rgba(255,255,255,0.40)';
-    var platColors = { reddit:'#FF4500', quora:'#B92B27', x:'#1DA1F2', youtube:'#FF0000', linkedin:'#0A66C2' };
-    var pc = platColors[opp.platform] || 'rgba(255,255,255,0.50)';
-    var articleLink = opp.articleToLink ? 'https://fortitudefx.com/article?slug=' + opp.articleToLink : '';
-    var draftHtml = opp.draftReply
-      ? '<div style="margin-top:12px;padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">'
-        + '<div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.30);margin-bottom:8px;">Draft Reply</div>'
-        + '<div style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;white-space:pre-wrap;">' + escHtml(opp.draftReply) + '</div>'
-        + '<button onclick="copyReplyDraft(this)" data-text="' + escHtml(opp.draftReply).replace(/"/g,'&quot;') + '" style="margin-top:10px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.60);border:1px solid rgba(255,255,255,0.12);border-radius:5px;padding:5px 12px;cursor:pointer;">Copy</button>'
-        + (articleLink ? ' <button onclick="window.open(\'' + articleLink + '\',\'_blank\')" style="margin-top:10px;margin-left:6px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(201,168,76,0.10);color:#C9A84C;border:1px solid rgba(201,168,76,0.25);border-radius:5px;padding:5px 12px;cursor:pointer;">View Article</button>' : '')
-        + '</div>'
-      : '';
-    return '<div style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">'
-      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
-      + '<span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:' + pc + ';">' + escHtml(opp.platform) + '</span>'
-      + '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + urgColor + ';border:1px solid ' + urgColor + ';border-radius:4px;padding:2px 8px;">' + (opp.urgency||'').toUpperCase() + '</span>'
-      + '</div>'
-      + '<div style="font-size:15px;font-weight:600;color:#ffffff;margin-bottom:6px;">' + escHtml(opp.topic) + '</div>'
-      + '<div style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.5;">' + escHtml(opp.angle) + '</div>'
-      + draftHtml
-      + '</div>';
-  }).join('');
+function loadThreadMandate(brief) {
+  var panel = document.getElementById('threadMandatePanel');
+  if (!panel) return;
+
+  // Check snooze / ignore
+  var today = new Date().toISOString().split('T')[0];
+  if (sessionStorage.getItem('ffx_thread_ignored_' + today)) return;
+  if (localStorage.getItem('ffx_thread_snoozed')) {
+    if (new Date(localStorage.getItem('ffx_thread_snoozed')) > new Date()) return;
+    localStorage.removeItem('ffx_thread_snoozed');
+  }
+
+  var tm = brief.threadMandate;
+  if (!tm || !tm.draftPost) { panel.style.display = 'none'; return; }
+
+  // Only show on scheduled days (Mon-Thu) OR if isScheduledToday
+  if (!tm.isScheduledToday && !tm.scheduledPlatform) { panel.style.display = 'none'; return; }
+
+  var platform = tm.scheduledPlatform || tm.platform || '';
+  var color    = PLATFORM_COLORS[platform] || 'rgba(167,139,250,1)';
+
+  var badge = document.getElementById('threadPlatformBadge');
+  if (badge) {
+    badge.textContent = platform.charAt(0).toUpperCase() + platform.slice(1);
+    badge.style.color = color;
+    badge.style.borderColor = color.replace('1)', '0.40)').replace('#', 'rgba(').replace(/^rgba\(([^)]+)\)$/, function(m, c) { return m; });
+  }
+
+  var topicEl     = document.getElementById('threadTopic');
+  var angleEl     = document.getElementById('threadAngle');
+  var reasonEl    = document.getElementById('threadReasoning');
+  var draftEl     = document.getElementById('threadDraftPost');
+  var linkEl      = document.getElementById('threadPlatformLink');
+
+  if (topicEl)  topicEl.textContent  = tm.suggestedTitle || tm.topic || '';
+  if (angleEl)  angleEl.textContent  = tm.angle || '';
+  if (reasonEl) reasonEl.textContent = tm.reasoning || '';
+  if (draftEl)  draftEl.textContent  = tm.draftPost || '';
+
+  if (linkEl && PLATFORM_URLS[platform]) {
+    linkEl.innerHTML = '<a href="' + PLATFORM_URLS[platform] + '" target="_blank" style="color:' + color + ';text-decoration:none;font-weight:700;">Open ' + platform.charAt(0).toUpperCase() + platform.slice(1) + ' →</a>';
+  }
+
+  // Store draft for copy
+  window._currentThreadDraft = tm.draftPost || '';
 
   panel.style.display = 'block';
 }
 
-function copyReplyDraft(btn) {
-  var text = btn.getAttribute('data-text');
+function copyThreadDraft() {
+  var text = window._currentThreadDraft || '';
   if (!text) return;
-  // Decode HTML entities
-  var ta = document.createElement('textarea');
-  ta.innerHTML = text;
-  var decoded = ta.value;
-  navigator.clipboard.writeText(decoded).then(function() {
-    btn.textContent = '✓ Copied';
-    btn.style.color = '#3ecf8e';
-    setTimeout(function(){ btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
-  }).catch(function() {
-    btn.textContent = '✗ Failed';
-    setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
-  });
+  var btn = document.getElementById('threadDoneBtn');
+  navigator.clipboard.writeText(text).then(function() {
+    var copyBtn = document.querySelector('#threadMandatePanel button[onclick="copyThreadDraft()"]');
+    if (copyBtn) { copyBtn.textContent = '✓ Copied'; setTimeout(function(){ copyBtn.textContent = 'Copy Draft'; }, 2000); }
+  }).catch(function() {});
 }
+
+function markThreadDone() {
+  var today = new Date().toISOString().split('T')[0];
+  sessionStorage.setItem('ffx_thread_ignored_' + today, '1');
+  var panel = document.getElementById('threadMandatePanel');
+  if (panel) panel.style.display = 'none';
+  // Record for feedback loop
+  var platform = (window._currentBrief && window._currentBrief.threadMandate && window._currentBrief.threadMandate.scheduledPlatform) || 'unknown';
+  fetch('/api/directive-feedback', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: today, directiveType: 'thread_mandate_' + platform, actedOn: true }),
+  }).catch(function(){});
+}
+
+function snoozeThreadMandate() {
+  var until = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  localStorage.setItem('ffx_thread_snoozed', until);
+  var panel = document.getElementById('threadMandatePanel');
+  if (panel) panel.style.display = 'none';
+}
+
+function ignoreThreadMandate() {
+  var today = new Date().toISOString().split('T')[0];
+  sessionStorage.setItem('ffx_thread_ignored_' + today, '1');
+  var panel = document.getElementById('threadMandatePanel');
+  if (panel) panel.style.display = 'none';
+}
+
 
 // ── Directive History ─────────────────────────────────────────────────────
 async function loadDirectiveHistory() {
@@ -1874,7 +1945,7 @@ function renderLinkGraph(data) {
 
 async function runBackfill() {
   var btn = document.getElementById('backfillBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '&#8635; Running&#8230;'; btn.style.color = 'rgba(56,189,248,0.90)'; }
+  if (btn) { btn.disabled = true; btn.textContent = '↻ Running…'; btn.style.color = 'rgba(56,189,248,0.90)'; }
 
   var tableEl = document.getElementById('linkGraphTable');
   if (tableEl) tableEl.innerHTML = '<div style="padding:24px;font-size:13px;color:rgba(255,255,255,0.60);">&#9889; Scanning all article KV keys&#8230;</div>';
@@ -1890,7 +1961,7 @@ async function runBackfill() {
     }
 
     if (btn) {
-      btn.textContent = '&#10003; Backfilled (' + data.total + ' articles)';
+      btn.textContent = '✓ Backfilled — ' + data.total + ' articles indexed';
       btn.style.color = '#3ecf8e';
       setTimeout(function() { btn.disabled = false; btn.textContent = '&#8635; Backfill Index'; btn.style.color = 'rgba(56,189,248,0.70)'; }, 4000);
     }
@@ -1910,7 +1981,7 @@ async function runBulkLinkScan(dryRun) {
   if (!statusEl || !btn) return;
 
   btn.disabled = true;
-  btn.textContent = dryRun ? '&#128065; Scanning...' : '&#9889; Running...';
+  btn.textContent = dryRun ? 'Scanning...' : 'Running...';
 
   statusEl.style.display = 'block';
   statusEl.innerHTML = '<div style="font-size:13px;color:rgba(255,255,255,0.60);">&#9889; ' + (dryRun ? 'Scanning for link opportunities...' : 'Inserting missing internal links...') + '</div>';
@@ -1926,7 +1997,7 @@ async function runBulkLinkScan(dryRun) {
     if (!res.ok || data.error) {
       statusEl.innerHTML = '<div style="font-size:13px;color:#ff4444;">&#10007; Error: ' + escHtml(data.error || 'Unknown error') + '</div>';
       btn.disabled = false;
-      btn.textContent = dryRun ? '&#128065; Preview Links' : '&#9889; Auto-Link All';
+      btn.textContent = dryRun ? 'Preview Links' : 'Auto-Link All';
       return;
     }
 
@@ -1947,12 +2018,12 @@ async function runBulkLinkScan(dryRun) {
     }
 
     btn.disabled = false;
-    btn.textContent = dryRun ? '&#128065; Preview Links' : '&#9889; Auto-Link All';
+    btn.textContent = dryRun ? 'Preview Links' : 'Auto-Link All';
 
   } catch(e) {
     statusEl.innerHTML = '<div style="font-size:13px;color:#ff4444;">&#10007; Network error: ' + escHtml(e.message) + '</div>';
     btn.disabled = false;
-    btn.textContent = dryRun ? '&#128065; Preview Links' : '&#9889; Auto-Link All';
+    btn.textContent = dryRun ? 'Preview Links' : 'Auto-Link All';
   }
 }
 
