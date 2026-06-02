@@ -357,7 +357,7 @@
       }
       count.textContent = articles.length + ' article' + (articles.length === 1 ? '' : 's');
       list.innerHTML = articles.map(a => `
-        <a class="blog-item" href="article.html?slug=${a.slug}">
+        <a class="blog-item" href="/article?slug=${a.slug}">
           <div class="blog-item-left">
             <span class="blog-item-tag">${a.category}</span>
             <p class="blog-item-title">${a.title}</p>

@@ -1,0 +1,8 @@
+# Redirect old /blog/:slug URLs to correct article URL format
+/blog/:slug /article?slug=:slug 301
+
+# Redirect /vip-discord (hyphenated) to correct URL
+/vip-discord /vipdiscord 301
+
+# Redirect old versioned privacy URL
+/privacy-v11 /privacy 301

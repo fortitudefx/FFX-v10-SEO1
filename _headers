@@ -1,0 +1,15 @@
+# Block Google indexing of Whop product/checkout pages served under this domain
+# These are Whop's pages, not ours — they have no canonical tag pointing to us
+# and create duplicate content signals that damage our indexing
+
+/products/*
+  X-Robots-Tag: noindex, nofollow
+
+/ar/*
+  X-Robots-Tag: noindex, nofollow
+
+/ar-us/*
+  X-Robots-Tag: noindex, nofollow
+
+/en-us/*
+  X-Robots-Tag: noindex, nofollow
