@@ -87,6 +87,7 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   var env     = context.env;
   var request = context.request;
+  var ctx     = context;
   var baseUrl = new URL(request.url).origin;
 
   try {
@@ -95,6 +96,19 @@ export async function onRequestPost(context) {
     var serviceAccountEmail = body.serviceAccountEmail || null;
     var privateKeyPem       = body.privateKeyPem       || null;
 
+    // Return immediately — do all work in waitUntil to avoid CF 30s wall-clock timeout
+    ctx.waitUntil(runFullScan(env, baseUrl, serviceAccountEmail, privateKeyPem));
+
+    return new Response(JSON.stringify({ started: true, message: 'Scan started — results available in ~60 seconds via GET /api/indexing-engine' }), { status: 202, headers: CORS_HEADERS });
+
+  } catch (err) {
+    console.error('[indexing-engine] Fatal error:', err.message);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS_HEADERS });
+  }
+}
+
+async function runFullScan(env, baseUrl, serviceAccountEmail, privateKeyPem) {
+  try {
     console.log('[indexing-engine] Starting indexing scan');
 
     // ── Step 1: Get OAuth token for URL Inspection API ────────────────────
@@ -296,19 +310,15 @@ export async function onRequestPost(context) {
       ' | Newly dropped: ' + newlyDropped.length
     );
 
-    return new Response(JSON.stringify({
-      success:        true,
-      date:           today,
-      indexedCount:   indexed.length,
-      notIndexedCount: notIndexed.length,
-      submittedCount: submittedNow.length,
-      newlyIndexed:   newlyIndexed,
-      newlyDropped:   newlyDropped,
-    }), { status: 200, headers: CORS_HEADERS });
+    // Write final status so GET returns results immediately after scan
+    console.log(
+      '[indexing-engine] Scan complete — indexed:' + indexed.length +
+      ' not-indexed:' + notIndexed.length +
+      ' submitted:' + submittedNow.length
+    );
 
   } catch (err) {
-    console.error('[indexing-engine] Fatal error:', err.message);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS_HEADERS });
+    console.error('[indexing-engine] runFullScan error:', err.message);
   }
 }
 
