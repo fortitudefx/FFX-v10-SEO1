@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFX Indexing</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/dashboard-styles.css">
+  <style>
+    .ix-wrap {
+      max-width: var(--content-max);
+      width: calc(100% - 80px);
+      margin: 32px auto 80px;
+      position: relative; z-index: 1;
+    }
+
+    /* ── Stat bar ── */
+    .ix-stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .ix-stat {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 22px 18px;
+    }
+    .ix-stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.40);
+      margin-bottom: 8px;
+    }
+    .ix-stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+    .ix-stat-value.green  { color: var(--green); }
+    .ix-stat-value.red    { color: var(--red); }
+    .ix-stat-value.amber  { color: var(--accent-warm-text); }
+    .ix-stat-value.accent { color: var(--accent-text); }
+    .ix-stat-sub {
+      font-size: 12px;
+      color: rgba(255,255,255,0.36);
+      margin-top: 5px;
+    }
+
+    /* ── Panel ── */
+    .ix-panel {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .ix-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ix-panel-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.60);
+    }
+    .ix-panel-meta {
+      font-size: 12px;
+      color: rgba(255,255,255,0.32);
+    }
+
+    /* ── Manual submit section — primary ── */
+    .submit-section {
+      border: 1.5px solid rgba(249,115,22,0.30);
+      background: rgba(249,115,22,0.04);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .submit-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(249,115,22,0.15);
+    }
+    .submit-badge {
+      background: rgba(249,115,22,0.18);
+      border: 1px solid rgba(249,115,22,0.35);
+      color: var(--accent-orange-text);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+    .submit-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.82);
+    }
+    .submit-desc {
+      font-size: 12px;
+      color: rgba(255,255,255,0.40);
+      margin-left: auto;
+    }
+
+    /* ── Submit row ── */
+    .submit-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    .submit-row:last-child { border-bottom: none; }
+    .submit-row:hover { background: rgba(249,115,22,0.03); }
+    .submit-row-info { min-width: 0; }
+    .submit-row-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .submit-row-url {
+      font-size: 12px;
+      color: rgba(255,255,255,0.36);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .submit-row-cause {
+      font-size: 11px;
+      color: var(--accent-orange-text);
+      margin-top: 3px;
+    }
+    .submit-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* ── Buttons ── */
+    .btn-copy {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 8px;
+      color: rgba(255,255,255,0.70);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-copy:hover { background: rgba(255,255,255,0.10); color: #fff; }
+    .btn-copy.copied { background: var(--green-bg); border-color: var(--green-bd); color: var(--green); }
+
+    .btn-gsc {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      background: rgba(66,133,244,0.12);
+      border: 1px solid rgba(66,133,244,0.28);
+      border-radius: 8px;
+      color: rgba(130,180,255,0.90);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-gsc:hover { background: rgba(66,133,244,0.20); color: #fff; }
+
+    .btn-run {
+      padding: 9px 20px;
+      background: rgba(122,92,255,0.14);
+      border: 1px solid var(--accent-line);
+      border-radius: 10px;
+      color: var(--accent-text);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-run:hover { background: rgba(122,92,255,0.22); }
+    .btn-run:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── All pages table ── */
+    .ix-table { width: 100%; border-collapse: collapse; }
+    .ix-table th {
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.32);
+      border-bottom: 1px solid var(--border);
+    }
+    .ix-table td {
+      padding: 13px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      vertical-align: middle;
+    }
+    .ix-table tr:last-child td { border-bottom: none; }
+    .ix-table tr:hover td { background: rgba(255,255,255,0.015); }
+
+    /* ── Status badges ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .badge-indexed   { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+    .badge-manual    { background: var(--accent-orange-soft); color: var(--accent-orange-text); border: 1px solid var(--accent-orange-line); }
+    .badge-thin      { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-bd); }
+    .badge-pending   { background: rgba(122,92,255,0.10); color: var(--accent-text); border: 1px solid var(--accent-line); }
+    .badge-blocked   { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.50); border: 1px solid var(--border); }
+
+    /* ── History ── */
+    .history-row {
+      display: grid;
+      grid-template-columns: 100px 1fr 80px 80px 80px 100px;
+      align-items: center;
+      gap: 16px;
+      padding: 13px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      font-size: 13px;
+    }
+    .history-row:last-child { border-bottom: none; }
+    .history-row.header {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.32);
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-date { color: rgba(255,255,255,0.60); }
+    .bar-wrap { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; }
+    .bar-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width 0.4s; }
+
+    /* ── Empty / loading states ── */
+    .ix-empty {
+      padding: 56px 24px;
+      text-align: center;
+      color: rgba(255,255,255,0.28);
+      font-size: 14px;
+    }
+    .ix-loading {
+      padding: 40px 24px;
+      text-align: center;
+      color: rgba(255,255,255,0.40);
+      font-size: 13px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(122,92,255,0.25);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Newly indexed wins ── */
+    .win-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 1px solid rgba(62,207,142,0.08);
+    }
+    .win-row:last-child { border-bottom: none; }
+    .win-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+    .win-url { font-size: 13px; color: rgba(255,255,255,0.75); }
+    .win-time { font-size: 11px; color: rgba(255,255,255,0.30); margin-left: auto; white-space: nowrap; }
+
+    /* ── Run timestamp ── */
+    .run-ts { font-size: 12px; color: rgba(255,255,255,0.28); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--green-bg); border: 1px solid var(--green-bd);
+      color: var(--green); padding: 10px 18px;
+      border-radius: 10px; font-size: 13px; font-weight: 600;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 9999;
+    }
+    .toast.show { opacity: 1; }
+
+    .cause-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.36);
+    }
+    .cause-thin    { color: var(--red); }
+    .cause-manual  { color: var(--accent-orange-text); }
+    .cause-blocked { color: rgba(255,255,255,0.40); }
+    .cause-pending { color: var(--accent-text); }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-wordmark">FFX <span>&middot;</span> Internal</div>
+    <div class="nav-links">
+      <a href="/dashboard.html"           class="nav-link">Dashboard</a>
+      <a href="/dashboard-press.html"     class="nav-link">Press</a>
+      <a href="/dashboard-queue.html"     class="nav-link">Queue</a>
+      <a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a>
+      <a href="/dashboard-seo.html"       class="nav-link">SEO</a>
+      <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
+      <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-header-left">
+      <div class="wordmark">FFX <span>Indexing</span></div>
+      <div class="header-count" id="headerCount">Google Index Monitor</div>
+    </div>
+    <div class="header-right">
+      <span class="run-ts" id="runTs"></span>
+      <button class="btn-run" id="btnRun" onclick="runScan()">Run Now</button>
+    </div>
+  </div>
+</div>
+
+<div class="ix-wrap">
+
+  <!-- ── Stat bar ── -->
+  <div class="ix-stats">
+    <div class="ix-stat">
+      <div class="ix-stat-label">Total Pages</div>
+      <div class="ix-stat-value" id="statTotal">—</div>
+      <div class="ix-stat-sub">monitored</div>
+    </div>
+    <div class="ix-stat">
+      <div class="ix-stat-label">Indexed</div>
+      <div class="ix-stat-value green" id="statIndexed">—</div>
+      <div class="ix-stat-sub">on Google</div>
+    </div>
+    <div class="ix-stat">
+      <div class="ix-stat-label">Not Indexed</div>
+      <div class="ix-stat-value red" id="statNotIndexed">—</div>
+      <div class="ix-stat-sub">need attention</div>
+    </div>
+    <div class="ix-stat">
+      <div class="ix-stat-label">Submit Manually</div>
+      <div class="ix-stat-value amber" id="statManual">—</div>
+      <div class="ix-stat-sub">action required</div>
+    </div>
+    <div class="ix-stat">
+      <div class="ix-stat-label">Newly Indexed</div>
+      <div class="ix-stat-value accent" id="statNew">—</div>
+      <div class="ix-stat-sub">since yesterday</div>
+    </div>
+  </div>
+
+  <!-- ── Manual Submit Required — PRIMARY ACTION ── -->
+  <div class="submit-section" id="submitSection" style="display:none">
+    <div class="submit-header">
+      <span class="submit-badge">Action Required</span>
+      <span class="submit-title">Submit to Google Search Console</span>
+      <span class="submit-desc">Open each URL in GSC and click Request Indexing</span>
+    </div>
+    <div id="submitList"></div>
+  </div>
+
+  <!-- ── Newly indexed today ── -->
+  <div class="ix-panel" id="winsPanel" style="display:none">
+    <div class="ix-panel-header">
+      <span class="ix-panel-title">\u2713 Newly Indexed Today</span>
+      <span class="ix-panel-meta" id="winsCount"></span>
+    </div>
+    <div id="winsList"></div>
+  </div>
+
+  <!-- ── All pages status ── -->
+  <div class="ix-panel">
+    <div class="ix-panel-header">
+      <span class="ix-panel-title">All Pages — Index Status</span>
+      <span class="ix-panel-meta" id="allPagesCount"></span>
+    </div>
+    <div id="allPagesBody">
+      <div class="ix-empty">No data yet — run a scan or wait for the 7am daily run</div>
+    </div>
+  </div>
+
+  <!-- ── Daily history ── -->
+  <div class="ix-panel">
+    <div class="ix-panel-header">
+      <span class="ix-panel-title">Daily History — Indexed Count</span>
+      <span class="ix-panel-meta">Last 14 days</span>
+    </div>
+    <div id="historyBody">
+      <div class="ix-empty">No history yet</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var GSC_INSPECT_BASE = 'https://search.google.com/search-console/inspect?resource_id=sc-domain%3Afortitudefx.com&id=';
+
+// ── Cause labels and badge mapping ──────────────────────────────────────────
+
+var CAUSE_LABELS = {
+  not_submitted:      'Not submitted to Google yet',
+  canonical_mismatch: 'Canonical mismatch — fixed, resubmit',
+  thin_content:       'Thin content — improve article first',
+  robots_blocked:     'Blocked by robots.txt — manual fix needed',
+  redirect:           'Redirect issue — check _redirects file',
+  soft_404:           'Soft 404 — page appears empty to Google',
+  noindex:            'Noindex tag present — check if intentional',
+  unknown:            'Unknown — submit and monitor',
+  other:              'Other — review manually',
+};
+
+var CAUSE_ACTION = {
+  not_submitted:      'manual',
+  canonical_mismatch: 'manual',
+  unknown:            'manual',
+  thin_content:       'content',
+  robots_blocked:     'blocked',
+  redirect:           'blocked',
+  soft_404:           'blocked',
+  noindex:            'blocked',
+  other:              'blocked',
+};
+
+// ── Load data on page load ────────────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded', function() {
+  loadStatus();
+  loadHistory();
+});
+
+async function loadStatus() {
+  try {
+    var res  = await fetch('/api/indexing-engine');
+    var data = await res.json();
+    if (data.status) {
+      renderStatus(data.status);
+    }
+  } catch(e) {
+    console.error('loadStatus error:', e);
+  }
+}
+
+async function loadHistory() {
+  try {
+    var res  = await fetch('/api/indexing-engine?history=1');
+    var data = await res.json();
+    if (data.history && data.history.length > 0) {
+      renderHistory(data.history);
+    }
+  } catch(e) {
+    console.error('loadHistory error:', e);
+  }
+}
+
+// ── Run scan manually ─────────────────────────────────────────────────────
+
+async function runScan() {
+  var btn = document.getElementById('btnRun');
+  btn.disabled = true;
+  btn.textContent = 'Scanning...';
+  document.getElementById('allPagesBody').innerHTML = '<div class="ix-loading"><span class="spinner"></span>Inspecting all pages with Google Search Console API...</div>';
+
+  try {
+    var res  = await fetch('/api/indexing-engine', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    var data = await res.json();
+    if (data.error) throw new Error(data.error);
+    await loadStatus();
+    await loadHistory();
+    showToast('Scan complete');
+  } catch(e) {
+    document.getElementById('allPagesBody').innerHTML = '<div class="ix-empty" style="color:var(--red)">Scan failed: ' + e.message + '</div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run Now';
+  }
+}
+
+// ── Render status ─────────────────────────────────────────────────────────
+
+function renderStatus(s) {
+  // Stats
+  document.getElementById('statTotal').textContent      = s.totalUrls      || 0;
+  document.getElementById('statIndexed').textContent    = s.indexedCount    || 0;
+  document.getElementById('statNotIndexed').textContent = s.notIndexedCount || 0;
+  document.getElementById('statNew').textContent        = (s.newlyIndexed   || []).length;
+
+  // Run timestamp
+  if (s.runAt) {
+    var d = new Date(s.runAt);
+    document.getElementById('runTs').textContent = 'Last run: ' + d.toLocaleDateString('en-GB', { day:'numeric', month:'short' }) + ' ' + d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  // Header count
+  document.getElementById('headerCount').textContent = (s.indexedCount || 0) + ' of ' + (s.totalUrls || 0) + ' indexed';
+
+  // Separate manual submit pages from content/blocked pages
+  var manualPages   = [];
+  var contentPages  = [];
+  var blockedPages  = [];
+  var notIndexed    = s.notIndexed || [];
+
+  for (var i = 0; i < notIndexed.length; i++) {
+    var item   = notIndexed[i];
+    var action = CAUSE_ACTION[item.cause] || 'blocked';
+    if (action === 'manual')  manualPages.push(item);
+    else if (action === 'content') contentPages.push(item);
+    else blockedPages.push(item);
+  }
+
+  document.getElementById('statManual').textContent = manualPages.length;
+
+  // Manual submit section
+  var submitSection = document.getElementById('submitSection');
+  var submitList    = document.getElementById('submitList');
+  if (manualPages.length > 0) {
+    submitSection.style.display = 'block';
+    submitList.innerHTML = '';
+    for (var j = 0; j < manualPages.length; j++) {
+      submitList.appendChild(buildSubmitRow(manualPages[j]));
+    }
+  } else {
+    submitSection.style.display = 'none';
+  }
+
+  // Wins panel
+  var wins      = s.newlyIndexed || [];
+  var winsPanel = document.getElementById('winsPanel');
+  if (wins.length > 0) {
+    winsPanel.style.display = 'block';
+    document.getElementById('winsCount').textContent = wins.length + ' page' + (wins.length !== 1 ? 's' : '');
+    var winsList = document.getElementById('winsList');
+    winsList.innerHTML = '';
+    for (var w = 0; w < wins.length; w++) {
+      var wr = document.createElement('div');
+      wr.className = 'win-row';
+      wr.innerHTML = '<div class="win-dot"></div><div class="win-url">' + wins[w] + '</div><div class="win-time">Today</div>';
+      winsList.appendChild(wr);
+    }
+  } else {
+    winsPanel.style.display = 'none';
+  }
+
+  // All pages table
+  var allPages = (s.indexed || []).concat(notIndexed);
+  renderAllPages(allPages, s.indexed || []);
+}
+
+// ── Build submit row — the key UI element ────────────────────────────────
+
+function buildSubmitRow(item) {
+  var row = document.createElement('div');
+  row.className = 'submit-row';
+
+  var slug  = extractSlug(item.url);
+  var title = slugToTitle(slug);
+  var cause = CAUSE_LABELS[item.cause] || item.cause;
+  var gscUrl = GSC_INSPECT_BASE + encodeURIComponent(item.url);
+
+  row.innerHTML =
+    '<div class="submit-row-info">' +
+      '<div class="submit-row-title">' + escHtml(title) + '</div>' +
+      '<div class="submit-row-url">' + escHtml(item.url) + '</div>' +
+      '<div class="submit-row-cause">' + escHtml(cause) + '</div>' +
+    '</div>' +
+    '<div class="submit-row-actions">' +
+      '<button class="btn-copy" onclick="copyUrl(this, \'' + escAttr(item.url) + '\')">' +
+        '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.5"/></svg>' +
+        'Copy URL' +
+      '</button>' +
+      '<a class="btn-gsc" href="' + escAttr(gscUrl) + '" target="_blank" rel="noopener">' +
+        '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 2h5v5M14 2 8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        'Open in GSC' +
+      '</a>' +
+    '</div>';
+
+  return row;
+}
+
+// ── All pages table ──────────────────────────────────────────────────────
+
+function renderAllPages(allPages, indexedList) {
+  var body = document.getElementById('allPagesBody');
+  var indexedSet = {};
+  for (var i = 0; i < indexedList.length; i++) indexedSet[indexedList[i].url] = true;
+
+  if (allPages.length === 0) {
+    body.innerHTML = '<div class="ix-empty">No data yet</div>';
+    document.getElementById('allPagesCount').textContent = '';
+    return;
+  }
+
+  document.getElementById('allPagesCount').textContent = allPages.length + ' pages';
+
+  var html = '<table class="ix-table">' +
+    '<thead><tr>' +
+    '<th>Page</th><th>Status</th><th>Root Cause</th><th>Last Crawled</th><th>Action</th>' +
+    '</tr></thead><tbody>';
+
+  for (var j = 0; j < allPages.length; j++) {
+    var p      = allPages[j];
+    var isIdx  = indexedSet[p.url];
+    var slug   = extractSlug(p.url);
+    var title  = slugToTitle(slug);
+    var gscUrl = GSC_INSPECT_BASE + encodeURIComponent(p.url);
+    var badge  = isIdx ? '<span class="badge badge-indexed">\u2713 Indexed</span>' : buildCauseBadge(p.cause);
+    var cause  = isIdx ? '' : ('<span class="cause-label ' + causeClass(p.cause) + '">' + escHtml(CAUSE_LABELS[p.cause] || '') + '</span>');
+    var crawled = p.lastCrawled ? new Date(p.lastCrawled).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : '—';
+    var action  = isIdx ? '—' :
+      '<a class="btn-gsc" href="' + escAttr(gscUrl) + '" target="_blank" rel="noopener" style="font-size:11px;padding:4px 10px">Open GSC</a>';
+
+    html += '<tr>' +
+      '<td><div style="font-size:13px;font-weight:600;color:#fff">' + escHtml(title) + '</div><div style="font-size:11px;color:rgba(255,255,255,0.30);margin-top:2px">' + escHtml(slug || p.url) + '</div></td>' +
+      '<td>' + badge + '</td>' +
+      '<td>' + cause + '</td>' +
+      '<td style="color:rgba(255,255,255,0.40);font-size:12px">' + crawled + '</td>' +
+      '<td>' + action + '</td>' +
+      '</tr>';
+  }
+
+  html += '</tbody></table>';
+  body.innerHTML = html;
+}
+
+// ── History ──────────────────────────────────────────────────────────────
+
+function renderHistory(history) {
+  var body    = document.getElementById('historyBody');
+  var maxIdx  = 0;
+  for (var i = 0; i < history.length; i++) {
+    if ((history[i].indexedCount || 0) > maxIdx) maxIdx = history[i].indexedCount;
+  }
+  if (maxIdx === 0) maxIdx = 1;
+
+  var html = '<div class="history-row header"><div>Date</div><div>Indexed</div><div>Not Indexed</div><div>Submitted</div><div>Total</div><div>New</div></div>';
+  var shown = history.slice(0, 14);
+  for (var j = 0; j < shown.length; j++) {
+    var h   = shown[j];
+    var pct = Math.round(((h.indexedCount || 0) / maxIdx) * 100);
+    html += '<div class="history-row">' +
+      '<div class="history-date">' + escHtml(h.date || '') + '</div>' +
+      '<div style="display:flex;align-items:center;gap:10px"><div class="bar-wrap" style="width:120px"><div class="bar-fill" style="width:' + pct + '%"></div></div><span style="font-size:13px;color:var(--green);font-weight:700">' + (h.indexedCount || 0) + '</span></div>' +
+      '<div style="color:var(--red);font-weight:600">' + (h.notIndexedCount || 0) + '</div>' +
+      '<div style="color:var(--accent-text)">' + (h.submittedCount || 0) + '</div>' +
+      '<div style="color:rgba(255,255,255,0.50)">' + (h.totalUrls || 0) + '</div>' +
+      '<div style="color:var(--green)">' + ((h.newlyIndexed || []).length || 0) + '</div>' +
+      '</div>';
+  }
+  body.innerHTML = html;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+function buildCauseBadge(cause) {
+  if (!cause) return '<span class="badge badge-pending">Not Indexed</span>';
+  var action = CAUSE_ACTION[cause] || 'blocked';
+  if (action === 'manual')  return '<span class="badge badge-manual">Submit Manually</span>';
+  if (action === 'content') return '<span class="badge badge-thin">Thin Content</span>';
+  return '<span class="badge badge-blocked">Blocked</span>';
+}
+
+function causeClass(cause) {
+  var action = CAUSE_ACTION[cause] || 'blocked';
+  if (action === 'manual')  return 'cause-manual';
+  if (action === 'content') return 'cause-thin';
+  return 'cause-blocked';
+}
+
+function extractSlug(url) {
+  if (!url) return '';
+  var m = url.match(/[?&]slug=([^&]+)/);
+  if (m) return decodeURIComponent(m[1]);
+  var parts = url.replace(/\/$/, '').split('/');
+  return parts[parts.length - 1] || url;
+}
+
+function slugToTitle(slug) {
+  if (!slug) return 'Untitled';
+  return slug.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escAttr(str) {
+  if (!str) return '';
+  return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function copyUrl(btn, url) {
+  navigator.clipboard.writeText(url).then(function() {
+    btn.classList.add('copied');
+    btn.textContent = '\u2713 Copied';
+    setTimeout(function() {
+      btn.classList.remove('copied');
+      btn.innerHTML =
+        '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.5"/></svg> Copy URL';
+    }, 2000);
+  });
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+</script>
+</body>
+</html>
