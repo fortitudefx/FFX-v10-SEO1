@@ -20,6 +20,23 @@ var CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
 };
 
+var IX_SC_PROPERTY  = 'sc-domain:fortitudefx.com';
+var IX_SITE_BASE    = 'https://fortitudefx.com';
+var IX_STATUS_KEY   = 'indexing:status';
+var IX_PROGRESS_KEY = 'indexing:progress';
+var IX_HISTORY_TTL  = 7776000;
+var IX_STATUS_TTL   = 90000;
+var IX_CLIENT_ID    = '805135063067-mb9ap5knagr29280dmg1s63gcbd2f01t.apps.googleusercontent.com';
+
+var IX_STATIC_PAGES = [
+  'https://fortitudefx.com/',
+  'https://fortitudefx.com/blog',
+  'https://fortitudefx.com/bootcamp',
+  'https://fortitudefx.com/vipdiscord',
+  'https://fortitudefx.com/waitlist',
+  'https://fortitudefx.com/privacy',
+];
+
 // ── GET — return KV data ─────────────────────────────────────────────────────
 
 export async function onRequestGet(context) {
@@ -82,21 +99,7 @@ export async function onRequestOptions() {
 // Pages Function handles all Google API calls and KV writes synchronously
 // ─────────────────────────────────────────────────────────────────────────────
 
-var IX_SC_PROPERTY  = 'sc-domain:fortitudefx.com';
-var IX_SITE_BASE    = 'https://fortitudefx.com';
-var IX_STATUS_KEY   = 'indexing:status';
-var IX_PROGRESS_KEY = 'indexing:progress';
-var IX_HISTORY_TTL  = 7776000;
-var IX_STATUS_TTL   = 90000;
 
-var IX_STATIC_PAGES = [
-  'https://fortitudefx.com/',
-  'https://fortitudefx.com/blog',
-  'https://fortitudefx.com/bootcamp',
-  'https://fortitudefx.com/vipdiscord',
-  'https://fortitudefx.com/waitlist',
-  'https://fortitudefx.com/privacy',
-];
 
 async function writeIndexProgress(env, step, total, label) {
   try {
@@ -316,7 +319,7 @@ async function ixBuildPendingVerification(env, notIndexed, submittedNow, prevSta
 }
 
 // OAuth token refresh (replicates google-auth.js logic for cron Worker context)
-var IX_CLIENT_ID = '805135063067-mb9ap5knagr29280dmg1s63gcbd2f01t.apps.googleusercontent.com';
+
 async function ixGetOAuthToken(env) {
   if (!env.GOOGLE_REFRESH_TOKEN || !env.GOOGLE_CLIENT_SECRET) return null;
   try {
