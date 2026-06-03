@@ -517,15 +517,33 @@ async function runScan() {
     var res  = await fetch('/api/indexing-engine', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
     var text = await res.text();
     var data;
-    try {
-      data = JSON.parse(text);
-    } catch(parseErr) {
-      throw new Error('HTTP ' + res.status + ' — CF returned non-JSON: ' + text.substring(0, 200));
+    try { data = JSON.parse(text); } catch(parseErr) {
+      throw new Error('HTTP ' + res.status + ' — ' + text.substring(0, 200));
     }
     if (data.error) throw new Error(data.error);
-    await loadStatus();
-    await loadHistory();
-    showToast('Scan complete');
+
+    // Scan started — poll GET until results appear (up to 90s)
+    document.getElementById('allPagesBody').innerHTML = '<div class="ix-loading"><span class="spinner"></span>Scan running — inspecting all pages via Google Search Console API...</div>';
+    var attempts = 0;
+    var prevRunAt = (window._lastRunAt || null);
+    var found = false;
+    while (attempts < 30) {
+      await new Promise(function(r) { setTimeout(r, 3000); });
+      attempts++;
+      try {
+        var pollRes  = await fetch('/api/indexing-engine');
+        var pollData = await pollRes.json();
+        if (pollData.status && pollData.status.runAt && pollData.status.runAt !== prevRunAt) {
+          window._lastRunAt = pollData.status.runAt;
+          renderStatus(pollData.status);
+          await loadHistory();
+          showToast('Scan complete');
+          found = true;
+          break;
+        }
+      } catch(pollErr) { /* keep polling */ }
+    }
+    if (!found) throw new Error('Scan timed out — check back in a moment, results may still appear');
   } catch(e) {
     document.getElementById('allPagesBody').innerHTML = '<div class="ix-empty" style="color:var(--red)">Scan failed: ' + e.message + '</div>';
   } finally {
