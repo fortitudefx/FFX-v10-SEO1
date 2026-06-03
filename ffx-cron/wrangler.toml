@@ -2,9 +2,10 @@ name = "ffx-cron"
 main = "index.js"
 compatibility_date = "2025-01-01"
 
-# Cron trigger — Mon-Fri 9am Dubai time (GST = UTC+4, so 5am UTC)
+# Cron trigger 1 — Mon-Fri 9am Dubai time (GST = UTC+4, so 5am UTC) — full pipeline
+# Cron trigger 2 — Daily 7am Dubai time (3am UTC) — indexing engine only
 [triggers]
-crons = ["0 5 * * 1,2,3,4,5"]
+crons = ["0 5 * * 1,2,3,4,5", "0 3 * * *"]
 
 [[kv_namespaces]]
 binding = "FFX_KV"

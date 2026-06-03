@@ -22,9 +22,34 @@ const QUEUE_TOPUP_BY   = 7;
 
 export default {
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(runCron(env));
+    // Route by cron expression
+    // "0 3 * * *"         = daily 7am Dubai (UTC+4) — indexing engine only
+    // "0 5 * * 1,2,3,4,5" = Mon-Fri 9am Dubai      — full pipeline
+    if (event.cron === '0 3 * * *') {
+      ctx.waitUntil(runIndexingOnly(env));
+    } else {
+      ctx.waitUntil(runCron(env));
+    }
   }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INDEXING ONLY — runs on the 0 3 * * * schedule (daily 7am Dubai)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function runIndexingOnly(env) {
+  try {
+    console.log('[ffx-cron] Starting indexing-only run');
+    await runIndexingEngine(env);
+    console.log('[ffx-cron] Indexing-only run complete');
+  } catch (err) {
+    console.error('[ffx-cron] Indexing-only run error:', err.message);
+    await sendAlertEmail(env, {
+      subject: '[FFX Cron] Indexing engine error',
+      message: 'Indexing engine run failed: ' + err.message,
+    });
+  }
+}
 
 async function runCron(env) {
   try {
@@ -130,6 +155,15 @@ async function runCron(env) {
       console.log('[ffx-cron] Reply performance check complete');
     } catch(e) {
       console.error('[ffx-cron] Reply performance check error (non-fatal):', e.message);
+    }
+
+    // ── Step 8: Run indexing engine ──────────────────────────────────────
+    console.log('[ffx-cron] Running indexing engine...');
+    try {
+      await runIndexingEngine(env);
+      console.log('[ffx-cron] Indexing engine complete');
+    } catch(e) {
+      console.error('[ffx-cron] Indexing engine error (non-fatal):', e.message);
     }
 
     console.log('[ffx-cron] Cron run complete');
@@ -541,6 +575,37 @@ async function checkReplyPerformance(env) {
   }
 
   console.log('[ffx-cron] Reply performance: scored', updated, 'records');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 8: RUN INDEXING ENGINE
+// POSTs to /api/indexing-engine with service account credentials
+// Non-fatal — engine logs its own errors
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function runIndexingEngine(env) {
+  var payload = {};
+  if (env.GOOGLE_SERVICE_ACCOUNT_EMAIL && env.GOOGLE_PRIVATE_KEY_PEM) {
+    payload.serviceAccountEmail = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    payload.privateKeyPem       = env.GOOGLE_PRIVATE_KEY_PEM;
+  }
+  var res = await fetch('https://fortitudefx.com/api/indexing-engine', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    var errText = await res.text();
+    console.error('[ffx-cron] Indexing engine HTTP error:', res.status, errText);
+    return;
+  }
+  var data = await res.json();
+  console.log(
+    '[ffx-cron] Indexing engine result — indexed:' + (data.indexedCount || 0) +
+    ' not-indexed:' + (data.notIndexedCount || 0) +
+    ' submitted:' + (data.submittedCount || 0) +
+    ' newlyIndexed:' + ((data.newlyIndexed || []).length)
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
