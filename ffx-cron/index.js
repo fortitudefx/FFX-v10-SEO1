@@ -46,8 +46,8 @@ export default {
       return new Response(null, { status: 204, headers: CORS });
     }
     if (request.method === 'POST' && url.pathname === '/run-indexing') {
-      var result = await runIndexingEngine(env);
-      return new Response(JSON.stringify(result || { error: 'Scan failed — check cron logs' }), { status: 200, headers: CORS });
+      ctx.waitUntil(runIndexingOnly(env));
+      return new Response(JSON.stringify({ started: true }), { status: 202, headers: CORS });
     }
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: CORS });
   }
