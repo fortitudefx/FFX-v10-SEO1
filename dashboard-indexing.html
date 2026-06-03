@@ -152,6 +152,9 @@
 
 <div class="ix-wrap">
 
+  <!-- Diagnostic panel — shows raw HTTP response when function returns non-JSON -->
+  <div id="diagPanel" style="display:none;background:rgba(248,113,113,0.06);border:1px solid var(--red-bd);border-radius:var(--radius-md);padding:16px 20px;margin-bottom:20px;"></div>
+
   <!-- Stats -->
   <div class="ix-stats">
     <div class="ix-stat">
@@ -307,17 +310,42 @@ function stepSet(idx, state) {
 async function loadStatus() {
   try {
     var res  = await fetch('/api/indexing-engine');
-    var data = await res.json();
+    var text = await res.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) {
+      showDiag('GET /api/indexing-engine', res.status, text);
+      return;
+    }
     if (data.status) renderStatus(data.status);
-  } catch(e) {}
+  } catch(e) {
+    showDiag('GET /api/indexing-engine', 'network', e.message);
+  }
 }
 
 async function loadHistory() {
   try {
     var res  = await fetch('/api/indexing-engine?history=1');
-    var data = await res.json();
+    var text = await res.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) {
+      showDiag('GET /api/indexing-engine?history=1', res.status, text);
+      return;
+    }
     if (data.history && data.history.length > 0) renderHistory(data.history);
-  } catch(e) {}
+  } catch(e) {
+    showDiag('GET /api/indexing-engine?history=1', 'network', e.message);
+  }
+}
+
+function showDiag(url, status, body) {
+  var el = document.getElementById('diagPanel');
+  if (!el) return;
+  el.style.display = 'block';
+  el.innerHTML =
+    '<div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:8px">DIAGNOSTIC \u2014 HTTP ' + status + ' on ' + url + '</div>' +
+    '<pre style="font-size:11px;color:rgba(255,255,255,0.60);white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto">' +
+    String(body).substring(0, 800) +
+    '</pre>';
 }
 
 // ── Run scan ─────────────────────────────────────────────────────────────────
@@ -354,7 +382,15 @@ async function runScan() {
 
   try {
     var res  = await fetch('/api/indexing-engine', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-    var data = await res.json();
+    var text = await res.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) {
+      cleanup();
+      showDiag('POST /api/indexing-engine', res.status, text);
+      showError('HTTP ' + res.status + ' — non-JSON response. See diagnostic panel above.');
+      btn.disabled = false; btn.textContent = 'Run Now';
+      return;
+    }
     cleanup();
 
     if (!res.ok || data.error) {
