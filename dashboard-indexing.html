@@ -342,13 +342,16 @@
   <div class="nav-inner">
     <div class="nav-wordmark">FFX <span>&middot;</span> Internal</div>
     <div class="nav-links">
-      <a href="/dashboard.html"           class="nav-link">Dashboard</a>
-      <a href="/dashboard-press.html"     class="nav-link">Press</a>
-      <a href="/dashboard-queue.html"     class="nav-link">Queue</a>
-      <a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a>
-      <a href="/dashboard-seo.html"       class="nav-link">SEO</a>
-      <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
-      <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
+      <a href="/dashboard.html"            class="nav-link">Dashboard</a>
+      <a href="/dashboard-press.html"      class="nav-link">Press</a>
+      <a href="/dashboard-queue.html"      class="nav-link">Queue</a>
+      <a href="/dashboard-knowledge.html"  class="nav-link">Knowledge</a>
+      <a href="/dashboard-seo.html"        class="nav-link">SEO</a>
+      <a href="/dashboard-audience.html"   class="nav-link">Audience</a>
+      <a href="/dashboard-youtube.html"    class="nav-link">YouTube</a>
+      <a href="/dashboard-health.html"     class="nav-link">Health</a>
+      <a href="/dashboard-social.html"     class="nav-link">Social</a>
+      <a href="/dashboard-indexing.html"   class="nav-link active">Indexing</a>
     </div>
   </div>
 </nav>
@@ -512,7 +515,13 @@ async function runScan() {
 
   try {
     var res  = await fetch('/api/indexing-engine', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
-    var data = await res.json();
+    var text = await res.text();
+    var data;
+    try {
+      data = JSON.parse(text);
+    } catch(parseErr) {
+      throw new Error('HTTP ' + res.status + ' — CF returned non-JSON: ' + text.substring(0, 200));
+    }
     if (data.error) throw new Error(data.error);
     await loadStatus();
     await loadHistory();
