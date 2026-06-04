@@ -130,15 +130,10 @@ async function runIndexingEngine(env) {
     console.log('[indexing-engine] URL list: ' + urls.length + ' URLs');
     await writeIndexProgress(env, 3, 6, 'Inspecting ' + urls.length + ' URLs via Search Console');
 
-    // Step 3: Inspect each URL
-    var results = [];
-    for (var i = 0; i < urls.length; i++) {
-      var inspection = await ixInspectUrl(oauthToken, urls[i]);
-      results.push(inspection);
-      if (i > 0 && i % 10 === 0) {
-        await ixSleep(1000);
-      }
-    }
+    // Step 3: Inspect all URLs in parallel — CF batches at 6 concurrent, no timeout risk
+    var results = await Promise.all(
+      urls.map(function(url) { return ixInspectUrl(oauthToken, url); })
+    );
     console.log('[indexing-engine] Inspected ' + results.length + ' URLs');
     await writeIndexProgress(env, 4, 6, 'Classifying ' + results.length + ' results');
 
