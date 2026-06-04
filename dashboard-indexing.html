@@ -275,6 +275,18 @@ var CAUSE_LABELS = {
   other:              'Other \u2014 review manually',
 };
 
+var CAUSE_SEVERITY = {
+  thin_content:       'error',
+  robots_blocked:     'error',
+  redirect:           'error',
+  soft_404:           'error',
+  noindex:            'warn',
+  canonical_mismatch: 'warn',
+  not_submitted:      'info',
+  unknown:            'info',
+  other:              'info',
+};
+
 var MANUAL_CAUSES = { not_submitted: true, canonical_mismatch: true, unknown: true };
 
 // ── On load ──────────────────────────────────────────────────────────────────
@@ -458,14 +470,20 @@ function renderStatus(s) {
     document.getElementById('panelAction').style.display = 'none';
   }
 
-  // Pending verification
-  var pending = (s.pendingVerification || []).filter(function(p) { return p.status === 'pending'; });
-  if (pending.length > 0) {
+  // Pending verification — split into pending and overdue
+  var pending  = (s.pendingVerification || []).filter(function(p) { return p.status === 'pending'; });
+  var overdue  = (s.pendingVerification || []).filter(function(p) { return p.status === 'still_not_indexed'; });
+  var snoozed  = (s.pendingVerification || []).filter(function(p) { return p.status === 'snoozed'; });
+
+  if (pending.length > 0 || overdue.length > 0 || snoozed.length > 0) {
     document.getElementById('panelPending').style.display = 'block';
     var ph = '';
-    for (var j = 0; j < pending.length; j++) {
-      ph += buildPendingRow(pending[j]);
-    }
+    // Overdue first — these need attention
+    for (var od = 0; od < overdue.length; od++) { ph += buildOverdueRow(overdue[od]); }
+    // Then pending
+    for (var j = 0; j < pending.length; j++) { ph += buildPendingRow(pending[j]); }
+    // Then snoozed
+    for (var sn = 0; sn < snoozed.length; sn++) { ph += buildSnoozedRow(snoozed[sn]); }
     document.getElementById('pendingList').innerHTML = ph;
   } else {
     document.getElementById('panelPending').style.display = 'none';
@@ -570,13 +588,84 @@ function buildPendingRow(p) {
   var title   = esc(urlToTitle(p.url));
   var action  = esc(p.note || 'Fix applied');
   var days    = daysUntil(p.verifyAfter);
-  var overdue = days < 0;
-  var daysStr = overdue ? 'Overdue by ' + Math.abs(days) + 'd' : days + ' days left';
+  var daysStr = days + ' days left';
   return '<div class="ix-pend-row">' +
     '<div><div class="ix-pend-title">' + title + '</div><div class="ix-pend-action">' + action + '</div></div>' +
     '<span class="badge badge-accent">Pending</span>' +
-    '<div class="ix-pend-days' + (overdue ? ' overdue' : '') + '">' + daysStr + '</div>' +
+    '<div class="ix-pend-days">' + daysStr + '</div>' +
   '</div>';
+}
+
+function buildOverdueRow(p) {
+  var title      = esc(urlToTitle(p.url));
+  var urlEsc     = escAttr(p.url);
+  var rowId      = 'ovr-' + btoa(p.url).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+  var daysSince  = p.submittedAt ? Math.floor((Date.now() - new Date(p.submittedAt)) / 86400000) : '?';
+  var cause      = p.currentCause  || null;
+  var verdict    = p.currentVerdict || null;
+  var reason     = p.currentReason  || null;
+  var severity   = cause ? (CAUSE_SEVERITY[cause] || 'info') : 'info';
+  var causeLabel = cause ? (CAUSE_LABELS[cause] || cause) : 'No error detected \u2014 still in Google queue';
+  var causeColor = severity === 'error' ? 'var(--red)' : severity === 'warn' ? 'var(--accent-orange-text)' : 'var(--muted-3)';
+  var verdictStr = verdict ? (' \u2014 ' + esc(verdict)) : '';
+  var bLeft      = severity === 'error' ? 'var(--red)' : 'var(--accent-orange-line)';
+  return '<div class="ix-pend-row" id="' + rowId + '" style="border-left:3px solid ' + bLeft + ';padding-left:21px;flex-wrap:wrap;gap:12px">' +
+    '<div style="min-width:0;flex:1">' +
+      '<div class="ix-pend-title">' + title + '</div>' +
+      '<div style="font-size:11px;color:var(--muted-3);margin-top:2px">Submitted ' + daysSince + ' day' + (daysSince !== 1 ? 's' : '') + ' ago \u2014 still not indexed' + verdictStr + '</div>' +
+      '<div style="font-size:11px;color:' + causeColor + ';margin-top:3px;font-weight:600">' + esc(causeLabel) + '</div>' +
+      (reason ? '<div style="font-size:10px;color:var(--muted-3);margin-top:2px">' + esc(reason) + '</div>' : '') +
+    '</div>' +
+    '<div style="display:flex;gap:7px;flex-shrink:0;align-items:center;flex-wrap:wrap">' +
+      '<span class="badge badge-red">Overdue</span>' +
+      '<a class="btn-gsc" href="' + GSC_BASE + '" target="_blank" rel="noopener" style="font-size:11px;padding:4px 10px">Resubmit in GSC</a>' +
+      '<button class="btn-submitted" onclick="resubmitUrl(\'' + urlEsc + '\',\'' + rowId + '\')" style="font-size:11px;padding:4px 10px">\u2713 Mark Resubmitted</button>' +
+      '<button class="btn-copy" onclick="snoozeUrl(\'' + urlEsc + '\',\'' + rowId + '\')" style="font-size:11px;padding:4px 10px">Snooze 7 days</button>' +
+      '<button class="btn-copy" onclick="ignoreUrl(\'' + urlEsc + '\',\'' + rowId + '\')" style="font-size:11px;padding:4px 10px;color:var(--muted-3)">Ignore</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function buildSnoozedRow(p) {
+  var title = esc(urlToTitle(p.url));
+  var until = p.snoozedUntil ? new Date(p.snoozedUntil).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '?';
+  return '<div class="ix-pend-row" style="opacity:0.55">' +
+    '<div><div class="ix-pend-title">' + title + '</div><div class="ix-pend-action">Snoozed until ' + until + '</div></div>' +
+    '<span class="badge badge-muted">Snoozed</span>' +
+    '<div class="ix-pend-days">\u2014</div>' +
+  '</div>';
+}
+
+async function resubmitUrl(url, rowId) {
+  await patchUrl(url, 'mark_submitted', rowId, '\u2713 Resubmit clock reset \u2014 tracking 3 more days');
+}
+
+async function snoozeUrl(url, rowId) {
+  await patchUrl(url, 'snooze', rowId, 'Snoozed for 7 days');
+}
+
+async function ignoreUrl(url, rowId) {
+  if (!confirm('Ignore this URL permanently? It will not surface again.')) return;
+  await patchUrl(url, 'ignore', rowId, 'Ignored permanently');
+}
+
+async function patchUrl(url, action, rowId, toastMsg) {
+  try {
+    var res  = await fetch('/api/indexing-engine', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ url: url, action: action, days: 7 }),
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Failed');
+    var row = document.getElementById(rowId);
+    if (row) {
+      row.style.transition = 'opacity 0.3s';
+      row.style.opacity = '0';
+      setTimeout(function() { if (row.parentNode) row.parentNode.removeChild(row); loadStatus(); }, 300);
+    }
+    showToast(toastMsg);
+  } catch(e) { showError('Could not save: ' + e.message); }
 }
 
 function buildVerifiedRow(p) {
