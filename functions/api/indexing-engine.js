@@ -84,10 +84,67 @@ export async function onRequestPost(context) {
   }
 }
 
+// ── PATCH — mark a URL as submitted to GSC ──────────────────────────────────
+// Body: { url: 'https://...', action: 'mark_submitted' }
+// Writes to indexing:pending_verification KV
+// Removes URL from notIndexed in indexing:status so it leaves Action Required
+
+export async function onRequestPatch(context) {
+  var env = context.env;
+  try {
+    var body = await context.request.json().catch(function() { return {}; });
+    var url  = body.url;
+    if (!url) return new Response(JSON.stringify({ error: 'url required' }), { status: 400, headers: CORS_HEADERS });
+
+    // 1. Write to pending_verification KV
+    var existing = await env.FFX_KV.get('indexing:pending_verification', { type: 'json' }).catch(function() { return []; });
+    var list = Array.isArray(existing) ? existing : [];
+    var alreadyExists = list.some(function(p) { return p.url === url; });
+    if (!alreadyExists) {
+      list.push({
+        url:         url,
+        action:      'submitted_to_gsc_manually',
+        fixedAt:     new Date().toISOString(),
+        submittedAt: new Date().toISOString(),
+        verifyAfter: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
+        status:      'pending',
+        note:        'Manually submitted via GSC Request Indexing',
+      });
+      await env.FFX_KV.put('indexing:pending_verification', JSON.stringify(list));
+    }
+
+    // 2. Remove URL from notIndexed in indexing:status so it leaves Action Required immediately
+    var status = await env.FFX_KV.get(IX_STATUS_KEY, { type: 'json' }).catch(function() { return null; });
+    if (status && Array.isArray(status.notIndexed)) {
+      status.notIndexed = status.notIndexed.filter(function(p) { return p.url !== url; });
+      status.notIndexedCount = status.notIndexed.length;
+      // Add to pendingVerification in status record too
+      if (!Array.isArray(status.pendingVerification)) status.pendingVerification = [];
+      var inPending = status.pendingVerification.some(function(p) { return p.url === url; });
+      if (!inPending) {
+        status.pendingVerification.push({
+          url:         url,
+          action:      'submitted_to_gsc_manually',
+          fixedAt:     new Date().toISOString(),
+          submittedAt: new Date().toISOString(),
+          verifyAfter: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
+          status:      'pending',
+          note:        'Manually submitted via GSC Request Indexing',
+        });
+      }
+      await env.FFX_KV.put(IX_STATUS_KEY, JSON.stringify(status), { expirationTtl: IX_STATUS_TTL });
+    }
+
+    return new Response(JSON.stringify({ success: true, url: url }), { status: 200, headers: CORS_HEADERS });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS_HEADERS });
+  }
+}
+
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   }});
 }
@@ -277,9 +334,9 @@ async function ixBuildPendingVerification(env, notIndexed, submittedNow, prevSta
         url:          u,
         action:       'submitted_to_google',
         fixedAt:      new Date().toISOString(),
-        verifyAfter:  new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
+        verifyAfter:  new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
         status:       'pending',
-        note:         'Submitted to Google Indexing API — check back in 14 days',
+        note:         'Submitted to Google Indexing API — check back in 3 days',
       };
     }
   }
@@ -299,7 +356,7 @@ async function ixBuildPendingVerification(env, notIndexed, submittedNow, prevSta
     if (item.status === 'pending' && new Date(item.verifyAfter) < new Date()) {
       if (notIndexedSet[item.url]) {
         item.status = 'still_not_indexed';
-        item.note   = 'Fix applied but page still not indexed after 14+ days — needs manual review';
+        item.note   = 'Fix applied but page still not indexed after 3+ days — needs manual review';
       } else {
         item.status = 'verified_fixed';
         item.verifiedAt = new Date().toISOString();
