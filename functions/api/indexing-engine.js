@@ -285,7 +285,7 @@ async function runIndexingEngine(env) {
     }
 
     // Build pending-verification list — fixes applied but not yet confirmed by Google
-    var pendingVerification = await ixBuildPendingVerification(env, notIndexed, submittedNow, prevStatus);
+    var pendingVerification = await ixBuildPendingVerification(env, notIndexed, submittedNow, prevStatus, indexed);
 
     var today = new Date().toISOString().split('T')[0];
     var statusRecord = {
@@ -341,7 +341,7 @@ async function runIndexingEngine(env) {
 
 // Build pending-verification list
 // Tracks fixes we applied and whether Google has confirmed them yet
-async function ixBuildPendingVerification(env, notIndexed, submittedNow, prevStatus) {
+async function ixBuildPendingVerification(env, notIndexed, submittedNow, prevStatus, indexed) {
   var existing = {};
   try {
     var prev = await env.FFX_KV.get('indexing:pending_verification', { type: 'json' }).catch(function() { return []; });
@@ -353,6 +353,10 @@ async function ixBuildPendingVerification(env, notIndexed, submittedNow, prevSta
 
   var notIndexedSet = {};
   notIndexed.forEach(function(n) { notIndexedSet[n.url] = true; });
+
+  // Only mark verified if Google EXPLICITLY confirmed indexing — not just absence from notIndexed
+  var confirmedIndexedSet = {};
+  (indexed || []).forEach(function(p) { confirmedIndexedSet[p.url] = true; });
 
   // Add newly submitted URLs to pending list
   for (var i = 0; i < submittedNow.length; i++) {
@@ -391,10 +395,10 @@ async function ixBuildPendingVerification(env, notIndexed, submittedNow, prevSta
       }
     }
 
-    // If now indexed — mark verified
+    // If Google explicitly confirmed indexed — mark verified
     var currentlySeen = notIndexedMap[item.url];
-    var isIndexedNow  = !notIndexedSet[item.url];
-    if (isIndexedNow && (prevStatus || notIndexed.length >= 0)) {
+    var isIndexedNow  = confirmedIndexedSet[item.url] === true;
+    if (isIndexedNow) {
       item.status = 'verified_fixed';
       item.verifiedAt = new Date().toISOString();
     }
