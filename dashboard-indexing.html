@@ -106,7 +106,9 @@
     .btn-copy.done { background: var(--green-bg); border-color: var(--green-bd); color: var(--green); }
     .btn-gsc { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(66,133,244,0.10); border: 1px solid rgba(66,133,244,0.25); border-radius: 8px; color: rgba(130,180,255,0.88); font-size: 12px; font-weight: 600; font-family: var(--font); cursor: pointer; text-decoration: none; transition: all 0.15s; white-space: nowrap; }
     .btn-gsc:hover { background: rgba(66,133,244,0.18); color: var(--text); }
-    .btn-run { padding: 9px 20px; background: var(--accent-soft); border: 1px solid var(--accent-line); border-radius: 10px; color: var(--accent-text); font-size: 13px; font-weight: 700; font-family: var(--font); cursor: pointer; transition: all 0.15s; }
+    .btn-submitted { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(62,207,142,0.10); border: 1px solid var(--green-bd); border-radius: 8px; color: var(--green); font-size: 12px; font-weight: 600; font-family: var(--font); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .btn-submitted:hover { background: rgba(62,207,142,0.18); }
+    .btn-submitted:disabled { opacity: 0.50; cursor: not-allowed; } background: var(--accent-soft); border: 1px solid var(--accent-line); border-radius: 10px; color: var(--accent-text); font-size: 13px; font-weight: 700; font-family: var(--font); cursor: pointer; transition: all 0.15s; }
     .btn-run:hover { background: rgba(122,92,255,0.22); }
     .btn-run:disabled { opacity: 0.40; cursor: not-allowed; }
 
@@ -438,7 +440,10 @@ function renderStatus(s) {
   document.getElementById('hdrCount').textContent = (s.indexedCount || 0) + ' of ' + (s.totalUrls || 0) + ' indexed';
 
   var notIndexed = s.notIndexed || [];
-  var manual = notIndexed.filter(function(p) { return MANUAL_CAUSES[p.cause]; });
+  // Filter out URLs already in pending verification — they've been submitted
+  var pendingUrls = {};
+  (s.pendingVerification || []).forEach(function(p) { pendingUrls[p.url] = true; });
+  var manual = notIndexed.filter(function(p) { return MANUAL_CAUSES[p.cause] && !pendingUrls[p.url]; });
   document.getElementById('sAction').textContent = manual.length;
 
   // Action Required panel
@@ -499,11 +504,12 @@ function renderStatus(s) {
 }
 
 function buildActionRow(p) {
-  var title = esc(urlToTitle(p.url));
-  var cause = esc(CAUSE_LABELS[p.cause] || p.cause);
+  var title  = esc(urlToTitle(p.url));
+  var cause  = esc(CAUSE_LABELS[p.cause] || p.cause);
   var gscUrl = esc(GSC_BASE + encodeURIComponent(p.url));
   var urlEsc = escAttr(p.url);
-  return '<div class="ix-submit-row">' +
+  var rowId  = 'row-' + btoa(p.url).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+  return '<div class="ix-submit-row" id="' + rowId + '">' +
     '<div>' +
       '<div class="ix-submit-title">' + title + '</div>' +
       '<div class="ix-submit-url">' + esc(p.url) + '</div>' +
@@ -518,8 +524,46 @@ function buildActionRow(p) {
         '<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 2h5v5M14 2 8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
         ' Open in GSC' +
       '</a>' +
+      '<button class="btn-submitted" id="sub-' + rowId + '" onclick="markSubmitted(this,\'' + urlEsc + '\',\'' + rowId + '\')">' +
+        '\u2713 Mark Submitted' +
+      '</button>' +
     '</div>' +
   '</div>';
+}
+
+async function markSubmitted(btn, url, rowId) {
+  btn.disabled = true;
+  btn.textContent = 'Saving\u2026';
+  try {
+    var res  = await fetch('/api/indexing-engine', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ url: url, action: 'mark_submitted' }),
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) { throw new Error(data.error || 'Failed'); }
+    // Remove row from Action Required panel immediately
+    var row = document.getElementById(rowId);
+    if (row) {
+      row.style.transition = 'opacity 0.3s';
+      row.style.opacity = '0';
+      setTimeout(function() {
+        if (row.parentNode) row.parentNode.removeChild(row);
+        // Update Action Required count
+        var actionList = document.getElementById('actionList');
+        var remaining  = actionList ? actionList.querySelectorAll('.ix-submit-row').length : 0;
+        document.getElementById('sAction').textContent = remaining;
+        if (remaining === 0) document.getElementById('panelAction').style.display = 'none';
+        // Reload pending panel to show this URL
+        loadStatus();
+      }, 300);
+    }
+    showToast('\u2713 Marked as submitted — tracking for 3 days');
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '\u2713 Mark Submitted';
+    showError('Could not save: ' + e.message);
+  }
 }
 
 function buildPendingRow(p) {
