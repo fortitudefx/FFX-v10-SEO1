@@ -510,7 +510,7 @@ function renderStatus(s) {
     document.getElementById('winsCount').textContent = wins.length + ' page' + (wins.length !== 1 ? 's' : '');
     var wh = '';
     for (var w = 0; w < wins.length; w++) {
-      wh += '<div class="ix-verified-row"><div class="ix-verified-dot"></div><div class="ix-verified-title">' + esc(urlToTitle(wins[w])) + '</div><div class="ix-verified-when">Today</div></div>';
+      wh += '<div class="ix-verified-row"><div class="ix-verified-dot"></div><div class="ix-verified-title"><a href="' + esc(wins[w]) + '" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none">' + esc(urlToTitle(wins[w])) + '</a></div><div class="ix-verified-when">Today</div></div>';
     }
     document.getElementById('winsList').innerHTML = wh;
   } else {
@@ -529,7 +529,7 @@ function buildActionRow(p) {
   var rowId  = 'row-' + btoa(p.url).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
   return '<div class="ix-submit-row" id="' + rowId + '">' +
     '<div>' +
-      '<div class="ix-submit-title">' + title + '</div>' +
+      '<div class="ix-submit-title"><a href="' + esc(p.url) + '" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">' + title + '</a></div>' +
       '<div class="ix-submit-url">' + esc(p.url) + '</div>' +
       '<div class="ix-submit-cause">' + cause + '</div>' +
     '</div>' +
@@ -590,7 +590,7 @@ function buildPendingRow(p) {
   var days    = daysUntil(p.verifyAfter);
   var daysStr = days + ' days left';
   return '<div class="ix-pend-row">' +
-    '<div><div class="ix-pend-title">' + title + '</div><div class="ix-pend-action">' + action + '</div></div>' +
+    '<div><div class="ix-pend-title"><a href="' + esc(p.url) + '" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none">' + title + '</a></div><div class="ix-pend-action">' + action + '</div></div>' +
     '<span class="badge badge-accent">Pending</span>' +
     '<div class="ix-pend-days">' + daysStr + '</div>' +
   '</div>';
@@ -611,7 +611,7 @@ function buildOverdueRow(p) {
   var bLeft      = severity === 'error' ? 'var(--red)' : 'var(--accent-orange-line)';
   return '<div class="ix-pend-row" id="' + rowId + '" style="border-left:3px solid ' + bLeft + ';padding-left:21px;flex-wrap:wrap;gap:12px">' +
     '<div style="min-width:0;flex:1">' +
-      '<div class="ix-pend-title">' + title + '</div>' +
+      '<div class="ix-pend-title"><a href="' + esc(p.url) + '" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none">' + title + '</a></div>' +
       '<div style="font-size:11px;color:var(--muted-3);margin-top:2px">Submitted ' + daysSince + ' day' + (daysSince !== 1 ? 's' : '') + ' ago \u2014 still not indexed' + verdictStr + '</div>' +
       '<div style="font-size:11px;color:' + causeColor + ';margin-top:3px;font-weight:600">' + esc(causeLabel) + '</div>' +
       (reason ? '<div style="font-size:10px;color:var(--muted-3);margin-top:2px">' + esc(reason) + '</div>' : '') +
@@ -630,7 +630,7 @@ function buildSnoozedRow(p) {
   var title = esc(urlToTitle(p.url));
   var until = p.snoozedUntil ? new Date(p.snoozedUntil).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '?';
   return '<div class="ix-pend-row" style="opacity:0.55">' +
-    '<div><div class="ix-pend-title">' + title + '</div><div class="ix-pend-action">Snoozed until ' + until + '</div></div>' +
+    '<div><div class="ix-pend-title"><a href="' + esc(p.url) + '" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none">' + title + '</a></div><div class="ix-pend-action">Snoozed until ' + until + '</div></div>' +
     '<span class="badge badge-muted">Snoozed</span>' +
     '<div class="ix-pend-days">\u2014</div>' +
   '</div>';
@@ -671,7 +671,7 @@ async function patchUrl(url, action, rowId, toastMsg) {
 function buildVerifiedRow(p) {
   var title = esc(urlToTitle(p.url));
   var when  = p.verifiedAt ? new Date(p.verifiedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
-  return '<div class="ix-verified-row"><div class="ix-verified-dot"></div><div class="ix-verified-title">' + title + '</div><div class="ix-verified-when">' + esc(when) + '</div></div>';
+  return '<div class="ix-verified-row"><div class="ix-verified-dot"></div><div class="ix-verified-title"><a href="' + esc(p.url) + '" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none">' + title + '</a></div><div class="ix-verified-when">' + esc(when) + '</div></div>';
 }
 
 function renderAllPages(indexed, notIndexed) {
@@ -699,7 +699,7 @@ function renderAllPages(indexed, notIndexed) {
     var crawled = p.lastCrawled ? new Date(p.lastCrawled).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '\u2014';
     var action = isIdx ? '\u2014' : ('<a class="btn-gsc" href="' + GSC_BASE + '" target="_blank" rel="noopener" style="font-size:11px;padding:4px 10px">Open GSC</a>');
     html += '<tr>' +
-      '<td><div style="font-size:13px;font-weight:600;color:var(--text)">' + title + '</div><div style="font-size:11px;color:var(--muted-3);margin-top:2px">' + slug + '</div></td>' +
+      '<td><div style="font-size:13px;font-weight:600"><a href="' + esc(p.url) + '" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">' + title + '</a></div><div style="font-size:11px;color:var(--muted-3);margin-top:2px">' + slug + '</div></td>' +
       '<td>' + badge + '</td>' +
       '<td style="font-size:12px;color:var(--muted-3);max-width:200px">' + cause + '</td>' +
       '<td style="font-size:12px;color:var(--muted-3)">' + crawled + '</td>' +
