@@ -103,23 +103,26 @@ export async function onRequestPatch(context) {
     for (var i = 0; i < list.length; i++) { if (list[i].url === url) { idx = i; break; } }
 
     if (action === 'mark_submitted') {
+      var now2 = new Date().toISOString();
       var entry = {
-        url:         url,
-        action:      'submitted_to_gsc_manually',
-        fixedAt:     new Date().toISOString(),
-        submittedAt: new Date().toISOString(),
-        verifyAfter: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
-        status:      'pending',
-        note:        'Manually submitted via GSC Request Indexing',
+        url:                 url,
+        action:              'submitted_to_gsc_manually',
+        fixedAt:             now2,
+        submittedAt:         now2,
+        manuallySubmittedAt: now2,
+        verifyAfter:         new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
+        status:              'pending',
+        note:                'Manually submitted via GSC Request Indexing',
       };
       if (idx === -1) { list.push(entry); }
       else {
-        // Resubmit — reset the clock, keep history
-        list[idx].submittedAt  = entry.submittedAt;
-        list[idx].verifyAfter  = entry.verifyAfter;
-        list[idx].status       = 'pending';
-        list[idx].resubmittedAt = new Date().toISOString();
-        list[idx].note         = 'Resubmitted via GSC Request Indexing';
+        // Resubmit — reset the clock, keep history, preserve first submission date
+        list[idx].submittedAt         = now2;
+        list[idx].manuallySubmittedAt = now2;
+        list[idx].verifyAfter         = entry.verifyAfter;
+        list[idx].status              = 'pending';
+        list[idx].resubmittedAt       = now2;
+        list[idx].note                = 'Resubmitted via GSC Request Indexing';
         delete list[idx].overdueAt;
         delete list[idx].currentCause;
         delete list[idx].currentVerdict;
@@ -357,6 +360,19 @@ async function ixBuildPendingVerification(env, notIndexed, submittedNow, prevSta
   // Only mark verified if Google EXPLICITLY confirmed indexing — not just absence from notIndexed
   var confirmedIndexedSet = {};
   (indexed || []).forEach(function(p) { confirmedIndexedSet[p.url] = true; });
+
+  // FIX: Reset any falsely verified_fixed records — if Google still says not indexed, revert to pending
+  var keys0 = Object.keys(existing);
+  for (var fi = 0; fi < keys0.length; fi++) {
+    var fitem = existing[keys0[fi]];
+    if (fitem.status === 'verified_fixed' && notIndexedSet[fitem.url]) {
+      // Was marked verified but Google still says not indexed — restore to pending
+      fitem.status      = 'pending';
+      fitem.verifyAfter = new Date(new Date(fitem.manuallySubmittedAt || fitem.fixedAt || Date.now()).getTime() + 3 * 24 * 3600 * 1000).toISOString();
+      fitem.note        = 'Restored from incorrect verified_fixed status — still not indexed per Google';
+      delete fitem.verifiedAt;
+    }
+  }
 
   // Add newly submitted URLs to pending list
   for (var i = 0; i < submittedNow.length; i++) {
