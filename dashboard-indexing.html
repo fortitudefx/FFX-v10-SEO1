@@ -258,7 +258,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-var GSC_BASE = 'https://search.google.com/search-console/inspect?resource_id=sc-domain%3Afortitudefx.com&id=';
+var GSC_BASE = 'https://search.google.com/search-console/inspect?resource_id=sc-domain%3Afortitudefx.com';
 var STEP_LABELS = ['Getting OAuth token', 'Building URL list', 'Inspecting URLs', 'Classifying results', 'Submitting to Google', 'Writing results'];
 var _progressPoll = null;
 var _lastRunAt = null;
@@ -506,7 +506,7 @@ function renderStatus(s) {
 function buildActionRow(p) {
   var title  = esc(urlToTitle(p.url));
   var cause  = esc(CAUSE_LABELS[p.cause] || p.cause);
-  var gscUrl = esc(GSC_BASE + encodeURIComponent(p.url));
+  var gscUrl = GSC_BASE;
   var urlEsc = escAttr(p.url);
   var rowId  = 'row-' + btoa(p.url).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
   return '<div class="ix-submit-row" id="' + rowId + '">' +
@@ -608,7 +608,7 @@ function renderAllPages(indexed, notIndexed) {
     var badge = isIdx ? '<span class="badge badge-green">\u2713 Indexed</span>' : causeBadge(p.cause);
     var cause = isIdx ? '' : esc(CAUSE_LABELS[p.cause] || '');
     var crawled = p.lastCrawled ? new Date(p.lastCrawled).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '\u2014';
-    var action = isIdx ? '\u2014' : ('<a class="btn-gsc" href="' + esc(GSC_BASE + encodeURIComponent(p.url)) + '" target="_blank" rel="noopener" style="font-size:11px;padding:4px 10px">Open GSC</a>');
+    var action = isIdx ? '\u2014' : ('<a class="btn-gsc" href="' + GSC_BASE + '" target="_blank" rel="noopener" style="font-size:11px;padding:4px 10px">Open GSC</a>');
     html += '<tr>' +
       '<td><div style="font-size:13px;font-weight:600;color:var(--text)">' + title + '</div><div style="font-size:11px;color:var(--muted-3);margin-top:2px">' + slug + '</div></td>' +
       '<td>' + badge + '</td>' +
