@@ -92,16 +92,18 @@ export async function onRequestPost(context) {
 export async function onRequestPatch(context) {
   var env = context.env;
   try {
-    var body = await context.request.json().catch(function() { return {}; });
-    var url  = body.url;
+    var body   = await context.request.json().catch(function() { return {}; });
+    var url    = body.url;
+    var action = body.action || 'mark_submitted';
     if (!url) return new Response(JSON.stringify({ error: 'url required' }), { status: 400, headers: CORS_HEADERS });
 
-    // 1. Write to pending_verification KV
     var existing = await env.FFX_KV.get('indexing:pending_verification', { type: 'json' }).catch(function() { return []; });
     var list = Array.isArray(existing) ? existing : [];
-    var alreadyExists = list.some(function(p) { return p.url === url; });
-    if (!alreadyExists) {
-      list.push({
+    var idx  = -1;
+    for (var i = 0; i < list.length; i++) { if (list[i].url === url) { idx = i; break; } }
+
+    if (action === 'mark_submitted') {
+      var entry = {
         url:         url,
         action:      'submitted_to_gsc_manually',
         fixedAt:     new Date().toISOString(),
@@ -109,33 +111,59 @@ export async function onRequestPatch(context) {
         verifyAfter: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
         status:      'pending',
         note:        'Manually submitted via GSC Request Indexing',
-      });
-      await env.FFX_KV.put('indexing:pending_verification', JSON.stringify(list));
+      };
+      if (idx === -1) { list.push(entry); }
+      else {
+        // Resubmit — reset the clock, keep history
+        list[idx].submittedAt  = entry.submittedAt;
+        list[idx].verifyAfter  = entry.verifyAfter;
+        list[idx].status       = 'pending';
+        list[idx].resubmittedAt = new Date().toISOString();
+        list[idx].note         = 'Resubmitted via GSC Request Indexing';
+        delete list[idx].overdueAt;
+        delete list[idx].currentCause;
+        delete list[idx].currentVerdict;
+        delete list[idx].currentReason;
+      }
+    } else if (action === 'snooze') {
+      var days = body.days || 7;
+      if (idx !== -1) {
+        list[idx].status       = 'snoozed';
+        list[idx].snoozedUntil = new Date(Date.now() + days * 24 * 3600 * 1000).toISOString();
+        list[idx].snoozedAt    = new Date().toISOString();
+        list[idx].note         = 'Snoozed for ' + days + ' days';
+      }
+    } else if (action === 'ignore') {
+      if (idx !== -1) {
+        list[idx].status   = 'ignored';
+        list[idx].ignoredAt = new Date().toISOString();
+        list[idx].note     = 'Manually ignored — will not surface again';
+      }
     }
 
-    // 2. Remove URL from notIndexed in indexing:status so it leaves Action Required immediately
+    await env.FFX_KV.put('indexing:pending_verification', JSON.stringify(list));
+
+    // Sync to indexing:status — update notIndexed and pendingVerification
     var status = await env.FFX_KV.get(IX_STATUS_KEY, { type: 'json' }).catch(function() { return null; });
-    if (status && Array.isArray(status.notIndexed)) {
-      status.notIndexed = status.notIndexed.filter(function(p) { return p.url !== url; });
-      status.notIndexedCount = status.notIndexed.length;
-      // Add to pendingVerification in status record too
+    if (status) {
+      if (action === 'mark_submitted' && Array.isArray(status.notIndexed)) {
+        status.notIndexed      = status.notIndexed.filter(function(p) { return p.url !== url; });
+        status.notIndexedCount = status.notIndexed.length;
+      }
       if (!Array.isArray(status.pendingVerification)) status.pendingVerification = [];
-      var inPending = status.pendingVerification.some(function(p) { return p.url === url; });
-      if (!inPending) {
-        status.pendingVerification.push({
-          url:         url,
-          action:      'submitted_to_gsc_manually',
-          fixedAt:     new Date().toISOString(),
-          submittedAt: new Date().toISOString(),
-          verifyAfter: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
-          status:      'pending',
-          note:        'Manually submitted via GSC Request Indexing',
-        });
+      var pidx = -1;
+      for (var pi = 0; pi < status.pendingVerification.length; pi++) {
+        if (status.pendingVerification[pi].url === url) { pidx = pi; break; }
+      }
+      var matched = list.filter(function(p) { return p.url === url; })[0] || null;
+      if (matched) {
+        if (pidx === -1) status.pendingVerification.push(matched);
+        else status.pendingVerification[pidx] = matched;
       }
       await env.FFX_KV.put(IX_STATUS_KEY, JSON.stringify(status), { expirationTtl: IX_STATUS_TTL });
     }
 
-    return new Response(JSON.stringify({ success: true, url: url }), { status: 200, headers: CORS_HEADERS });
+    return new Response(JSON.stringify({ success: true, url: url, action: action }), { status: 200, headers: CORS_HEADERS });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS_HEADERS });
   }
@@ -341,27 +369,61 @@ async function ixBuildPendingVerification(env, notIndexed, submittedNow, prevSta
     }
   }
 
-  // Also track canonical fixes (blog.html fix deployed — these should self-resolve)
-  // Check if any previously-canonical-mismatch URLs are now indexed
+  // Build notIndexed lookup map with full cause/verdict data for overdue context
+  var notIndexedMap = {};
+  notIndexed.forEach(function(n) { notIndexedMap[n.url] = n; });
+
   var result = [];
   var keys = Object.keys(existing);
   for (var j = 0; j < keys.length; j++) {
     var item = existing[keys[j]];
+
+    // Skip permanently ignored items
+    if (item.status === 'ignored') { result.push(item); continue; }
+
+    // If snoozed — check if snooze period has passed
+    if (item.status === 'snoozed' && item.snoozedUntil) {
+      if (new Date(item.snoozedUntil) > new Date()) {
+        result.push(item); continue; // still snoozed — skip processing
+      } else {
+        item.status = 'pending'; // snooze expired — back to pending
+        delete item.snoozedUntil;
+      }
+    }
+
     // If now indexed — mark verified
-    if ((prevStatus) && (prevStatus.indexed || []).some(function(idx) { return idx.url === item.url; })) {
+    var currentlySeen = notIndexedMap[item.url];
+    var isIndexedNow  = !notIndexedSet[item.url];
+    if (isIndexedNow && (prevStatus || notIndexed.length >= 0)) {
       item.status = 'verified_fixed';
       item.verifiedAt = new Date().toISOString();
     }
-    // If still not indexed and past verify window — mark needs review
+
+    // If still not indexed and past verify window — mark overdue with current Google verdict
     if (item.status === 'pending' && new Date(item.verifyAfter) < new Date()) {
       if (notIndexedSet[item.url]) {
-        item.status = 'still_not_indexed';
-        item.note   = 'Fix applied but page still not indexed after 3+ days — needs manual review';
+        item.status      = 'still_not_indexed';
+        item.overdueAt   = item.overdueAt || new Date().toISOString();
+        // Attach current Google verdict so dashboard can show the actual error
+        if (currentlySeen) {
+          item.currentCause   = currentlySeen.cause   || null;
+          item.currentVerdict = currentlySeen.verdict || null;
+          item.currentReason  = currentlySeen.rawReason || null;
+        }
+        item.note = 'Still not indexed after 3+ days — see current Google status below';
       } else {
         item.status = 'verified_fixed';
         item.verifiedAt = new Date().toISOString();
       }
     }
+
+    // Refresh current cause even for already-overdue items (updates each scan)
+    if (item.status === 'still_not_indexed' && currentlySeen) {
+      item.currentCause   = currentlySeen.cause   || null;
+      item.currentVerdict = currentlySeen.verdict || null;
+      item.currentReason  = currentlySeen.rawReason || null;
+    }
+
     result.push(item);
   }
 
