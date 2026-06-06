@@ -375,87 +375,121 @@ function buildMasterTemplate(opts) {
   var issueDate = opts.issueDate   || '';
   var dateDisp  = formatDateDisplay(issueDate);
 
-  return '<!DOCTYPE html><html lang="en" xmlns="http://www.w3.org/1999/xhtml"><head>'
+  return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'
+    + '<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head>'
     + '<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
     + '<meta http-equiv="X-UA-Compatible" content="IE=edge"/>'
-    + '<title>FFX Intelligence Brief</title>'
-    // Responsive styles in head — email clients that support <style>
-    + '<style>@media only screen and (max-width:700px){.em-wrap{width:100%!important;}.em-pad{padding-left:20px!important;padding-right:20px!important;}}</style>'
+    + '<title>Catch The Wick&#8482; | FortitudeFX</title>'
+    + '<style type="text/css">'
+    + 'body,table,td,p,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}'
+    + 'table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse!important;}'
+    + 'img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}'
+    + '@media only screen and (max-width:620px){'
+    + '.em-container{width:100%!important;}'
+    + '.em-hero-title{font-size:32px!important;}'
+    + '.em-section-pad{padding-left:20px!important;padding-right:20px!important;}'
+    + '}'
+    + '</style>'
     + '</head>'
-    + '<body style="margin:0;padding:0;background-color:#f0f0f4;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">'
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0f0f4;">'
-    + '<tr><td align="center" style="padding:32px 16px;">'
+    + '<body style="margin:0;padding:0;background-color:#e8e8f0;">'
 
-    // Main container — wider 680px for desktop feel
-    + '<table role="presentation" class="em-wrap" cellpadding="0" cellspacing="0" border="0" style="width:680px;max-width:680px;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.18);">'
+    // Outer wrapper — no side padding so it fills screen
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#e8e8f0">'
+    + '<tr><td align="center" style="padding:24px 0;">'
 
-    // ── GRADIENT STRIP ────────────────────────────────────────────────────
-    + '<tr><td style="height:6px;background:linear-gradient(90deg,#7a5cff 0%,#c9a84c 50%,#e06b1a 100%);font-size:0;line-height:0;">&nbsp;</td></tr>'
+    // ── EMAIL CONTAINER — 600px standard for max compatibility ───────────
+    // 600px is the industry standard — going wider breaks Outlook and Gmail mobile
+    + '<table role="presentation" class="em-container" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;">'
 
-    // ── PREMIUM DARK HEADER ───────────────────────────────────────────────
-    + '<tr><td style="background:linear-gradient(135deg,#06060a 0%,#0f0c20 60%,#140a0a 100%);padding:36px 40px 32px;">'
+    // ── TOP ACCENT BAR — two solid color cells, no gradient ──────────────
+    + '<tr>'
+    + '<td width="300" height="5" bgcolor="#7a5cff" style="font-size:0;line-height:0;">&nbsp;</td>'
+    + '<td width="300" height="5" bgcolor="#e06b1a" style="font-size:0;line-height:0;">&nbsp;</td>'
+    + '</tr>'
 
-    // Top row — logo left, issue badge right
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">'
+    // ── HEADER — solid dark background, fully email-safe ─────────────────
+    + '<tr><td bgcolor="#0a0a12" style="padding:32px 40px 28px;">'
+
+    // Row 1: Brand + Issue number
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
     + '<tr>'
     + '<td style="vertical-align:middle;">'
-    // Logo
     + '<a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;">'
-    + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
-    + '<td style="vertical-align:middle;padding-right:12px;">'
-    + '<img src="https://fortitudefx.com/favicon-192x192.png" alt="FFX" width="44" height="44" style="display:block;border-radius:8px;border:1px solid rgba(122,92,255,0.60);"/>'
+    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;color:#7a7aaa;text-transform:uppercase;">FORTITUDEFX&#8482;</p>'
+    + '</a>'
     + '</td>'
-    + '<td style="vertical-align:middle;">'
-    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.20em;color:rgba(255,255,255,0.95);text-transform:uppercase;">FortitudeFX&#8482;</p>'
-    + '<p style="margin:2px 0 0;font-family:Arial,sans-serif;font-size:9px;color:rgba(255,255,255,0.38);letter-spacing:0.08em;">fortitudefx.com</p>'
-    + '</td></tr></table></a>'
-    + '</td>'
-    // Issue badge
     + '<td style="vertical-align:middle;text-align:right;">'
-    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.80);background:rgba(201,168,76,0.10);border:1px solid rgba(201,168,76,0.25);border-radius:4px;padding:5px 12px;display:inline-block;">Issue #' + issueNum + '</p>'
+    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#c9a84c;border:1px solid #3a3010;background:#1a1608;padding:4px 12px;display:inline-block;">ISSUE #' + issueNum + '</p>'
     + '</td>'
-    + '</tr></table>'
+    + '</tr>'
+    + '</table>'
 
-    // CATCH THE WICK headline — dominant
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">'
+    // Spacer
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="20" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
+
+    // Row 2: CATCH THE WICK dominant headline
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
     + '<tr>'
-    + '<td style="vertical-align:bottom;padding-right:24px;">'
-    // Kicker
-    + '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:rgba(201,168,76,0.80);">&#11044;&nbsp;&nbsp;Bi-Weekly Intelligence Brief &nbsp;&middot;&nbsp; ' + esc(dateDisp) + '</p>'
-    // Main headline
-    + '<p style="margin:0 0 4px;font-family:Georgia,serif;font-size:42px;font-weight:700;color:#ffffff;line-height:0.95;letter-spacing:-0.02em;">Catch The Wick&#8482;</p>'
-    + '<p style="margin:0;font-family:Georgia,serif;font-size:18px;font-weight:400;color:rgba(255,255,255,0.45);line-height:1.2;letter-spacing:0.01em;">2 Candles. 1 Story.&#8482;</p>'
+    + '<td style="vertical-align:bottom;" width="380">'
+    + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:#c9a84c;">BI-WEEKLY INTELLIGENCE &nbsp;&middot;&nbsp; ' + esc(dateDisp) + '</p>'
+    + '<p class="em-hero-title" style="margin:0 0 6px;font-family:Georgia,'Times New Roman',serif;font-size:44px;font-weight:700;color:#ffffff;line-height:1.0;letter-spacing:-0.02em;">Catch The Wick&#8482;</p>'
+    + '<p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:400;color:#666688;line-height:1.2;">2 Candles. 1 Story.&#8482;</p>'
     + '</td>'
-    // Right: orange accent block
-    + '<td style="vertical-align:bottom;text-align:right;white-space:nowrap;">'
-    + '<p style="margin:0;font-family:Georgia,serif;font-size:52px;font-weight:900;color:#e06b1a;line-height:0.90;letter-spacing:-0.03em;">#' + issueNum + '</p>'
-    + '<p style="margin:4px 0 0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);">FortitudeFX&#8482;</p>'
+    + '<td style="vertical-align:bottom;text-align:right;" width="180">'
+    + '<p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:64px;font-weight:700;color:#e06b1a;line-height:1.0;">#' + issueNum + '</p>'
     + '</td>'
-    + '</tr></table>'
+    + '</tr>'
+    + '</table>'
 
-    // Social icons
-    + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
-    + '<td style="padding-right:10px;"><a href="https://www.youtube.com/@FortitudeFX" target="_blank" style="display:block;width:36px;height:36px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);border-radius:8px;text-decoration:none;text-align:center;line-height:36px;"><img src="https://fortitudefx.com/email-icon-youtube.png" width="18" height="18" alt="YouTube" style="display:inline-block;vertical-align:middle;"/></a></td>'
-    + '<td style="padding-right:10px;"><a href="https://instagram.com/fortitudefx_official" target="_blank" style="display:block;width:36px;height:36px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);border-radius:8px;text-decoration:none;text-align:center;line-height:36px;"><img src="https://fortitudefx.com/email-icon-instagram.png" width="18" height="18" alt="Instagram" style="display:inline-block;vertical-align:middle;"/></a></td>'
-    + '<td style="padding-right:10px;"><a href="https://x.com/_fortitudefx" target="_blank" style="display:block;width:36px;height:36px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);border-radius:8px;text-decoration:none;text-align:center;line-height:36px;"><img src="https://fortitudefx.com/email-icon-x.png" width="16" height="16" alt="X" style="display:inline-block;vertical-align:middle;"/></a></td>'
-    + '<td><a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" style="display:inline-block;padding:0 16px;height:36px;line-height:36px;background:rgba(122,92,255,0.20);border:1px solid rgba(122,92,255,0.40);border-radius:8px;text-decoration:none;font-family:Arial,sans-serif;font-size:10px;font-weight:700;color:rgba(196,181,253,1);letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;">Join Discord</a></td>'
-    + '</tr></table>'
+    // Spacer
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="24" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
+
+    // Row 3: Social icons — solid backgrounds only
+    + '<table role="presentation" cellpadding="0" cellspacing="0" border="0">'
+    + '<tr>'
+    + '<td style="padding-right:8px;">'
+    + '<a href="https://www.youtube.com/@FortitudeFX" target="_blank" style="display:block;width:36px;height:36px;background-color:#1e1e2e;border:1px solid #333350;border-radius:6px;text-decoration:none;text-align:center;line-height:36px;">'
+    + '<img src="https://fortitudefx.com/email-icon-youtube.png" width="18" height="18" alt="YouTube" style="display:inline-block;vertical-align:middle;border:0;"/>'
+    + '</a>'
+    + '</td>'
+    + '<td style="padding-right:8px;">'
+    + '<a href="https://instagram.com/fortitudefx_official" target="_blank" style="display:block;width:36px;height:36px;background-color:#1e1e2e;border:1px solid #333350;border-radius:6px;text-decoration:none;text-align:center;line-height:36px;">'
+    + '<img src="https://fortitudefx.com/email-icon-instagram.png" width="18" height="18" alt="Instagram" style="display:inline-block;vertical-align:middle;border:0;"/>'
+    + '</a>'
+    + '</td>'
+    + '<td style="padding-right:8px;">'
+    + '<a href="https://x.com/_fortitudefx" target="_blank" style="display:block;width:36px;height:36px;background-color:#1e1e2e;border:1px solid #333350;border-radius:6px;text-decoration:none;text-align:center;line-height:36px;">'
+    + '<img src="https://fortitudefx.com/email-icon-x.png" width="16" height="16" alt="X" style="display:inline-block;vertical-align:middle;border:0;"/>'
+    + '</a>'
+    + '</td>'
+    + '<td>'
+    + '<a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" style="display:inline-block;padding:0 14px;height:36px;line-height:36px;background-color:#2a1e5e;border:1px solid #4a3a8e;border-radius:6px;text-decoration:none;font-family:Arial,sans-serif;font-size:10px;font-weight:700;color:#c8b8ff;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;">Join Discord</a>'
+    + '</td>'
+    + '</tr>'
+    + '</table>'
 
     + '</td></tr>'
     // ── END HEADER ────────────────────────────────────────────────────────
 
-    // ── BODY (white) ──────────────────────────────────────────────────────
-    + '<tr><td style="background-color:#ffffff;">' + opts.bodyHtml + '</td></tr>'
+    // ── BODY ──────────────────────────────────────────────────────────────
+    + '<tr><td bgcolor="#ffffff">' + opts.bodyHtml + '</td></tr>'
 
     // ── SIGN OFF ──────────────────────────────────────────────────────────
-    + '<tr><td style="background-color:#ffffff;padding:8px 32px 32px;">'
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr></table>'
+    + '<tr><td bgcolor="#ffffff" style="padding:8px 40px 32px;">'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" bgcolor="#eeeeee" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="16" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
     + '<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:15px;color:#1a1a2e;font-weight:600;">&#8212; Salman</p>'
-    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#9999aa;">FortitudeFX&#8482; &nbsp;&middot;&nbsp; Catch The Wick&#8482;</p>'
+    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#999999;">FortitudeFX&#8482; &nbsp;&middot;&nbsp; Catch The Wick&#8482;</p>'
     + '</td></tr>'
 
+    // ── BOTTOM ACCENT BAR ─────────────────────────────────────────────────
+    + '<tr>'
+    + '<td width="300" height="4" bgcolor="#7a5cff" style="font-size:0;line-height:0;">&nbsp;</td>'
+    + '<td width="300" height="4" bgcolor="#e06b1a" style="font-size:0;line-height:0;">&nbsp;</td>'
+    + '</tr>'
+
     // ── FOOTER ────────────────────────────────────────────────────────────
-    + '<tr><td style="background-color:#f8f8fb;padding:16px 32px;border-top:1px solid #e8e8f0;">'
+    + '<tr><td colspan="2" bgcolor="#f4f4f8" style="padding:16px 40px;border-top:1px solid #e8e8f0;">'
     + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;line-height:1.65;">' + esc(opts.footerNote) + '</p>'
     + '<p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">&copy; 2026 FortitudeFX&#8482;. Dubai, UAE. &nbsp;&middot;&nbsp; <a href="https://fortitudefx.com/privacy" style="color:#7a5cff;text-decoration:none;">Privacy</a></p>'
     + '</td></tr>'
