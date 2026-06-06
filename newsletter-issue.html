@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FFX Intelligence Brief | FortitudeFX</title>
+  <meta name="description" content="FortitudeFX bi-weekly intelligence brief — markets, mindset, lifestyle, and the Catch The Wick framework." />
+  <link rel="stylesheet" href="/styles-base.css" />
+  <link rel="stylesheet" href="/styles-components.css" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <style>
+    /* Editorial print-style typography */
+    .nl-issue-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 80px 24px 120px;
+      position: relative; z-index: 1;
+    }
+
+    /* Issue header */
+    .nl-issue-header {
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      padding-bottom: 36px;
+      margin-bottom: 48px;
+    }
+    .nl-issue-kicker {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 20px;
+    }
+    .nl-issue-kicker-tag {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.22em;
+      text-transform: uppercase; color: rgba(201,168,76,0.80);
+      border: 1px solid rgba(201,168,76,0.25);
+      background: rgba(201,168,76,0.06); border-radius: 4px;
+      padding: 3px 10px;
+    }
+    .nl-issue-kicker-num { font-size: 11px; color: rgba(255,255,255,0.28); }
+    .nl-issue-title {
+      font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800;
+      letter-spacing: -0.05em; line-height: 0.96; color: #ffffff; margin: 0 0 16px;
+    }
+    .nl-issue-date-line {
+      font-size: 13px; color: rgba(255,255,255,0.35); letter-spacing: 0.04em;
+    }
+
+    /* Section blocks */
+    .nl-block { margin-bottom: 52px; }
+    .nl-block-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.22em;
+      text-transform: uppercase; color: rgba(201,168,76,0.70);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+    }
+    .nl-block-label::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, rgba(201,168,76,0.25), transparent);
+    }
+    .nl-block-heading {
+      font-size: 1.5rem; font-weight: 700; color: #ffffff;
+      letter-spacing: -0.03em; line-height: 1.25; margin: 0 0 16px;
+    }
+    .nl-block-body {
+      font-size: 1.02rem; color: rgba(255,255,255,0.72);
+      line-height: 1.85; margin: 0;
+    }
+    .nl-block-body + .nl-block-body { margin-top: 14px; }
+
+    /* Gold card */
+    .nl-gold-card {
+      border-left: 3px solid rgba(201,168,76,0.70);
+      background: rgba(201,168,76,0.05);
+      border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 0;
+    }
+    .nl-gold-card-title {
+      font-size: 1.1rem; font-weight: 700; color: rgba(232,210,140,0.92);
+      margin-bottom: 8px; line-height: 1.4;
+    }
+    .nl-gold-card-body {
+      font-size: 0.97rem; color: rgba(255,255,255,0.60); line-height: 1.75;
+    }
+
+    /* Article cards */
+    .nl-article-grid { display: flex; flex-direction: column; gap: 14px; }
+    .nl-article-card {
+      border-left: 3px solid rgba(201,168,76,0.50);
+      background: rgba(255,255,255,0.03); border-radius: 0 10px 10px 0;
+      padding: 16px 20px; text-decoration: none; color: inherit;
+      display: block; transition: border-left-color 0.20s, background 0.20s;
+    }
+    .nl-article-card:hover {
+      border-left-color: rgba(201,168,76,0.90);
+      background: rgba(201,168,76,0.05);
+    }
+    .nl-article-cat { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(201,168,76,0.60); margin-bottom: 4px; }
+    .nl-article-title { font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 6px; line-height: 1.35; }
+    .nl-article-excerpt { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.65; margin-bottom: 10px; }
+    .nl-article-cta { font-size: 12px; font-weight: 700; color: #7a5cff; }
+
+    /* Lifestyle section */
+    .nl-lifestyle-section { margin-bottom: 52px; }
+    .nl-lifestyle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+    .nl-lifestyle-card {
+      border: 1px solid rgba(255,255,255,0.07);
+      border-top: 2px solid;
+      border-radius: 12px; padding: 18px 20px;
+      background: linear-gradient(160deg, rgba(255,255,255,0.03), rgba(45,20,114,0.05));
+    }
+    .nl-lifestyle-label { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 6px; }
+    .nl-lifestyle-title { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 8px; line-height: 1.3; }
+    .nl-lifestyle-body { font-size: 13px; color: rgba(255,255,255,0.50); line-height: 1.68; }
+
+    /* Mindset line */
+    .nl-mindset-block {
+      border-left: 3px solid rgba(201,168,76,0.70);
+      background: rgba(201,168,76,0.05);
+      border-radius: 0 14px 14px 0; padding: 24px 28px;
+      margin-bottom: 52px;
+    }
+    .nl-mindset-label { font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(201,168,76,0.60); margin-bottom: 10px; }
+    .nl-mindset-text { font-size: 1.2rem; font-weight: 700; color: rgba(232,210,140,0.92); line-height: 1.45; font-style: italic; }
+
+    /* Discord CTA */
+    .nl-cta-block {
+      border: 1px solid rgba(122,92,255,0.22);
+      background: rgba(122,92,255,0.05); border-radius: 18px;
+      padding: 36px 40px; text-align: center; margin-bottom: 52px;
+    }
+    .nl-cta-title { font-size: 1.4rem; font-weight: 700; color: #ffffff; margin-bottom: 10px; letter-spacing: -0.02em; }
+    .nl-cta-body { font-size: 0.97rem; color: rgba(255,255,255,0.45); line-height: 1.75; max-width: 400px; margin: 0 auto 22px; }
+
+    /* Chart image */
+    .nl-chart-img { width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.09); margin:14px 0; }
+
+    /* Nav breadcrumb */
+    .nl-breadcrumb { margin-bottom: 40px; font-size: 13px; color: rgba(255,255,255,0.30); }
+    .nl-breadcrumb a { color: rgba(255,255,255,0.40); text-decoration: none; transition: color 0.20s; }
+    .nl-breadcrumb a:hover { color: rgba(255,255,255,0.70); }
+
+    /* Loading / error */
+    .nl-loading { padding:100px 0; text-align:center; color:rgba(255,255,255,0.25); font-size:13px; letter-spacing:0.08em; text-transform:uppercase; }
+    .nl-error-state { padding:80px 0; text-align:center; }
+    .nl-error-title { font-size:1.4rem; font-weight:700; color:rgba(248,113,113,0.80); margin-bottom:10px; }
+    .nl-error-body { font-size:0.95rem; color:rgba(255,255,255,0.30); line-height:1.7; }
+  </style>
+</head>
+<body class="page-home">
+
+  <div class="ffx-bg" aria-hidden="true">
+    <div class="ffx-glow ffx-glow-violet" style="width:700px;height:700px;top:-150px;right:-250px;opacity:0.55;"></div>
+    <div class="ffx-glow ffx-glow-deep"   style="width:600px;height:600px;top:-100px;left:-300px;opacity:0.50;"></div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-wrap">
+      <div class="nav-brand"><a href="/">FORTITUDEFX</a></div>
+      <div class="nav-center">
+        <a href="/#about">About</a>
+        <a href="/vipdiscord.html">VIP Discord</a>
+        <a href="/bootcamp.html">Bootcamp</a>
+        <a href="/blog.html">Blog</a>
+        <a href="/newsletter">Newsletter</a>
+      </div>
+      <div class="nav-cta">
+        <a class="nav-btn nav-btn-joinfree" href="/joinfree.html">Join Free</a>
+        <a class="nav-btn nav-btn-primary" href="/waitlist.html#form">Join Waitlist</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-container">
+    <section class="section">
+      <div class="section-wrap nl-issue-wrap">
+
+        <div class="nl-breadcrumb">
+          <a href="/newsletter">Newsletter</a> &nbsp;&rsaquo;&nbsp; <span id="breadcrumbDate"></span>
+        </div>
+
+        <div id="issueContent">
+          <div class="nl-loading">Loading issue&hellip;</div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <footer style="position:relative;z-index:2;padding:40px 24px 32px;text-align:center;">
+    <p style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.22);">&copy; 2026 FortitudeFX&trade;. All rights reserved. &middot; <a href="/privacy.html" style="color:rgba(255,255,255,0.30);text-decoration:none;">Privacy</a></p>
+  </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  var params = new URLSearchParams(window.location.search);
+  var date   = params.get('date');
+  var el     = document.getElementById('issueContent');
+
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    el.innerHTML = '<div class="nl-error-state"><div class="nl-error-title">Issue not found.</div><div class="nl-error-body">No date specified. <a href="/newsletter" style="color:#7a5cff;">View all issues &rarr;</a></div></div>';
+    return;
+  }
+
+  document.getElementById('breadcrumbDate').textContent = formatDate(date);
+
+  try {
+    var res  = await fetch('/api/newsletter?date=' + encodeURIComponent(date));
+    var text = await res.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) {
+      el.innerHTML = '<div class="nl-error-state"><div class="nl-error-title">Could not load issue.</div><div class="nl-error-body">' + esc(text.substring(0,200)) + '</div></div>';
+      return;
+    }
+    if (!res.ok || !data.issue) {
+      el.innerHTML = '<div class="nl-error-state"><div class="nl-error-title">Issue not found.</div><div class="nl-error-body">' + esc(data.error || 'This issue does not exist.') + '<br><br><a href="/newsletter" style="color:#7a5cff;">View all issues &rarr;</a></div></div>';
+      return;
+    }
+    renderIssue(data.issue, el);
+  } catch(err) {
+    el.innerHTML = '<div class="nl-error-state"><div class="nl-error-title">Network error.</div><div class="nl-error-body">' + esc(err.message) + '</div></div>';
+  }
+});
+
+function renderIssue(issue, el) {
+  // Update page title and meta
+  document.title = (issue.subject || 'FFX Intelligence Brief') + ' | FortitudeFX';
+
+  var html = '';
+
+  // Header
+  html += '<div class="nl-issue-header">'
+    + '<div class="nl-issue-kicker">'
+    + '<span class="nl-issue-kicker-tag">Intelligence Brief</span>'
+    + '<span class="nl-issue-kicker-num">Issue #' + esc(String(issue.issueNumber || '')) + '</span>'
+    + '</div>'
+    + '<h1 class="nl-issue-title">FFX Intelligence Brief.</h1>'
+    + '<div class="nl-issue-date-line">' + esc(formatDate(issue.issueDate)) + ' &nbsp;&middot;&nbsp; Bi-Weekly</div>'
+    + '</div>';
+
+  // Week in Markets
+  if (issue.weekInMarkets) {
+    html += '<div class="nl-block">'
+      + '<div class="nl-block-label">&#128200; Week in Markets</div>'
+      + '<p class="nl-block-body">' + esc(issue.weekInMarkets) + '</p>'
+      + '</div>';
+  }
+
+  // On This Day
+  if (issue.onThisDay && issue.onThisDay.event) {
+    html += '<div class="nl-block">'
+      + '<div class="nl-block-label">&#128337; On This Day in Markets &mdash; ' + esc(issue.onThisDay.year || '') + '</div>'
+      + '<div class="nl-gold-card">'
+      + '<div class="nl-gold-card-title">' + esc(issue.onThisDay.event) + '</div>'
+      + (issue.onThisDay.lesson ? '<div class="nl-gold-card-body">' + esc(issue.onThisDay.lesson) + '</div>' : '')
+      + '</div>'
+      + '</div>';
+  }
+
+  // Trending Question
+  if (issue.trendingQ && issue.trendingQ.question) {
+    html += '<div class="nl-block">'
+      + '<div class="nl-block-label">&#10067; Trending Question</div>'
+      + '<h2 class="nl-block-heading">' + esc(issue.trendingQ.question) + '</h2>'
+      + '<p class="nl-block-body">' + esc(issue.trendingQ.answer || '') + '</p>'
+      + '</div>';
+  }
+
+  // Newsletter Exclusive
+  if (issue.exclusiveArticle && issue.exclusiveArticle.title) {
+    html += '<div class="nl-block">'
+      + '<div class="nl-block-label">&#11088; Newsletter Exclusive &mdash; Not on the Blog</div>'
+      + '<h2 class="nl-block-heading">' + esc(issue.exclusiveArticle.title) + '</h2>'
+      + '<p class="nl-block-body">' + esc(issue.exclusiveArticle.body || '') + '</p>'
+      + '</div>';
+  }
+
+  // Setup of the Fortnight
+  if (issue.setup && issue.setup.hasSetup) {
+    html += '<div class="nl-block">'
+      + '<div class="nl-block-label">&#128200; Setup of the Fortnight</div>'
+      + (issue.setup.imageUrl ? '<img src="' + esc(issue.setup.imageUrl) + '" alt="Chart Setup" class="nl-chart-img" />' : '')
+      + (issue.setup.note ? '<p class="nl-block-body">' + esc(issue.setup.note) + '</p>' : '')
+      + '</div>';
+  }
+
+  // Articles
+  if (issue.articles && issue.articles.length > 0) {
+    html += '<div class="nl-block">'
+      + '<div class="nl-block-label">&#128196; This Fortnight on the Blog</div>'
+      + '<div class="nl-article-grid">'
+      + issue.articles.map(function(a) {
+          return '<a href="' + esc(a.url) + '" class="nl-article-card">'
+            + '<div class="nl-article-cat">' + esc(a.category || 'Strategy') + '</div>'
+            + '<div class="nl-article-title">' + esc(a.title) + '</div>'
+            + (a.excerpt ? '<div class="nl-article-excerpt">' + esc(a.excerpt.substring(0,110)) + '&hellip;</div>' : '')
+            + '<div class="nl-article-cta">Read article &rarr;</div>'
+            + '</a>';
+        }).join('')
+      + '</div>'
+      + '</div>';
+  }
+
+  // Lifestyle Edit
+  var ls = issue.lifestyle || {};
+  var lifestyleSections = [
+    { key: 'travel',        label: 'Trading Freedom \u2014 Travel & Destination', color: '#e06b1a' },
+    { key: 'luxury',        label: 'Luxury',                                       color: '#c9a84c' },
+    { key: 'women',         label: 'Women & Lifestyle',                            color: '#7a5cff' },
+    { key: 'tech',          label: 'Tech & AI',                                    color: '#38bdf8' },
+    { key: 'fitness',       label: 'Fitness, Diet & Mindset',                      color: '#3ecf8e' },
+    { key: 'entertainment', label: 'Entertainment',                                color: '#a855f7' },
+  ];
+  var hasLifestyle = lifestyleSections.some(function(s) { return ls[s.key] && ls[s.key].title; });
+  if (hasLifestyle) {
+    html += '<div class="nl-lifestyle-section">'
+      + '<div class="nl-block-label">&#127774; The Lifestyle Edit</div>'
+      + '<div class="nl-lifestyle-grid">'
+      + lifestyleSections.map(function(s) {
+          var data = ls[s.key] || {};
+          if (!data.title) return '';
+          return '<div class="nl-lifestyle-card" style="border-top-color:' + s.color + ';">'
+            + '<div class="nl-lifestyle-label" style="color:' + s.color + ';">' + esc(s.label) + '</div>'
+            + '<div class="nl-lifestyle-title">' + esc(data.title) + '</div>'
+            + '<div class="nl-lifestyle-body">' + esc(data.body || '') + '</div>'
+            + '</div>';
+        }).join('')
+      + '</div>'
+      + '</div>';
+  }
+
+  // Mindset Line
+  if (issue.mindsetLine) {
+    html += '<div class="nl-mindset-block">'
+      + '<div class="nl-mindset-label">FFX Mindset Line</div>'
+      + '<div class="nl-mindset-text">&ldquo;' + esc(issue.mindsetLine) + '&rdquo;</div>'
+      + '</div>';
+  }
+
+  // Discord CTA
+  html += '<div class="nl-cta-block">'
+    + '<div class="nl-cta-title">Not in the Discord yet?</div>'
+    + '<p class="nl-cta-body">Join thousands of traders in the free FortitudeFX community.</p>'
+    + '<a href="/joinfree.html" class="btn btn-joinfree">Join Free &rarr;</a>'
+    + '</div>';
+
+  // Back to archive
+  html += '<div style="text-align:center;margin-top:20px;">'
+    + '<a href="/newsletter" style="font-size:13px;color:rgba(255,255,255,0.30);text-decoration:none;transition:color 0.20s;" '
+    + 'onmouseover="this.style.color=\'rgba(255,255,255,0.60)\'" onmouseout="this.style.color=\'rgba(255,255,255,0.30)\'">&#8592; All Issues</a>'
+    + '</div>';
+
+  el.innerHTML = html;
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function formatDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+}
+</script>
+</body>
+</html>

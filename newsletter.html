@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Newsletter | FortitudeFX</title>
+  <meta name="description" content="FortitudeFX bi-weekly intelligence brief — markets, mindset, lifestyle, and the Catch The Wick framework." />
+  <link rel="canonical" href="https://fortitudefx.com/newsletter" />
+  <link rel="stylesheet" href="/styles-base.css" />
+  <link rel="stylesheet" href="/styles-components.css" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <style>
+    .nl-archive-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 80px 24px 120px;
+      position: relative; z-index: 1;
+    }
+    .nl-archive-header {
+      margin-bottom: 60px;
+    }
+    .nl-archive-kicker {
+      display: inline-flex; align-items: center; gap: 9px;
+      margin-bottom: 20px; font-size: 11px; letter-spacing: 0.28em;
+      text-transform: uppercase; font-weight: 700; color: var(--accent-warm-text);
+    }
+    .nl-archive-kicker::before {
+      content: ""; display: inline-block; width: 5px; height: 5px;
+      border-radius: 50%; background: var(--accent-warm);
+      box-shadow: 0 0 10px rgba(201,168,76,0.70); flex-shrink: 0;
+    }
+    .nl-archive-title {
+      font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 800;
+      line-height: 0.96; letter-spacing: -0.05em; color: #ffffff;
+      margin: 0 0 16px;
+    }
+    .nl-archive-desc {
+      font-size: 1.05rem; color: rgba(255,255,255,0.55); line-height: 1.80;
+      max-width: 560px; margin: 0;
+    }
+    /* Issue cards */
+    .nl-issue-list { display: flex; flex-direction: column; gap: 16px; }
+    .nl-issue-card {
+      display: grid; grid-template-columns: 110px 1fr auto;
+      align-items: center; gap: 24px;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px; padding: 24px 28px;
+      background: linear-gradient(160deg, rgba(255,255,255,0.03), rgba(45,20,114,0.06));
+      text-decoration: none; color: inherit;
+      transition: border-color 0.24s ease, background 0.24s ease, transform 0.24s cubic-bezier(0.22,1,0.36,1);
+    }
+    .nl-issue-card:hover {
+      border-color: rgba(201,168,76,0.30);
+      background: linear-gradient(160deg, rgba(201,168,76,0.06), rgba(45,20,114,0.10));
+      transform: translateY(-3px);
+    }
+    .nl-issue-num {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: rgba(201,168,76,0.70);
+    }
+    .nl-issue-date {
+      font-size: 14px; color: rgba(255,255,255,0.35); margin-top: 4px;
+    }
+    .nl-issue-subject {
+      font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.85);
+      line-height: 1.4; letter-spacing: -0.01em;
+    }
+    .nl-issue-arrow {
+      font-size: 20px; color: rgba(255,255,255,0.20);
+      transition: color 0.20s, transform 0.20s;
+    }
+    .nl-issue-card:hover .nl-issue-arrow {
+      color: rgba(201,168,76,0.70); transform: translateX(4px);
+    }
+    /* Subscribe CTA */
+    .nl-subscribe-cta {
+      margin-top: 60px; padding: 40px 48px;
+      border-radius: 24px; border: 1px solid rgba(201,168,76,0.22);
+      background: linear-gradient(160deg, rgba(201,168,76,0.06), rgba(45,20,114,0.10));
+      text-align: center;
+    }
+    .nl-subscribe-title {
+      font-size: 1.6rem; font-weight: 700; color: #ffffff;
+      letter-spacing: -0.03em; margin-bottom: 10px;
+    }
+    .nl-subscribe-body {
+      font-size: 1rem; color: rgba(255,255,255,0.50); line-height: 1.75;
+      max-width: 480px; margin: 0 auto 24px;
+    }
+    /* Loading */
+    .nl-loading { padding: 80px 0; text-align: center; color: rgba(255,255,255,0.25); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .nl-empty { padding: 80px 0; text-align: center; }
+    .nl-empty-title { font-size: 1.4rem; font-weight: 700; color: rgba(255,255,255,0.40); margin-bottom: 10px; }
+    .nl-empty-body { font-size: 0.95rem; color: rgba(255,255,255,0.25); line-height: 1.7; }
+  </style>
+</head>
+<body class="page-home">
+
+  <div class="ffx-bg" aria-hidden="true">
+    <div class="ffx-glow ffx-glow-violet" style="width:800px;height:800px;top:-200px;right:-300px;opacity:0.60;"></div>
+    <div class="ffx-glow ffx-glow-deep"   style="width:700px;height:700px;top:-100px;left:-350px;opacity:0.55;"></div>
+    <div class="ffx-glow ffx-glow-mid"    style="width:900px;height:600px;top:600px;left:50%;transform:translateX(-50%);opacity:0.40;"></div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-wrap">
+      <div class="nav-brand"><a href="/">FORTITUDEFX</a></div>
+      <div class="nav-center">
+        <a href="/#about">About</a>
+        <a href="/vipdiscord.html">VIP Discord</a>
+        <a href="/bootcamp.html">Bootcamp</a>
+        <a href="/blog.html">Blog</a>
+        <a href="/newsletter">Newsletter</a>
+      </div>
+      <div class="nav-cta">
+        <a class="nav-btn nav-btn-joinfree" href="/joinfree.html">Join Free</a>
+        <a class="nav-btn nav-btn-primary" href="/waitlist.html#form">Join Waitlist</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-container">
+    <section class="section">
+      <div class="section-wrap nl-archive-wrap">
+
+        <div class="nl-archive-header">
+          <div class="nl-archive-kicker">Bi-Weekly Intelligence Brief</div>
+          <h1 class="nl-archive-title">The FFX Newsletter.</h1>
+          <p class="nl-archive-desc">Markets. Mindset. Lifestyle. The Catch The Wick framework — applied, explained, and lived. Every two weeks.</p>
+        </div>
+
+        <div id="issueList"><div class="nl-loading">Loading issues&hellip;</div></div>
+
+        <div class="nl-subscribe-cta">
+          <div class="nl-subscribe-title">Get it in your inbox.</div>
+          <p class="nl-subscribe-body">Join the free FortitudeFX community and receive the Intelligence Brief every two weeks — directly to you.</p>
+          <a href="/joinfree.html" class="btn btn-joinfree">Join Free &rarr;</a>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <footer style="position:relative;z-index:2;padding:40px 24px 32px;text-align:center;">
+    <p style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.22);">&copy; 2026 FortitudeFX&trade;. All rights reserved. &middot; <a href="/privacy.html" style="color:rgba(255,255,255,0.30);text-decoration:none;">Privacy</a></p>
+  </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  var el = document.getElementById('issueList');
+  try {
+    var res  = await fetch('/api/newsletter');
+    var text = await res.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) {
+      el.innerHTML = '<div class="nl-empty"><div class="nl-empty-title">Could not load issues.</div></div>';
+      return;
+    }
+    if (!res.ok || !data.issues) {
+      el.innerHTML = '<div class="nl-empty"><div class="nl-empty-title">No issues yet.</div><div class="nl-empty-body">The first issue is coming soon.</div></div>';
+      return;
+    }
+    var issues = data.issues;
+    if (!issues.length) {
+      el.innerHTML = '<div class="nl-empty"><div class="nl-empty-title">No issues yet.</div><div class="nl-empty-body">The first issue is coming soon.</div></div>';
+      return;
+    }
+    el.innerHTML = '<div class="nl-issue-list">'
+      + issues.map(function(issue) {
+          return '<a href="/newsletter/' + esc(issue.date) + '" class="nl-issue-card">'
+            + '<div><div class="nl-issue-num">Issue #' + esc(String(issue.issueNumber)) + '</div><div class="nl-issue-date">' + esc(formatDate(issue.date)) + '</div></div>'
+            + '<div class="nl-issue-subject">' + esc(issue.subject || 'FFX Intelligence Brief') + '</div>'
+            + '<div class="nl-issue-arrow">&rarr;</div>'
+            + '</a>';
+        }).join('')
+      + '</div>';
+  } catch(err) {
+    el.innerHTML = '<div class="nl-empty"><div class="nl-empty-title">Network error.</div><div class="nl-empty-body">' + esc(err.message) + '</div></div>';
+  }
+});
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function formatDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+}
+</script>
+</body>
+</html>
