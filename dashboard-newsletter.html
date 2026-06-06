@@ -790,8 +790,15 @@ function renderLifestyleEditor(lifestyle) {
   var html = '<div class="nl-lifestyle-grid">';
   sections.forEach(function(s) {
     var data = lifestyle[s.key] || {};
+    var imgQuery = data.imageQuery || (s.label + ' editorial');
+    // Build Unsplash-style placeholder image using imageQuery keywords
+    var imgUrl = 'https://source.unsplash.com/400x200/?' + encodeURIComponent(imgQuery.split(' ').slice(0,3).join(','));
     html += '<div class="nl-lifestyle-card" style="border-top:2px solid ' + s.color + ';">'
       + '<div class="nl-lifestyle-label" style="color:' + s.color + ';">' + esc(s.label) + '</div>'
+      // Image preview
+      + (data.title ? '<div style="margin-bottom:8px;border-radius:6px;overflow:hidden;height:100px;background:rgba(255,255,255,0.04);">'
+        + '<img src="' + imgUrl + '" style="width:100%;height:100px;object-fit:cover;display:block;" alt="' + esc(s.label) + '" onerror="this.style.display='none'" />'
+        + '</div>' : '')
       + '<div style="margin-bottom:6px;">'
       + '<label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Title</label>'
       + '<input id="ls-title-' + s.key + '" class="nl-input" type="text" value="' + esc(data.title || '') + '" style="height:32px;font-size:12px;" oninput="markDirty()" />'
