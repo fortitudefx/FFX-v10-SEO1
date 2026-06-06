@@ -204,7 +204,7 @@ function buildNewsletterEmail(draft) {
 
   // Section heading inside white body
   function sectionHeading(text) {
-    return '<p style="margin:0 0 12px;font-family:'DM Sans',Arial,sans-serif;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.22;letter-spacing:-0.01em;">' + esc(text) + '</p>';
+    return '<p style="margin:0 0 12px;font-family:DM Sans,Arial,sans-serif;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.22;letter-spacing:-0.01em;">' + esc(text) + '</p>';
   }
 
   // Body text
@@ -212,7 +212,7 @@ function buildNewsletterEmail(draft) {
     // Max 2 sentences — hook only, click to read more
     var sentences = (text || '').match(/[^.!?]+[.!?]+/g) || [text];
     var hook = sentences.slice(0, 2).join(' ').trim();
-    return '<p style="margin:0 0 14px;font-family:'DM Sans',Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + esc(hook) + '</p>';
+    return '<p style="margin:0 0 14px;font-family:DM Sans,Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + esc(hook) + '</p>';
   }
 
   // Gold quote card
@@ -258,7 +258,7 @@ function buildNewsletterEmail(draft) {
       + '</td></tr></table>'
       // Content on dark bg
       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:' + (bgColor || '#16181f') + ';padding:16px 20px;">'
-      + '<p style="margin:0 0 6px;font-family:'DM Sans',Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;">' + esc(title) + '</p>'
+      + '<p style="margin:0 0 6px;font-family:DM Sans,Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;">' + esc(title) + '</p>'
       + '<p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#aaaacc;line-height:1.70;">' + esc(hook) + '</p>'
       + '</td></tr></table>'
       + '</td></tr></table>';
@@ -435,11 +435,11 @@ function buildMasterTemplate(opts) {
     + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;"><tr>'
     + '<td style="vertical-align:bottom;" width="380">'
     + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:#c9a84c;">&#9679;&nbsp; BI-WEEKLY &nbsp;&#183;&nbsp; ' + esc(dateDisp) + '</p>'
-    + '<p class="em-hero" style="margin:0 0 6px;font-family:\'DM Sans\',Arial,sans-serif;font-size:36px;font-weight:700;color:#ffffff;line-height:1.0;letter-spacing:-0.02em;">Catch The Wick<span style="font-size:14px;vertical-align:super;font-weight:400;">&#8482;</span></p>'
-    + '<p style="margin:0;font-family:\'DM Sans\',Arial,sans-serif;font-size:15px;font-weight:400;color:#444466;line-height:1.2;">2 Candles. 1 Story.<span style="font-size:9px;vertical-align:super;">&#8482;</span></p>'
+    + '<p class="em-hero" style="margin:0 0 6px;font-family:DM Sans,Arial,sans-serif;font-size:36px;font-weight:700;color:#ffffff;line-height:1.0;letter-spacing:-0.02em;">Catch The Wick<span style="font-size:14px;vertical-align:super;font-weight:400;">&#8482;</span></p>'
+    + '<p style="margin:0;font-family:DM Sans,Arial,sans-serif;font-size:15px;font-weight:400;color:#444466;line-height:1.2;">2 Candles. 1 Story.<span style="font-size:9px;vertical-align:super;">&#8482;</span></p>'
     + '</td>'
     + '<td style="vertical-align:bottom;text-align:right;" width="180">'
-    + '<p style="margin:0;font-family:\'DM Sans\',Arial,sans-serif;font-size:56px;font-weight:700;color:#e06b1a;line-height:1.0;">#' + issueNum + '</p>'
+    + '<p style="margin:0;font-family:DM Sans,Arial,sans-serif;font-size:56px;font-weight:700;color:#e06b1a;line-height:1.0;">#' + issueNum + '</p>'
     + '</td>'
     + '</tr></table>'
 
