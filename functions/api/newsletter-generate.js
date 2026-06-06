@@ -101,11 +101,11 @@ export async function onRequestPost(context) {
     var cutoff   = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
     var articles = Array.isArray(articlesIndex) ? articlesIndex.filter(function(a) {
       return a.publishedAt && a.publishedAt > cutoff;
-    }).slice(0, 6) : [];
+    }).slice(0, 3) : [];
 
     // If no recent articles, take the latest 4
     if (articles.length === 0 && Array.isArray(articlesIndex)) {
-      articles = articlesIndex.slice(0, 4);
+      articles = articlesIndex.slice(0, 3);
     }
 
     // Top keywords from SEO signals
@@ -128,8 +128,8 @@ export async function onRequestPost(context) {
       + 'Use your web search to find the most significant forex/macro market events from the past 14 days. Frame them through the CTW lens — what did price action tell us, where were the 2-candle setups, what did the wicks reveal. Be specific with pairs, dates, and moves. Do not be generic. Write as if Salman is briefing his Discord community on what the market did and why it matters to a CTW trader.\n\n'
       + '2. ON THIS DAY IN MARKETS (80-100 words)\n'
       + 'Find a significant historical market event that happened on or near ' + issueDate + ' in any past year. Could be a crash, a central bank decision, a currency crisis, a legendary trade. Write it as a punchy historical note — what happened, why it matters, one lesson for a trader today.\n\n'
-      + 'Return ONLY valid JSON with no markdown:\n'
-      + '{"weekInMarkets": "...", "onThisDay": {"event": "...", "lesson": "...", "year": "..."}}\n';
+      + 'CRITICAL INSTRUCTION: Your response must be ONLY a JSON object. The very first character must be { and the very last must be }. No explanation text before or after. No markdown fences. No code blocks.\n'
+      + '{"weekInMarkets": "full text here", "onThisDay": {"event": "full event description", "lesson": "trader lesson", "year": "YYYY"}}\n';
 
     var marketsRes = await fetch(ANTHROPIC_API, {
       method: 'POST',
@@ -174,8 +174,8 @@ export async function onRequestPost(context) {
       + 'Pick the most interesting keyword from the list above. Frame it as a question a real trader would ask. Answer it in Salman\'s voice — specific, mechanical, no fluff. Reference the CTW framework where relevant.\n\n'
       + '2. NEWSLETTER-EXCLUSIVE ARTICLE (220-280 words)\n'
       + 'Write a newsletter-exclusive piece on a topic that would interest a serious forex trader right now. This is NOT published on the blog — it is exclusive to newsletter subscribers. Could be about trading psychology, a specific market condition, a mindset principle, a mechanical observation. Salman\'s voice. Direct. Authoritative. One clear insight delivered well.\n\n'
-      + 'Return ONLY valid JSON:\n'
-      + '{"trendingQ": {"question": "...", "answer": "..."}, "exclusiveArticle": {"title": "...", "body": "..."}}\n';
+      + 'CRITICAL: Return ONLY a JSON object starting with { and ending with }. No text before or after.\n'
+      + '{"trendingQ": {"question": "full question text", "answer": "full answer text"}, "exclusiveArticle": {"title": "article title", "body": "full article body"}}\n';
 
     var articleRes = await fetch(ANTHROPIC_API, {
       method: 'POST',
@@ -223,7 +223,7 @@ export async function onRequestPost(context) {
       + 'One specific protocol, practice, or insight. Real science or real practitioner recommendation. Direct connection to trading performance — why this specific thing sharpens decision-making, reduces cortisol, improves focus. 3-4 sentences with one actionable takeaway.\n\n'
       + '6. ENTERTAINMENT\n'
       + 'One specific recommendation — film, series, book, podcast, documentary. Real current or classic. Why it is worth the time. What theme it carries that resonates with the trader mindset — discipline, risk, obsession, excellence, failure. 2-3 sentences.\n\n'
-      + 'Return ONLY valid JSON:\n'
+      + 'CRITICAL: Return ONLY a JSON object. First character must be {. Last character must be }. No preamble, no explanation, no markdown.\n'
       + '{"travel": {"title": "...", "body": "...", "imageQuery": "..."}, "luxury": {"title": "...", "body": "...", "imageQuery": "..."}, "women": {"title": "...", "body": "...", "imageQuery": "..."}, "tech": {"title": "...", "body": "...", "imageQuery": "..."}, "fitness": {"title": "...", "body": "...", "imageQuery": "..."}, "entertainment": {"title": "...", "body": "...", "imageQuery": "..."}}\n';
 
     var lifestyleRes = await fetch(ANTHROPIC_API, {
