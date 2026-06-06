@@ -21,6 +21,47 @@ var CORS_HEADERS = {
 var BREVO_API = 'https://api.brevo.com/v3';
 var LIST_ID   = 4;
 
+// ── GET — send preview to single email ───────────────────────────────────────
+// GET /api/newsletter-publish?preview=1&email=you@example.com
+// Reads current draft from KV, sends to one address only via transactional API
+export async function onRequestGet(context) {
+  var env = context.env;
+  try {
+    var url   = new URL(context.request.url);
+    var email = url.searchParams.get('email');
+    if (!email) return new Response(JSON.stringify({ error: 'email param required' }), { status: 400, headers: CORS_HEADERS });
+    if (!env.BREVO_API_KEY) return new Response(JSON.stringify({ error: 'BREVO_API_KEY not set' }), { status: 500, headers: CORS_HEADERS });
+
+    // Read current draft
+    var draft = await env.FFX_KV.get('newsletter:draft', { type: 'json' }).catch(function() { return null; });
+    if (!draft) return new Response(JSON.stringify({ error: 'No draft found. Generate first.' }), { status: 404, headers: CORS_HEADERS });
+
+    // Build email HTML
+    var emailHtml = buildNewsletterEmail(draft);
+
+    // Send transactional email to single address
+    var sendRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'api-key': env.BREVO_API_KEY },
+      body: JSON.stringify({
+        sender:      { name: 'Salman | FortitudeFX', email: 'salmankhanfx@fortitudefx.com' },
+        to:          [{ email: email, name: 'Preview' }],
+        subject:     '[PREVIEW] ' + (draft.subject || 'FFX Newsletter Preview'),
+        htmlContent: emailHtml,
+      }),
+    });
+
+    var sendText = await sendRes.text();
+    if (!sendRes.ok) {
+      return new Response(JSON.stringify({ error: 'Preview send failed: ' + sendText.substring(0, 200) }), { status: 500, headers: CORS_HEADERS });
+    }
+
+    return new Response(JSON.stringify({ success: true, sentTo: email }), { status: 200, headers: CORS_HEADERS });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS_HEADERS });
+  }
+}
+
 // ── PATCH — save draft edits ──────────────────────────────────────────────────
 export async function onRequestPatch(context) {
   var env = context.env;
@@ -138,7 +179,7 @@ export async function onRequestPost(context) {
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, PATCH, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   }});
 }
