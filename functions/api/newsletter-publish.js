@@ -204,12 +204,15 @@ function buildNewsletterEmail(draft) {
 
   // Section heading inside white body
   function sectionHeading(text) {
-    return '<p style="margin:0 0 12px;font-family:Georgia,serif;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.22;letter-spacing:-0.01em;">' + esc(text) + '</p>';
+    return '<p style="margin:0 0 12px;font-family:'DM Sans',Arial,sans-serif;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.22;letter-spacing:-0.01em;">' + esc(text) + '</p>';
   }
 
   // Body text
   function bodyText(text) {
-    return '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + esc(text) + '</p>';
+    // Max 2 sentences — hook only, click to read more
+    var sentences = (text || '').match(/[^.!?]+[.!?]+/g) || [text];
+    var hook = sentences.slice(0, 2).join(' ').trim();
+    return '<p style="margin:0 0 14px;font-family:'DM Sans',Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + esc(hook) + '</p>';
   }
 
   // Gold quote card
@@ -229,25 +232,34 @@ function buildNewsletterEmail(draft) {
       + '</td></tr></table>'
       // Content
       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:16px 18px 18px;background:#ffffff;">'
-      + '<p style="margin:0 0 8px;font-family:Georgia,serif;font-size:18px;font-weight:700;color:#1a1a2e;line-height:1.28;">' + esc(article.title) + '</p>'
+      + '<p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:#1a1a2e;line-height:1.28;">' + esc(article.title) + '</p>'
       + (article.excerpt ? '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;color:#666677;line-height:1.68;">' + esc(article.excerpt.substring(0, 140)) + '&hellip;</p>' : '')
       + '<a href="' + esc(article.url) + '" target="_blank" style="display:inline-block;padding:8px 20px;background:#1a1a2e;color:#c9a84c;font-family:Arial,sans-serif;font-size:11px;font-weight:700;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;border-radius:4px;">Read Article &rarr;</a>'
       + '</td></tr></table>'
       + '</td></tr></table>';
   }
 
-  // Lifestyle card — premium dark treatment with top color bar
-  function lifestyleCard(icon, label, title, body, color, bgColor) {
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;border-radius:10px;overflow:hidden;">'
+  // Lifestyle card — Unsplash image + dark treatment
+  function lifestyleCard(icon, label, title, body, color, bgColor, imageQuery) {
+    // Unsplash source URL — free, no API key, returns real photo
+    var imgUrl = 'https://source.unsplash.com/600x220/?' + encodeURIComponent((imageQuery || label).replace(/[^a-z0-9 ,]/gi,'').trim().split(' ').slice(0,4).join(','));
+    // Max 2 sentences
+    var sentences = (body || '').match(/[^.!?]+[.!?]+/g) || [body];
+    var hook = sentences.slice(0, 2).join(' ').trim();
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">'
       + '<tr><td>'
       // Color top bar
       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:' + color + ';padding:8px 18px;">'
       + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#ffffff;">' + icon + '&nbsp;&nbsp;' + esc(label) + '</p>'
       + '</td></tr></table>'
+      // Unsplash image
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:0;font-size:0;line-height:0;">'
+      + '<img src="' + imgUrl + '" width="600" alt="' + esc(label) + '" style="display:block;width:100%;max-width:600px;height:200px;object-fit:cover;" />'
+      + '</td></tr></table>'
       // Content on dark bg
-      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:' + (bgColor || '#16181f') + ';padding:18px 20px;">'
-      + '<p style="margin:0 0 8px;font-family:Georgia,serif;font-size:17px;font-weight:700;color:#ffffff;line-height:1.3;">' + esc(title) + '</p>'
-      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.68);line-height:1.72;">' + esc(body) + '</p>'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:' + (bgColor || '#16181f') + ';padding:16px 20px;">'
+      + '<p style="margin:0 0 6px;font-family:'DM Sans',Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;">' + esc(title) + '</p>'
+      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#aaaacc;line-height:1.70;">' + esc(hook) + '</p>'
       + '</td></tr></table>'
       + '</td></tr></table>';
   }
@@ -280,7 +292,7 @@ function buildNewsletterEmail(draft) {
     body += sectionBar('&#128337;', 'On This Day in Markets \u2014 ' + (draft.onThisDay.year || ''), '#c9a84c');
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:20px 32px 4px;">';
     body += goldCard(
-      '<p style="margin:0 0 8px;font-family:Georgia,serif;font-size:17px;font-weight:700;color:#1a1a2e;line-height:1.35;">' + esc(draft.onThisDay.event) + '</p>'
+      '<p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:700;color:#1a1a2e;line-height:1.35;">' + esc(draft.onThisDay.event) + '</p>'
       + (draft.onThisDay.lesson ? '<p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#555566;line-height:1.70;">' + esc(draft.onThisDay.lesson) + '</p>' : '')
     );
     body += '</td></tr></table>';
@@ -326,25 +338,25 @@ function buildNewsletterEmail(draft) {
   // ── Lifestyle Edit — full dark section ───────────────────────────────────
   var ls = draft.lifestyle || {};
   var lifestyleDefs = [
-    { key:'travel',        icon:'&#9992;', label:'Trading Freedom \u2014 Travel & Destination', color:'#e06b1a', bg:'#1a0e08' },
-    { key:'luxury',        icon:'&#9899;', label:'Luxury',                                       color:'#c9a84c', bg:'#1a1608' },
-    { key:'women',         icon:'&#127942;',label:'Women & Lifestyle',                           color:'#7a5cff', bg:'#0f0c1f' },
-    { key:'tech',          icon:'&#9881;', label:'Tech & AI',                                    color:'#38bdf8', bg:'#071820' },
-    { key:'fitness',       icon:'&#128170;',label:'Fitness, Diet & Mindset',                     color:'#3ecf8e', bg:'#081a12' },
-    { key:'entertainment', icon:'&#127916;',label:'Entertainment',                               color:'#a855f7', bg:'#160d1f' },
+    { key:'travel',        icon:'&#9992;',  label:'Trading Freedom \u2014 Travel & Destination', color:'#e06b1a', bg:'#1a0e08', defaultQuery:'luxury travel destination ocean sunset' },
+    { key:'luxury',        icon:'&#9899;',  label:'Luxury',                                        color:'#c9a84c', bg:'#1a1608', defaultQuery:'luxury watch car lifestyle wealth' },
+    { key:'women',         icon:'&#10022;', label:'Women & Lifestyle',                             color:'#7a5cff', bg:'#0f0c1f', defaultQuery:'beautiful woman fashion editorial luxury' },
+    { key:'tech',          icon:'&#9881;',  label:'Tech & AI',                                     color:'#38bdf8', bg:'#071820', defaultQuery:'technology artificial intelligence future' },
+    { key:'fitness',       icon:'&#128170;',label:'Fitness, Diet & Mindset',                      color:'#3ecf8e', bg:'#081a12', defaultQuery:'fitness gym athletic performance' },
+    { key:'entertainment', icon:'&#127916;',label:'Entertainment',                                color:'#a855f7', bg:'#160d1f', defaultQuery:'cinema film entertainment art' },
   ];
   var hasLifestyle = lifestyleDefs.some(function(d){ return ls[d.key] && ls[d.key].title && ls[d.key].body; });
   if (hasLifestyle) {
     // Full-width lifestyle header — dark premium
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#06060a;padding:24px 32px 8px;">'
       + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:#c9a84c;">&#127774;&nbsp;&nbsp;The Lifestyle Edit</p>'
-      + '<p style="margin:0;font-family:Georgia,serif;font-size:18px;font-weight:700;color:#ffffff;">The life the consistency builds toward.</p>'
+      + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:#ffffff;">The life the consistency builds toward.</p>'
       + '</td></tr></table>';
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#06060a;padding:12px 32px 24px;">';
     lifestyleDefs.forEach(function(d) {
       var data = ls[d.key] || {};
       if (data.title && data.body) {
-        body += lifestyleCard(d.icon, d.label, data.title, data.body, d.color, d.bg);
+        body += lifestyleCard(d.icon, d.label, data.title, data.body, d.color, d.bg, data.imageQuery || d.defaultQuery);
       }
     });
     body += '</td></tr></table>';
@@ -354,13 +366,13 @@ function buildNewsletterEmail(draft) {
   if (draft.mindsetLine) {
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#1a1a2e;padding:28px 32px;">'
       + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#c9a84c;">FFX Mindset Line</p>'
-      + '<p style="margin:0;font-family:Georgia,serif;font-size:20px;font-weight:700;color:#ffffff;line-height:1.42;font-style:italic;">&ldquo;' + esc(draft.mindsetLine) + '&rdquo;</p>'
+      + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:700;color:#ffffff;line-height:1.42;font-style:italic;">&ldquo;' + esc(draft.mindsetLine) + '&rdquo;</p>'
       + '</td></tr></table>';
   }
 
   // ── Discord CTA ────────────────────────────────────────────────────────────
   body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#f0eeff;padding:28px 32px;text-align:center;border-top:3px solid #7a5cff;">'
-    + '<p style="margin:0 0 6px;font-family:Georgia,serif;font-size:20px;font-weight:700;color:#1a1a2e;">Not in the Discord yet?</p>'
+    + '<p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;">Not in the Discord yet?</p>'
     + '<p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:14px;color:#555566;line-height:1.70;">Join the free FortitudeFX community. Get real-time chart markups, daily recaps, and direct access.</p>'
     + '<a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" style="display:inline-block;padding:13px 32px;background:#7a5cff;color:#ffffff;font-family:Arial,sans-serif;font-size:13px;font-weight:700;text-decoration:none;border-radius:999px;letter-spacing:0.06em;text-transform:uppercase;">Join Free &rarr;</a>'
     + '</td></tr></table>';
@@ -380,118 +392,88 @@ function buildMasterTemplate(opts) {
     + '<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
     + '<meta http-equiv="X-UA-Compatible" content="IE=edge"/>'
     + '<title>Catch The Wick&#8482; | FortitudeFX</title>'
-    + '<style type="text/css">'
+    + '<style type="text/css">@import url(\'https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap\');'
     + 'body,table,td,p,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}'
     + 'table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse!important;}'
     + 'img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}'
-    + '@media only screen and (max-width:620px){'
-    + '.em-container{width:100%!important;}'
-    + '.em-hero-title{font-size:32px!important;}'
-    + '.em-section-pad{padding-left:20px!important;padding-right:20px!important;}'
-    + '}'
+    + '@media only screen and (max-width:620px){.em-container{width:100%!important;}.em-hero{font-size:28px!important;}}'
     + '</style>'
     + '</head>'
     + '<body style="margin:0;padding:0;background-color:#e8e8f0;">'
-
-    // Outer wrapper — no side padding so it fills screen
     + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#e8e8f0">'
     + '<tr><td align="center" style="padding:24px 0;">'
-
-    // ── EMAIL CONTAINER — 600px standard for max compatibility ───────────
-    // 600px is the industry standard — going wider breaks Outlook and Gmail mobile
     + '<table role="presentation" class="em-container" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;">'
 
-    // ── TOP ACCENT BAR — two solid color cells, no gradient ──────────────
+    // Top accent bar
     + '<tr>'
     + '<td width="300" height="5" bgcolor="#7a5cff" style="font-size:0;line-height:0;">&nbsp;</td>'
     + '<td width="300" height="5" bgcolor="#e06b1a" style="font-size:0;line-height:0;">&nbsp;</td>'
     + '</tr>'
 
-    // ── HEADER — solid dark background, fully email-safe ─────────────────
-    + '<tr><td bgcolor="#0a0a12" style="padding:32px 40px 28px;">'
+    // HEADER — solid dark
+    + '<tr><td colspan="2" bgcolor="#0a0a12" style="padding:32px 36px 28px;">'
 
-    // Row 1: Brand + Issue number
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
-    + '<tr>'
+    // Brand row
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr>'
     + '<td style="vertical-align:middle;">'
     + '<a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;">'
-    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;color:#7a7aaa;text-transform:uppercase;">FORTITUDEFX&#8482;</p>'
-    + '</a>'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+    + '<td style="vertical-align:middle;padding-right:10px;">'
+    + '<img src="https://fortitudefx.com/favicon-192x192.png" alt="FFX" width="44" height="44" style="display:block;border-radius:9px;border:1px solid #4a3a8e;"/>'
+    + '</td>'
+    + '<td style="vertical-align:middle;">'
+    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.20em;color:#7a7aaa;text-transform:uppercase;">FortitudeFX&#8482;</p>'
+    + '<p style="margin:2px 0 0;font-family:Arial,sans-serif;font-size:9px;color:#444466;letter-spacing:0.06em;">fortitudefx.com</p>'
+    + '</td></tr></table></a>'
     + '</td>'
     + '<td style="vertical-align:middle;text-align:right;">'
     + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#c9a84c;border:1px solid #3a3010;background:#1a1608;padding:4px 12px;display:inline-block;">ISSUE #' + issueNum + '</p>'
     + '</td>'
-    + '</tr>'
-    + '</table>'
+    + '</tr></table>'
 
-    // Spacer
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="20" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
-
-    // Row 2: CATCH THE WICK dominant headline
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
-    + '<tr>'
+    // Catch The Wick headline — correct sizing
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;"><tr>'
     + '<td style="vertical-align:bottom;" width="380">'
-    + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:#c9a84c;">BI-WEEKLY INTELLIGENCE &nbsp;&middot;&nbsp; ' + esc(dateDisp) + '</p>'
-    + '<p class="em-hero-title" style="margin:0 0 6px;font-family:Georgia,'Times New Roman',serif;font-size:44px;font-weight:700;color:#ffffff;line-height:1.0;letter-spacing:-0.02em;">Catch The Wick&#8482;</p>'
-    + '<p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:400;color:#666688;line-height:1.2;">2 Candles. 1 Story.&#8482;</p>'
+    + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:#c9a84c;">&#9679;&nbsp; BI-WEEKLY &nbsp;&#183;&nbsp; ' + esc(dateDisp) + '</p>'
+    + '<p class="em-hero" style="margin:0 0 6px;font-family:\'DM Sans\',Arial,sans-serif;font-size:36px;font-weight:700;color:#ffffff;line-height:1.0;letter-spacing:-0.02em;">Catch The Wick<span style="font-size:14px;vertical-align:super;font-weight:400;">&#8482;</span></p>'
+    + '<p style="margin:0;font-family:\'DM Sans\',Arial,sans-serif;font-size:15px;font-weight:400;color:#444466;line-height:1.2;">2 Candles. 1 Story.<span style="font-size:9px;vertical-align:super;">&#8482;</span></p>'
     + '</td>'
     + '<td style="vertical-align:bottom;text-align:right;" width="180">'
-    + '<p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:64px;font-weight:700;color:#e06b1a;line-height:1.0;">#' + issueNum + '</p>'
+    + '<p style="margin:0;font-family:\'DM Sans\',Arial,sans-serif;font-size:56px;font-weight:700;color:#e06b1a;line-height:1.0;">#' + issueNum + '</p>'
     + '</td>'
-    + '</tr>'
-    + '</table>'
+    + '</tr></table>'
 
-    // Spacer
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="24" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
-
-    // Row 3: Social icons — solid backgrounds only
-    + '<table role="presentation" cellpadding="0" cellspacing="0" border="0">'
-    + '<tr>'
-    + '<td style="padding-right:8px;">'
-    + '<a href="https://www.youtube.com/@FortitudeFX" target="_blank" style="display:block;width:36px;height:36px;background-color:#1e1e2e;border:1px solid #333350;border-radius:6px;text-decoration:none;text-align:center;line-height:36px;">'
-    + '<img src="https://fortitudefx.com/email-icon-youtube.png" width="18" height="18" alt="YouTube" style="display:inline-block;vertical-align:middle;border:0;"/>'
-    + '</a>'
-    + '</td>'
-    + '<td style="padding-right:8px;">'
-    + '<a href="https://instagram.com/fortitudefx_official" target="_blank" style="display:block;width:36px;height:36px;background-color:#1e1e2e;border:1px solid #333350;border-radius:6px;text-decoration:none;text-align:center;line-height:36px;">'
-    + '<img src="https://fortitudefx.com/email-icon-instagram.png" width="18" height="18" alt="Instagram" style="display:inline-block;vertical-align:middle;border:0;"/>'
-    + '</a>'
-    + '</td>'
-    + '<td style="padding-right:8px;">'
-    + '<a href="https://x.com/_fortitudefx" target="_blank" style="display:block;width:36px;height:36px;background-color:#1e1e2e;border:1px solid #333350;border-radius:6px;text-decoration:none;text-align:center;line-height:36px;">'
-    + '<img src="https://fortitudefx.com/email-icon-x.png" width="16" height="16" alt="X" style="display:inline-block;vertical-align:middle;border:0;"/>'
-    + '</a>'
-    + '</td>'
-    + '<td>'
-    + '<a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" style="display:inline-block;padding:0 14px;height:36px;line-height:36px;background-color:#2a1e5e;border:1px solid #4a3a8e;border-radius:6px;text-decoration:none;font-family:Arial,sans-serif;font-size:10px;font-weight:700;color:#c8b8ff;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;">Join Discord</a>'
-    + '</td>'
-    + '</tr>'
-    + '</table>'
+    // Social icons
+    + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+    + '<td style="padding-right:8px;"><a href="https://www.youtube.com/@FortitudeFX" target="_blank" style="display:block;width:34px;height:34px;background-color:#1e1e2e;border:1px solid #333350;border-radius:6px;text-decoration:none;text-align:center;line-height:34px;"><img src="https://fortitudefx.com/email-icon-youtube.png" width="18" height="18" alt="YouTube" style="display:inline-block;vertical-align:middle;border:0;"/></a></td>'
+    + '<td style="padding-right:8px;"><a href="https://instagram.com/fortitudefx_official" target="_blank" style="display:block;width:34px;height:34px;background-color:#1e1e2e;border:1px solid #333350;border-radius:6px;text-decoration:none;text-align:center;line-height:34px;"><img src="https://fortitudefx.com/email-icon-instagram.png" width="18" height="18" alt="Instagram" style="display:inline-block;vertical-align:middle;border:0;"/></a></td>'
+    + '<td style="padding-right:8px;"><a href="https://x.com/_fortitudefx" target="_blank" style="display:block;width:34px;height:34px;background-color:#1e1e2e;border:1px solid #333350;border-radius:6px;text-decoration:none;text-align:center;line-height:34px;"><img src="https://fortitudefx.com/email-icon-x.png" width="16" height="16" alt="X" style="display:inline-block;vertical-align:middle;border:0;"/></a></td>'
+    + '<td><a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" style="display:inline-block;padding:0 14px;height:34px;line-height:34px;background-color:#2a1e5e;border:1px solid #4a3a8e;border-radius:6px;text-decoration:none;font-family:Arial,sans-serif;font-size:10px;font-weight:700;color:#c8b8ff;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;">Join Discord</a></td>'
+    + '</tr></table>'
 
     + '</td></tr>'
-    // ── END HEADER ────────────────────────────────────────────────────────
 
-    // ── BODY ──────────────────────────────────────────────────────────────
-    + '<tr><td bgcolor="#ffffff">' + opts.bodyHtml + '</td></tr>'
+    // BODY
+    + '<tr><td colspan="2" bgcolor="#ffffff">' + opts.bodyHtml + '</td></tr>'
 
-    // ── SIGN OFF ──────────────────────────────────────────────────────────
-    + '<tr><td bgcolor="#ffffff" style="padding:8px 40px 32px;">'
+    // SIGN OFF
+    + '<tr><td colspan="2" bgcolor="#ffffff" style="padding:8px 36px 28px;">'
     + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" bgcolor="#eeeeee" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="16" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="14" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
     + '<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:15px;color:#1a1a2e;font-weight:600;">&#8212; Salman</p>'
-    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#999999;">FortitudeFX&#8482; &nbsp;&middot;&nbsp; Catch The Wick&#8482;</p>'
+    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#999999;">FortitudeFX&#8482; &nbsp;&#183;&nbsp; Catch The Wick&#8482;</p>'
     + '</td></tr>'
 
-    // ── BOTTOM ACCENT BAR ─────────────────────────────────────────────────
+    // Bottom accent
     + '<tr>'
     + '<td width="300" height="4" bgcolor="#7a5cff" style="font-size:0;line-height:0;">&nbsp;</td>'
     + '<td width="300" height="4" bgcolor="#e06b1a" style="font-size:0;line-height:0;">&nbsp;</td>'
     + '</tr>'
 
-    // ── FOOTER ────────────────────────────────────────────────────────────
-    + '<tr><td colspan="2" bgcolor="#f4f4f8" style="padding:16px 40px;border-top:1px solid #e8e8f0;">'
+    // FOOTER
+    + '<tr><td colspan="2" bgcolor="#f4f4f8" style="padding:16px 36px;">'
     + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;line-height:1.65;">' + esc(opts.footerNote) + '</p>'
-    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">&copy; 2026 FortitudeFX&#8482;. Dubai, UAE. &nbsp;&middot;&nbsp; <a href="https://fortitudefx.com/privacy" style="color:#7a5cff;text-decoration:none;">Privacy</a></p>'
+    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">&copy; 2026 FortitudeFX&#8482;. Dubai, UAE. &nbsp;&#183;&nbsp; <a href="https://fortitudefx.com/privacy" style="color:#7a5cff;text-decoration:none;">Privacy</a></p>'
     + '</td></tr>'
 
     + '</table>'
