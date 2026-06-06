@@ -22,6 +22,27 @@ var ANTHROPIC_API   = 'https://api.anthropic.com/v1/messages';
 var PROGRESS_KEY = 'newsletter:generate:progress';
 var DRAFT_KEY    = 'newsletter:draft';
 
+// ── Robust JSON extractor — handles Claude web search preamble text ──────────
+function extractJson(text) {
+  if (!text) return null;
+  // Strip markdown code fences first
+  var stripped = text.replace(/```json[\s\S]*?```/g, function(m) {
+    return m.replace(/```json\s*/,'').replace(/\s*```$/,'');
+  }).replace(/```[\s\S]*?```/g, function(m) {
+    return m.replace(/```\s*/g,'');
+  });
+  // Find first { and last } — handles preamble text before JSON
+  var start = stripped.indexOf('{');
+  var end   = stripped.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return null;
+  try {
+    return JSON.parse(stripped.slice(start, end + 1));
+  } catch(e) {
+    // Try full stripped text as fallback
+    try { return JSON.parse(stripped.trim()); } catch(e2) { return null; }
+  }
+}
+
 // ── GET — return current draft ────────────────────────────────────────────────
 export async function onRequestGet(context) {
   var env = context.env;
@@ -134,12 +155,11 @@ export async function onRequestPost(context) {
       }
     }
 
-    var marketsJson = {};
-    try {
-      var cleanMarkets = marketsText.replace(/```json|```/g, '').trim();
-      marketsJson = JSON.parse(cleanMarkets);
-    } catch(e) {
-      marketsJson = { weekInMarkets: marketsText.substring(0, 500), onThisDay: { event: 'Could not load', lesson: '', year: '' } };
+    var marketsJson = extractJson(marketsText) || {};
+    if (!marketsJson.weekInMarkets) {
+      // Partial recovery — use raw text for weekInMarkets
+      marketsJson.weekInMarkets = marketsJson.weekInMarkets || marketsText.replace(/\{[\s\S]*\}/g,'').trim().substring(0, 600) || '';
+      marketsJson.onThisDay     = marketsJson.onThisDay || { event: '', lesson: '', year: '' };
     }
 
     await writeProgress(3, 8, 'Calling Claude — Trending Question + Exclusive Article');
@@ -179,12 +199,10 @@ export async function onRequestPost(context) {
       }
     }
 
-    var articleJson = {};
-    try {
-      var cleanArticle = articleText.replace(/```json|```/g, '').trim();
-      articleJson = JSON.parse(cleanArticle);
-    } catch(e) {
-      articleJson = { trendingQ: { question: 'How do I find the entry?', answer: articleText.substring(0, 300) }, exclusiveArticle: { title: 'This Week\'s Insight', body: '' } };
+    var articleJson = extractJson(articleText) || {};
+    if (!articleJson.trendingQ) {
+      articleJson.trendingQ        = articleJson.trendingQ        || { question: '', answer: '' };
+      articleJson.exclusiveArticle = articleJson.exclusiveArticle || { title: '', body: '' };
     }
 
     await writeProgress(4, 8, 'Calling Claude — 6 Lifestyle Sections');
@@ -232,12 +250,14 @@ export async function onRequestPost(context) {
       }
     }
 
-    var lifestyleJson = {};
-    try {
-      var cleanLifestyle = lifestyleText.replace(/```json|```/g, '').trim();
-      lifestyleJson = JSON.parse(cleanLifestyle);
-    } catch(e) {
-      lifestyleJson = { travel: { title: 'Destination', body: '', imageQuery: 'luxury travel maldives' }, luxury: { title: 'Luxury', body: '', imageQuery: 'luxury watch' }, women: { title: 'Lifestyle', body: '', imageQuery: 'editorial fashion luxury lifestyle' }, tech: { title: 'Tech', body: '', imageQuery: 'technology AI innovation' }, fitness: { title: 'Fitness', body: '', imageQuery: 'fitness gym workout' }, entertainment: { title: 'Entertainment', body: '', imageQuery: 'cinema film' } };
+    var lifestyleJson = extractJson(lifestyleText) || {};
+    if (!lifestyleJson.travel) {
+      lifestyleJson.travel        = lifestyleJson.travel        || { title: '', body: '', imageQuery: 'luxury travel maldives' };
+      lifestyleJson.luxury        = lifestyleJson.luxury        || { title: '', body: '', imageQuery: 'luxury watch' };
+      lifestyleJson.women         = lifestyleJson.women         || { title: '', body: '', imageQuery: 'editorial fashion lifestyle' };
+      lifestyleJson.tech          = lifestyleJson.tech          || { title: '', body: '', imageQuery: 'technology AI' };
+      lifestyleJson.fitness       = lifestyleJson.fitness       || { title: '', body: '', imageQuery: 'fitness gym' };
+      lifestyleJson.entertainment = lifestyleJson.entertainment || { title: '', body: '', imageQuery: 'cinema film' };
     }
 
     await writeProgress(5, 8, 'Generating Mindset Line');
