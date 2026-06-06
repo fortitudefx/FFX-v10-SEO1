@@ -178,6 +178,12 @@
                border:1px solid rgba(255,255,255,0.12);border-radius:5px;padding:5px 14px;cursor:pointer;">
         &#8635; Save Draft
       </button>
+      <button onclick="previewSend()" id="previewSendBtn"
+        style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+               background:rgba(56,189,248,0.10);color:rgba(56,189,248,0.80);
+               border:1px solid rgba(56,189,248,0.25);border-radius:5px;padding:5px 14px;cursor:pointer;">
+        &#9993; Preview Send
+      </button>
       <button onclick="publishNewsletter()" id="publishBtn"
         style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
                background:rgba(62,207,142,0.12);color:#3ecf8e;
@@ -421,6 +427,49 @@ async function loadIndex() {
 
   } catch (err) {
     showError('Network error: ' + err.message);
+  }
+}
+
+// ── Preview Send ──────────────────────────────────────────────────────────
+async function previewSend() {
+  var btn   = document.getElementById('previewSendBtn');
+  var email = prompt('Send preview to email address:', 'salmankhanfx@fortitudefx.com');
+  if (!email || !email.includes('@')) return;
+
+  btn.disabled    = true;
+  btn.textContent = '&#9993; Sending...';
+  hideError();
+
+  // Collect latest edits before sending
+  collectEdits();
+  // Save edits first so the preview reflects current state
+  try {
+    await fetch('/api/newsletter-publish', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ draft: _currentDraft }),
+    });
+  } catch(e) {}
+
+  try {
+    var res  = await fetch('/api/newsletter-publish?preview=1&email=' + encodeURIComponent(email));
+    var text = await res.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) {
+      showError('Preview send failed: ' + text.substring(0, 200));
+      btn.textContent = '&#9993; Preview Send'; btn.disabled = false;
+      return;
+    }
+    if (!res.ok || data.error) {
+      showError('Preview send failed: ' + (data.error || 'Unknown error'));
+      btn.textContent = '&#9993; Preview Send'; btn.disabled = false;
+      return;
+    }
+    btn.textContent = '&#10003; Sent to ' + email;
+    setTimeout(function() { btn.textContent = '&#9993; Preview Send'; btn.disabled = false; }, 4000);
+  } catch (err) {
+    showError('Network error: ' + err.message);
+    btn.textContent = '&#9993; Preview Send'; btn.disabled = false;
   }
 }
 
@@ -675,12 +724,16 @@ function markDirty() {
 function renderDraft(draft) {
   document.getElementById('setupPanel').style.display  = 'none';
   document.getElementById('draftEditor').style.display = 'block';
-  document.getElementById('saveBtn').style.display     = 'inline-block';
-  document.getElementById('publishBtn').style.display  = 'inline-block';
+  document.getElementById('saveBtn').style.display          = 'inline-block';
+  document.getElementById('previewSendBtn').style.display   = 'inline-block';
+  document.getElementById('publishBtn').style.display       = 'inline-block';
 
   // Preview header
   document.getElementById('previewTitle').textContent = 'Issue #' + draft.issueNumber + ' — ' + formatDate(draft.issueDate);
-  document.getElementById('previewMeta').textContent  = draft.generatedAt ? ('Generated ' + formatDateTime(draft.generatedAt)) : '';
+  var metaEl = document.getElementById('previewMeta');
+  var genTime = draft.generatedAt ? ('Generated ' + formatDateTime(draft.generatedAt)) : '';
+  var viewLink = draft.status === 'published' ? ' &nbsp;·&nbsp; <a href="/newsletter-issue?date=' + draft.issueDate + '" target="_blank" style="color:#7a5cff;text-decoration:none;font-weight:700;">View Live Post &rarr;</a>' : '';
+  metaEl.innerHTML = esc(genTime) + viewLink;
 
   // Populate editable fields
   document.getElementById('editMarkets').value          = draft.weekInMarkets || '';
