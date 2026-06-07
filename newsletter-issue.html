@@ -3,143 +3,246 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FFX Intelligence Brief | FortitudeFX</title>
+  <title>FFX Newsletter | FortitudeFX</title>
   <meta name="description" content="FortitudeFX bi-weekly intelligence brief — markets, mindset, lifestyle, and the Catch The Wick framework." />
   <link rel="stylesheet" href="/styles-base.css" />
   <link rel="stylesheet" href="/styles-components.css" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <style>
-    /* Editorial print-style typography */
-    .nl-issue-wrap {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 80px 24px 120px;
+    /* ── Issue hero ─────────────────────────────────────────────── */
+    .ni-hero {
+      padding: 100px 24px 60px;
       position: relative; z-index: 1;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
     }
-
-    /* Issue header */
-    .nl-issue-header {
-      border-bottom: 1px solid rgba(255,255,255,0.10);
-      padding-bottom: 36px;
-      margin-bottom: 48px;
+    .ni-hero-wrap { max-width: 860px; margin: 0 auto; }
+    .ni-breadcrumb {
+      margin-bottom: 32px; font-size: 13px; color: rgba(255,255,255,0.30);
+      display: flex; align-items: center; gap: 8px;
     }
-    .nl-issue-kicker {
-      display: flex; align-items: center; gap: 16px;
+    .ni-breadcrumb a { color: rgba(255,255,255,0.40); text-decoration: none; transition: color 0.20s; }
+    .ni-breadcrumb a:hover { color: rgba(255,255,255,0.70); }
+    .ni-issue-badge {
+      display: inline-flex; align-items: center; gap: 10px;
       margin-bottom: 20px;
     }
-    .nl-issue-kicker-tag {
+    .ni-badge-tag {
       font-size: 10px; font-weight: 700; letter-spacing: 0.22em;
-      text-transform: uppercase; color: rgba(201,168,76,0.80);
-      border: 1px solid rgba(201,168,76,0.25);
-      background: rgba(201,168,76,0.06); border-radius: 4px;
-      padding: 3px 10px;
+      text-transform: uppercase; color: rgba(201,168,76,0.90);
+      border: 1px solid rgba(201,168,76,0.30); background: rgba(201,168,76,0.08);
+      border-radius: 4px; padding: 4px 12px;
     }
-    .nl-issue-kicker-num { font-size: 11px; color: rgba(255,255,255,0.28); }
-    .nl-issue-title {
-      font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800;
-      letter-spacing: -0.05em; line-height: 0.96; color: #ffffff; margin: 0 0 16px;
+    .ni-badge-num { font-size: 11px; color: rgba(255,255,255,0.28); }
+    .ni-hero-title {
+      font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 800;
+      letter-spacing: -0.05em; line-height: 0.94; color: #ffffff;
+      margin: 0 0 16px;
     }
-    .nl-issue-date-line {
-      font-size: 13px; color: rgba(255,255,255,0.35); letter-spacing: 0.04em;
-    }
+    .ni-hero-meta { font-size: 14px; color: rgba(255,255,255,0.35); }
 
-    /* Section blocks */
-    .nl-block { margin-bottom: 52px; }
-    .nl-block-label {
+    /* ── Content layout ──────────────────────────────────────────── */
+    .ni-body { max-width: 860px; margin: 0 auto; padding: 0 24px 100px; }
+
+    /* ── Section block ───────────────────────────────────────────── */
+    .ni-section { margin-bottom: 64px; }
+    .ni-section-label {
+      display: flex; align-items: center; gap: 12px;
       font-size: 10px; font-weight: 700; letter-spacing: 0.22em;
-      text-transform: uppercase; color: rgba(201,168,76,0.70);
-      margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+      text-transform: uppercase; margin-bottom: 20px;
     }
-    .nl-block-label::after {
+    .ni-section-label::after {
       content: ''; flex: 1; height: 1px;
-      background: linear-gradient(90deg, rgba(201,168,76,0.25), transparent);
+      background: linear-gradient(90deg, rgba(255,255,255,0.12), transparent);
     }
-    .nl-block-heading {
-      font-size: 1.5rem; font-weight: 700; color: #ffffff;
-      letter-spacing: -0.03em; line-height: 1.25; margin: 0 0 16px;
+    .ni-section-heading {
+      font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 700;
+      color: #ffffff; letter-spacing: -0.03em; line-height: 1.20;
+      margin: 0 0 16px;
     }
-    .nl-block-body {
-      font-size: 1.02rem; color: rgba(255,255,255,0.72);
-      line-height: 1.85; margin: 0;
+    .ni-body-text {
+      font-size: 1.04rem; color: rgba(255,255,255,0.72);
+      line-height: 1.88; margin: 0 0 16px;
     }
-    .nl-block-body + .nl-block-body { margin-top: 14px; }
+    .ni-source-link {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; text-decoration: none;
+      transition: opacity 0.20s;
+    }
+    .ni-source-link:hover { opacity: 0.70; }
+    .ni-article-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 700; color: #7a5cff;
+      text-decoration: none; margin-top: 8px;
+    }
 
-    /* Gold card */
-    .nl-gold-card {
-      border-left: 3px solid rgba(201,168,76,0.70);
+    /* ── Gold card — On This Day ─────────────────────────────────── */
+    .ni-gold-card {
+      border-left: 4px solid rgba(201,168,76,0.80);
       background: rgba(201,168,76,0.05);
-      border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 0;
+      border-radius: 0 12px 12px 0; padding: 22px 28px;
     }
-    .nl-gold-card-title {
-      font-size: 1.1rem; font-weight: 700; color: rgba(232,210,140,0.92);
-      margin-bottom: 8px; line-height: 1.4;
+    .ni-gold-card-title {
+      font-size: 1.15rem; font-weight: 700;
+      color: rgba(232,210,140,0.95); margin-bottom: 10px; line-height: 1.35;
     }
-    .nl-gold-card-body {
-      font-size: 0.97rem; color: rgba(255,255,255,0.60); line-height: 1.75;
+    .ni-gold-card-body {
+      font-size: 1.00rem; color: rgba(255,255,255,0.65);
+      line-height: 1.80; margin-bottom: 14px;
     }
 
-    /* Article cards */
-    .nl-article-grid { display: flex; flex-direction: column; gap: 14px; }
-    .nl-article-card {
-      border-left: 3px solid rgba(201,168,76,0.50);
-      background: rgba(255,255,255,0.03); border-radius: 0 10px 10px 0;
-      padding: 16px 20px; text-decoration: none; color: inherit;
-      display: block; transition: border-left-color 0.20s, background 0.20s;
+    /* ── Pull quote — Trending Question ──────────────────────────── */
+    .ni-pull-quote {
+      background: rgba(122,92,255,0.06);
+      border: 1px solid rgba(122,92,255,0.16);
+      border-radius: 16px; padding: 32px 36px; margin-bottom: 20px;
     }
-    .nl-article-card:hover {
-      border-left-color: rgba(201,168,76,0.90);
-      background: rgba(201,168,76,0.05);
+    .ni-pull-quote-mark {
+      font-size: 72px; color: rgba(122,92,255,0.30);
+      line-height: 0.8; margin-bottom: 8px; display: block;
+      font-family: Georgia, serif;
     }
-    .nl-article-cat { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(201,168,76,0.60); margin-bottom: 4px; }
-    .nl-article-title { font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 6px; line-height: 1.35; }
-    .nl-article-excerpt { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.65; margin-bottom: 10px; }
-    .nl-article-cta { font-size: 12px; font-weight: 700; color: #7a5cff; }
+    .ni-pull-quote-question {
+      font-size: clamp(1.2rem, 2.5vw, 1.6rem); font-weight: 700;
+      color: #ffffff; letter-spacing: -0.02em; line-height: 1.25;
+      margin: 0 0 20px;
+    }
+    .ni-pull-quote-divider {
+      height: 1px; background: rgba(122,92,255,0.20); margin-bottom: 20px;
+    }
+    .ni-pull-quote-answer {
+      font-size: 1.04rem; color: rgba(255,255,255,0.75);
+      line-height: 1.88; margin: 0;
+    }
 
-    /* Lifestyle section */
-    .nl-lifestyle-section { margin-bottom: 52px; }
-    .nl-lifestyle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
-    .nl-lifestyle-card {
+    /* ── Exclusive editorial — centrepiece ───────────────────────── */
+    .ni-exclusive {
+      border: 1px solid rgba(201,168,76,0.25);
+      border-top: 3px solid #c9a84c;
+      background: rgba(201,168,76,0.04);
+      border-radius: 0 0 16px 16px;
+      overflow: hidden; margin-bottom: 64px;
+    }
+    .ni-exclusive-header {
+      background: #0a0a12; padding: 28px 36px;
+      border-bottom: 1px solid rgba(201,168,76,0.15);
+    }
+    .ni-exclusive-badge {
+      display: inline-block; background: #c9a84c; color: #000000;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.22em;
+      text-transform: uppercase; padding: 4px 12px; border-radius: 3px;
+      margin-bottom: 14px;
+    }
+    .ni-exclusive-title {
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 800;
+      color: #ffffff; letter-spacing: -0.04em; line-height: 1.10;
+      margin: 0;
+    }
+    .ni-exclusive-body { padding: 28px 36px; }
+    .ni-exclusive-text {
+      font-size: 1.06rem; color: rgba(255,255,255,0.75);
+      line-height: 1.90; margin: 0 0 20px;
+    }
+    /* Expandable — show full text */
+    .ni-exclusive-toggle {
+      font-size: 13px; font-weight: 700; color: #c9a84c;
+      cursor: pointer; background: none; border: none;
+      padding: 0; letter-spacing: 0.04em; text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .ni-exclusive-full { display: none; margin-top: 16px; }
+    .ni-exclusive-full.is-open { display: block; }
+
+    /* ── Article cards ───────────────────────────────────────────── */
+    .ni-article-grid { display: flex; flex-direction: column; gap: 14px; }
+    .ni-article-card {
       border: 1px solid rgba(255,255,255,0.07);
-      border-top: 2px solid;
-      border-radius: 12px; padding: 18px 20px;
-      background: linear-gradient(160deg, rgba(255,255,255,0.03), rgba(45,20,114,0.05));
+      border-radius: 12px; overflow: hidden; text-decoration: none;
+      display: block; transition: border-color 0.20s, transform 0.20s cubic-bezier(0.22,1,0.36,1);
     }
-    .nl-lifestyle-label { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 6px; }
-    .nl-lifestyle-title { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 8px; line-height: 1.3; }
-    .nl-lifestyle-body { font-size: 13px; color: rgba(255,255,255,0.50); line-height: 1.68; }
+    .ni-article-card:hover { border-color: rgba(201,168,76,0.30); transform: translateY(-2px); }
+    .ni-article-cat {
+      background: #1a1a2e; padding: 7px 16px;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.18em;
+      text-transform: uppercase; color: #c9a84c;
+    }
+    .ni-article-content { background: rgba(255,255,255,0.03); padding: 16px 18px; }
+    .ni-article-title {
+      font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.88);
+      margin-bottom: 6px; line-height: 1.35;
+    }
+    .ni-article-excerpt { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.65; margin-bottom: 10px; }
+    .ni-article-cta { font-size: 12px; font-weight: 700; color: #7a5cff; }
 
-    /* Mindset line */
-    .nl-mindset-block {
-      border-left: 3px solid rgba(201,168,76,0.70);
+    /* ── Lifestyle grid ──────────────────────────────────────────── */
+    .ni-lifestyle-header {
+      margin-bottom: 20px; padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .ni-lifestyle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .ni-ls-card {
+      border-radius: 12px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.07);
+      transition: transform 0.24s cubic-bezier(0.22,1,0.36,1);
+    }
+    .ni-ls-card:hover { transform: translateY(-3px); }
+    .ni-ls-bar { padding: 8px 16px; }
+    .ni-ls-label { font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #ffffff; }
+    .ni-ls-img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; }
+    .ni-ls-body { padding: 14px 16px; }
+    .ni-ls-title { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.88); margin-bottom: 6px; line-height: 1.3; }
+    .ni-ls-text { font-size: 12px; color: rgba(255,255,255,0.50); line-height: 1.65; margin-bottom: 10px; }
+    .ni-ls-link { font-size: 11px; font-weight: 700; text-decoration: none; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    /* ── Mindset block ───────────────────────────────────────────── */
+    .ni-mindset {
+      border-left: 4px solid rgba(201,168,76,0.70);
       background: rgba(201,168,76,0.05);
-      border-radius: 0 14px 14px 0; padding: 24px 28px;
-      margin-bottom: 52px;
+      border-radius: 0 14px 14px 0; padding: 24px 32px;
+      margin-bottom: 64px;
     }
-    .nl-mindset-label { font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(201,168,76,0.60); margin-bottom: 10px; }
-    .nl-mindset-text { font-size: 1.2rem; font-weight: 700; color: rgba(232,210,140,0.92); line-height: 1.45; font-style: italic; }
+    .ni-mindset-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.20em;
+      text-transform: uppercase; color: rgba(201,168,76,0.70); margin-bottom: 12px;
+    }
+    .ni-mindset-text {
+      font-size: 1.3rem; font-weight: 700;
+      color: rgba(232,210,140,0.95); line-height: 1.45; font-style: italic;
+    }
 
-    /* Discord CTA */
-    .nl-cta-block {
+    /* ── Nav between issues ──────────────────────────────────────── */
+    .ni-issue-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.07);
+      margin-bottom: 64px;
+    }
+    .ni-issue-nav a {
+      font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.40);
+      text-decoration: none; transition: color 0.20s;
+    }
+    .ni-issue-nav a:hover { color: rgba(255,255,255,0.80); }
+
+    /* ── Discord CTA ─────────────────────────────────────────────── */
+    .ni-discord-cta {
       border: 1px solid rgba(122,92,255,0.22);
       background: rgba(122,92,255,0.05); border-radius: 18px;
-      padding: 36px 40px; text-align: center; margin-bottom: 52px;
+      padding: 36px 40px; text-align: center; margin-bottom: 64px;
     }
-    .nl-cta-title { font-size: 1.4rem; font-weight: 700; color: #ffffff; margin-bottom: 10px; letter-spacing: -0.02em; }
-    .nl-cta-body { font-size: 0.97rem; color: rgba(255,255,255,0.45); line-height: 1.75; max-width: 400px; margin: 0 auto 22px; }
+    .ni-discord-title { font-size: 1.5rem; font-weight: 700; color: #ffffff; margin-bottom: 10px; letter-spacing: -0.02em; }
+    .ni-discord-body { font-size: 1rem; color: rgba(255,255,255,0.45); line-height: 1.75; max-width: 400px; margin: 0 auto 22px; }
 
-    /* Chart image */
-    .nl-chart-img { width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.09); margin:14px 0; }
+    /* ── Loading / error ─────────────────────────────────────────── */
+    .ni-loading { padding: 100px 0; text-align: center; color: rgba(255,255,255,0.25); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .ni-error { padding: 80px 0; text-align: center; }
+    .ni-error-title { font-size: 1.4rem; font-weight: 700; color: rgba(248,113,113,0.80); margin-bottom: 10px; }
+    .ni-error-body { font-size: 0.95rem; color: rgba(255,255,255,0.30); line-height: 1.7; }
 
-    /* Nav breadcrumb */
-    .nl-breadcrumb { margin-bottom: 40px; font-size: 13px; color: rgba(255,255,255,0.30); }
-    .nl-breadcrumb a { color: rgba(255,255,255,0.40); text-decoration: none; transition: color 0.20s; }
-    .nl-breadcrumb a:hover { color: rgba(255,255,255,0.70); }
-
-    /* Loading / error */
-    .nl-loading { padding:100px 0; text-align:center; color:rgba(255,255,255,0.25); font-size:13px; letter-spacing:0.08em; text-transform:uppercase; }
-    .nl-error-state { padding:80px 0; text-align:center; }
-    .nl-error-title { font-size:1.4rem; font-weight:700; color:rgba(248,113,113,0.80); margin-bottom:10px; }
-    .nl-error-body { font-size:0.95rem; color:rgba(255,255,255,0.30); line-height:1.7; }
+    @media (max-width: 640px) {
+      .ni-lifestyle-grid { grid-template-columns: 1fr; }
+      .ni-pull-quote { padding: 22px 20px; }
+      .ni-exclusive-header, .ni-exclusive-body { padding: 20px; }
+      .ni-hero { padding: 80px 16px 40px; }
+      .ni-body { padding: 0 16px 60px; }
+    }
   </style>
 </head>
 <body class="page-home">
@@ -147,6 +250,7 @@
   <div class="ffx-bg" aria-hidden="true">
     <div class="ffx-glow ffx-glow-violet" style="width:700px;height:700px;top:-150px;right:-250px;opacity:0.55;"></div>
     <div class="ffx-glow ffx-glow-deep"   style="width:600px;height:600px;top:-100px;left:-300px;opacity:0.50;"></div>
+    <div class="ffx-glow ffx-glow-mid"    style="width:800px;height:500px;top:800px;left:50%;transform:translateX(-50%);opacity:0.35;"></div>
   </div>
 
   <nav class="nav">
@@ -161,25 +265,37 @@
       </div>
       <div class="nav-cta">
         <a class="nav-btn nav-btn-joinfree" href="/joinfree.html">Join Free</a>
-        <a class="nav-btn nav-btn-primary" href="/waitlist.html#form">Join Waitlist</a>
+        <a class="nav-btn nav-btn-primary"  href="/waitlist.html#form">Join Waitlist</a>
       </div>
     </div>
   </nav>
 
   <div class="page-container">
-    <section class="section">
-      <div class="section-wrap nl-issue-wrap">
 
-        <div class="nl-breadcrumb">
-          <a href="/newsletter">Newsletter</a> &nbsp;&rsaquo;&nbsp; <span id="breadcrumbDate"></span>
+    <!-- Hero -->
+    <div class="ni-hero">
+      <div class="ni-hero-wrap">
+        <div class="ni-breadcrumb">
+          <a href="/newsletter">Newsletter</a>
+          <span>›</span>
+          <span id="breadcrumbDate"></span>
         </div>
-
-        <div id="issueContent">
-          <div class="nl-loading">Loading issue&hellip;</div>
+        <div class="ni-issue-badge">
+          <span class="ni-badge-tag">Intelligence Brief</span>
+          <span class="ni-badge-num" id="issueNum"></span>
         </div>
-
+        <h1 class="ni-hero-title">Catch The Wick<sup style="font-size:0.4em;vertical-align:super;">™</sup></h1>
+        <div class="ni-hero-meta" id="heroMeta"></div>
       </div>
-    </section>
+    </div>
+
+    <!-- Body -->
+    <div class="ni-body" style="padding-top:56px;">
+      <div id="issueContent">
+        <div class="ni-loading">Loading issue&hellip;</div>
+      </div>
+    </div>
+
   </div>
 
   <footer style="position:relative;z-index:2;padding:40px 24px 32px;text-align:center;">
@@ -193,7 +309,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   var el     = document.getElementById('issueContent');
 
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    el.innerHTML = '<div class="nl-error-state"><div class="nl-error-title">Issue not found.</div><div class="nl-error-body">No date specified. <a href="/newsletter" style="color:#7a5cff;">View all issues &rarr;</a></div></div>';
+    el.innerHTML = '<div class="ni-error"><div class="ni-error-title">Issue not found.</div><div class="ni-error-body">No date specified. <a href="/newsletter" style="color:#7a5cff;">View all issues &rarr;</a></div></div>';
     return;
   }
 
@@ -204,150 +320,195 @@ document.addEventListener('DOMContentLoaded', async function() {
     var text = await res.text();
     var data;
     try { data = JSON.parse(text); } catch(e) {
-      el.innerHTML = '<div class="nl-error-state"><div class="nl-error-title">Could not load issue.</div><div class="nl-error-body">' + esc(text.substring(0,200)) + '</div></div>';
+      el.innerHTML = '<div class="ni-error"><div class="ni-error-title">Could not load issue.</div></div>';
       return;
     }
     if (!res.ok || !data.issue) {
-      el.innerHTML = '<div class="nl-error-state"><div class="nl-error-title">Issue not found.</div><div class="nl-error-body">' + esc(data.error || 'This issue does not exist.') + '<br><br><a href="/newsletter" style="color:#7a5cff;">View all issues &rarr;</a></div></div>';
+      el.innerHTML = '<div class="ni-error"><div class="ni-error-title">Issue not found.</div><div class="ni-error-body"><a href="/newsletter" style="color:#7a5cff;">View all issues &rarr;</a></div></div>';
       return;
     }
     renderIssue(data.issue, el);
   } catch(err) {
-    el.innerHTML = '<div class="nl-error-state"><div class="nl-error-title">Network error.</div><div class="nl-error-body">' + esc(err.message) + '</div></div>';
+    el.innerHTML = '<div class="ni-error"><div class="ni-error-title">Network error.</div><div class="ni-error-body">' + esc(err.message) + '</div></div>';
   }
 });
 
 function renderIssue(issue, el) {
-  // Update page title and meta
-  document.title = (issue.subject || 'FFX Intelligence Brief') + ' | FortitudeFX';
+  document.title = 'Issue #' + issue.issueNumber + ' \u00b7 Catch The Wick\u2122 | FortitudeFX';
+  document.getElementById('issueNum').textContent   = 'Issue #' + issue.issueNumber;
+  document.getElementById('heroMeta').textContent   = formatDate(issue.issueDate) + ' \u00b7 Bi-Weekly Intelligence Brief';
+  document.getElementById('breadcrumbDate').textContent = formatDate(issue.issueDate);
 
   var html = '';
 
-  // Header
-  html += '<div class="nl-issue-header">'
-    + '<div class="nl-issue-kicker">'
-    + '<span class="nl-issue-kicker-tag">Intelligence Brief</span>'
-    + '<span class="nl-issue-kicker-num">Issue #' + esc(String(issue.issueNumber || '')) + '</span>'
-    + '</div>'
-    + '<h1 class="nl-issue-title">FFX Intelligence Brief.</h1>'
-    + '<div class="nl-issue-date-line">' + esc(formatDate(issue.issueDate)) + ' &nbsp;&middot;&nbsp; Bi-Weekly</div>'
-    + '</div>';
-
-  // Week in Markets
-  if (issue.weekInMarkets) {
-    html += '<div class="nl-block">'
-      + '<div class="nl-block-label">&#128200; Week in Markets</div>'
-      + '<p class="nl-block-body">' + esc(issue.weekInMarkets) + '</p>'
-      + '</div>';
+  // ── 1. Week in Markets ─────────────────────────────────────────────
+  if (issue.weekInMarkets && issue.weekInMarkets.content) {
+    html += section(
+      sectionLabel('&#128200; Week in Markets', '#e06b1a'),
+      '<h2 class="ni-section-heading">What the market did \u2014 and what it told us.</h2>'
+      + '<p class="ni-body-text">' + esc(issue.weekInMarkets.content) + '</p>'
+      + (issue.weekInMarkets.sourceUrl
+        ? '<a href="' + esc(issue.weekInMarkets.sourceUrl) + '" target="_blank" class="ni-source-link" style="color:#e06b1a;">Via ' + esc(issue.weekInMarkets.sourceLabel || 'Source') + ' &rarr;</a>'
+        : '')
+    );
   }
 
-  // On This Day
+  // ── 2. On This Day ─────────────────────────────────────────────────
   if (issue.onThisDay && issue.onThisDay.event) {
-    html += '<div class="nl-block">'
-      + '<div class="nl-block-label">&#128337; On This Day in Markets &mdash; ' + esc(issue.onThisDay.year || '') + '</div>'
-      + '<div class="nl-gold-card">'
-      + '<div class="nl-gold-card-title">' + esc(issue.onThisDay.event) + '</div>'
-      + (issue.onThisDay.lesson ? '<div class="nl-gold-card-body">' + esc(issue.onThisDay.lesson) + '</div>' : '')
+    html += section(
+      sectionLabel('&#128337; On This Day in Markets \u2014 ' + (issue.onThisDay.year || ''), '#c9a84c'),
+      '<div class="ni-gold-card">'
+      + '<div class="ni-gold-card-title">' + esc(issue.onThisDay.event) + '</div>'
+      + (issue.onThisDay.lesson ? '<div class="ni-gold-card-body">' + esc(issue.onThisDay.lesson) + '</div>' : '')
+      + (issue.onThisDay.wikiUrl ? '<a href="' + esc(issue.onThisDay.wikiUrl) + '" target="_blank" class="ni-source-link" style="color:#c9a84c;">Read on Wikipedia &rarr;</a>' : '')
       + '</div>'
-      + '</div>';
+    );
   }
 
-  // Trending Question
+  // ── 3. Trending Question ───────────────────────────────────────────
   if (issue.trendingQ && issue.trendingQ.question) {
-    html += '<div class="nl-block">'
-      + '<div class="nl-block-label">&#10067; Trending Question</div>'
-      + '<h2 class="nl-block-heading">' + esc(issue.trendingQ.question) + '</h2>'
-      + '<p class="nl-block-body">' + esc(issue.trendingQ.answer || '') + '</p>'
-      + '</div>';
+    html += section(
+      sectionLabel('&#10067; Trending Question', '#7a5cff'),
+      '<div class="ni-pull-quote">'
+      + '<span class="ni-pull-quote-mark">&ldquo;</span>'
+      + '<div class="ni-pull-quote-question">' + esc(issue.trendingQ.question) + '</div>'
+      + '<div class="ni-pull-quote-divider"></div>'
+      + '<p class="ni-pull-quote-answer">' + esc(issue.trendingQ.answer) + '</p>'
+      + '</div>'
+      + (issue.trendingQ.relatedArticleSlug
+        ? '<a href="/article?slug=' + esc(issue.trendingQ.relatedArticleSlug) + '" class="ni-article-link">&#128196; Related: ' + esc(issue.trendingQ.relatedArticleTitle || '') + ' &rarr;</a>'
+        : '')
+    );
   }
 
-  // Newsletter Exclusive
+  // ── 4. Newsletter Exclusive ────────────────────────────────────────
   if (issue.exclusiveArticle && issue.exclusiveArticle.title) {
-    html += '<div class="nl-block">'
-      + '<div class="nl-block-label">&#11088; Newsletter Exclusive &mdash; Not on the Blog</div>'
-      + '<h2 class="nl-block-heading">' + esc(issue.exclusiveArticle.title) + '</h2>'
-      + '<p class="nl-block-body">' + esc(issue.exclusiveArticle.body || '') + '</p>'
+    var hookText = issue.exclusiveArticle.hookText || issue.exclusiveArticle.fullText.substring(0, 300);
+    var fullText = issue.exclusiveArticle.fullText || '';
+    var hasMore  = fullText && fullText.length > hookText.length;
+
+    html += '<div class="ni-exclusive" id="exclusive">'
+      + '<div class="ni-exclusive-header">'
+      + '<div class="ni-exclusive-badge">&#11088; Newsletter Exclusive</div>'
+      + '<h2 class="ni-exclusive-title">' + esc(issue.exclusiveArticle.title) + '</h2>'
+      + '</div>'
+      + '<div class="ni-exclusive-body">'
+      + '<p class="ni-exclusive-text">' + esc(hookText) + '</p>'
+      + (hasMore
+        ? '<div class="ni-exclusive-full" id="exclusiveFull">'
+          + fullText.split('\n').filter(function(p){ return p.trim(); }).map(function(p){ return '<p class="ni-exclusive-text">' + esc(p) + '</p>'; }).join('')
+          + '</div>'
+          + '<button class="ni-exclusive-toggle" onclick="toggleExclusive(this)" id="exclusiveBtn">Read the full editorial &darr;</button>'
+        : '')
+      + (issue.exclusiveArticle.relatedArticleSlug
+        ? '<a href="/article?slug=' + esc(issue.exclusiveArticle.relatedArticleSlug) + '" class="ni-article-link" style="margin-top:16px;display:inline-flex;">&#128196; Related: ' + esc(issue.exclusiveArticle.relatedArticleTitle || '') + ' &rarr;</a>'
+        : '')
+      + '</div>'
       + '</div>';
   }
 
-  // Setup of the Fortnight
+  // ── 5. Setup of the Fortnight ──────────────────────────────────────
   if (issue.setup && issue.setup.hasSetup) {
-    html += '<div class="nl-block">'
-      + '<div class="nl-block-label">&#128200; Setup of the Fortnight</div>'
-      + (issue.setup.imageUrl ? '<img src="' + esc(issue.setup.imageUrl) + '" alt="Chart Setup" class="nl-chart-img" />' : '')
-      + (issue.setup.note ? '<p class="nl-block-body">' + esc(issue.setup.note) + '</p>' : '')
-      + '</div>';
+    html += section(
+      sectionLabel('&#128200; Setup of the Fortnight', '#c9a84c'),
+      (issue.setup.imageUrl ? '<img src="' + esc(issue.setup.imageUrl) + '" alt="Chart Setup" style="width:100%;border-radius:10px;border:1px solid rgba(255,255,255,0.09);margin-bottom:14px;display:block;" />' : '')
+      + (issue.setup.note ? '<p class="ni-body-text">' + esc(issue.setup.note) + '</p>' : '')
+    );
   }
 
-  // Articles
+  // ── 6. Articles ────────────────────────────────────────────────────
   if (issue.articles && issue.articles.length > 0) {
-    html += '<div class="nl-block">'
-      + '<div class="nl-block-label">&#128196; This Fortnight on the Blog</div>'
-      + '<div class="nl-article-grid">'
+    html += section(
+      sectionLabel('&#128196; This Fortnight on the Blog', '#7a5cff'),
+      '<div class="ni-article-grid">'
       + issue.articles.map(function(a) {
-          return '<a href="' + esc(a.url) + '" class="nl-article-card">'
-            + '<div class="nl-article-cat">' + esc(a.category || 'Strategy') + '</div>'
-            + '<div class="nl-article-title">' + esc(a.title) + '</div>'
-            + (a.excerpt ? '<div class="nl-article-excerpt">' + esc(a.excerpt.substring(0,110)) + '&hellip;</div>' : '')
-            + '<div class="nl-article-cta">Read article &rarr;</div>'
-            + '</a>';
-        }).join('')
+        return '<a href="' + esc(a.url) + '" class="ni-article-card">'
+          + '<div class="ni-article-cat">' + esc(a.category || 'Strategy') + '</div>'
+          + '<div class="ni-article-content">'
+          + '<div class="ni-article-title">' + esc(a.title) + '</div>'
+          + (a.excerpt ? '<div class="ni-article-excerpt">' + esc(a.excerpt.substring(0,110)) + '&hellip;</div>' : '')
+          + '<div class="ni-article-cta">Read article &rarr;</div>'
+          + '</div></a>';
+      }).join('')
       + '</div>'
-      + '</div>';
+    );
   }
 
-  // Lifestyle Edit
+  // ── 7. Lifestyle Edit ──────────────────────────────────────────────
   var ls = issue.lifestyle || {};
-  var lifestyleSections = [
-    { key: 'travel',        label: 'Trading Freedom \u2014 Travel & Destination', color: '#e06b1a' },
-    { key: 'luxury',        label: 'Luxury',                                       color: '#c9a84c' },
-    { key: 'women',         label: 'Women & Lifestyle',                            color: '#7a5cff' },
-    { key: 'tech',          label: 'Tech & AI',                                    color: '#38bdf8' },
-    { key: 'fitness',       label: 'Fitness, Diet & Mindset',                      color: '#3ecf8e' },
-    { key: 'entertainment', label: 'Entertainment',                                color: '#a855f7' },
+  var lsDefs = [
+    { key:'travel',        label:'Trading Freedom \u2014 Travel & Destination', color:'#e06b1a', bg:'#1a0e08' },
+    { key:'luxury',        label:'Luxury',                                       color:'#c9a84c', bg:'#1a1608' },
+    { key:'women',         label:'Women & Lifestyle',                            color:'#7a5cff', bg:'#0f0c1f' },
+    { key:'tech',          label:'Tech & AI',                                    color:'#38bdf8', bg:'#071820' },
+    { key:'fitness',       label:'Fitness, Diet & Mindset',                     color:'#3ecf8e', bg:'#081a12' },
+    { key:'entertainment', label:'Entertainment',                               color:'#a855f7', bg:'#160d1f' },
   ];
-  var hasLifestyle = lifestyleSections.some(function(s) { return ls[s.key] && ls[s.key].title; });
+  var hasLifestyle = lsDefs.some(function(d) { return ls[d.key] && ls[d.key].title; });
   if (hasLifestyle) {
-    html += '<div class="nl-lifestyle-section">'
-      + '<div class="nl-block-label">&#127774; The Lifestyle Edit</div>'
-      + '<div class="nl-lifestyle-grid">'
-      + lifestyleSections.map(function(s) {
-          var data = ls[s.key] || {};
-          if (!data.title) return '';
-          return '<div class="nl-lifestyle-card" style="border-top-color:' + s.color + ';">'
-            + '<div class="nl-lifestyle-label" style="color:' + s.color + ';">' + esc(s.label) + '</div>'
-            + '<div class="nl-lifestyle-title">' + esc(data.title) + '</div>'
-            + '<div class="nl-lifestyle-body">' + esc(data.body || '') + '</div>'
-            + '</div>';
-        }).join('')
+    html += '<div class="ni-section">'
+      + '<div class="ni-lifestyle-header">'
+      + '<div class="ni-section-label" style="color:#c9a84c;">&#127774; The Lifestyle Edit<span style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.25),transparent);display:inline-block;margin-left:12px;"></span></div>'
+      + '<p class="ni-body-text" style="margin:0;">The life the consistency builds toward.</p>'
       + '</div>'
-      + '</div>';
+      + '<div class="ni-lifestyle-grid">';
+    lsDefs.forEach(function(d) {
+      var data = ls[d.key] || {};
+      if (!data.title) return;
+      html += '<div class="ni-ls-card" style="background:' + d.bg + ';">'
+        + '<div class="ni-ls-bar" style="background:' + d.color + ';">'
+        + '<div class="ni-ls-label">' + esc(d.label) + '</div>'
+        + '</div>'
+        + (data.imageUrl ? '<img src="' + esc(data.imageUrl) + '" alt="' + esc(d.label) + '" class="ni-ls-img" />' : '')
+        + '<div class="ni-ls-body">'
+        + '<div class="ni-ls-title">' + esc(data.title) + '</div>'
+        + '<div class="ni-ls-text">' + esc(data.body || '') + '</div>'
+        + (data.sourceUrl ? '<a href="' + esc(data.sourceUrl) + '" target="_blank" class="ni-ls-link" style="color:' + d.color + ';">Via ' + esc(data.sourceLabel || 'Source') + ' &rarr;</a>' : '')
+        + '</div>'
+        + '</div>';
+    });
+    html += '</div></div>';
   }
 
-  // Mindset Line
+  // ── 8. Mindset Line ────────────────────────────────────────────────
   if (issue.mindsetLine) {
-    html += '<div class="nl-mindset-block">'
-      + '<div class="nl-mindset-label">FFX Mindset Line</div>'
-      + '<div class="nl-mindset-text">&ldquo;' + esc(issue.mindsetLine) + '&rdquo;</div>'
+    html += '<div class="ni-mindset">'
+      + '<div class="ni-mindset-label">FFX Mindset Line</div>'
+      + '<div class="ni-mindset-text">&ldquo;' + esc(issue.mindsetLine) + '&rdquo;</div>'
       + '</div>';
   }
 
-  // Discord CTA
-  html += '<div class="nl-cta-block">'
-    + '<div class="nl-cta-title">Not in the Discord yet?</div>'
-    + '<p class="nl-cta-body">Join thousands of traders in the free FortitudeFX community.</p>'
-    + '<a href="/joinfree.html" class="btn btn-joinfree">Join Free &rarr;</a>'
+  // ── Issue navigation ───────────────────────────────────────────────
+  html += '<div class="ni-issue-nav">'
+    + '<a href="/newsletter">&#8592; All Issues</a>'
+    + (issue.prevIssueDate ? '<a href="/newsletter-issue?date=' + esc(issue.prevIssueDate) + '">Previous Issue &rarr;</a>' : '<span></span>')
     + '</div>';
 
-  // Back to archive
-  html += '<div style="text-align:center;margin-top:20px;">'
-    + '<a href="/newsletter" style="font-size:13px;color:rgba(255,255,255,0.30);text-decoration:none;transition:color 0.20s;" '
-    + 'onmouseover="this.style.color=\'rgba(255,255,255,0.60)\'" onmouseout="this.style.color=\'rgba(255,255,255,0.30)\'">&#8592; All Issues</a>'
+  // ── Discord CTA ────────────────────────────────────────────────────
+  html += '<div class="ni-discord-cta">'
+    + '<div class="ni-discord-title">Not in the Discord yet?</div>'
+    + '<p class="ni-discord-body">Join the free FortitudeFX community. Real-time chart markups, daily recaps, direct access.</p>'
+    + '<a href="/joinfree.html" class="btn btn-joinfree">Join Free &rarr;</a>'
     + '</div>';
 
   el.innerHTML = html;
 }
 
+// ── Toggle exclusive full text ─────────────────────────────────────
+function toggleExclusive(btn) {
+  var full = document.getElementById('exclusiveFull');
+  if (!full) return;
+  var open = full.classList.toggle('is-open');
+  btn.textContent = open ? 'Show less \u2191' : 'Read the full editorial \u2193';
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+function section(labelHtml, contentHtml) {
+  return '<div class="ni-section">' + labelHtml + contentHtml + '</div>';
+}
+function sectionLabel(text, color) {
+  return '<div class="ni-section-label" style="color:' + (color || 'rgba(255,255,255,0.40)') + ';">' + text + '</div>';
+}
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function formatDate(d) {
   if (!d) return '';
