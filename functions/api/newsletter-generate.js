@@ -157,8 +157,7 @@ export async function onRequestPost(context) {
 
     var marketsJson = extractJson(marketsText) || {};
     if (!marketsJson.weekInMarkets) {
-      // Partial recovery — use raw text for weekInMarkets
-      marketsJson.weekInMarkets = marketsJson.weekInMarkets || marketsText.replace(/\{[\s\S]*\}/g,'').trim().substring(0, 600) || '';
+      marketsJson.weekInMarkets = '';
       marketsJson.onThisDay     = marketsJson.onThisDay || { event: '', lesson: '', year: '' };
     }
 
@@ -208,23 +207,16 @@ export async function onRequestPost(context) {
     await writeProgress(4, 8, 'Calling Claude — 6 Lifestyle Sections');
 
     // ── Step 4: All 6 Lifestyle Sections ──────────────────────────────────
-    var lifestylePrompt = 'You are curating the lifestyle section of the FortitudeFX bi-weekly newsletter. FFX is a premium forex trading education brand. The audience is serious traders working toward financial and time freedom. The tone is aspirational, tasteful, GQ/Robb Report level — never cheap, never gratuitous.\n\n'
-      + 'Use web search to find current, real, high-quality content for each of the 6 sections. Every section must be based on a real, current item — not made up.\n\n'
-      + 'Generate all 6 sections:\n\n'
-      + '1. TRADING FREEDOM — TRAVEL & DESTINATION\n'
-      + 'One specific destination or travel experience. Real place, real details. 2-3 sentences of genuine substance — what makes it special, why a trader who achieved freedom would go there. One sentence tie-back to what trading freedom enables.\n\n'
-      + '2. LUXURY\n'
-      + 'One specific luxury item — watch, car, hotel, experience. Real product with real substance. Why it exists, why it matters beyond the price. 2-3 sentences. Never just a price tag.\n\n'
-      + '3. WOMEN & LIFESTYLE\n'
-      + 'One editorial lifestyle image description — tasteful, aspirational, GQ/Vogue aesthetic. A beautiful woman in an aspirational setting: Maldives beach, Monaco cocktail party, Amalfi coast, rooftop at golden hour. Describe the image as if you\'re an art director briefing a photographer. Then find a real image URL from an editorial source if possible. 2 sentences of lifestyle context.\n\n'
-      + '4. TECH & AI\n'
-      + 'One genuine tech or AI development from the past 2 weeks. Real news, real substance. What it is, why it matters, one sentence on how it relates to trading or the trader\'s world. 2-3 sentences.\n\n'
-      + '5. FITNESS, DIET & MINDSET\n'
-      + 'One specific protocol, practice, or insight. Real science or real practitioner recommendation. Direct connection to trading performance — why this specific thing sharpens decision-making, reduces cortisol, improves focus. 3-4 sentences with one actionable takeaway.\n\n'
-      + '6. ENTERTAINMENT\n'
-      + 'One specific recommendation — film, series, book, podcast, documentary. Real current or classic. Why it is worth the time. What theme it carries that resonates with the trader mindset — discipline, risk, obsession, excellence, failure. 2-3 sentences.\n\n'
-      + 'CRITICAL: Return ONLY a JSON object. First character must be {. Last character must be }. No preamble, no explanation, no markdown.\n'
-      + '{"travel": {"title": "...", "body": "...", "imageQuery": "..."}, "luxury": {"title": "...", "body": "...", "imageQuery": "..."}, "women": {"title": "...", "body": "...", "imageQuery": "..."}, "tech": {"title": "...", "body": "...", "imageQuery": "..."}, "fitness": {"title": "...", "body": "...", "imageQuery": "..."}, "entertainment": {"title": "...", "body": "...", "imageQuery": "..."}}\n';
+    var lifestylePrompt = 'You are curating the lifestyle section of the FortitudeFX bi-weekly newsletter. FFX is a premium forex trading brand. Audience: serious traders working toward financial and time freedom. Tone: aspirational, tasteful, GQ/Robb Report level.\n\n'
+      + 'For each of the 6 sections: write the content (title + max 2 sentences) AND use web search to find a direct publicly accessible Unsplash photo URL. Search unsplash.com for a relevant photo. Return the actual image URL in format https://images.unsplash.com/photo-XXXXXXXXX not the page URL.\n\n'
+      + '1. TRADING FREEDOM \u2014 TRAVEL & DESTINATION: One specific destination. Real place. 2 sentences max. Search Unsplash for a stunning travel photo.\n\n'
+      + '2. LUXURY: One specific luxury item \u2014 watch, car, hotel. 2 sentences max. Search Unsplash for a premium luxury photo.\n\n'
+      + '3. WOMEN & LIFESTYLE: Tasteful, aspirational, GQ/Vogue. A beautiful woman in an aspirational setting \u2014 beach, cocktail party, rooftop, yacht. 2 sentences. Search Unsplash for an elegant editorial lifestyle photo of a woman.\n\n'
+      + '4. TECH & AI: One genuine tech or AI development from the past 2 weeks. 2 sentences max. Search Unsplash for a clean tech photo.\n\n'
+      + '5. FITNESS, DIET & MINDSET: One specific protocol with direct connection to trading performance. 2 sentences max. Search Unsplash for a fitness or wellness photo.\n\n'
+      + '6. ENTERTAINMENT: One specific recommendation \u2014 film, series, book, podcast. 2 sentences max. Search Unsplash for a relevant cinematic photo.\n\n'
+      + 'CRITICAL INSTRUCTION: Your response must be ONLY a JSON object. First character must be {. Last character must be }. No preamble, no explanation, no markdown fences.\n'
+      + '{"travel":{"title":"...","body":"...","imageUrl":"https://images.unsplash.com/photo-..."},"luxury":{"title":"...","body":"...","imageUrl":"https://images.unsplash.com/photo-..."},"women":{"title":"...","body":"...","imageUrl":"https://images.unsplash.com/photo-..."},"tech":{"title":"...","body":"...","imageUrl":"https://images.unsplash.com/photo-..."},"fitness":{"title":"...","body":"...","imageUrl":"https://images.unsplash.com/photo-..."},"entertainment":{"title":"...","body":"...","imageUrl":"https://images.unsplash.com/photo-..."}}\n';
 
     var lifestyleRes = await fetch(ANTHROPIC_API, {
       method: 'POST',
@@ -252,12 +244,12 @@ export async function onRequestPost(context) {
 
     var lifestyleJson = extractJson(lifestyleText) || {};
     if (!lifestyleJson.travel) {
-      lifestyleJson.travel        = lifestyleJson.travel        || { title: '', body: '', imageQuery: 'luxury travel maldives' };
-      lifestyleJson.luxury        = lifestyleJson.luxury        || { title: '', body: '', imageQuery: 'luxury watch' };
-      lifestyleJson.women         = lifestyleJson.women         || { title: '', body: '', imageQuery: 'editorial fashion lifestyle' };
-      lifestyleJson.tech          = lifestyleJson.tech          || { title: '', body: '', imageQuery: 'technology AI' };
-      lifestyleJson.fitness       = lifestyleJson.fitness       || { title: '', body: '', imageQuery: 'fitness gym' };
-      lifestyleJson.entertainment = lifestyleJson.entertainment || { title: '', body: '', imageQuery: 'cinema film' };
+      lifestyleJson.travel        = lifestyleJson.travel        || { title: '', body: '', imageUrl: '' };
+      lifestyleJson.luxury        = lifestyleJson.luxury        || { title: '', body: '', imageUrl: '' };
+      lifestyleJson.women         = lifestyleJson.women         || { title: '', body: '', imageUrl: '' };
+      lifestyleJson.tech          = lifestyleJson.tech          || { title: '', body: '', imageUrl: '' };
+      lifestyleJson.fitness       = lifestyleJson.fitness       || { title: '', body: '', imageUrl: '' };
+      lifestyleJson.entertainment = lifestyleJson.entertainment || { title: '', body: '', imageUrl: '' };
     }
 
     await writeProgress(5, 8, 'Generating Mindset Line');
