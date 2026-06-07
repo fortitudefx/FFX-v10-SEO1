@@ -155,11 +155,45 @@ export async function onRequestPost(context) {
 
     // ── Step 6: Update newsletter:last_sent ───────────────────────────────
     await env.FFX_KV.put('newsletter:last_sent', JSON.stringify({
-      issueNumber: draft.issueNumber,
-      issueDate:   draft.issueDate,
-      sentAt:      issue.publishedAt,
-      campaignId:  campaignId,
+      issueNumber:     draft.issueNumber,
+      issueDate:       draft.issueDate,
+      sentAt:          issue.publishedAt,
+      campaignId:      campaignId,
+      exclusiveTitle:  draft.exclusiveArticle && draft.exclusiveArticle.title || '',
+      trendingTopic:   draft.trendingQ && draft.trendingQ.question || '',
     }));
+
+    // ── Step 6b: Write newsletter:performance for intelligence engine ────
+    var perfKey = 'newsletter:performance:' + draft.issueDate;
+    var perfData = {
+      issueNumber:        draft.issueNumber,
+      issueDate:          draft.issueDate,
+      sentAt:             issue.publishedAt,
+      campaignId:         campaignId,
+      exclusiveTitle:     draft.exclusiveArticle && draft.exclusiveArticle.title || '',
+      trendingQuestion:   draft.trendingQ && draft.trendingQ.question || '',
+      featuredSlugs:      draft.featuredSlugs || [],
+      lifestyleTopics:    Object.keys(draft.lifestyle || {}).filter(function(k){ return draft.lifestyle[k] && draft.lifestyle[k].title; }),
+      marketsSourceLabel: draft.weekInMarkets && draft.weekInMarkets.sourceLabel || '',
+    };
+    await env.FFX_KV.put(perfKey, JSON.stringify(perfData));
+
+    // ── Step 6c: Write newsletter:article_refs for cross-linking ─────────
+    var allSlugs = draft.featuredSlugs || [];
+    var refData = { issueNumber: draft.issueNumber, issueDate: draft.issueDate };
+    for (var si = 0; si < allSlugs.length; si++) {
+      var refSlug = allSlugs[si];
+      if (!refSlug) continue;
+      try {
+        var existing = await env.FFX_KV.get('newsletter:article_refs:' + refSlug, { type: 'json' }).catch(function(){ return []; });
+        if (!Array.isArray(existing)) existing = [];
+        var alreadyHas = existing.some(function(r){ return r.issueDate === draft.issueDate; });
+        if (!alreadyHas) {
+          existing.push(refData);
+          await env.FFX_KV.put('newsletter:article_refs:' + refSlug, JSON.stringify(existing));
+        }
+      } catch(refErr) { /* non-fatal */ }
+    }
 
     // ── Step 7: Clear draft ───────────────────────────────────────────────
     try { await env.FFX_KV.delete('newsletter:draft'); } catch(e) {}
@@ -192,191 +226,252 @@ export async function onRequestOptions() {
 function buildNewsletterEmail(draft) {
   var esc = function(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
 
-  // ── Component helpers ────────────────────────────────────────────────────
-
-  // Full-width dark section header bar
+  // ── Section header bar — full width colored strip ────────────────────────
   function sectionBar(icon, label, color) {
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 0;background:' + color + ';">'
-      + '<tr><td style="padding:10px 32px;">'
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td style="background:' + color + ';padding:10px 36px;">'
       + '<p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#ffffff;">' + icon + '&nbsp;&nbsp;' + esc(label) + '</p>'
       + '</td></tr></table>';
   }
 
-  // Section heading inside white body
-  function sectionHeading(text) {
-    return '<p style="margin:0 0 12px;font-family:DM Sans,Arial,sans-serif;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.22;letter-spacing:-0.01em;">' + esc(text) + '</p>';
+  // ── White padded content block ───────────────────────────────────────────
+  function contentBlock(html) {
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td style="background:#ffffff;padding:24px 36px 4px;">' + html + '</td></tr></table>';
   }
 
-  // Body text
+  // ── Section heading ──────────────────────────────────────────────────────
+  function heading(text) {
+    return '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;line-height:1.22;letter-spacing:-0.01em;">' + esc(text) + '</p>';
+  }
+
+  // ── Body text ────────────────────────────────────────────────────────────
   function bodyText(text) {
-    // Max 2 sentences — hook only, click to read more
-    var sentences = (text || '').match(/[^.!?]+[.!?]+/g) || [text];
-    var hook = sentences.slice(0, 2).join(' ').trim();
-    return '<p style="margin:0 0 14px;font-family:DM Sans,Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + esc(hook) + '</p>';
+    return '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + esc(text) + '</p>';
   }
 
-  // Gold quote card
-  function goldCard(content) {
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">'
-      + '<tr><td style="padding:20px 24px;border-left:4px solid #c9a84c;background:#fffdf5;border-radius:0 10px 10px 0;">'
-      + content + '</td></tr></table>';
+  // ── Source link ──────────────────────────────────────────────────────────
+  function sourceLink(url, label) {
+    if (!url) return '';
+    return '<p style="margin:0 0 20px;"><a href="' + esc(url) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#e06b1a;text-decoration:none;letter-spacing:0.04em;">Via ' + esc(label || 'Source') + ' &rarr;</a></p>';
   }
 
-  // Article card — editorial style with colored category bar
+  // ── Article link ─────────────────────────────────────────────────────────
+  function articleLink(slug, title, color) {
+    if (!slug || !title) return '';
+    var url = 'https://fortitudefx.com/article?slug=' + encodeURIComponent(slug);
+    return '<p style="margin:8px 0 16px;"><a href="' + esc(url) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:' + (color || '#7a5cff') + ';text-decoration:none;letter-spacing:0.04em;">Related: ' + esc(title) + ' &rarr;</a></p>';
+  }
+
+  // ── Horizontal rule ──────────────────────────────────────────────────────
+  function rule() {
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" bgcolor="#eeeeee" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>';
+  }
+
+  // ── Spacer ───────────────────────────────────────────────────────────────
+  function spacer(h) {
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="' + h + '" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>';
+  }
+
+  // ── Article card ─────────────────────────────────────────────────────────
   function articleCard(article) {
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;border-radius:10px;overflow:hidden;border:1px solid #e8e8f0;">'
-      + '<tr><td style="padding:0;">'
-      // Category bar
-      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#1a1a2e;padding:7px 18px;">'
-      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#c9a84c;">' + esc(article.category || 'Strategy') + '</p>'
-      + '</td></tr></table>'
-      // Content
-      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:16px 18px 18px;background:#ffffff;">'
-      + '<p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:#1a1a2e;line-height:1.28;">' + esc(article.title) + '</p>'
-      + (article.excerpt ? '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;color:#666677;line-height:1.68;">' + esc(article.excerpt.substring(0, 140)) + '&hellip;</p>' : '')
-      + '<a href="' + esc(article.url) + '" target="_blank" style="display:inline-block;padding:8px 20px;background:#1a1a2e;color:#c9a84c;font-family:Arial,sans-serif;font-size:11px;font-weight:700;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;border-radius:4px;">Read Article &rarr;</a>'
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">'
+      + '<tr><td style="border-radius:8px;overflow:hidden;">'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
+      + '<tr><td bgcolor="#1a1a2e" style="padding:7px 16px;">'
+      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#c9a84c;">' + esc(article.category || 'Strategy') + '</p>'
+      + '</td></tr>'
+      + '<tr><td bgcolor="#f8f8fb" style="padding:16px 18px 18px;border:1px solid #e8e8f0;border-top:none;">'
+      + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#1a1a2e;line-height:1.28;">' + esc(article.title) + '</p>'
+      + (article.excerpt ? '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;color:#666677;line-height:1.65;">' + esc(article.excerpt.substring(0, 120)) + '&hellip;</p>' : '')
+      + '<a href="' + esc(article.url) + '" target="_blank" style="display:inline-block;padding:8px 18px;background:#1a1a2e;color:#c9a84c;font-family:Arial,sans-serif;font-size:11px;font-weight:700;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Read Article &rarr;</a>'
       + '</td></tr></table>'
       + '</td></tr></table>';
   }
 
-  // Lifestyle card — Unsplash image + dark treatment
-  function lifestyleCard(icon, label, title, body, color, bgColor, imageUrl) {
-    var sentences = (body || '').match(/[^.!?]+[.!?]+/g) || [body];
-    var hook = sentences.slice(0, 2).join(' ').trim();
-    var imgBlock = imageUrl ? ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:0;font-size:0;line-height:0;"><img src="' + esc(imageUrl) + '" width="600" alt="' + esc(label) + '" style="display:block;width:100%;max-width:600px;" /></td></tr></table>') : '';
+  // ── Lifestyle card — image + dark content + source link ──────────────────
+  function lifestyleCard(icon, label, title, body, color, bgColor, imageUrl, sourceUrl, sourceLabel) {
+    var imgBlock = imageUrl
+      ? ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+         + '<td style="padding:0;font-size:0;line-height:0;">'
+         + '<img src="' + esc(imageUrl) + '" width="600" alt="' + esc(label) + '" style="display:block;width:100%;max-width:600px;" />'
+         + '</td></tr></table>')
+      : '';
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">'
       + '<tr><td>'
-      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:' + color + ';padding:8px 18px;">'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td style="background:' + color + ';padding:8px 18px;">'
       + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#ffffff;">' + icon + '&nbsp;&nbsp;' + esc(label) + '</p>'
       + '</td></tr></table>'
       + imgBlock
-      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:' + (bgColor || '#16181f') + ';padding:16px 20px;">'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td style="background:' + (bgColor || '#16181f') + ';padding:16px 20px;">'
       + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;">' + esc(title) + '</p>'
-      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#aaaacc;line-height:1.70;">' + esc(hook) + '</p>'
+      + '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:13px;color:#aaaacc;line-height:1.70;">' + esc(body) + '</p>'
+      + (sourceUrl ? '<a href="' + esc(sourceUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:' + color + ';text-decoration:none;letter-spacing:0.06em;text-transform:uppercase;">Via ' + esc(sourceLabel || 'Source') + ' &rarr;</a>' : '')
       + '</td></tr></table>'
       + '</td></tr></table>';
   }
 
-  // White content section wrapper
-  function section(content) {
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:28px 32px 4px;">' + content + '</td></tr></table>';
-  }
-
-  // ── Build body ────────────────────────────────────────────────────────────
   var body = '';
 
-  // Issue intro line inside body
-  body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:24px 32px 8px;">'
-    + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">Issue #' + draft.issueNumber + ' &nbsp;&middot;&nbsp; ' + esc(formatDateDisplay(draft.issueDate)) + '</p>'
+  // Issue intro line
+  body += spacer(20);
+  body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:0 36px 8px;">'
+    + '<p style="margin:0 0 3px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1a1a2e;">Issue #' + draft.issueNumber + ' &nbsp;&middot;&nbsp; ' + esc(formatDateDisplay(draft.issueDate)) + '</p>'
     + '<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#9999aa;">Bi-weekly intelligence for the serious forex trader.</p>'
     + '</td></tr></table>';
+  body += spacer(12);
 
-  // ── Week in Markets ───────────────────────────────────────────────────────
-  if (draft.weekInMarkets) {
+  // ── 1. Week in Markets ────────────────────────────────────────────────────
+  if (draft.weekInMarkets && draft.weekInMarkets.content) {
     body += sectionBar('&#128200;', 'Week in Markets', '#e06b1a');
-    body += section(
-      sectionHeading('What the market did \u2014 and what it told us.')
-      + bodyText(draft.weekInMarkets)
-      + '<a href="https://fortitudefx.com/blog.html" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#e06b1a;text-decoration:none;letter-spacing:0.04em;">Read all articles &rarr;</a>'
+    body += contentBlock(
+      heading('What the market did \u2014 and what it told us.')
+      + bodyText(draft.weekInMarkets.content)
+      + sourceLink(draft.weekInMarkets.sourceUrl, draft.weekInMarkets.sourceLabel)
     );
+    body += spacer(8);
   }
 
-  // ── On This Day ───────────────────────────────────────────────────────────
+  // ── 2. On This Day ────────────────────────────────────────────────────────
   if (draft.onThisDay && draft.onThisDay.event) {
     body += sectionBar('&#128337;', 'On This Day in Markets \u2014 ' + (draft.onThisDay.year || ''), '#c9a84c');
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:20px 32px 4px;">';
-    body += goldCard(
-      '<p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:700;color:#1a1a2e;line-height:1.35;">' + esc(draft.onThisDay.event) + '</p>'
-      + (draft.onThisDay.lesson ? '<p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#555566;line-height:1.70;">' + esc(draft.onThisDay.lesson) + '</p>' : '')
-    );
-    body += '</td></tr></table>';
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td style="padding:20px 36px 8px;">'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td style="padding:18px 22px;border-left:4px solid #c9a84c;background:#fffdf5;">'
+      + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;line-height:1.35;">' + esc(draft.onThisDay.event) + '</p>'
+      + (draft.onThisDay.lesson ? '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;color:#555566;line-height:1.70;">' + esc(draft.onThisDay.lesson) + '</p>' : '')
+      + (draft.onThisDay.wikiUrl ? '<a href="' + esc(draft.onThisDay.wikiUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#c9a84c;text-decoration:none;letter-spacing:0.04em;">Read on Wikipedia &rarr;</a>' : '')
+      + '</td></tr></table>'
+      + '</td></tr></table>';
+    body += spacer(8);
   }
 
-  // ── Trending Question ─────────────────────────────────────────────────────
+  // ── 3. Trending Question — pull quote design ──────────────────────────────
   if (draft.trendingQ && draft.trendingQ.question) {
     body += sectionBar('&#10067;', 'Trending Question', '#7a5cff');
-    body += section(
-      sectionHeading(draft.trendingQ.question)
-      + bodyText(draft.trendingQ.answer || '')
-      + '<a href="https://fortitudefx.com/blog.html" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#7a5cff;text-decoration:none;letter-spacing:0.04em;">Explore more on the blog &rarr;</a>'
-    );
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td style="background:#f8f7ff;padding:28px 36px 20px;">'
+      // Large quote mark
+      + '<p style="margin:0 0 -8px;font-family:Georgia,serif;font-size:64px;color:#7a5cff;line-height:1;opacity:0.4;">&ldquo;</p>'
+      // Question in large bold
+      + '<p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;line-height:1.30;letter-spacing:-0.01em;">' + esc(draft.trendingQ.question) + '</p>'
+      + rule()
+      + spacer(14)
+      // Full answer
+      + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + esc(draft.trendingQ.answer) + '</p>'
+      + (draft.trendingQ.relatedArticleSlug ? articleLink(draft.trendingQ.relatedArticleSlug, draft.trendingQ.relatedArticleTitle, '#7a5cff') : '')
+      + '</td></tr></table>';
+    body += spacer(8);
   }
 
-  // ── Newsletter Exclusive ──────────────────────────────────────────────────
+  // ── 4. Newsletter Exclusive ───────────────────────────────────────────────
   if (draft.exclusiveArticle && draft.exclusiveArticle.title) {
-    body += sectionBar('&#11088;', 'Newsletter Exclusive \u2014 Not on the Blog', '#1a1a2e');
-    body += section(
-      sectionHeading(draft.exclusiveArticle.title)
-      + bodyText(draft.exclusiveArticle.body || '')
-      + '<a href="https://fortitudefx.com/newsletter" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#c9a84c;text-decoration:none;letter-spacing:0.04em;">Read the full issue online &rarr;</a>'
-    );
+    var exclusiveUrl = 'https://fortitudefx.com/newsletter-issue?date=' + draft.issueDate + '#exclusive';
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td bgcolor="#0a0a12" style="padding:28px 36px;">'
+      // Exclusive badge
+      + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr>'
+      + '<td style="background:#c9a84c;padding:4px 12px;border-radius:3px;">'
+      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#000000;">&#11088; NEWSLETTER EXCLUSIVE</p>'
+      + '</td></tr></table>'
+      // Title
+      + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#ffffff;line-height:1.20;letter-spacing:-0.01em;">' + esc(draft.exclusiveArticle.title) + '</p>'
+      // Gold top border line
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr><td height="2" bgcolor="#c9a84c" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
+      // Hook text
+      + '<p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:15px;color:rgba(255,255,255,0.80);line-height:1.82;">' + esc(draft.exclusiveArticle.hookText || draft.exclusiveArticle.fullText.substring(0, 200)) + '</p>'
+      // Read full editorial CTA
+      + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:' + (draft.exclusiveArticle.relatedArticleSlug ? '10px' : '0') + ';"><tr>'
+      + '<td style="background:#c9a84c;border-radius:4px;">'
+      + '<a href="' + esc(exclusiveUrl) + '" target="_blank" style="display:inline-block;padding:11px 24px;font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#000000;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Read Full Editorial &rarr;</a>'
+      + '</td></tr></table>'
+      + (draft.exclusiveArticle.relatedArticleSlug
+        ? '<p style="margin:0;"><a href="https://fortitudefx.com/article?slug=' + esc(draft.exclusiveArticle.relatedArticleSlug) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;color:rgba(201,168,76,0.70);text-decoration:none;">Related: ' + esc(draft.exclusiveArticle.relatedArticleTitle || '') + ' &rarr;</a></p>'
+        : '')
+      + '</td></tr></table>';
+    body += spacer(8);
   }
 
-  // ── Setup of the Fortnight ────────────────────────────────────────────────
+  // ── 5. Setup of the Fortnight ─────────────────────────────────────────────
   if (draft.setup && draft.setup.hasSetup) {
     body += sectionBar('&#128200;', 'Setup of the Fortnight', '#c9a84c');
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:20px 32px 4px;">';
-    if (draft.setup.imageUrl) {
-      body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;"><tr><td style="text-align:center;"><img src="' + esc(draft.setup.imageUrl) + '" alt="Chart Setup" style="max-width:100%;border-radius:8px;border:1px solid #e0e0e8;" /></td></tr></table>';
-    }
-    if (draft.setup.note) { body += bodyText(draft.setup.note); }
-    body += '</td></tr></table>';
+    body += contentBlock(
+      (draft.setup.imageUrl ? '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;"><tr><td><img src="' + esc(draft.setup.imageUrl) + '" alt="Chart Setup" style="max-width:100%;border-radius:8px;border:1px solid #e0e0e8;display:block;" /></td></tr></table>' : '')
+      + (draft.setup.note ? bodyText(draft.setup.note) : '')
+    );
+    body += spacer(8);
   }
 
-  // ── Articles ──────────────────────────────────────────────────────────────
+  // ── 6. Articles ───────────────────────────────────────────────────────────
   if (draft.articles && draft.articles.length > 0) {
     body += sectionBar('&#128196;', 'This Fortnight on the Blog', '#7a5cff');
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:20px 32px 4px;">';
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:20px 36px 8px;">';
     for (var a = 0; a < draft.articles.length; a++) { body += articleCard(draft.articles[a]); }
     body += '</td></tr></table>';
+    body += spacer(8);
   }
 
-  // ── Lifestyle Edit — full dark section ───────────────────────────────────
+  // ── 7. Lifestyle Edit ─────────────────────────────────────────────────────
   var ls = draft.lifestyle || {};
-  var lifestyleDefs = [
+  var lsDefs = [
     { key:'travel',        icon:'&#9992;',  label:'Trading Freedom \u2014 Travel & Destination', color:'#e06b1a', bg:'#1a0e08' },
-    { key:'luxury',        icon:'&#9899;',  label:'Luxury',                                        color:'#c9a84c', bg:'#1a1608' },
-    { key:'women',         icon:'&#10022;', label:'Women & Lifestyle',                             color:'#7a5cff', bg:'#0f0c1f' },
-    { key:'tech',          icon:'&#9881;',  label:'Tech & AI',                                     color:'#38bdf8', bg:'#071820' },
-    { key:'fitness',       icon:'&#128170;',label:'Fitness, Diet & Mindset',                      color:'#3ecf8e', bg:'#081a12' },
-    { key:'entertainment', icon:'&#127916;',label:'Entertainment',                                color:'#a855f7', bg:'#160d1f' },
+    { key:'luxury',        icon:'&#9899;',  label:'Luxury',                                       color:'#c9a84c', bg:'#1a1608' },
+    { key:'women',         icon:'&#10022;', label:'Women & Lifestyle',                            color:'#7a5cff', bg:'#0f0c1f' },
+    { key:'tech',          icon:'&#9881;',  label:'Tech & AI',                                    color:'#38bdf8', bg:'#071820' },
+    { key:'fitness',       icon:'&#128170;',label:'Fitness, Diet & Mindset',                     color:'#3ecf8e', bg:'#081a12' },
+    { key:'entertainment', icon:'&#127916;',label:'Entertainment',                               color:'#a855f7', bg:'#160d1f' },
   ];
-  var hasLifestyle = lifestyleDefs.some(function(d){ return ls[d.key] && ls[d.key].title && ls[d.key].body; });
+  var hasLifestyle = lsDefs.some(function(d) { return ls[d.key] && ls[d.key].title; });
   if (hasLifestyle) {
-    // Full-width lifestyle header — dark premium
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#06060a;padding:24px 32px 8px;">'
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td bgcolor="#06060a" style="padding:24px 36px 8px;">'
       + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:#c9a84c;">&#127774;&nbsp;&nbsp;The Lifestyle Edit</p>'
-      + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:#ffffff;">The life the consistency builds toward.</p>'
+      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:18px;font-weight:700;color:#ffffff;">The life the consistency builds toward.</p>'
       + '</td></tr></table>';
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#06060a;padding:12px 32px 24px;">';
-    lifestyleDefs.forEach(function(d) {
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#06060a" style="padding:12px 36px 24px;">';
+    lsDefs.forEach(function(d) {
       var data = ls[d.key] || {};
-      if (data.title && data.body) {
-        body += lifestyleCard(d.icon, d.label, data.title, data.body, d.color, d.bg, data.imageUrl || '');
+      if (data.title) {
+        body += lifestyleCard(d.icon, d.label, data.title, data.body || '', d.color, d.bg, data.imageUrl || '', data.sourceUrl || '', data.sourceLabel || '');
       }
     });
     body += '</td></tr></table>';
+    body += spacer(8);
   }
 
-  // ── Mindset Line ──────────────────────────────────────────────────────────
+  // ── 8. Mindset Line ───────────────────────────────────────────────────────
   if (draft.mindsetLine) {
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#1a1a2e;padding:28px 32px;">'
-      + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#c9a84c;">FFX Mindset Line</p>'
-      + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:700;color:#ffffff;line-height:1.42;font-style:italic;">&ldquo;' + esc(draft.mindsetLine) + '&rdquo;</p>'
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td bgcolor="#1a1a2e" style="padding:28px 36px;">'
+      + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#c9a84c;">FFX Mindset Line</p>'
+      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#ffffff;line-height:1.42;font-style:italic;">&ldquo;' + esc(draft.mindsetLine) + '&rdquo;</p>'
       + '</td></tr></table>';
+    body += spacer(8);
   }
 
-  // ── Discord CTA ────────────────────────────────────────────────────────────
-  body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#f0eeff;padding:28px 32px;text-align:center;border-top:3px solid #7a5cff;">'
-    + '<p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;">Not in the Discord yet?</p>'
-    + '<p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:14px;color:#555566;line-height:1.70;">Join the free FortitudeFX community. Get real-time chart markups, daily recaps, and direct access.</p>'
-    + '<a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" style="display:inline-block;padding:13px 32px;background:#7a5cff;color:#ffffff;font-family:Arial,sans-serif;font-size:13px;font-weight:700;text-decoration:none;border-radius:999px;letter-spacing:0.06em;text-transform:uppercase;">Join Free &rarr;</a>'
+  // ── 9. Discord CTA ────────────────────────────────────────────────────────
+  body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+    + '<td bgcolor="#f0eeff" style="padding:28px 36px;text-align:center;border-top:3px solid #7a5cff;">'
+    + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;">Not in the Discord yet?</p>'
+    + '<p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:14px;color:#555566;line-height:1.70;max-width:360px;display:inline-block;">Real-time chart markups, daily recaps, direct access to Salman.</p>'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr>'
+    + '<td style="background:#7a5cff;border-radius:999px;">'
+    + '<a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" style="display:inline-block;padding:13px 32px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.06em;text-transform:uppercase;">Join Free &rarr;</a>'
+    + '</td></tr></table>'
     + '</td></tr></table>';
 
-  return buildMasterTemplate({ issueNumber: draft.issueNumber, issueDate: draft.issueDate, bodyHtml: body, footerNote: 'You are receiving this because you joined FortitudeFX\u2122. <a href="https://fortitudefx.com/newsletter-issue?date=' + draft.issueDate + '" style="color:#7a5cff;text-decoration:none;">View online</a> &middot; <a href="{{unsubscribe}}" style="color:#aaaabc;text-decoration:none;">Unsubscribe</a>' });
+  return buildMasterTemplate({
+    issueNumber:  draft.issueNumber,
+    issueDate:    draft.issueDate,
+    bodyHtml:     body,
+    footerNote:   'You are receiving this because you joined FortitudeFX\u2122. <a href="https://fortitudefx.com/newsletter-issue?date=' + draft.issueDate + '" style="color:#7a5cff;text-decoration:none;">View online</a> &middot; <a href="{{unsubscribe}}" style="color:#aaaabc;text-decoration:none;">Unsubscribe</a>',
+  });
 }
 
-// ── Master template — premium wide layout ────────────────────────────────────
+
 function buildMasterTemplate(opts) {
   var esc = function(s) { return String(s || ''); };
   var issueNum  = opts.issueNumber || 1;
