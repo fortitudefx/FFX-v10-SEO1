@@ -42,6 +42,9 @@ export async function onRequestPost(context) {
     var issueNumber = lastSent ? (lastSent.issueNumber + 1) : 1;
     var issueDate   = new Date().toISOString().split('T')[0];
 
+    // Clear old draft so dashboard poll does not find stale data
+    try { await env.FFX_KV.delete('newsletter:draft'); } catch(e) {}
+
     // Write initial progress so dashboard shows immediately
     await env.FFX_KV.put(PROGRESS_KEY, JSON.stringify({
       step: 1, total: 8, label: 'Job queued — starting generation',
