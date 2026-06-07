@@ -176,6 +176,20 @@ export async function onRequestGet(context) {
       siblingTitle,
     };
 
+    // 6. Read newsletter:article_refs:{slug} — append cross-link if featured in newsletter
+    try {
+      const newsletterRefs = await env.FFX_KV.get('newsletter:article_refs:' + slug, { type: 'json' }).catch(() => null);
+      if (Array.isArray(newsletterRefs) && newsletterRefs.length > 0) {
+        const latestRef = newsletterRefs[newsletterRefs.length - 1];
+        const nlUrl     = '/newsletter-issue?date=' + latestRef.issueDate;
+        const nlBlock   = '<div style="margin-top:32px;padding:16px 20px;border-left:3px solid rgba(201,168,76,0.70);background:rgba(201,168,76,0.05);border-radius:0 8px 8px 0;">'
+          + '<p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(201,168,76,0.70);">Featured in Newsletter</p>'
+          + '<p style="margin:0;font-size:14px;"><a href="' + nlUrl + '" style="color:#7a5cff;text-decoration:none;font-weight:700;">Read Issue #' + latestRef.issueNumber + ' \u2192</a></p>'
+          + '</div>';
+        article.body = (article.body || '') + nlBlock;
+      }
+    } catch(nlErr) { /* non-fatal — never break article serving */ }
+
     return new Response(JSON.stringify({ success: true, article }), { status: 200, headers });
 
   } catch (err) {
