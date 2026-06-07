@@ -29,6 +29,11 @@ export default {
 };
 
 async function processJob(job, env) {
+  // Route newsletter jobs to separate handler — no timeout, no lock conflict
+  if (job.type === 'newsletter') {
+    await processNewsletterJob(job, env);
+    return;
+  }
   const { jobId, videoId, youtubeUrl, existingSlug } = job;
   console.log('[FFX] Processing job:', jobId, 'videoId:', videoId);
 
@@ -605,4 +610,146 @@ async function extractLibrary(transcript, youtubeUrl, videoTitle, videoId, apiKe
 
   if (!Array.isArray(parsed)) throw new Error('Library extraction did not return array');
   return parsed.filter(function(item){ return item.category && item.format && item.content; });
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Newsletter Job Handler
+// Runs in consumer Worker — no 30s timeout limit
+// Reads from KV, makes 4 Claude calls, writes draft to KV
+// ─────────────────────────────────────────────────────────────────────────────
+async function processNewsletterJob(job, env) {
+  var ANTHROPIC_API   = 'https://api.anthropic.com/v1/messages';
+  var ANTHROPIC_MODEL = 'claude-sonnet-4-5';
+  var PROGRESS_KEY    = 'newsletter:generate:progress';
+  var DRAFT_KEY       = 'newsletter:draft';
+
+  async function writeProgress(step, total, label) {
+    try { await env.FFX_KV.put(PROGRESS_KEY, JSON.stringify({ step: step, total: total, label: label, updatedAt: new Date().toISOString() }), { expirationTtl: 600 }); } catch(e) {}
+  }
+
+  function extractJson(text) {
+    if (!text) return null;
+    var start = text.indexOf('{');
+    var end   = text.lastIndexOf('}');
+    if (start === -1 || end === -1 || end <= start) return null;
+    try { return JSON.parse(text.slice(start, end + 1)); } catch(e) { return null; }
+  }
+
+  function formatDateDisplay(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  try {
+    var issueNumber   = job.issueNumber   || 1;
+    var issueDate     = job.issueDate     || new Date().toISOString().split('T')[0];
+    var setupNote     = job.setupNote     || '';
+    var setupImageUrl = job.setupImageUrl || '';
+
+    await writeProgress(1, 8, 'Reading KV data — articles, signals, brief');
+
+    var kvResults = await Promise.all([
+      env.FFX_KV.get('intelligence:brief',   { type: 'json' }).catch(function() { return null; }),
+      env.FFX_KV.get('seo:signals',          { type: 'json' }).catch(function() { return null; }),
+      env.FFX_KV.get('articles:index',       { type: 'json' }).catch(function() { return null; }),
+      env.FFX_KV.get('newsletter:last_sent', { type: 'json' }).catch(function() { return null; }),
+      env.FFX_KV.get('newsletter:index',     { type: 'json' }).catch(function() { return null; }),
+    ]);
+
+    var brief         = kvResults[0];
+    var seoSignals    = kvResults[1];
+    var articlesIndex = kvResults[2];
+    var newsletterIdx = kvResults[4];
+
+    var cutoff   = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
+    var articles = Array.isArray(articlesIndex) ? articlesIndex.filter(function(a) { return a.publishedAt && a.publishedAt > cutoff; }).slice(0, 3) : [];
+    if (articles.length === 0 && Array.isArray(articlesIndex)) articles = articlesIndex.slice(0, 3);
+
+    var featuredSlugs = [];
+    if (Array.isArray(newsletterIdx)) {
+      newsletterIdx.slice(0, 3).forEach(function(ni) { if (ni.featuredSlugs) featuredSlugs = featuredSlugs.concat(ni.featuredSlugs); });
+    }
+
+    var articleContext = Array.isArray(articlesIndex) ? articlesIndex.slice(0, 20).map(function(a) { return a.slug + ' | ' + a.title + ' | ' + (a.category || '') + ' | ' + (a.excerpt || '').substring(0, 80); }).join('
+') : '';
+    var topKeyword = (seoSignals && seoSignals.risingQueries && seoSignals.risingQueries[0] && seoSignals.risingQueries[0].query) || (seoSignals && seoSignals.topQueries && seoSignals.topQueries[0] && seoSignals.topQueries[0].query) || 'forex risk management';
+    var prevExclusiveTitle = (brief && brief.newsletterExclusiveTitle) || '';
+
+    await writeProgress(2, 8, 'Calling Claude — Week in Markets + On This Day (web search)');
+
+    var marketsPrompt = 'You are writing for FortitudeFX — a forex trading education brand built around the Catch The Wick (CTW) mechanical entry framework. Voice: direct, authoritative, specific, no fluff.\n\nGenerate TWO sections for the bi-weekly FFX newsletter dated ' + issueDate + ':\n\n1. WEEK IN MARKETS (200-250 words)\nWeb search for the most significant forex and macro market events from the past 14 days. Name the pairs, the levels, the events. Frame through CTW lens: what did the wicks reveal, where were the 2-candle setups. Find one credible source URL (Reuters, Bloomberg, FT, Investing.com) for the main story.\n\n2. ON THIS DAY IN MARKETS\nFind a significant historical forex or macro event on or near ' + issueDate + ' in any past year. Must be real. One punchy paragraph — what happened, why it mattered, one trader lesson. Find the Wikipedia URL for this event.\n\nCRITICAL INSTRUCTION: Return ONLY a JSON object. First character must be {. Last must be }. No preamble. No markdown.\n{"weekInMarkets":{"content":"...","sourceUrl":"https://...","sourceLabel":"Reuters"},"onThisDay":{"year":"YYYY","event":"...","lesson":"...","wikiUrl":"https://en.wikipedia.org/wiki/..."}}';
+
+    var marketsRes  = await fetch(ANTHROPIC_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'web-search-2025-03-05' }, body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 2000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: marketsPrompt }] }) });
+    var marketsData = await marketsRes.json();
+    var marketsText = '';
+    if (marketsData.content) { for (var i = 0; i < marketsData.content.length; i++) { if (marketsData.content[i].type === 'text') marketsText += marketsData.content[i].text; } }
+    var marketsJson = extractJson(marketsText) || {};
+    if (!marketsJson.weekInMarkets) { marketsJson.weekInMarkets = { content: '', sourceUrl: '', sourceLabel: '' }; marketsJson.onThisDay = { year: '', event: '', lesson: '', wikiUrl: '' }; }
+
+    await writeProgress(3, 8, 'Calling Claude — Trending Question + Exclusive Article');
+
+    var articlePrompt = 'You are writing for FortitudeFX in Salman Khan\'s voice. Direct, authoritative, no fluff. CTW framework: 2-candle story, HTF/LTF pairs, 5 entry models.\n\nTop SEO keyword: ' + topKeyword + '\nCurrent market context: ' + ((marketsJson.weekInMarkets && marketsJson.weekInMarkets.content) || 'USD strength in focus').substring(0, 300) + '\n\nExisting articles for cross-referencing (slug | title | category | excerpt):\n' + articleContext + '\n\nGenerate TWO sections:\n\n1. TRENDING QUESTION (150-200 words)\nPick the most interesting trading question based on the keyword and market context. Answer it fully in Salman\'s voice. Full paragraph, not a one-liner. If any existing article above is closely related, return its slug and title.\n\n2. NEWSLETTER EXCLUSIVE EDITORIAL\nWrite a newsletter-exclusive editorial tied to current market conditions. Previous exclusive: "' + prevExclusiveTitle + '" — do not repeat. Return hookText (150-200 words punchy opening) and fullText (400-500 words complete editorial). Check articles list for most related article.\n\nCRITICAL INSTRUCTION: Return ONLY a JSON object. First character must be {. Last must be }. No preamble. No markdown.\n{"trendingQ":{"question":"...","answer":"full paragraph","relatedArticleSlug":"slug-or-null","relatedArticleTitle":"title-or-null"},"exclusiveArticle":{"title":"...","hookText":"150-200 word hook","fullText":"400-500 word editorial","relatedArticleSlug":"slug-or-null","relatedArticleTitle":"title-or-null"}}';
+
+    var articleRes  = await fetch(ANTHROPIC_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 2500, messages: [{ role: 'user', content: articlePrompt }] }) });
+    var articleData = await articleRes.json();
+    var articleText = '';
+    if (articleData.content) { for (var j = 0; j < articleData.content.length; j++) { if (articleData.content[j].type === 'text') articleText += articleData.content[j].text; } }
+    var articleJson = extractJson(articleText) || {};
+    if (!articleJson.trendingQ) { articleJson.trendingQ = { question: '', answer: '', relatedArticleSlug: null, relatedArticleTitle: null }; articleJson.exclusiveArticle = { title: '', hookText: '', fullText: '', relatedArticleSlug: null, relatedArticleTitle: null }; }
+
+    await writeProgress(4, 8, 'Calling Claude — 6 Lifestyle Sections (web search)');
+
+    var lifestylePrompt = 'You are curating the lifestyle section of the FortitudeFX bi-weekly newsletter. FFX sells an aspirational but attainable high-end lifestyle to young forex traders. Think GQ, Robb Report, Monocle aesthetic.\n\nFor each of the 6 sections: (1) web search for real current content from a credible source (GQ, Robb Report, Wired, Men\'s Health, Condé Nast Traveller etc), (2) write title + exactly 2 sentences hook, (3) return the real source URL, (4) web search Unsplash.com for a high quality relevant photo and return the direct image URL (https://images.unsplash.com/photo-...).\n\nSECTIONS:\n1. TRADING FREEDOM — TRAVEL & DESTINATION: One specific destination. Aspirational but attainable — Lisbon, Barcelona, Bali, Maldives, Amalfi, Mykonos.\n2. LUXURY: One specific luxury item — watch, car, hotel suite. Real product, real substance.\n3. WOMEN & LIFESTYLE: Tasteful, genuinely desirable, GQ editorial. Beautiful woman in aspirational setting — beach, rooftop bar, yacht, summer terrace. Classy not crude.\n4. TECH & AI: One genuine tech or AI development from the past 2 weeks. Real news, trader relevance.\n5. FITNESS, DIET & MINDSET: One specific protocol that improves trading performance. Real science, actionable.\n6. ENTERTAINMENT: One specific recommendation — film, series, book, podcast. Tied to discipline, risk, or excellence.\n\nCRITICAL INSTRUCTION: Return ONLY a JSON object. First character must be {. Last must be }. No preamble. No markdown.\n{"travel":{"title":"...","body":"exactly 2 sentences","sourceUrl":"https://...","sourceLabel":"Condé Nast Traveller","imageUrl":"https://images.unsplash.com/photo-..."},"luxury":{"title":"...","body":"exactly 2 sentences","sourceUrl":"https://...","sourceLabel":"GQ","imageUrl":"https://images.unsplash.com/photo-..."},"women":{"title":"...","body":"exactly 2 sentences","sourceUrl":"https://...","sourceLabel":"GQ","imageUrl":"https://images.unsplash.com/photo-..."},"tech":{"title":"...","body":"exactly 2 sentences","sourceUrl":"https://...","sourceLabel":"Wired","imageUrl":"https://images.unsplash.com/photo-..."},"fitness":{"title":"...","body":"exactly 2 sentences","sourceUrl":"https://...","sourceLabel":"Men\'s Health","imageUrl":"https://images.unsplash.com/photo-..."},"entertainment":{"title":"...","body":"exactly 2 sentences","sourceUrl":"https://...","sourceLabel":"GQ","imageUrl":"https://images.unsplash.com/photo-..."}}';
+
+    var lifestyleRes  = await fetch(ANTHROPIC_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'web-search-2025-03-05' }, body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 2500, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: lifestylePrompt }] }) });
+    var lifestyleData = await lifestyleRes.json();
+    var lifestyleText = '';
+    if (lifestyleData.content) { for (var k = 0; k < lifestyleData.content.length; k++) { if (lifestyleData.content[k].type === 'text') lifestyleText += lifestyleData.content[k].text; } }
+    var lifestyleJson = extractJson(lifestyleText) || {};
+    ['travel','luxury','women','tech','fitness','entertainment'].forEach(function(key) { lifestyleJson[key] = lifestyleJson[key] || { title: '', body: '', sourceUrl: '', sourceLabel: '', imageUrl: '' }; });
+
+    await writeProgress(5, 8, 'Generating Mindset Line');
+
+    var mindsetPrompt = 'Write ONE sentence — the FFX Mindset Line for this bi-weekly newsletter. Rules: mechanical and specific to CTW framework, not motivational fluff, memorable, in Salman\'s direct voice, maximum 25 words. Tied to current market: ' + ((marketsJson.weekInMarkets && marketsJson.weekInMarkets.content) || '').substring(0, 150) + '. Return ONLY the sentence. No quotes. No explanation.';
+    var mindsetRes  = await fetch(ANTHROPIC_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 60, messages: [{ role: 'user', content: mindsetPrompt }] }) });
+    var mindsetData = await mindsetRes.json();
+    var mindsetLine = '';
+    if (mindsetData.content && mindsetData.content[0] && mindsetData.content[0].text) mindsetLine = mindsetData.content[0].text.trim().replace(/^["']|["']$/g, '');
+
+    await writeProgress(6, 8, 'Building draft + saving to KV');
+
+    var allFeaturedSlugs = articles.map(function(a) { return a.slug; });
+    if (articleJson.trendingQ && articleJson.trendingQ.relatedArticleSlug) allFeaturedSlugs.push(articleJson.trendingQ.relatedArticleSlug);
+    if (articleJson.exclusiveArticle && articleJson.exclusiveArticle.relatedArticleSlug) allFeaturedSlugs.push(articleJson.exclusiveArticle.relatedArticleSlug);
+
+    var draft = {
+      issueNumber:   issueNumber,
+      issueDate:     issueDate,
+      generatedAt:   new Date().toISOString(),
+      status:        'draft',
+      weekInMarkets: { content: (marketsJson.weekInMarkets && marketsJson.weekInMarkets.content) || '', sourceUrl: (marketsJson.weekInMarkets && marketsJson.weekInMarkets.sourceUrl) || '', sourceLabel: (marketsJson.weekInMarkets && marketsJson.weekInMarkets.sourceLabel) || 'Source' },
+      onThisDay:     { year: (marketsJson.onThisDay && marketsJson.onThisDay.year) || '', event: (marketsJson.onThisDay && marketsJson.onThisDay.event) || '', lesson: (marketsJson.onThisDay && marketsJson.onThisDay.lesson) || '', wikiUrl: (marketsJson.onThisDay && marketsJson.onThisDay.wikiUrl) || '' },
+      trendingQ:     { question: (articleJson.trendingQ && articleJson.trendingQ.question) || '', answer: (articleJson.trendingQ && articleJson.trendingQ.answer) || '', relatedArticleSlug: (articleJson.trendingQ && articleJson.trendingQ.relatedArticleSlug) || null, relatedArticleTitle: (articleJson.trendingQ && articleJson.trendingQ.relatedArticleTitle) || null },
+      exclusiveArticle: { title: (articleJson.exclusiveArticle && articleJson.exclusiveArticle.title) || '', hookText: (articleJson.exclusiveArticle && articleJson.exclusiveArticle.hookText) || '', fullText: (articleJson.exclusiveArticle && articleJson.exclusiveArticle.fullText) || '', relatedArticleSlug: (articleJson.exclusiveArticle && articleJson.exclusiveArticle.relatedArticleSlug) || null, relatedArticleTitle: (articleJson.exclusiveArticle && articleJson.exclusiveArticle.relatedArticleTitle) || null },
+      mindsetLine:   mindsetLine,
+      setup:         { note: setupNote, imageUrl: setupImageUrl, hasSetup: !!(setupNote || setupImageUrl) },
+      articles:      articles.map(function(a) { return { slug: a.slug, title: a.title, excerpt: a.excerpt || '', category: a.category || '', youtubeUrl: a.youtubeUrl || '', publishedAt: a.publishedAt || '', url: 'https://fortitudefx.com/article?slug=' + a.slug }; }),
+      lifestyle:     lifestyleJson,
+      featuredSlugs: allFeaturedSlugs,
+      subject:       'Catch The Wick™ · Issue #' + issueNumber + ' · ' + formatDateDisplay(issueDate),
+    };
+
+    await writeProgress(7, 8, 'Saving draft to KV');
+    await env.FFX_KV.put(DRAFT_KEY, JSON.stringify(draft));
+    await writeProgress(8, 8, 'Complete');
+
+    try { await env.FFX_KV.delete(PROGRESS_KEY); } catch(e) {}
+    console.log('[FFX] Newsletter draft generated — Issue #' + issueNumber);
+
+  } catch(err) {
+    console.error('[FFX] Newsletter job failed:', err.message);
+    try { await env.FFX_KV.put('newsletter:generate:progress', JSON.stringify({ step: 0, total: 8, label: 'Error: ' + err.message, status: 'error', updatedAt: new Date().toISOString() }), { expirationTtl: 600 }); } catch(e) {}
+  }
 }
