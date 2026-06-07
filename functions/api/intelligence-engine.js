@@ -74,9 +74,22 @@ export async function onRequestPost(context) {
       articlesIndex, directiveOutcomes, titleTests,
     });
 
+    // Append newsletter context — read here in async handler, not inside buildSignalContext
+    const newsletterLastSent = await env.FFX_KV.get('newsletter:last_sent', { type: 'json' }).catch(() => null);
+    let signalContextWithNewsletter = signalContext;
+    if (newsletterLastSent) {
+      signalContextWithNewsletter += '\n\nNEWSLETTER LAST ISSUE: #' + (newsletterLastSent.issueNumber || '') + ' sent ' + (newsletterLastSent.issueDate || '') + '\n';
+      if (newsletterLastSent.exclusiveTitle) {
+        signalContextWithNewsletter += 'Newsletter exclusive topic (do not repeat): ' + newsletterLastSent.exclusiveTitle + '\n';
+      }
+      if (newsletterLastSent.trendingTopic) {
+        signalContextWithNewsletter += 'Last trending question (do not repeat): ' + newsletterLastSent.trendingTopic + '\n';
+      }
+    }
+
     let brief;
     try {
-      brief = await callClaudeAnalyst(signalContext, env.ANTHROPIC_API_KEY);
+      brief = await callClaudeAnalyst(signalContextWithNewsletter, env.ANTHROPIC_API_KEY);
     } catch(claudeErr) {
       await writeProgress(env, 3, 'Claude analyst failed: ' + claudeErr.message, 'error');
       throw claudeErr;
@@ -347,18 +360,6 @@ function buildSignalContext(signals) {
     ctx += '\n\u2501\u2501 YESTERDAY\'S BRIEF \u2501\u2501\n'
       + 'Yesterday target: ' + (prevBrief.articleBrief && prevBrief.articleBrief.targetQuery || 'N/A') + '\n'
       + 'Yesterday momentum: ' + (prevBrief.weeklyInsight && prevBrief.weeklyInsight.momentum || 'N/A') + '\n';
-
-  // Newsletter context — avoid repeating topics
-  const newsletterLastSent = await env.FFX_KV.get('newsletter:last_sent', { type: 'json' }).catch(() => null);
-  if (newsletterLastSent) {
-    systemContext += 'NEWSLETTER LAST ISSUE: #' + (newsletterLastSent.issueNumber || '') + ' sent ' + (newsletterLastSent.issueDate || '') + '\n';
-    if (newsletterLastSent.exclusiveTitle) {
-      systemContext += 'Newsletter exclusive topic (do not repeat): ' + newsletterLastSent.exclusiveTitle + '\n';
-    }
-    if (newsletterLastSent.trendingTopic) {
-      systemContext += 'Last trending question (do not repeat): ' + newsletterLastSent.trendingTopic + '\n';
-    }
-  }
   }
 
   // ── Open title tests — Claude must never recommend these slugs for rewrite ──
