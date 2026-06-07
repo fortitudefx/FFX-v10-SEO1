@@ -43,6 +43,7 @@ export async function onRequestPost(context) {
       env.FFX_KV.get('knowledge:taxonomy',    { type: 'json' }).catch(() => null),
       env.FFX_KV.get('knowledge:performance', { type: 'json' }).catch(() => null),
       env.FFX_KV.get('intelligence:brief',    { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('newsletter:last_sent',  { type: 'json' }).catch(() => null),
     ]);
 
     if (!seoSignals && !ga4Signals) {
@@ -346,6 +347,18 @@ function buildSignalContext(signals) {
     ctx += '\n\u2501\u2501 YESTERDAY\'S BRIEF \u2501\u2501\n'
       + 'Yesterday target: ' + (prevBrief.articleBrief && prevBrief.articleBrief.targetQuery || 'N/A') + '\n'
       + 'Yesterday momentum: ' + (prevBrief.weeklyInsight && prevBrief.weeklyInsight.momentum || 'N/A') + '\n';
+
+  // Newsletter context — avoid repeating topics
+  const newsletterLastSent = await env.FFX_KV.get('newsletter:last_sent', { type: 'json' }).catch(() => null);
+  if (newsletterLastSent) {
+    systemContext += 'NEWSLETTER LAST ISSUE: #' + (newsletterLastSent.issueNumber || '') + ' sent ' + (newsletterLastSent.issueDate || '') + '\n';
+    if (newsletterLastSent.exclusiveTitle) {
+      systemContext += 'Newsletter exclusive topic (do not repeat): ' + newsletterLastSent.exclusiveTitle + '\n';
+    }
+    if (newsletterLastSent.trendingTopic) {
+      systemContext += 'Last trending question (do not repeat): ' + newsletterLastSent.trendingTopic + '\n';
+    }
+  }
   }
 
   // ── Open title tests — Claude must never recommend these slugs for rewrite ──
