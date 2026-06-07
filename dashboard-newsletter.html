@@ -550,9 +550,12 @@ async function generateNewsletter() {
       return;
     }
 
-    // Job queued — now poll until draft appears in KV (consumer Worker is processing)
-    var draftPollMax     = 150; // 150 x 2s = 5 minutes max
-    var draftPollCount   = 0;
+    // Job queued — record start time so poll ignores any stale draft
+    var generateStarted = new Date().toISOString();
+
+    // Now poll until a NEW draft appears in KV (consumer Worker is processing)
+    var draftPollMax      = 150; // 150 x 2s = 5 minutes max
+    var draftPollCount    = 0;
     var draftPollInterval = setInterval(async function() {
       draftPollCount++;
       if (draftPollCount > draftPollMax) {
@@ -567,7 +570,9 @@ async function generateNewsletter() {
         var draftText = await draftRes.text();
         var draftData;
         try { draftData = JSON.parse(draftText); } catch(e) { return; }
-        if (!draftData.draft) return; // still processing — keep polling
+        if (!draftData.draft) return;
+        // Ignore stale draft — only accept one generated after this job started
+        if (!draftData.draft.generatedAt || draftData.draft.generatedAt < generateStarted) return;
         clearInterval(draftPollInterval);
         cleanup();
         for (var m = 0; m < 8; m++) setStep(m, 'done');
