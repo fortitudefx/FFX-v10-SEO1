@@ -240,25 +240,18 @@ function buildNewsletterEmail(draft) {
   }
 
   // Lifestyle card — Unsplash image + dark treatment
-  function lifestyleCard(icon, label, title, body, color, bgColor, imageQuery) {
-    // Unsplash source URL — free, no API key, returns real photo
-    var imgUrl = 'https://source.unsplash.com/600x220/?' + encodeURIComponent((imageQuery || label).replace(/[^a-z0-9 ,]/gi,'').trim().split(' ').slice(0,4).join(','));
-    // Max 2 sentences
+  function lifestyleCard(icon, label, title, body, color, bgColor, imageUrl) {
     var sentences = (body || '').match(/[^.!?]+[.!?]+/g) || [body];
     var hook = sentences.slice(0, 2).join(' ').trim();
+    var imgBlock = imageUrl ? ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:0;font-size:0;line-height:0;"><img src="' + esc(imageUrl) + '" width="600" alt="' + esc(label) + '" style="display:block;width:100%;max-width:600px;" /></td></tr></table>') : '';
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">'
       + '<tr><td>'
-      // Color top bar
       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:' + color + ';padding:8px 18px;">'
       + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#ffffff;">' + icon + '&nbsp;&nbsp;' + esc(label) + '</p>'
       + '</td></tr></table>'
-      // Unsplash image
-      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:0;font-size:0;line-height:0;">'
-      + '<img src="' + imgUrl + '" width="600" alt="' + esc(label) + '" style="display:block;width:100%;max-width:600px;height:200px;object-fit:cover;" />'
-      + '</td></tr></table>'
-      // Content on dark bg
+      + imgBlock
       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:' + (bgColor || '#16181f') + ';padding:16px 20px;">'
-      + '<p style="margin:0 0 6px;font-family:DM Sans,Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;">' + esc(title) + '</p>'
+      + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;">' + esc(title) + '</p>'
       + '<p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#aaaacc;line-height:1.70;">' + esc(hook) + '</p>'
       + '</td></tr></table>'
       + '</td></tr></table>';
@@ -284,6 +277,7 @@ function buildNewsletterEmail(draft) {
     body += section(
       sectionHeading('What the market did \u2014 and what it told us.')
       + bodyText(draft.weekInMarkets)
+      + '<a href="https://fortitudefx.com/blog.html" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#e06b1a;text-decoration:none;letter-spacing:0.04em;">Read all articles &rarr;</a>'
     );
   }
 
@@ -304,6 +298,7 @@ function buildNewsletterEmail(draft) {
     body += section(
       sectionHeading(draft.trendingQ.question)
       + bodyText(draft.trendingQ.answer || '')
+      + '<a href="https://fortitudefx.com/blog.html" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#7a5cff;text-decoration:none;letter-spacing:0.04em;">Explore more on the blog &rarr;</a>'
     );
   }
 
@@ -313,6 +308,7 @@ function buildNewsletterEmail(draft) {
     body += section(
       sectionHeading(draft.exclusiveArticle.title)
       + bodyText(draft.exclusiveArticle.body || '')
+      + '<a href="https://fortitudefx.com/newsletter" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#c9a84c;text-decoration:none;letter-spacing:0.04em;">Read the full issue online &rarr;</a>'
     );
   }
 
@@ -338,12 +334,12 @@ function buildNewsletterEmail(draft) {
   // ── Lifestyle Edit — full dark section ───────────────────────────────────
   var ls = draft.lifestyle || {};
   var lifestyleDefs = [
-    { key:'travel',        icon:'&#9992;',  label:'Trading Freedom \u2014 Travel & Destination', color:'#e06b1a', bg:'#1a0e08', defaultQuery:'luxury travel destination ocean sunset' },
-    { key:'luxury',        icon:'&#9899;',  label:'Luxury',                                        color:'#c9a84c', bg:'#1a1608', defaultQuery:'luxury watch car lifestyle wealth' },
-    { key:'women',         icon:'&#10022;', label:'Women & Lifestyle',                             color:'#7a5cff', bg:'#0f0c1f', defaultQuery:'beautiful woman fashion editorial luxury' },
-    { key:'tech',          icon:'&#9881;',  label:'Tech & AI',                                     color:'#38bdf8', bg:'#071820', defaultQuery:'technology artificial intelligence future' },
-    { key:'fitness',       icon:'&#128170;',label:'Fitness, Diet & Mindset',                      color:'#3ecf8e', bg:'#081a12', defaultQuery:'fitness gym athletic performance' },
-    { key:'entertainment', icon:'&#127916;',label:'Entertainment',                                color:'#a855f7', bg:'#160d1f', defaultQuery:'cinema film entertainment art' },
+    { key:'travel',        icon:'&#9992;',  label:'Trading Freedom \u2014 Travel & Destination', color:'#e06b1a', bg:'#1a0e08' },
+    { key:'luxury',        icon:'&#9899;',  label:'Luxury',                                        color:'#c9a84c', bg:'#1a1608' },
+    { key:'women',         icon:'&#10022;', label:'Women & Lifestyle',                             color:'#7a5cff', bg:'#0f0c1f' },
+    { key:'tech',          icon:'&#9881;',  label:'Tech & AI',                                     color:'#38bdf8', bg:'#071820' },
+    { key:'fitness',       icon:'&#128170;',label:'Fitness, Diet & Mindset',                      color:'#3ecf8e', bg:'#081a12' },
+    { key:'entertainment', icon:'&#127916;',label:'Entertainment',                                color:'#a855f7', bg:'#160d1f' },
   ];
   var hasLifestyle = lifestyleDefs.some(function(d){ return ls[d.key] && ls[d.key].title && ls[d.key].body; });
   if (hasLifestyle) {
@@ -356,7 +352,7 @@ function buildNewsletterEmail(draft) {
     lifestyleDefs.forEach(function(d) {
       var data = ls[d.key] || {};
       if (data.title && data.body) {
-        body += lifestyleCard(d.icon, d.label, data.title, data.body, d.color, d.bg, data.imageQuery || d.defaultQuery);
+        body += lifestyleCard(d.icon, d.label, data.title, data.body, d.color, d.bg, data.imageUrl || '');
       }
     });
     body += '</td></tr></table>';
@@ -411,10 +407,10 @@ function buildMasterTemplate(opts) {
     + '</tr>'
 
     // HEADER — solid dark
-    + '<tr><td colspan="2" bgcolor="#0a0a12" style="padding:32px 36px 28px;">'
+    + '<tr><td colspan="2" bgcolor="#0a0a12" style="padding:24px 36px 20px;">'
 
     // Brand row
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr>'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;"><tr>'
     + '<td style="vertical-align:middle;">'
     + '<a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;">'
     + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
@@ -432,7 +428,7 @@ function buildMasterTemplate(opts) {
     + '</tr></table>'
 
     // Catch The Wick headline — left: kicker + CTW. Right: #1 + 2 Candles. 1 Story.
-    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;"><tr>'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;"><tr>'
     + '<td style="vertical-align:middle;" width="360">'
     + '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:#c9a84c;">&#9679;&nbsp; BI-WEEKLY &nbsp;&#183;&nbsp; ' + esc(dateDisp) + '</p>'
     + '<p class="em-hero" style="margin:0;font-family:Georgia,serif;font-size:36px;font-weight:700;color:#ffffff;line-height:1.0;letter-spacing:-0.02em;">Catch The Wick<span style="font-size:14px;vertical-align:super;font-weight:400;">&#8482;</span></p>'
