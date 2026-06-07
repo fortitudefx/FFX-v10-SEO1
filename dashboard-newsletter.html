@@ -543,37 +543,51 @@ async function generateNewsletter() {
       return;
     }
 
-    cleanup();
-
     if (!res.ok || data.error) {
-      for (var j = 0; j < 8; j++) {
-        var ej = document.getElementById('istep-' + j);
-        if (ej && ej.classList.contains('active')) setStep(j, 'error');
-      }
+      cleanup();
       showError('Generate failed: ' + (data.error || 'Unknown error'));
       resetGenerateBtn(btn, steps);
       return;
     }
 
-    for (var m = 0; m < 8; m++) setStep(m, 'done');
-    btn.textContent = '&#10003; Generated';
-
-    _currentDraft = data.draft;
-    _isDirty      = false;
-    renderDraft(_currentDraft);
-
-    document.getElementById('emptyState').style.display = 'none';
-    document.getElementById('saveBtn').style.display    = 'inline-block';
-    document.getElementById('publishBtn').style.display = 'inline-block';
-    document.getElementById('statusDot').style.cssText  = '';
-    document.getElementById('headerCount').textContent  = 'Draft ready — Issue #' + _currentDraft.issueNumber;
-
-    setTimeout(function() {
-      btn.textContent    = '&#9889; Regenerate';
-      btn.disabled       = false;
-      steps.style.display = 'none';
-      for (var n = 0; n < 8; n++) setStep(n, 'pending');
-    }, 5000);
+    // Job queued — now poll until draft appears in KV (consumer Worker is processing)
+    var draftPollMax     = 150; // 150 x 2s = 5 minutes max
+    var draftPollCount   = 0;
+    var draftPollInterval = setInterval(async function() {
+      draftPollCount++;
+      if (draftPollCount > draftPollMax) {
+        clearInterval(draftPollInterval);
+        cleanup();
+        showError('Generation timed out after 5 minutes. Check Cloudflare Worker logs.');
+        resetGenerateBtn(btn, steps);
+        return;
+      }
+      try {
+        var draftRes  = await fetch('/api/newsletter-generate');
+        var draftText = await draftRes.text();
+        var draftData;
+        try { draftData = JSON.parse(draftText); } catch(e) { return; }
+        if (!draftData.draft) return; // still processing — keep polling
+        clearInterval(draftPollInterval);
+        cleanup();
+        for (var m = 0; m < 8; m++) setStep(m, 'done');
+        btn.textContent = '&#10003; Generated';
+        _currentDraft = draftData.draft;
+        _isDirty      = false;
+        renderDraft(_currentDraft);
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('saveBtn').style.display    = 'inline-block';
+        document.getElementById('publishBtn').style.display = 'inline-block';
+        document.getElementById('statusDot').style.cssText  = '';
+        document.getElementById('headerCount').textContent  = 'Draft ready — Issue #' + _currentDraft.issueNumber;
+        setTimeout(function() {
+          btn.textContent     = '&#9889; Regenerate';
+          btn.disabled        = false;
+          steps.style.display = 'none';
+          for (var n = 0; n < 8; n++) setStep(n, 'pending');
+        }, 5000);
+      } catch(pollErr) { /* keep polling */ }
+    }, 2000);
 
   } catch (err) {
     cleanup();
