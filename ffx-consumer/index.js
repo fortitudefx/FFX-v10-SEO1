@@ -672,8 +672,7 @@ async function processNewsletterJob(job, env) {
       newsletterIdx.slice(0, 3).forEach(function(ni) { if (ni.featuredSlugs) featuredSlugs = featuredSlugs.concat(ni.featuredSlugs); });
     }
 
-    var articleContext = Array.isArray(articlesIndex) ? articlesIndex.slice(0, 20).map(function(a) { return a.slug + ' | ' + a.title + ' | ' + (a.category || '') + ' | ' + (a.excerpt || '').substring(0, 80); }).join('
-') : '';
+    var articleContext = Array.isArray(articlesIndex) ? articlesIndex.slice(0, 20).map(function(a) { return a.slug + ' | ' + a.title + ' | ' + (a.category || '') + ' | ' + (a.excerpt || '').substring(0, 80); }).join('\n') : '';
     var topKeyword = (seoSignals && seoSignals.risingQueries && seoSignals.risingQueries[0] && seoSignals.risingQueries[0].query) || (seoSignals && seoSignals.topQueries && seoSignals.topQueries[0] && seoSignals.topQueries[0].query) || 'forex risk management';
     var prevExclusiveTitle = (brief && brief.newsletterExclusiveTitle) || '';
 
