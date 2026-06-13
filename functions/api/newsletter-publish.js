@@ -411,7 +411,7 @@ function buildNewsletterEmail(draft) {
   var lsDefs = [
     { key:'travel',        label:'Trading Freedom \u2014 Travel & Destination', color:'#e06b1a', bg:'#1a0e08' },
     { key:'luxury',        label:'Luxury',                                       color:'#c9a84c', bg:'#1a1608' },
-    { key:'women',         label:'Women & Lifestyle',                            color:'#7a5cff', bg:'#0f0c1f' },
+    { key:'women',         label:'Lifestyle',                                       color:'#7a5cff', bg:'#0f0c1f' },
     { key:'tech',          label:'Tech & AI',                                    color:'#38bdf8', bg:'#071820' },
     { key:'fitness',       label:'Fitness, Diet & Mindset',                      color:'#3ecf8e', bg:'#081a12' },
     { key:'entertainment', label:'Entertainment',                                color:'#a855f7', bg:'#160d1f' },
@@ -420,7 +420,7 @@ function buildNewsletterEmail(draft) {
   if (hasLifestyle) {
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
       + '<td bgcolor="#06060a" style="padding:36px 36px 8px;text-align:center;border-top:3px solid #c9a84c;">'
-      + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.30em;text-transform:uppercase;color:#c9a84c;">The Lifestyle Edit</p>'
+      + '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:18px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:#c9a84c;">The Lifestyle Edit</p>'
       + '<p style="margin:0;font-family:Georgia,\'Times New Roman\',serif;font-size:30px;font-style:italic;font-weight:400;color:#ffffff;line-height:1.2;">The life the consistency builds toward.</p>'
       + '</td></tr></table>';
     body += spacer(8);
