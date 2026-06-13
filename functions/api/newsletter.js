@@ -34,7 +34,9 @@ export async function onRequestGet(context) {
       if (!issue) {
         return new Response(JSON.stringify({ error: 'Issue not found for date: ' + date }), { status: 404, headers: CORS_HEADERS });
       }
-      return new Response(JSON.stringify({ issue: issue }), { status: 200, headers: CORS_HEADERS });
+      // Also return performance data if available
+      var perf = await env.FFX_KV.get('newsletter:performance:' + date, { type: 'json' }).catch(function() { return null; });
+      return new Response(JSON.stringify({ issue: issue, performance: perf || null }), { status: 200, headers: CORS_HEADERS });
     }
 
     // Full index — all issues
