@@ -86,6 +86,10 @@ export async function onRequestPost(context) {
     if (!draft) return new Response(JSON.stringify({ error: 'draft required' }), { status: 400, headers: CORS_HEADERS });
     if (!env.BREVO_API_KEY) return new Response(JSON.stringify({ error: 'BREVO_API_KEY not set' }), { status: 500, headers: CORS_HEADERS });
 
+    // ── Step 0: Read previous last_sent so we can write prevIssueDate ────
+    var prevLastSent = await env.FFX_KV.get('newsletter:last_sent', { type: 'json' }).catch(function() { return null; });
+    var prevIssueDate = (prevLastSent && prevLastSent.issueDate && prevLastSent.issueDate !== draft.issueDate) ? prevLastSent.issueDate : null;
+
     // ── Step 1: Build full email HTML ─────────────────────────────────────
     var emailHtml = buildNewsletterEmail(draft);
 
@@ -131,10 +135,11 @@ export async function onRequestPost(context) {
     // ── Step 4: Save issue permanently to KV ──────────────────────────────
     var issueKey = 'newsletter:issue:' + draft.issueDate;
     var issue = Object.assign({}, draft, {
-      status:     'published',
-      publishedAt: new Date().toISOString(),
-      campaignId:  campaignId,
-      emailHtml:   emailHtml,
+      status:       'published',
+      publishedAt:  new Date().toISOString(),
+      campaignId:   campaignId,
+      emailHtml:    emailHtml,
+      prevIssueDate: prevIssueDate,
     });
     await env.FFX_KV.put(issueKey, JSON.stringify(issue));
 
