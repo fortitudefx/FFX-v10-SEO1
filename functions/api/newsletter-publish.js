@@ -159,6 +159,14 @@ export async function onRequestPost(context) {
     await env.FFX_KV.put('newsletter:index', JSON.stringify(index));
 
     // ── Step 6: Update newsletter:last_sent ───────────────────────────────
+    // Store everything intelligence engine needs to avoid repetition next issue
+    var lifestyleForLastSent = {};
+    var ls6 = draft.lifestyle || {};
+    ['travel','luxury','women','tech','fitness','entertainment'].forEach(function(k) {
+      if (ls6[k] && ls6[k].title) {
+        lifestyleForLastSent[k] = { title: ls6[k].title, sourceLabel: ls6[k].sourceLabel || '' };
+      }
+    });
     await env.FFX_KV.put('newsletter:last_sent', JSON.stringify({
       issueNumber:      draft.issueNumber,
       issueDate:        draft.issueDate,
@@ -167,20 +175,37 @@ export async function onRequestPost(context) {
       exclusiveTitle:   draft.perspective && draft.perspective.title || '',
       perspectiveTitle: draft.perspective && draft.perspective.title || '',
       trendingTopic:    draft.trendingQ && draft.trendingQ.question || '',
+      lifestyleTitles:  lifestyleForLastSent,
     }));
 
     // ── Step 6b: Write newsletter:performance for intelligence engine ────
     var perfKey = 'newsletter:performance:' + draft.issueDate;
+    var lifestylePerf = {};
+    var lsPerf = draft.lifestyle || {};
+    ['travel','luxury','women','tech','fitness','entertainment'].forEach(function(k) {
+      if (lsPerf[k] && lsPerf[k].title) {
+        lifestylePerf[k] = {
+          title:       lsPerf[k].title,
+          sourceLabel: lsPerf[k].sourceLabel || '',
+          sourceUrl:   lsPerf[k].sourceUrl   || '',
+        };
+      }
+    });
     var perfData = {
-      issueNumber:        draft.issueNumber,
-      issueDate:          draft.issueDate,
-      sentAt:             issue.publishedAt,
-      campaignId:         campaignId,
-      exclusiveTitle:     draft.exclusiveArticle && draft.exclusiveArticle.title || '',
-      trendingQuestion:   draft.trendingQ && draft.trendingQ.question || '',
-      featuredSlugs:      draft.featuredSlugs || [],
-      lifestyleTopics:    Object.keys(draft.lifestyle || {}).filter(function(k){ return draft.lifestyle[k] && draft.lifestyle[k].title; }),
-      marketsSourceLabel: draft.weekInMarkets && draft.weekInMarkets.sourceLabel || '',
+      issueNumber:      draft.issueNumber,
+      issueDate:        draft.issueDate,
+      sentAt:           issue.publishedAt,
+      campaignId:       campaignId,
+      subject:          draft.subject || '',
+      perspectiveTitle: draft.perspective && draft.perspective.title || '',
+      trendingQuestion: draft.trendingQ && draft.trendingQ.question || '',
+      featuredSlugs:    draft.featuredSlugs || [],
+      lifestyleSections: lifestylePerf,
+      // Stats populated 48hrs after send by newsletter-performance.js
+      openRate:         null,
+      clickRate:        null,
+      unsubscribeCount: null,
+      statsUpdatedAt:   null,
     };
     await env.FFX_KV.put(perfKey, JSON.stringify(perfData));
 
