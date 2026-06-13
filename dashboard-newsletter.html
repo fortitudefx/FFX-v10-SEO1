@@ -94,8 +94,36 @@
     .nl-preview-iframe { width:100%; height:700px; border:none; display:block; }
     .nl-preview-empty { padding:60px 24px; text-align:center; color:rgba(255,255,255,0.28); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; line-height:1.8; }
 
-    /* Error banner */
-    .nl-error { background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.25); border-radius:10px; padding:14px 18px; font-size:13px; color:rgba(248,113,113,0.90); line-height:1.6; margin-bottom:20px; display:none; }
+    /* Tabs */
+    .nl-tabs { display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:0; }
+    .nl-tab { padding:10px 20px; font-size:11px; font-weight:700; letter-spacing:0.10em; text-transform:uppercase; color:rgba(255,255,255,0.35); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color 0.15s, border-color 0.15s; }
+    .nl-tab.active { color:#c9a84c; border-bottom-color:#c9a84c; }
+    .nl-tab:hover:not(.active) { color:rgba(255,255,255,0.60); }
+
+    /* Performance tab */
+    .nl-perf-panel { border-radius:14px; border:1px solid rgba(255,255,255,0.07); background:#16181f; overflow:hidden; }
+    .nl-perf-header { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid rgba(255,255,255,0.07); }
+    .nl-perf-title { font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.40); }
+    .nl-perf-table { width:100%; }
+    .nl-perf-head { display:grid; grid-template-columns:60px 120px 1fr 90px 90px 80px 140px 90px; gap:12px; padding:10px 24px; border-bottom:1px solid rgba(255,255,255,0.07); }
+    .nl-perf-head-cell { font-size:9px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.28); }
+    .nl-perf-row { display:grid; grid-template-columns:60px 120px 1fr 90px 90px 80px 140px 90px; gap:12px; padding:14px 24px; border-bottom:1px solid rgba(255,255,255,0.05); align-items:center; transition:background 0.15s; }
+    .nl-perf-row:last-child { border-bottom:none; }
+    .nl-perf-row:hover { background:rgba(255,255,255,0.02); }
+    .nl-perf-issue { font-size:12px; font-weight:700; color:#c9a84c; }
+    .nl-perf-date a { font-size:12px; color:#7a5cff; text-decoration:none; font-weight:600; }
+    .nl-perf-date a:hover { text-decoration:underline; }
+    .nl-perf-subject { font-size:12px; color:rgba(255,255,255,0.65); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .nl-perf-stat { font-size:16px; font-weight:800; letter-spacing:-0.02em; }
+    .nl-perf-stat.good { color:#3ecf8e; }
+    .nl-perf-stat.ok { color:#c9a84c; }
+    .nl-perf-stat.low { color:rgba(255,255,255,0.35); }
+    .nl-perf-stat.none { color:rgba(255,255,255,0.20); font-size:12px; font-weight:400; }
+    .nl-perf-unsub { font-size:13px; color:rgba(255,255,255,0.45); }
+    .nl-perf-age { font-size:10px; color:rgba(255,255,255,0.28); }
+    .nl-perf-age.stale { color:rgba(248,113,113,0.60); }
+    .nl-perf-view a { font-size:11px; font-weight:700; color:#7a5cff; text-decoration:none; }
+    .nl-perf-empty { padding:60px 24px; text-align:center; color:rgba(255,255,255,0.28); font-size:13px; line-height:1.8; }
     .nl-loading { padding:40px; text-align:center; color:rgba(255,255,255,0.28); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; }
     .nl-empty { padding:60px 24px; text-align:center; }
     .nl-empty-title { font-size:20px; font-weight:700; color:rgba(255,255,255,0.60); margin-bottom:10px; }
@@ -204,6 +232,15 @@
       <div class="nl-stat-sub" id="statDraftDate"></div>
     </div>
   </div>
+
+  <!-- Tabs -->
+  <div class="nl-tabs" id="nlTabs" style="display:none;">
+    <button class="nl-tab active" id="tabGenerate" onclick="switchTab('generate')">⚡ Generate</button>
+    <button class="nl-tab" id="tabPerformance" onclick="switchTab('performance')">📊 Performance</button>
+  </div>
+
+  <!-- Tab: Generate (existing content) -->
+  <div id="tab-generate">
 
   <!-- Setup panel -->
   <div class="nl-setup-panel" id="setupPanel">
@@ -373,6 +410,37 @@
     <div class="nl-empty-title">No newsletters yet.</div>
     <div class="nl-empty-body">Fill in the setup details above (optional) and hit Generate to create your first issue.</div>
   </div>
+
+  </div><!-- /#tab-generate -->
+
+  <!-- Tab: Performance -->
+  <div id="tab-performance" style="display:none;">
+    <div class="nl-perf-panel">
+      <div class="nl-perf-header">
+        <span class="nl-perf-title">All Issues — Live KPIs</span>
+        <button onclick="refreshAllKPIs()" id="refreshKPIsBtn"
+          style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+                 background:rgba(62,207,142,0.10);color:#3ecf8e;
+                 border:1px solid rgba(62,207,142,0.28);border-radius:5px;padding:5px 16px;cursor:pointer;">
+          ↻ Refresh All KPIs
+        </button>
+      </div>
+      <!-- Table header -->
+      <div class="nl-perf-head">
+        <div class="nl-perf-head-cell">#</div>
+        <div class="nl-perf-head-cell">Date</div>
+        <div class="nl-perf-head-cell">Subject</div>
+        <div class="nl-perf-head-cell">Open Rate</div>
+        <div class="nl-perf-head-cell">Click Rate</div>
+        <div class="nl-perf-head-cell">Unsubs</div>
+        <div class="nl-perf-head-cell">Stats Age</div>
+        <div class="nl-perf-head-cell">View</div>
+      </div>
+      <div id="perfTableBody">
+        <div class="nl-perf-empty">Loading performance data...</div>
+      </div>
+    </div>
+  </div><!-- /#tab-performance -->
 
 </div><!-- /.nl-wrap -->
 
@@ -853,6 +921,7 @@ function buildPreviewHtml(draft) {
 // ── Stats ──────────────────────────────────────────────────────────────────
 function renderStats(data) {
   document.getElementById('statRow').style.display = 'grid';
+  document.getElementById('nlTabs').style.display  = 'flex';
   document.getElementById('statIssues').textContent = data.total || 0;
   if (data.lastSent) {
     document.getElementById('statLastSent').textContent  = formatDate(data.lastSent.issueDate);
@@ -899,7 +968,104 @@ function setStep(idx, state) {
   if (state === 'pending') { icon.className = 'intel-step-icon pending';  icon.textContent = '○'; }
 }
 
-function showError(msg) { var el=document.getElementById('errorBanner'); el.textContent=msg; el.style.display='block'; }
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tab-generate').style.display    = tab === 'generate'    ? 'block' : 'none';
+  document.getElementById('tab-performance').style.display = tab === 'performance' ? 'block' : 'none';
+  document.getElementById('tabGenerate').classList.toggle('active',    tab === 'generate');
+  document.getElementById('tabPerformance').classList.toggle('active', tab === 'performance');
+  if (tab === 'performance') loadPerformanceTab();
+}
+
+// ── Load Performance tab ───────────────────────────────────────────────────
+async function loadPerformanceTab() {
+  var el = document.getElementById('perfTableBody');
+  el.innerHTML = '<div class="nl-perf-empty">Loading...</div>';
+  try {
+    var res  = await fetch('/api/newsletter');
+    var data = await res.json();
+    if (!data.issues || !data.issues.length) {
+      el.innerHTML = '<div class="nl-perf-empty">No published issues yet.</div>';
+      return;
+    }
+    // Load performance records for all issues in parallel
+    var perfResults = await Promise.all(data.issues.map(function(issue) {
+      return fetch('/api/newsletter?date=' + encodeURIComponent(issue.date))
+        .then(function(r) { return r.json(); })
+        .catch(function() { return null; });
+    }));
+    renderPerfTable(data.issues, perfResults);
+  } catch(err) {
+    el.innerHTML = '<div class="nl-perf-empty" style="color:rgba(248,113,113,0.80);">Error loading data: ' + esc(err.message) + '</div>';
+  }
+}
+
+// ── Render performance table ───────────────────────────────────────────────
+function renderPerfTable(issues, perfResults) {
+  var el = document.getElementById('perfTableBody');
+  if (!issues.length) { el.innerHTML = '<div class="nl-perf-empty">No published issues yet.</div>'; return; }
+
+  var html = '';
+  issues.forEach(function(issue, idx) {
+    var issueData = perfResults[idx];
+    // Performance comes from the separate performance record
+    var p = (issueData && issueData.performance) || {};
+
+    var openRate  = (p.openRate  !== null && p.openRate  !== undefined) ? p.openRate  : null;
+    var clickRate = (p.clickRate !== null && p.clickRate !== undefined) ? p.clickRate : null;
+    var unsubs    = (p.unsubscribeCount !== null && p.unsubscribeCount !== undefined) ? p.unsubscribeCount : null;
+    var statsAt   = p.statsUpdatedAt || null;
+
+    var statsAge  = '';
+    var staleClass = '';
+    if (statsAt) {
+      var daysAgo = Math.floor((Date.now() - new Date(statsAt).getTime()) / (1000 * 3600 * 24));
+      statsAge = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : daysAgo + ' days ago';
+      if (daysAgo > 7) staleClass = 'stale';
+    } else {
+      statsAge = 'Not fetched yet';
+    }
+
+    var openClass  = openRate  === null ? 'none' : openRate  >= 30 ? 'good' : openRate  >= 20 ? 'ok' : 'low';
+    var clickClass = clickRate === null ? 'none' : clickRate >= 5  ? 'good' : clickRate >= 2  ? 'ok' : 'low';
+
+    html += '<div class="nl-perf-row">'
+      + '<div class="nl-perf-issue">#' + esc(String(issue.issueNumber || '')) + '</div>'
+      + '<div class="nl-perf-date"><a href="/newsletter-issue?date=' + esc(issue.date) + '" target="_blank">' + esc(formatDate(issue.date)) + '</a></div>'
+      + '<div class="nl-perf-subject" title="' + esc(issue.subject || '') + '">' + esc((issue.subject || '').replace('Catch The Wick™ · ', '')) + '</div>'
+      + '<div class="nl-perf-stat ' + openClass  + '">' + (openRate  !== null ? openRate  + '%' : '—') + '</div>'
+      + '<div class="nl-perf-stat ' + clickClass + '">' + (clickRate !== null ? clickRate + '%' : '—') + '</div>'
+      + '<div class="nl-perf-unsub">' + (unsubs !== null ? unsubs : '—') + '</div>'
+      + '<div class="nl-perf-age ' + staleClass + '">' + esc(statsAge) + '</div>'
+      + '<div class="nl-perf-view"><a href="/newsletter-issue?date=' + esc(issue.date) + '" target="_blank">View →</a></div>'
+      + '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ── Refresh All KPIs ───────────────────────────────────────────────────────
+async function refreshAllKPIs() {
+  var btn = document.getElementById('refreshKPIsBtn');
+  btn.innerHTML = '↻ Fetching...'; btn.disabled = true;
+  try {
+    var res  = await fetch('/api/newsletter-performance', { method: 'POST' });
+    var data = await res.json();
+    if (!res.ok || data.error) {
+      btn.innerHTML = '✗ Error'; btn.disabled = false;
+      setTimeout(function() { btn.innerHTML = '↻ Refresh All KPIs'; btn.disabled = false; }, 3000);
+      return;
+    }
+    var updated = (data.results || []).filter(function(r) { return r.status === 'updated'; }).length;
+    btn.innerHTML = '✓ ' + updated + ' updated';
+    setTimeout(function() {
+      btn.innerHTML = '↻ Refresh All KPIs'; btn.disabled = false;
+      loadPerformanceTab(); // Re-render table with fresh data
+    }, 1500);
+  } catch(err) {
+    btn.innerHTML = '✗ Error'; btn.disabled = false;
+    setTimeout(function() { btn.innerHTML = '↻ Refresh All KPIs'; btn.disabled = false; }, 3000);
+  }
+}
 function hideError() { document.getElementById('errorBanner').style.display='none'; }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function formatDate(d) { if(!d) return ''; return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
