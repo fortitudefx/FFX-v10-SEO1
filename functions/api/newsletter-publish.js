@@ -231,23 +231,19 @@ export async function onRequestOptions() {
 function buildNewsletterEmail(draft) {
   var esc = function(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
 
-  // ── Section header bar — full width colored strip ────────────────────────
-  function sectionBar(icon, label, color) {
+  // ── Section header bar ───────────────────────────────────────────────────
+  function sectionBar(label, color) {
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td style="background:' + color + ';padding:10px 36px;">'
-      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#ffffff;">' + icon + '&nbsp;&nbsp;' + esc(label) + '</p>'
+      + '<td style="background:' + color + ';padding:11px 36px;">'
+      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#ffffff;">' + esc(label) + '</p>'
       + '</td></tr></table>';
   }
 
-  // ── White padded content block ───────────────────────────────────────────
-  function contentBlock(html) {
+  // ── Section spacer — clean gap between sections ──────────────────────────
+  function gap() {
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td style="background:#ffffff;padding:24px 36px 4px;">' + html + '</td></tr></table>';
-  }
-
-  // ── Section heading ──────────────────────────────────────────────────────
-  function heading(text) {
-    return '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;line-height:1.22;letter-spacing:-0.01em;">' + esc(text) + '</p>';
+      + '<td height="28" bgcolor="#f0f0f5" style="font-size:0;line-height:0;">&nbsp;</td>'
+      + '</tr></table>';
   }
 
   // ── Body text ────────────────────────────────────────────────────────────
@@ -281,7 +277,7 @@ function buildNewsletterEmail(draft) {
   // ── Article card ─────────────────────────────────────────────────────────
   function articleCard(article) {
     return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">'
-      + '<tr><td style="border-radius:8px;overflow:hidden;">'
+      + '<tr><td>'
       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
       + '<tr><td bgcolor="#1a1a2e" style="padding:7px 16px;">'
       + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#c9a84c;">' + esc(article.category || 'Strategy') + '</p>'
@@ -294,25 +290,22 @@ function buildNewsletterEmail(draft) {
       + '</td></tr></table>';
   }
 
-  // ── Lifestyle card — image + dark content + source link ──────────────────
-  function lifestyleCard(icon, label, title, body, color, bgColor, imageUrl, sourceUrl, sourceLabel) {
+  // ── Lifestyle card ───────────────────────────────────────────────────────
+  function lifestyleCard(label, title, bodyTxt, color, bgColor, imageUrl, sourceUrl, sourceLabel) {
     var imgBlock = imageUrl
       ? ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
          + '<td style="padding:0;font-size:0;line-height:0;">'
-         + '<img src="' + esc(imageUrl) + '" width="600" alt="' + esc(label) + '" style="display:block;width:100%;max-width:600px;" />'
+         + '<img src="' + esc(imageUrl) + '" width="600" alt="' + esc(label) + '" style="display:block;width:100%;max-width:600px;height:220px;object-fit:cover;" />'
          + '</td></tr></table>')
       : '';
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">'
-      + '<tr><td>'
-      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td style="background:' + color + ';padding:8px 18px;">'
-      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#ffffff;">' + icon + '&nbsp;&nbsp;' + esc(label) + '</p>'
-      + '</td></tr></table>'
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">'
+      + '<tr><td style="border-top:3px solid ' + color + ';">'
       + imgBlock
       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td style="background:' + (bgColor || '#16181f') + ';padding:16px 20px;">'
-      + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;">' + esc(title) + '</p>'
-      + '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:13px;color:#aaaacc;line-height:1.70;">' + esc(body) + '</p>'
+      + '<td style="background:' + (bgColor || '#16181f') + ';padding:18px 22px 16px;">'
+      + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:' + color + ';">' + esc(label) + '</p>'
+      + '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;">' + esc(title) + '</p>'
+      + '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;color:#aaaacc;line-height:1.70;">' + esc(bodyTxt) + '</p>'
       + (sourceUrl ? '<a href="' + esc(sourceUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:' + color + ';text-decoration:none;letter-spacing:0.06em;text-transform:uppercase;">Via ' + esc(sourceLabel || 'Source') + ' &rarr;</a>' : '')
       + '</td></tr></table>'
       + '</td></tr></table>';
@@ -321,50 +314,46 @@ function buildNewsletterEmail(draft) {
   var body = '';
 
   // Issue intro line
-  body += spacer(20);
+  body += spacer(24);
   body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:0 36px 8px;">'
     + '<p style="margin:0 0 3px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1a1a2e;">Issue #' + draft.issueNumber + ' &nbsp;&middot;&nbsp; ' + esc(formatDateDisplay(draft.issueDate)) + '</p>'
     + '<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#9999aa;">Bi-weekly intelligence for the serious forex trader.</p>'
     + '</td></tr></table>';
-  body += spacer(12);
-
-  // ── SECTION DIVIDER helper — heavy visual break between major sections ────
-  function sectionDivider() {
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td width="3" bgcolor="#7a5cff" style="font-size:0;line-height:0;">&nbsp;</td>'
-      + '<td height="32" bgcolor="#06060a" style="font-size:0;line-height:0;">&nbsp;</td>'
-      + '<td width="3" bgcolor="#e06b1a" style="font-size:0;line-height:0;">&nbsp;</td>'
-      + '</tr></table>';
-  }
+  body += spacer(16);
 
   // ── 1. Setup of the Fortnight — FIRST ────────────────────────────────────
   if (draft.setup && draft.setup.hasSetup) {
-    body += sectionBar('&#9654;', 'Setup of the Fortnight', '#c9a84c');
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#fffdf5;padding:20px 36px 20px;">';
+    body += sectionBar('Setup of the Fortnight', '#c9a84c');
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td bgcolor="#fffdf5" style="padding:24px 36px;">';
     if (draft.setup.imageUrl) {
-      body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr><td style="padding:0;font-size:0;line-height:0;"><img src="' + esc(draft.setup.imageUrl) + '" width="528" alt="Chart Setup" style="display:block;width:100%;max-width:528px;border-radius:6px;border:1px solid #e0d0a0;" /></td></tr></table>';
+      body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr>'
+        + '<td style="padding:0;font-size:0;line-height:0;">'
+        + '<img src="' + esc(draft.setup.imageUrl) + '" width="528" alt="Chart Setup" style="display:block;width:100%;max-width:528px;border-radius:4px;border:1px solid #e0d0a0;" />'
+        + '</td></tr></table>';
     }
     if (draft.setup.note) { body += bodyText(draft.setup.note); }
     body += '</td></tr></table>';
-    body += sectionDivider();
+    body += gap();
   }
 
   // ── 2. Week in Markets ────────────────────────────────────────────────────
   if (draft.weekInMarkets && draft.weekInMarkets.content) {
-    body += sectionBar('&#128200;', 'Week in Markets', '#e06b1a');
-    body += contentBlock(
-      heading('What the market did \u2014 and what it told us.')
+    body += sectionBar('Week in Markets', '#e06b1a');
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td bgcolor="#ffffff" style="padding:24px 36px 8px;">'
+      + '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;line-height:1.22;letter-spacing:-0.01em;">What the market did &mdash; and what it told us.</p>'
       + bodyText(draft.weekInMarkets.content)
       + sourceLink(draft.weekInMarkets.sourceUrl, draft.weekInMarkets.sourceLabel)
-    );
-    body += sectionDivider();
+      + '</td></tr></table>';
+    body += gap();
   }
 
   // ── 3. On This Day ────────────────────────────────────────────────────────
   if (draft.onThisDay && draft.onThisDay.event) {
-    body += sectionBar('&#128337;', 'On This Day in Markets \u2014 ' + (draft.onThisDay.year || ''), '#c9a84c');
+    body += sectionBar('On This Day in Markets' + (draft.onThisDay.year ? ' \u2014 ' + draft.onThisDay.year : ''), '#c9a84c');
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td style="padding:20px 36px 8px;">'
+      + '<td bgcolor="#ffffff" style="padding:20px 36px;">'
       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
       + '<td style="padding:18px 22px;border-left:4px solid #c9a84c;background:#fffdf5;">'
       + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;line-height:1.35;">' + esc(draft.onThisDay.event) + '</p>'
@@ -372,102 +361,103 @@ function buildNewsletterEmail(draft) {
       + (draft.onThisDay.wikiUrl ? '<a href="' + esc(draft.onThisDay.wikiUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#c9a84c;text-decoration:none;letter-spacing:0.04em;">Read on Wikipedia &rarr;</a>' : '')
       + '</td></tr></table>'
       + '</td></tr></table>';
-    body += sectionDivider();
+    body += gap();
   }
 
-  // ── 4. Trending Question — pull quote design ──────────────────────────────
+  // ── 4. Trending Question ─────────────────────────────────────────────────
   if (draft.trendingQ && draft.trendingQ.question) {
-    body += sectionBar('?', 'Trending Question', '#7a5cff');
+    body += sectionBar('Trending Question', '#7a5cff');
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td style="background:#f8f7ff;padding:28px 36px 20px;">'
-      + '<p style="margin:0 0 -8px;font-family:Georgia,serif;font-size:64px;color:#7a5cff;line-height:1;opacity:0.4;">&ldquo;</p>'
+      + '<td bgcolor="#f8f7ff" style="padding:28px 36px 20px;">'
+      + '<p style="margin:0 0 4px;font-family:Georgia,serif;font-size:56px;color:#7a5cff;line-height:1;opacity:0.35;">&ldquo;</p>'
       + '<p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;line-height:1.30;letter-spacing:-0.01em;">' + esc(draft.trendingQ.question) + '</p>'
       + rule()
       + spacer(14)
       + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + esc(draft.trendingQ.answer) + '</p>'
       + (draft.trendingQ.relatedArticleSlug ? articleLink(draft.trendingQ.relatedArticleSlug, draft.trendingQ.relatedArticleTitle, '#7a5cff') : '')
       + '</td></tr></table>';
-    body += sectionDivider();
+    body += gap();
   }
 
   // ── 5. Newsletter Exclusive ───────────────────────────────────────────────
   if (draft.exclusiveArticle && draft.exclusiveArticle.title) {
     var exclusiveUrl = 'https://fortitudefx.com/newsletter-issue?date=' + draft.issueDate + '#exclusive';
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td bgcolor="#0a0a12" style="padding:28px 36px;">'
+      + '<td bgcolor="#0a0a12" style="padding:32px 36px;">'
       + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr>'
-      + '<td style="background:#c9a84c;padding:4px 12px;border-radius:3px;">'
+      + '<td bgcolor="#c9a84c" style="padding:4px 14px;border-radius:3px;">'
       + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#000000;">NEWSLETTER EXCLUSIVE</p>'
       + '</td></tr></table>'
       + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#ffffff;line-height:1.20;letter-spacing:-0.01em;">' + esc(draft.exclusiveArticle.title) + '</p>'
-      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr><td height="2" bgcolor="#c9a84c" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
-      + '<p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:15px;color:rgba(255,255,255,0.80);line-height:1.82;">' + esc(draft.exclusiveArticle.hookText || draft.exclusiveArticle.fullText.substring(0, 200)) + '</p>'
-      + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:' + (draft.exclusiveArticle.relatedArticleSlug ? '10px' : '0') + ';"><tr>'
-      + '<td style="background:#c9a84c;border-radius:4px;">'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;"><tr><td height="2" bgcolor="#c9a84c" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
+      + '<p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:15px;color:rgba(255,255,255,0.82);line-height:1.82;">' + esc(draft.exclusiveArticle.hookText || (draft.exclusiveArticle.fullText || '').substring(0, 200)) + '</p>'
+      + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:' + (draft.exclusiveArticle.relatedArticleSlug ? '12px' : '0') + ';"><tr>'
+      + '<td bgcolor="#c9a84c" style="border-radius:4px;">'
       + '<a href="' + esc(exclusiveUrl) + '" target="_blank" style="display:inline-block;padding:11px 24px;font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#000000;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Read Full Editorial &rarr;</a>'
       + '</td></tr></table>'
       + (draft.exclusiveArticle.relatedArticleSlug
-        ? '<p style="margin:0;"><a href="https://fortitudefx.com/article?slug=' + esc(draft.exclusiveArticle.relatedArticleSlug) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;color:rgba(201,168,76,0.70);text-decoration:none;">Related: ' + esc(draft.exclusiveArticle.relatedArticleTitle || '') + ' &rarr;</a></p>'
+        ? '<p style="margin:0;"><a href="https://fortitudefx.com/article?slug=' + esc(draft.exclusiveArticle.relatedArticleSlug) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;color:rgba(201,168,76,0.70);text-decoration:none;letter-spacing:0.03em;">Related: ' + esc(draft.exclusiveArticle.relatedArticleTitle || '') + ' &rarr;</a></p>'
         : '')
       + '</td></tr></table>';
-    body += sectionDivider();
+    body += gap();
   }
 
   // ── 6. Articles ───────────────────────────────────────────────────────────
   if (draft.articles && draft.articles.length > 0) {
-    body += sectionBar('&#128196;', 'This Fortnight on the Blog', '#7a5cff');
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:20px 36px 8px;">';
+    body += sectionBar('This Fortnight on the Blog', '#7a5cff');
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td bgcolor="#ffffff" style="padding:20px 36px 8px;">';
     for (var a = 0; a < draft.articles.length; a++) { body += articleCard(draft.articles[a]); }
     body += '</td></tr></table>';
-    body += sectionDivider();
+    body += gap();
   }
 
-  // ── 7. Lifestyle Edit ─────────────────────────────────────────────────────
+  // ── 7. The Lifestyle Edit ─────────────────────────────────────────────────
   var ls = draft.lifestyle || {};
   var lsDefs = [
-    { key:'travel',        icon:'&#9992;',  label:'Trading Freedom \u2014 Travel & Destination', color:'#e06b1a', bg:'#1a0e08' },
-    { key:'luxury',        icon:'&#9899;',  label:'Luxury',                                       color:'#c9a84c', bg:'#1a1608' },
-    { key:'women',         icon:'&#10022;', label:'Women & Lifestyle',                            color:'#7a5cff', bg:'#0f0c1f' },
-    { key:'tech',          icon:'&#9881;',  label:'Tech & AI',                                    color:'#38bdf8', bg:'#071820' },
-    { key:'fitness',       icon:'&#128170;',label:'Fitness, Diet & Mindset',                     color:'#3ecf8e', bg:'#081a12' },
-    { key:'entertainment', icon:'&#127916;',label:'Entertainment',                               color:'#a855f7', bg:'#160d1f' },
+    { key:'travel',        label:'Trading Freedom \u2014 Travel & Destination', color:'#e06b1a', bg:'#1a0e08' },
+    { key:'luxury',        label:'Luxury',                                       color:'#c9a84c', bg:'#1a1608' },
+    { key:'women',         label:'Women & Lifestyle',                            color:'#7a5cff', bg:'#0f0c1f' },
+    { key:'tech',          label:'Tech & AI',                                    color:'#38bdf8', bg:'#071820' },
+    { key:'fitness',       label:'Fitness, Diet & Mindset',                      color:'#3ecf8e', bg:'#081a12' },
+    { key:'entertainment', label:'Entertainment',                                color:'#a855f7', bg:'#160d1f' },
   ];
   var hasLifestyle = lsDefs.some(function(d) { return ls[d.key] && ls[d.key].title; });
   if (hasLifestyle) {
-    // Lifestyle Edit header — distinct script-style visual break
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td bgcolor="#06060a" style="padding:32px 36px 16px;text-align:center;border-top:4px solid #c9a84c;">'
-      + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.30em;text-transform:uppercase;color:#c9a84c;">The Lifestyle Edit</p>'
-      + '<p style="margin:0;font-family:Georgia,serif;font-size:28px;font-style:italic;font-weight:400;color:#ffffff;letter-spacing:0.01em;">The life the consistency builds toward.</p>'
+      + '<td bgcolor="#06060a" style="padding:36px 36px 8px;text-align:center;border-top:3px solid #c9a84c;">'
+      + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.30em;text-transform:uppercase;color:#c9a84c;">The Lifestyle Edit</p>'
+      + '<p style="margin:0;font-family:Georgia,\'Times New Roman\',serif;font-size:30px;font-style:italic;font-weight:400;color:#ffffff;line-height:1.2;">The life the consistency builds toward.</p>'
       + '</td></tr></table>';
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#06060a" style="padding:12px 36px 32px;">';
+    body += spacer(8);
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#06060a" style="padding:8px 36px 36px;">';
     lsDefs.forEach(function(d) {
       var data = ls[d.key] || {};
       if (data.title) {
-        body += lifestyleCard(d.icon, d.label, data.title, data.body || '', d.color, d.bg, data.imageUrl || '', data.sourceUrl || '', data.sourceLabel || '');
+        body += lifestyleCard(d.label, data.title, data.body || '', d.color, d.bg, data.imageUrl || '', data.sourceUrl || '', data.sourceLabel || '');
       }
     });
     body += '</td></tr></table>';
-    body += sectionDivider();
+    body += gap();
   }
 
-  // ── 8. Mindset Line — from Knowledge database ─────────────────────────────
+  // ── 8. Mindset Line ───────────────────────────────────────────────────────
   if (draft.mindsetLine) {
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td bgcolor="#1a1a2e" style="padding:28px 36px;">'
-      + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#c9a84c;">FFX Mindset Line</p>'
-      + '<p style="margin:0;font-family:Georgia,serif;font-size:20px;font-weight:400;color:#ffffff;line-height:1.42;font-style:italic;">&ldquo;' + esc(draft.mindsetLine) + '&rdquo;</p>'
+      + '<td bgcolor="#1a1a2e" style="padding:32px 36px;">'
+      + '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#c9a84c;">FFX Mindset Line</p>'
+      + '<p style="margin:0;font-family:Georgia,\'Times New Roman\',serif;font-size:21px;font-weight:400;color:#ffffff;line-height:1.50;font-style:italic;">&ldquo;' + esc(draft.mindsetLine) + '&rdquo;</p>'
       + '</td></tr></table>';
     body += spacer(8);
   }
 
   // ── 9. Discord CTA ────────────────────────────────────────────────────────
   body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-    + '<td bgcolor="#f0eeff" style="padding:28px 36px;text-align:center;border-top:3px solid #7a5cff;">'
-    + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;">Not in the Discord yet?</p>'
-    + '<p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:14px;color:#555566;line-height:1.70;max-width:360px;display:inline-block;">Real-time chart markups, daily recaps, direct access to Salman.</p>'
+    + '<td bgcolor="#f0eeff" style="padding:32px 36px;text-align:center;border-top:3px solid #7a5cff;">'
+    + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;">Not in the Discord yet?</p>'
+    + '<p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:14px;color:#555566;line-height:1.70;">Real-time chart markups, daily recaps, direct access to Salman.</p>'
     + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr>'
-    + '<td style="background:#7a5cff;border-radius:999px;">'
+    + '<td bgcolor="#7a5cff" style="border-radius:999px;">'
     + '<a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" style="display:inline-block;padding:13px 32px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.06em;text-transform:uppercase;">Join Free &rarr;</a>'
     + '</td></tr></table>'
     + '</td></tr></table>';
