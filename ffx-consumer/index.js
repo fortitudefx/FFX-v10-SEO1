@@ -701,37 +701,101 @@ async function processNewsletterJob(job, env) {
 
     await writeProgress(4, 8, 'Calling Claude — 6 Lifestyle Sections (web search)');
 
-    var lifestylePrompt = 'You are curating the lifestyle section of the FortitudeFX bi-weekly newsletter. FFX sells an aspirational but attainable high-end lifestyle to young forex traders. Think GQ, Robb Report, Monocle aesthetic.\n\nCRITICAL RULES:\n- ALL content must be in English. Only search English-language sources.\n- ALL source URLs must be from English-language publications only (GQ UK/US, Robb Report, Wired, Men\'s Health, Conde Nast Traveller UK/US, etc).\n- For each section: first decide the specific subject (exact destination, exact product, exact person, exact topic). THEN search Unsplash for an image of THAT SPECIFIC SUBJECT. The image must visually match what you wrote about — if you write about Omega Seamaster, the Unsplash image must show an Omega watch.\n- Return direct Unsplash image URLs only: https://images.unsplash.com/photo-... format.\n- Validate that every sourceUrl actually exists and returns content in English before including it.\n\nSECTIONS:\n1. TRADING FREEDOM — TRAVEL & DESTINATION: One specific destination. Aspirational but attainable — Lisbon, Barcelona, Bali, Maldives, Amalfi, Mykonos. Source: Conde Nast Traveller or similar English travel publication.\n2. LUXURY: One specific luxury item — specific watch model (e.g. Omega Seamaster, Patek Philippe Nautilus), car, hotel suite. Real product, real substance. Source: Robb Report or GQ.\n3. WOMEN & LIFESTYLE: Tasteful, genuinely desirable, GQ editorial. Beautiful woman in aspirational setting — beach, rooftop bar, yacht, summer terrace. Classy not crude. Source: GQ or similar.\n4. TECH & AI: One genuine tech or AI development from the past 2 weeks. Real news, trader relevance. Source: Wired, TechCrunch, or The Verge.\n5. FITNESS, DIET & MINDSET: One specific protocol that improves trading performance. Real science, actionable. Source: Men\'s Health or similar.\n6. ENTERTAINMENT: One specific recommendation — film, series, book, podcast. Tied to discipline, risk, or excellence. Source: GQ or similar.\n\nCRITICAL INSTRUCTION: Return ONLY a JSON object. First character must be {. Last must be }. No preamble. No markdown. All text in English.\n{"travel":{"title":"...","body":"exactly 2 sentences in English","sourceUrl":"https://...english-publication...","sourceLabel":"Conde Nast Traveller","imageUrl":"https://images.unsplash.com/photo-..."},"luxury":{"title":"...","body":"exactly 2 sentences in English","sourceUrl":"https://...english-publication...","sourceLabel":"Robb Report","imageUrl":"https://images.unsplash.com/photo-..."},"women":{"title":"...","body":"exactly 2 sentences in English","sourceUrl":"https://...english-publication...","sourceLabel":"GQ","imageUrl":"https://images.unsplash.com/photo-..."},"tech":{"title":"...","body":"exactly 2 sentences in English","sourceUrl":"https://...english-publication...","sourceLabel":"Wired","imageUrl":"https://images.unsplash.com/photo-..."},"fitness":{"title":"...","body":"exactly 2 sentences in English","sourceUrl":"https://...english-publication...","sourceLabel":"Men\'s Health","imageUrl":"https://images.unsplash.com/photo-..."},"entertainment":{"title":"...","body":"exactly 2 sentences in English","sourceUrl":"https://...english-publication...","sourceLabel":"GQ","imageUrl":"https://images.unsplash.com/photo-..."}}';
+    // ── Pexels image fetcher ─────────────────────────────────────────────────
+    // Returns a permanent Pexels image URL for a given search query.
+    // Returns empty string on any failure — never a broken image.
+    async function fetchPexelsImage(query, apiKey) {
+      if (!apiKey || !query) return '';
+      try {
+        var url = 'https://api.pexels.com/v1/search?query=' + encodeURIComponent(query) + '&per_page=5&orientation=landscape';
+        var res = await fetch(url, { headers: { 'Authorization': apiKey } });
+        if (!res.ok) { console.error('[FFX] Pexels error:', res.status, query); return ''; }
+        var data = await res.json();
+        if (!data.photos || !data.photos.length) { console.error('[FFX] Pexels no results for:', query); return ''; }
+        // Pick randomly from top 5 so the newsletter varies each issue
+        var pick = data.photos[Math.floor(Math.random() * data.photos.length)];
+        return (pick.src && pick.src.large) ? pick.src.large : '';
+      } catch(e) {
+        console.error('[FFX] Pexels fetch failed (non-fatal):', e.message);
+        return '';
+      }
+    }
 
-    var lifestyleRes  = await fetch(ANTHROPIC_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'web-search-2025-03-05' }, body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 2500, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: lifestylePrompt }] }) });
+    // ── Validate source URL — must be a specific article path, not a homepage ─
+    function validateSourceUrl(url) {
+      if (!url || typeof url !== 'string') return '';
+      try {
+        var u = new URL(url);
+        // Must have a meaningful path beyond just '/' — at least one segment with content
+        var path = u.pathname.replace(/\/+$/, '');
+        if (!path || path.length < 3) return ''; // just a homepage
+        return url;
+      } catch(e) { return ''; }
+    }
+
+    // ── Claude lifestyle prompt — no image URLs, returns imageSearchQuery ────
+    // Claude's job: find real articles, write original 2-sentence body, return exact article URL
+    // Pexels' job: fetch the matching image using imageSearchQuery
+    var lifestylePrompt = 'You are curating 6 lifestyle sections for the FortitudeFX bi-weekly newsletter. FFX sells the aspirational lifestyle that forex trading freedom creates — GQ, Robb Report, Conde Nast aesthetic for young ambitious traders.\n\nFor EACH section:\n1. Web search for a SPECIFIC current article from a top English publication\n2. Write 2 original sentences in an aspirational tone selling the lifestyle — do NOT copy the article, write original content inspired by it\n3. Return the EXACT article URL — the full path to the specific article, NOT the homepage. e.g. https://www.gq.com/story/omega-seamaster-review-2026 NOT https://www.gq.com\n4. Return an imageSearchQuery — 4-6 words describing exactly what image should appear (e.g. "Omega Seamaster watch blue dial" or "Amalfi Coast Italy cliffs sea")\n\nSECTIONS:\n1. TRAVEL: One specific aspirational destination right now. Lisbon, Amalfi, Mykonos, Bali, Dubai, Maldives, Barcelona. Source: Conde Nast Traveller UK/US, Lonely Planet, Travel + Leisure.\n2. LUXURY: One specific luxury item — exact watch model, car, hotel suite, accessory. Real product with real substance. Source: Robb Report, GQ, Hodinkee.\n3. WOMEN: Aspirational and desirable — a beautiful woman in an upscale setting. Classy GQ editorial. Source: GQ, Vogue, Harper\'s Bazaar.\n4. TECH: One genuine AI or tech development from the past 2 weeks relevant to traders or high-performers. Source: Wired, TechCrunch, The Verge, MIT Technology Review.\n5. FITNESS: One specific protocol, diet, or mindset practice that sharpens decision-making and trading performance. Source: Men\'s Health, Huberman Lab, Examine.com.\n6. ENTERTAINMENT: One film, series, book, or podcast about discipline, risk, excellence, or ambition. Source: GQ, Esquire, or the official source.\n\nRULES:\n- ALL content in English only\n- sourceUrl must be the FULL path to the specific article — never a homepage\n- imageSearchQuery must describe the SPECIFIC subject of what you wrote (not generic)\n- For women section imageSearchQuery use: "elegant woman upscale bar evening dress" or "beautiful woman luxury yacht deck" or "glamorous woman rooftop city night" style\n\nCRITICAL: Return ONLY a JSON object. First character {. Last character }. No preamble. No markdown.\n{"travel":{"title":"...","body":"2 original aspirational sentences","sourceUrl":"https://publication.com/specific/article/path","sourceLabel":"Conde Nast Traveller","imageSearchQuery":"specific 4-6 word image search"},"luxury":{"title":"...","body":"2 original aspirational sentences","sourceUrl":"https://publication.com/specific/article/path","sourceLabel":"Robb Report","imageSearchQuery":"specific 4-6 word image search"},"women":{"title":"...","body":"2 original aspirational sentences","sourceUrl":"https://publication.com/specific/article/path","sourceLabel":"GQ","imageSearchQuery":"elegant woman luxury rooftop evening"},"tech":{"title":"...","body":"2 original aspirational sentences","sourceUrl":"https://publication.com/specific/article/path","sourceLabel":"Wired","imageSearchQuery":"specific 4-6 word image search"},"fitness":{"title":"...","body":"2 original aspirational sentences","sourceUrl":"https://publication.com/specific/article/path","sourceLabel":"Men\'s Health","imageSearchQuery":"specific 4-6 word image search"},"entertainment":{"title":"...","body":"2 original aspirational sentences","sourceUrl":"https://publication.com/specific/article/path","sourceLabel":"GQ","imageSearchQuery":"specific 4-6 word image search"}}';
+
+    var lifestyleRes  = await fetch(ANTHROPIC_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'web-search-2025-03-05' }, body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 3000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: lifestylePrompt }] }) });
     var lifestyleData = await lifestyleRes.json();
     var lifestyleText = '';
     if (lifestyleData.content) { for (var k = 0; k < lifestyleData.content.length; k++) { if (lifestyleData.content[k].type === 'text') lifestyleText += lifestyleData.content[k].text; } }
     var lifestyleJson = extractJson(lifestyleText) || {};
 
-    // Curated fallback Unsplash images — real permanent URLs, one per category
-    // Used when Claude returns an invalid/hallucinated Unsplash URL
-    var LIFESTYLE_FALLBACK_IMAGES = {
-      travel:        'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=600&q=80',
-      luxury:        'https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=600&q=80',
-      women:         'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&q=80',
-      tech:          'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80',
-      fitness:       'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80',
-      entertainment: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=80',
-    };
+    // ── Validate and enrich each lifestyle section ───────────────────────────
+    var LIFESTYLE_KEYS = ['travel', 'luxury', 'women', 'tech', 'fitness', 'entertainment'];
 
-    ['travel','luxury','women','tech','fitness','entertainment'].forEach(function(key) {
-      lifestyleJson[key] = lifestyleJson[key] || { title: '', body: '', sourceUrl: '', sourceLabel: '', imageUrl: '' };
-      // Validate imageUrl — must start with https://images.unsplash.com/photo-
-      var img = lifestyleJson[key].imageUrl || '';
-      if (!img || !img.startsWith('https://images.unsplash.com/photo-')) {
-        lifestyleJson[key].imageUrl = LIFESTYLE_FALLBACK_IMAGES[key];
-      }
-      // Append sizing params if not already present
-      if (lifestyleJson[key].imageUrl && lifestyleJson[key].imageUrl.indexOf('?') === -1) {
-        lifestyleJson[key].imageUrl += '?w=600&q=80';
-      }
+    // Ensure all keys exist with defaults
+    LIFESTYLE_KEYS.forEach(function(key) {
+      lifestyleJson[key] = lifestyleJson[key] || {};
+      lifestyleJson[key].title       = lifestyleJson[key].title       || '';
+      lifestyleJson[key].body        = lifestyleJson[key].body        || '';
+      lifestyleJson[key].sourceLabel = lifestyleJson[key].sourceLabel || '';
+      lifestyleJson[key].imageUrl    = ''; // will be set by Pexels below
+      // Validate sourceUrl — must be a specific article path not a homepage
+      lifestyleJson[key].sourceUrl   = validateSourceUrl(lifestyleJson[key].sourceUrl || '');
     });
+
+    // ── Fetch Pexels images in parallel for all 6 sections ──────────────────
+    // Uses imageSearchQuery from Claude — specific to the exact subject written
+    // Women section: override with aspirational lifestyle query regardless of what Claude returns
+    var WOMEN_QUERIES = [
+      'elegant woman luxury rooftop bar night',
+      'beautiful woman yacht deck mediterranean',
+      'glamorous woman upscale restaurant evening dress',
+      'stunning woman beach resort luxury',
+      'attractive woman penthouse city view',
+      'beautiful woman infinity pool villa sunset',
+      'glamorous woman luxury pool party',
+      'stunning woman tropical beach turquoise water',
+      'elegant woman nightclub vip booth',
+      'beautiful woman pool lounge cabana resort',
+      'glamorous woman beach club ibiza',
+      'stunning woman rooftop pool city skyline',
+    ];
+    var womenQuery = WOMEN_QUERIES[Math.floor(Math.random() * WOMEN_QUERIES.length)];
+
+    if (env.PEXELS_API_KEY) {
+      var pexelsResults = await Promise.all([
+        fetchPexelsImage((lifestyleJson.travel.imageSearchQuery        || 'luxury travel destination beach'), env.PEXELS_API_KEY),
+        fetchPexelsImage((lifestyleJson.luxury.imageSearchQuery        || 'luxury watch premium'), env.PEXELS_API_KEY),
+        fetchPexelsImage(womenQuery, env.PEXELS_API_KEY),
+        fetchPexelsImage((lifestyleJson.tech.imageSearchQuery          || 'technology artificial intelligence'), env.PEXELS_API_KEY),
+        fetchPexelsImage((lifestyleJson.fitness.imageSearchQuery       || 'fitness athlete training'), env.PEXELS_API_KEY),
+        fetchPexelsImage((lifestyleJson.entertainment.imageSearchQuery || 'cinema entertainment luxury'), env.PEXELS_API_KEY),
+      ]);
+      lifestyleJson.travel.imageUrl        = pexelsResults[0];
+      lifestyleJson.luxury.imageUrl        = pexelsResults[1];
+      lifestyleJson.women.imageUrl         = pexelsResults[2];
+      lifestyleJson.tech.imageUrl          = pexelsResults[3];
+      lifestyleJson.fitness.imageUrl       = pexelsResults[4];
+      lifestyleJson.entertainment.imageUrl = pexelsResults[5];
+      console.log('[FFX] Pexels images fetched:', pexelsResults.map(function(r){ return r ? 'OK' : 'EMPTY'; }).join(', '));
+    } else {
+      console.error('[FFX] PEXELS_API_KEY not set — images will be empty');
+    }
 
     await writeProgress(5, 8, 'Selecting Mindset Line from Knowledge database');
 
