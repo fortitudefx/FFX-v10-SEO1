@@ -62,6 +62,20 @@ export async function onRequestPost(context) {
       readTitleTestOutcomes(env),
     ]);
 
+    // Read last 3 newsletter performance records for improvement loop
+    const newsletterIndex = await env.FFX_KV.get('newsletter:index', { type: 'json' }).catch(() => null);
+    const newsletterPerformanceRecords = [];
+    if (Array.isArray(newsletterIndex) && newsletterIndex.length > 0) {
+      const recentIssues = newsletterIndex.slice(0, 3);
+      for (const entry of recentIssues) {
+        if (!entry.date) continue;
+        try {
+          const perf = await env.FFX_KV.get('newsletter:performance:' + entry.date, { type: 'json' }).catch(() => null);
+          if (perf) newsletterPerformanceRecords.push(perf);
+        } catch(e) {}
+      }
+    }
+
     await writeProgress(env, 2, 'Reading content performance history', 'done');
 
     // ── STEP 3: Build context + call Claude ──────────────────────────────
@@ -74,17 +88,72 @@ export async function onRequestPost(context) {
       articlesIndex, directiveOutcomes, titleTests,
     });
 
-    // Append newsletter context — read here in async handler, not inside buildSignalContext
+    // Append newsletter context — last sent + performance feedback loop
     const newsletterLastSent = await env.FFX_KV.get('newsletter:last_sent', { type: 'json' }).catch(() => null);
     let signalContextWithNewsletter = signalContext;
-    if (newsletterLastSent) {
-      signalContextWithNewsletter += '\n\nNEWSLETTER LAST ISSUE: #' + (newsletterLastSent.issueNumber || '') + ' sent ' + (newsletterLastSent.issueDate || '') + '\n';
-      if (newsletterLastSent.exclusiveTitle) {
-        signalContextWithNewsletter += 'Newsletter exclusive topic (do not repeat): ' + newsletterLastSent.exclusiveTitle + '\n';
+
+    if (newsletterLastSent || newsletterPerformanceRecords.length > 0) {
+      signalContextWithNewsletter += '\n\n' + '='.repeat(50) + '\nNEWSLETTER PERFORMANCE INTELLIGENCE\n' + '='.repeat(50) + '\n';
+
+      // Last issue deduplication
+      if (newsletterLastSent) {
+        signalContextWithNewsletter += '\nLAST ISSUE SENT: #' + (newsletterLastSent.issueNumber || '') + ' on ' + (newsletterLastSent.issueDate || '') + '\n';
+        if (newsletterLastSent.perspectiveTitle) {
+          signalContextWithNewsletter += 'Perspective topic (DO NOT REPEAT): "' + newsletterLastSent.perspectiveTitle + '"\n';
+        }
+        if (newsletterLastSent.trendingTopic) {
+          signalContextWithNewsletter += 'Trending question (DO NOT REPEAT): "' + newsletterLastSent.trendingTopic + '"\n';
+        }
+        if (newsletterLastSent.lifestyleTitles) {
+          signalContextWithNewsletter += 'Lifestyle topics used last issue (avoid repeating same destinations/products):\n';
+          const lt = newsletterLastSent.lifestyleTitles;
+          ['travel','luxury','women','tech','fitness','entertainment'].forEach(function(k) {
+            if (lt[k] && lt[k].title) signalContextWithNewsletter += '  ' + k + ': ' + lt[k].title + '\n';
+          });
+        }
       }
-      if (newsletterLastSent.trendingTopic) {
-        signalContextWithNewsletter += 'Last trending question (do not repeat): ' + newsletterLastSent.trendingTopic + '\n';
+
+      // Performance trend across last 3 issues
+      if (newsletterPerformanceRecords.length > 0) {
+        signalContextWithNewsletter += '\nNEWSLETTER PERFORMANCE TREND (last ' + newsletterPerformanceRecords.length + ' issues):\n';
+        newsletterPerformanceRecords.forEach(function(p) {
+          signalContextWithNewsletter += '\nIssue #' + (p.issueNumber || '?') + ' — ' + (p.issueDate || '') + '\n';
+          signalContextWithNewsletter += '  Subject: ' + (p.subject || 'N/A') + '\n';
+          signalContextWithNewsletter += '  Perspective: "' + (p.perspectiveTitle || 'N/A') + '"\n';
+          signalContextWithNewsletter += '  Trending Q: "' + (p.trendingQuestion || 'N/A') + '"\n';
+          if (p.openRate !== null && p.openRate !== undefined) {
+            signalContextWithNewsletter += '  Open rate: ' + p.openRate + '%\n';
+            signalContextWithNewsletter += '  Click rate: ' + p.clickRate + '%\n';
+            signalContextWithNewsletter += '  Unsubscribes: ' + (p.unsubscribeCount || 0) + '\n';
+          } else {
+            signalContextWithNewsletter += '  Stats: not yet fetched (run newsletter-performance fetch after 48hrs)\n';
+          }
+          if (p.lifestyleSections) {
+            signalContextWithNewsletter += '  Lifestyle: ';
+            const lsItems = [];
+            ['travel','luxury','women','tech','fitness','entertainment'].forEach(function(k) {
+              if (p.lifestyleSections[k]) lsItems.push(k + '=' + p.lifestyleSections[k].title);
+            });
+            signalContextWithNewsletter += lsItems.join(', ') + '\n';
+          }
+        });
+
+        // Compute open rate trend
+        const withStats = newsletterPerformanceRecords.filter(function(p) { return p.openRate !== null && p.openRate !== undefined; });
+        if (withStats.length >= 2) {
+          const avg = withStats.reduce(function(s, p) { return s + p.openRate; }, 0) / withStats.length;
+          const latest = withStats[0].openRate;
+          const trend = latest > avg ? 'improving' : latest < avg ? 'declining' : 'stable';
+          signalContextWithNewsletter += '\nOPEN RATE TREND: ' + trend + ' (latest ' + latest + '% vs avg ' + Math.round(avg * 10) / 10 + '%)\n';
+          if (trend === 'declining') {
+            signalContextWithNewsletter += 'ACTION: Open rate declining — vary perspective topic angle and subject line approach for next issue.\n';
+          } else if (trend === 'improving') {
+            signalContextWithNewsletter += 'ACTION: Open rate improving — continue current topic direction and subject line style.\n';
+          }
+        }
       }
+
+      signalContextWithNewsletter += '='.repeat(50) + '\n';
     }
 
     let brief;
