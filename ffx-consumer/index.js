@@ -542,7 +542,7 @@ async function callClaudePlatforms(transcript, youtubeUrl, apiKey, linkedinForma
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
-      max_tokens: 3000,
+      max_tokens: 5000,
       system: systemPrompt,
       messages: [{ role: 'user', content: 'Transcript:\n\n' + transcript + '\n\nVOICE: Salman Khan - founder. Direct, calm, slightly contrarian, institutional.' + (isRegional ? '\n\nREGIONAL: Frame for ' + region + '.' : '') }],
     }),
@@ -708,7 +708,30 @@ async function processNewsletterJob(job, env) {
     var lifestyleText = '';
     if (lifestyleData.content) { for (var k = 0; k < lifestyleData.content.length; k++) { if (lifestyleData.content[k].type === 'text') lifestyleText += lifestyleData.content[k].text; } }
     var lifestyleJson = extractJson(lifestyleText) || {};
-    ['travel','luxury','women','tech','fitness','entertainment'].forEach(function(key) { lifestyleJson[key] = lifestyleJson[key] || { title: '', body: '', sourceUrl: '', sourceLabel: '', imageUrl: '' }; });
+
+    // Curated fallback Unsplash images — real permanent URLs, one per category
+    // Used when Claude returns an invalid/hallucinated Unsplash URL
+    var LIFESTYLE_FALLBACK_IMAGES = {
+      travel:        'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=600&q=80',
+      luxury:        'https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=600&q=80',
+      women:         'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&q=80',
+      tech:          'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80',
+      fitness:       'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80',
+      entertainment: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=80',
+    };
+
+    ['travel','luxury','women','tech','fitness','entertainment'].forEach(function(key) {
+      lifestyleJson[key] = lifestyleJson[key] || { title: '', body: '', sourceUrl: '', sourceLabel: '', imageUrl: '' };
+      // Validate imageUrl — must start with https://images.unsplash.com/photo-
+      var img = lifestyleJson[key].imageUrl || '';
+      if (!img || !img.startsWith('https://images.unsplash.com/photo-')) {
+        lifestyleJson[key].imageUrl = LIFESTYLE_FALLBACK_IMAGES[key];
+      }
+      // Append sizing params if not already present
+      if (lifestyleJson[key].imageUrl && lifestyleJson[key].imageUrl.indexOf('?') === -1) {
+        lifestyleJson[key].imageUrl += '?w=600&q=80';
+      }
+    });
 
     await writeProgress(5, 8, 'Selecting Mindset Line from Knowledge database');
 
