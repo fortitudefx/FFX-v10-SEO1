@@ -172,8 +172,8 @@
   <!-- Step progress -->
   <div class="intel-steps" id="intelSteps">
     <div class="intel-step pending" id="istep-0"><div class="intel-step-icon pending" id="istep-icon-0">○</div><div class="intel-step-label">Reading KV data — articles, signals, brief</div></div>
-    <div class="intel-step pending" id="istep-1"><div class="intel-step-icon pending" id="istep-icon-1">○</div><div class="intel-step-label">Calling Claude — Week in Markets + On This Day (web search)</div></div>
-    <div class="intel-step pending" id="istep-2"><div class="intel-step-icon pending" id="istep-icon-2">○</div><div class="intel-step-label">Calling Claude — Trending Question + Exclusive Article</div></div>
+    <div class="intel-step pending" id="istep-1"><div class="intel-step-icon pending" id="istep-icon-1">○</div><div class="intel-step-label">Calling Claude — On This Day in Markets (web search)</div></div>
+    <div class="intel-step pending" id="istep-2"><div class="intel-step-icon pending" id="istep-icon-2">○</div><div class="intel-step-label">Calling Claude — FFX Perspective + Trending Question</div></div>
     <div class="intel-step pending" id="istep-3"><div class="intel-step-icon pending" id="istep-icon-3">○</div><div class="intel-step-label">Calling Claude — 6 Lifestyle Sections (web search)</div></div>
     <div class="intel-step pending" id="istep-4"><div class="intel-step-icon pending" id="istep-icon-4">○</div><div class="intel-step-label">Selecting Mindset Line from Knowledge database</div></div>
     <div class="intel-step pending" id="istep-5"><div class="intel-step-icon pending" id="istep-icon-5">○</div><div class="intel-step-label">Building newsletter draft</div></div>
@@ -256,18 +256,21 @@
             </div>
           </div>
 
-          <!-- 2. Week in Markets -->
-          <div class="nl-section" id="sectionMarkets">
-            <div class="nl-section-label">Week in Markets</div>
-            <textarea id="editMarkets" class="nl-section-edit" rows="5" oninput="markDirty()"></textarea>
-            <div class="nl-section-sub" style="margin-top:8px;">
-              <div>
-                <label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Source URL</label>
-                <input id="editMarketsSource" class="nl-input" type="url" style="height:32px;font-size:12px;" oninput="markDirty()" />
+          <!-- 2. FFX Perspective -->
+          <div class="nl-section" id="sectionPerspective">
+            <div class="nl-section-label">THE FFX PERSPECTIVE</div>
+            <div class="nl-section-sub">
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Title</label>
+                <input id="editPerspectiveTitle" class="nl-input" type="text" style="height:40px;font-size:15px;" oninput="markDirty()" />
               </div>
-              <div>
-                <label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Source Label</label>
-                <input id="editMarketsLabel" class="nl-input" type="text" style="height:32px;font-size:12px;" placeholder="e.g. Reuters" oninput="markDirty()" />
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Hook Text (shown in email — first 150-200 words)</label>
+                <textarea id="editPerspectiveHook" class="nl-section-edit" rows="5" oninput="markDirty()"></textarea>
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Full Article (shown on site — 500-600 words)</label>
+                <textarea id="editPerspectiveFull" class="nl-section-edit" rows="12" oninput="markDirty()"></textarea>
               </div>
             </div>
           </div>
@@ -310,26 +313,7 @@
             </div>
           </div>
 
-          <!-- 5. Newsletter Exclusive -->
-          <div class="nl-section" id="sectionExclusive">
-            <div class="nl-section-label">Newsletter Exclusive</div>
-            <div class="nl-section-sub">
-              <div style="grid-column:1/-1;">
-                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Title</label>
-                <input id="editExclusiveTitle" class="nl-input" type="text" style="height:36px;" oninput="markDirty()" />
-              </div>
-              <div style="grid-column:1/-1;">
-                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Hook Text (email — 150-200 words)</label>
-                <textarea id="editExclusiveBody" class="nl-section-edit" rows="5" oninput="markDirty()"></textarea>
-              </div>
-              <div style="grid-column:1/-1;">
-                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Full Editorial (site — 400-500 words)</label>
-                <textarea id="editExclusiveFull" class="nl-section-edit" rows="10" oninput="markDirty()"></textarea>
-              </div>
-            </div>
-          </div>
-
-          <!-- 6. Articles — read only with live links -->
+          <!-- 5. Articles — read only with live links -->
           <div class="nl-section" id="sectionArticles">
             <div class="nl-section-label">This Fortnight on the Blog</div>
             <div id="articlesList"><div class="nl-loading" style="padding:20px;">Loading...</div></div>
@@ -553,10 +537,12 @@ function collectEdits() {
     note:     document.getElementById('editSetupNote').value,
     hasSetup: !!(document.getElementById('editSetupImageUrl').value || document.getElementById('editSetupNote').value),
   };
-  _currentDraft.weekInMarkets = {
-    content:     document.getElementById('editMarkets').value,
-    sourceUrl:   document.getElementById('editMarketsSource').value,
-    sourceLabel: document.getElementById('editMarketsLabel').value,
+  _currentDraft.perspective = {
+    title:               document.getElementById('editPerspectiveTitle').value,
+    hookText:            document.getElementById('editPerspectiveHook').value,
+    fullText:            document.getElementById('editPerspectiveFull').value,
+    relatedArticleSlug:  (_currentDraft.perspective && _currentDraft.perspective.relatedArticleSlug)  || null,
+    relatedArticleTitle: (_currentDraft.perspective && _currentDraft.perspective.relatedArticleTitle) || null,
   };
   _currentDraft.onThisDay = {
     year:    document.getElementById('editOnThisDayYear').value,
@@ -569,13 +555,6 @@ function collectEdits() {
     answer:              document.getElementById('editTrendingA').value,
     relatedArticleSlug:  (_currentDraft.trendingQ && _currentDraft.trendingQ.relatedArticleSlug)  || null,
     relatedArticleTitle: (_currentDraft.trendingQ && _currentDraft.trendingQ.relatedArticleTitle) || null,
-  };
-  _currentDraft.exclusiveArticle = {
-    title:               document.getElementById('editExclusiveTitle').value,
-    hookText:            document.getElementById('editExclusiveBody').value,
-    fullText:            document.getElementById('editExclusiveFull').value,
-    relatedArticleSlug:  (_currentDraft.exclusiveArticle && _currentDraft.exclusiveArticle.relatedArticleSlug)  || null,
-    relatedArticleTitle: (_currentDraft.exclusiveArticle && _currentDraft.exclusiveArticle.relatedArticleTitle) || null,
   };
   _currentDraft.mindsetLine = document.getElementById('editMindset').value;
   var ls = _currentDraft.lifestyle || {};
@@ -627,21 +606,18 @@ function renderDraft(draft) {
   document.getElementById('editorMeta').innerHTML = esc(genTime) + viewLink;
 
   // Populate fields
-  document.getElementById('editSetupImageUrl').value   = (draft.setup && draft.setup.imageUrl) || '';
-  document.getElementById('editSetupNote').value       = (draft.setup && draft.setup.note)     || '';
-  document.getElementById('editMarkets').value         = (draft.weekInMarkets && draft.weekInMarkets.content)     || '';
-  document.getElementById('editMarketsSource').value   = (draft.weekInMarkets && draft.weekInMarkets.sourceUrl)   || '';
-  document.getElementById('editMarketsLabel').value    = (draft.weekInMarkets && draft.weekInMarkets.sourceLabel) || '';
-  document.getElementById('editOnThisDayYear').value   = (draft.onThisDay && draft.onThisDay.year)    || '';
-  document.getElementById('editOnThisDayEvent').value  = (draft.onThisDay && draft.onThisDay.event)   || '';
-  document.getElementById('editOnThisDayLesson').value = (draft.onThisDay && draft.onThisDay.lesson)  || '';
-  document.getElementById('editOnThisDayWiki').value   = (draft.onThisDay && draft.onThisDay.wikiUrl) || '';
-  document.getElementById('editTrendingQ').value       = (draft.trendingQ && draft.trendingQ.question) || '';
-  document.getElementById('editTrendingA').value       = (draft.trendingQ && draft.trendingQ.answer)   || '';
-  document.getElementById('editExclusiveTitle').value  = (draft.exclusiveArticle && draft.exclusiveArticle.title)    || '';
-  document.getElementById('editExclusiveBody').value   = (draft.exclusiveArticle && draft.exclusiveArticle.hookText) || '';
-  document.getElementById('editExclusiveFull').value   = (draft.exclusiveArticle && draft.exclusiveArticle.fullText) || '';
-  document.getElementById('editMindset').value         = draft.mindsetLine || '';
+  document.getElementById('editSetupImageUrl').value     = (draft.setup && draft.setup.imageUrl) || '';
+  document.getElementById('editSetupNote').value         = (draft.setup && draft.setup.note)     || '';
+  document.getElementById('editPerspectiveTitle').value  = (draft.perspective && draft.perspective.title)    || '';
+  document.getElementById('editPerspectiveHook').value   = (draft.perspective && draft.perspective.hookText) || '';
+  document.getElementById('editPerspectiveFull').value   = (draft.perspective && draft.perspective.fullText) || '';
+  document.getElementById('editOnThisDayYear').value     = (draft.onThisDay && draft.onThisDay.year)    || '';
+  document.getElementById('editOnThisDayEvent').value    = (draft.onThisDay && draft.onThisDay.event)   || '';
+  document.getElementById('editOnThisDayLesson').value   = (draft.onThisDay && draft.onThisDay.lesson)  || '';
+  document.getElementById('editOnThisDayWiki').value     = (draft.onThisDay && draft.onThisDay.wikiUrl) || '';
+  document.getElementById('editTrendingQ').value         = (draft.trendingQ && draft.trendingQ.question) || '';
+  document.getElementById('editTrendingA').value         = (draft.trendingQ && draft.trendingQ.answer)   || '';
+  document.getElementById('editMindset').value           = draft.mindsetLine || '';
 
   // Setup image preview
   var imgUrl = (draft.setup && draft.setup.imageUrl) || '';
@@ -768,14 +744,19 @@ function buildPreviewHtml(draft) {
     body += '</div><div style="height:20px;background:#f0f0f5;"></div>';
   }
 
-  // 2. Week in Markets
-  if (draft.weekInMarkets && draft.weekInMarkets.content) {
-    body += '<div style="background:#e06b1a;padding:11px 36px;"><p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#fff;">WEEK IN MARKETS</p></div>';
-    body += '<div style="background:#fff;padding:24px 36px;">'
-      + '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;">What the market did — and what it told us.</p>'
-      + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + e(draft.weekInMarkets.content) + '</p>'
-      + (draft.weekInMarkets.sourceUrl ? '<a href="' + e(draft.weekInMarkets.sourceUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#e06b1a;text-decoration:none;">Via ' + e(draft.weekInMarkets.sourceLabel||'Source') + ' →</a>' : '')
-      + '</div><div style="height:20px;background:#f0f0f5;"></div>';
+  // 2. FFX Perspective
+  if (draft.perspective && draft.perspective.title) {
+    body += '<div style="background:#0a0a12;padding:0;">'
+      + '<div style="height:5px;background:#c9a84c;"></div>'
+      + '<div style="padding:28px 36px 32px;">'
+      + '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:22px;font-weight:900;color:#c9a84c;letter-spacing:0.14em;text-transform:uppercase;line-height:1;">THE FFX PERSPECTIVE</p>'
+      + '<div style="height:3px;width:80px;background:#c9a84c;margin-bottom:20px;"></div>'
+      + '<p style="margin:0 0 18px;font-family:Georgia,&quot;Times New Roman&quot;,serif;font-size:28px;font-weight:700;color:#fff;line-height:1.22;">' + e(draft.perspective.title) + '</p>'
+      + '<p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:15px;color:rgba(255,255,255,0.82);line-height:1.85;">' + e(draft.perspective.hookText||(draft.perspective.fullText||'').substring(0,200)) + '</p>'
+      + '<a href="https://fortitudefx.com/newsletter-issue?date=' + e(draft.issueDate) + '#perspective" target="_blank" style="display:inline-block;padding:13px 28px;background:#c9a84c;color:#000;font-family:Arial,sans-serif;font-size:12px;font-weight:700;text-decoration:none;letter-spacing:0.10em;text-transform:uppercase;border-radius:4px;">Read Full Perspective →</a>'
+      + (draft.perspective.relatedArticleSlug ? '<p style="margin:14px 0 0;"><a href="https://fortitudefx.com/article?slug=' + e(draft.perspective.relatedArticleSlug) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;color:rgba(201,168,76,0.65);text-decoration:none;">Related: ' + e(draft.perspective.relatedArticleTitle||'') + ' →</a></p>' : '')
+      + '</div></div>'
+      + '<div style="height:20px;background:#f0f0f5;"></div>';
   }
 
   // 3. On This Day
@@ -801,18 +782,7 @@ function buildPreviewHtml(draft) {
       + '</div><div style="height:20px;background:#f0f0f5;"></div>';
   }
 
-  // 5. Exclusive
-  if (draft.exclusiveArticle && draft.exclusiveArticle.title) {
-    body += '<div style="background:#0a0a12;padding:32px 36px;">'
-      + '<span style="background:#c9a84c;padding:3px 12px;border-radius:3px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#000;">NEWSLETTER EXCLUSIVE</span>'
-      + '<p style="margin:14px 0 10px;font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#fff;line-height:1.20;">' + e(draft.exclusiveArticle.title) + '</p>'
-      + '<div style="height:2px;background:#c9a84c;margin-bottom:16px;"></div>'
-      + '<p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:15px;color:rgba(255,255,255,0.82);line-height:1.82;">' + e(draft.exclusiveArticle.hookText||(draft.exclusiveArticle.fullText||'').substring(0,200)) + '</p>'
-      + '<a href="https://fortitudefx.com/newsletter-issue?date=' + e(draft.issueDate) + '#exclusive" target="_blank" style="display:inline-block;padding:10px 22px;background:#c9a84c;color:#000;font-family:Arial,sans-serif;font-size:12px;font-weight:700;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;border-radius:4px;">Read Full Editorial →</a>'
-      + '</div><div style="height:20px;background:#f0f0f5;"></div>';
-  }
-
-  // 6. Articles
+  // 5. Articles
   if (draft.articles && draft.articles.length) {
     body += '<div style="background:#7a5cff;padding:11px 36px;"><p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#fff;">THIS FORTNIGHT ON THE BLOG</p></div>';
     body += '<div style="background:#fff;padding:20px 36px;">';
@@ -841,7 +811,7 @@ function buildPreviewHtml(draft) {
       body += '<div style="margin-bottom:20px;border-top:3px solid ' + d.color + ';">'
         + (data.imageUrl ? '<img src="' + e(data.imageUrl) + '" style="width:100%;height:200px;object-fit:cover;display:block;" />' : '')
         + '<div style="background:' + d.bg + ';padding:16px 20px;">'
-        + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:' + d.color + ';">' + e(d.label) + '</p>'
+        + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:16px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:' + d.color + ';">' + e(d.label) + '</p>'
         + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#fff;">' + e(data.title) + '</p>'
         + '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:13px;color:#aaaacc;line-height:1.7;">' + e(data.body||'') + '</p>'
         + (data.sourceUrl ? '<a href="' + e(data.sourceUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:' + d.color + ';text-decoration:none;letter-spacing:0.06em;text-transform:uppercase;">Via ' + e(data.sourceLabel||'Source') + ' →</a>' : '')
