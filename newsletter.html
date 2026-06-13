@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     el.innerHTML = '<div class="nl-issue-list">'
       + issues.map(function(issue) {
-          return '<a href="/newsletter/' + esc(issue.date) + '" class="nl-issue-card">'
+          return '<a href="/newsletter-issue?date=' + esc(issue.date) + '" class="nl-issue-card">'
             + '<div><div class="nl-issue-num">Issue #' + esc(String(issue.issueNumber)) + '</div><div class="nl-issue-date">' + esc(formatDate(issue.date)) + '</div></div>'
             + '<div class="nl-issue-subject">' + esc(issue.subject || 'FFX Intelligence Brief') + '</div>'
             + '<div class="nl-issue-arrow">&rarr;</div>'

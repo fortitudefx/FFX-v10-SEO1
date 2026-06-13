@@ -899,7 +899,7 @@ function renderHistory(issues) {
       + '<div class="nl-history-date">' + esc(formatDate(issue.date)) + '</div>'
       + '<div class="nl-history-subject">' + esc(issue.subject || '') + '</div>'
       + '<div class="nl-history-issue">Issue #' + esc(String(issue.issueNumber || '')) + '</div>'
-      + '<div><a href="/newsletter/' + esc(issue.date) + '" target="_blank" class="nl-history-link">View &rarr;</a></div>'
+      + '<div><a href="/newsletter-issue?date=' + esc(issue.date) + '" target="_blank" class="nl-history-link">View &rarr;</a></div>'
       + '</div>';
   }).join('');
 }
