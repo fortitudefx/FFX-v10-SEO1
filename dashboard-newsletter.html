@@ -7,12 +7,12 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="/dashboard-styles.css">
   <style>
-    .nl-wrap {
-      max-width: var(--content-max);
-      width: calc(100% - 80px);
-      margin: 32px auto 80px;
-      position: relative; z-index: 1;
-    }
+    .nl-wrap { max-width:1600px; width:calc(100% - 80px); margin:32px auto 80px; position:relative; z-index:1; }
+
+    /* Two-column layout */
+    .nl-columns { display:grid; grid-template-columns:1fr 520px; gap:28px; align-items:start; }
+    .nl-editor-col { min-width:0; }
+    .nl-preview-col { position:sticky; top:90px; }
 
     /* Step progress */
     .intel-steps { display:none; flex-direction:column; gap:8px; padding:16px 20px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid rgba(255,255,255,0.07); margin-bottom:20px; }
@@ -20,7 +20,7 @@
     .intel-step-icon { width:20px; height:20px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:14px; }
     .intel-step-icon.spinning::after { content:''; display:block; width:14px; height:14px; border:2px solid rgba(201,168,76,0.30); border-top-color:#C9A84C; border-radius:50%; animation:nl-spin 0.8s linear infinite; }
     @keyframes nl-spin { to { transform:rotate(360deg); } }
-    .intel-step-icon.done    { color:#3ecf8e; font-size:16px; }
+    .intel-step-icon.done { color:#3ecf8e; font-size:16px; }
     .intel-step-icon.pending { color:rgba(255,255,255,0.20); font-size:16px; }
     .intel-step.pending .intel-step-label { font-size:14px; color:rgba(255,255,255,0.35); }
     .intel-step.done    .intel-step-label { font-size:14px; color:rgba(255,255,255,0.85); }
@@ -28,84 +28,44 @@
     .intel-step.error   .intel-step-label { font-size:14px; color:#ff4444; }
 
     /* Setup inputs */
-    .nl-setup-panel {
-      border-radius:14px; border:1px solid rgba(255,255,255,0.09);
-      background:#13151b; margin-bottom:24px; overflow:hidden;
-    }
-    .nl-setup-header {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:16px 24px; border-bottom:1px solid rgba(255,255,255,0.07);
-    }
+    .nl-setup-panel { border-radius:14px; border:1px solid rgba(255,255,255,0.09); background:#13151b; margin-bottom:24px; overflow:hidden; }
+    .nl-setup-header { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid rgba(255,255,255,0.07); }
     .nl-setup-title { font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.55); }
     .nl-setup-body { padding:20px 24px; display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     .nl-field label { display:block; font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.40); margin-bottom:8px; }
-    .nl-input {
-      width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.10);
-      border-radius:8px; color:rgba(255,255,255,0.85); font-size:13px;
-      padding:10px 14px; outline:none; transition:border-color 0.15s; box-sizing:border-box;
-      font-family:inherit;
-    }
+    .nl-input { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.10); border-radius:8px; color:rgba(255,255,255,0.85); font-size:13px; padding:10px 14px; outline:none; transition:border-color 0.15s; box-sizing:border-box; font-family:inherit; }
     .nl-input:focus { border-color:rgba(201,168,76,0.50); }
     .nl-textarea { resize:vertical; min-height:90px; line-height:1.6; }
 
-    /* Preview panel */
-    .nl-preview-panel {
-      border-radius:14px; border:1px solid rgba(255,255,255,0.09);
-      background:#13151b; margin-bottom:24px; overflow:hidden;
-    }
-    .nl-preview-header {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:16px 24px; border-bottom:1px solid rgba(255,255,255,0.07);
-    }
-    .nl-preview-title { font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.55); }
-    .nl-preview-meta { font-size:11px; color:rgba(255,255,255,0.30); }
+    /* Editor panel */
+    .nl-editor-panel { border-radius:14px; border:1px solid rgba(255,255,255,0.09); background:#13151b; overflow:hidden; margin-bottom:24px; }
+    .nl-editor-header { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid rgba(255,255,255,0.07); }
+    .nl-editor-title { font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.55); }
+    .nl-editor-meta { font-size:11px; color:rgba(255,255,255,0.30); }
 
     /* Section editor */
-    .nl-section {
-      border-bottom:1px solid rgba(255,255,255,0.06); padding:20px 24px;
-    }
+    .nl-section { border-bottom:1px solid rgba(255,255,255,0.06); padding:20px 24px; }
     .nl-section:last-child { border-bottom:none; }
-    .nl-section-label {
-      font-size:10px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase;
-      color:rgba(201,168,76,0.70); margin-bottom:10px;
-    }
-    .nl-section-heading {
-      font-size:15px; font-weight:700; color:rgba(255,255,255,0.85); margin-bottom:8px; line-height:1.4;
-    }
-    .nl-section-edit {
-      width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
-      border-radius:8px; color:rgba(255,255,255,0.75); font-size:13px; line-height:1.7;
-      padding:10px 14px; outline:none; resize:vertical; min-height:80px;
-      transition:border-color 0.15s; box-sizing:border-box; font-family:inherit;
-    }
+    .nl-section-label { font-size:10px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:rgba(201,168,76,0.70); margin-bottom:10px; }
+    .nl-section-edit { width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:rgba(255,255,255,0.75); font-size:13px; line-height:1.7; padding:10px 14px; outline:none; resize:vertical; min-height:80px; transition:border-color 0.15s; box-sizing:border-box; font-family:inherit; }
     .nl-section-edit:focus { border-color:rgba(201,168,76,0.40); }
     .nl-section-sub { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px; }
 
-    /* Article cards in preview */
-    .nl-article-card {
-      border-left:3px solid rgba(201,168,76,0.60); background:rgba(201,168,76,0.04);
-      border-radius:0 8px 8px 0; padding:14px 16px; margin-bottom:12px;
-    }
+    /* Article cards */
+    .nl-article-card { border-left:3px solid rgba(201,168,76,0.60); background:rgba(201,168,76,0.04); border-radius:0 8px 8px 0; padding:14px 16px; margin-bottom:12px; }
     .nl-article-cat { font-size:9px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:rgba(201,168,76,0.60); margin-bottom:4px; }
     .nl-article-title { font-size:14px; font-weight:700; color:rgba(255,255,255,0.85); margin-bottom:4px; line-height:1.4; }
     .nl-article-excerpt { font-size:12px; color:rgba(255,255,255,0.45); line-height:1.6; margin-bottom:8px; }
     .nl-article-link { font-size:11px; font-weight:700; color:#7a5cff; text-decoration:none; }
 
-    /* Lifestyle cards in preview */
-    .nl-lifestyle-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .nl-lifestyle-card {
-      border-radius:8px; padding:14px 16px;
-      background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07);
-    }
-    .nl-lifestyle-label { font-size:9px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:4px; }
-    .nl-lifestyle-title { font-size:13px; font-weight:700; color:rgba(255,255,255,0.80); margin-bottom:6px; line-height:1.3; }
-    .nl-lifestyle-body { font-size:12px; color:rgba(255,255,255,0.50); line-height:1.6; }
+    /* Lifestyle cards */
+    .nl-lifestyle-card { border-radius:8px; padding:14px 16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); margin-bottom:14px; }
+    .nl-lifestyle-label { font-size:9px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:6px; }
+    .nl-lifestyle-image { width:100%; height:100px; object-fit:cover; border-radius:5px; margin-bottom:10px; display:block; }
+    .nl-lifestyle-grid-inner { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
 
-    /* Mindset line */
-    .nl-mindset {
-      background:rgba(201,168,76,0.06); border-left:3px solid rgba(201,168,76,0.60);
-      border-radius:0 10px 10px 0; padding:18px 20px; margin-top:4px;
-    }
+    /* Mindset */
+    .nl-mindset { background:rgba(201,168,76,0.06); border-left:3px solid rgba(201,168,76,0.60); border-radius:0 10px 10px 0; padding:18px 20px; margin-top:4px; }
     .nl-mindset-text { font-size:16px; font-weight:700; color:rgba(232,210,140,0.92); line-height:1.5; font-style:italic; }
 
     /* Stat cards */
@@ -126,13 +86,17 @@
     .nl-history-issue { color:rgba(201,168,76,0.70); font-size:11px; font-weight:700; }
     .nl-history-link { font-size:11px; font-weight:700; color:#7a5cff; text-decoration:none; }
 
+    /* Live preview panel */
+    .nl-live-preview { border-radius:14px; border:1px solid rgba(255,255,255,0.09); background:#13151b; overflow:hidden; }
+    .nl-live-preview-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.07); }
+    .nl-live-preview-title { font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.55); }
+    .nl-preview-iframe-wrap { background:#e8e8f0; }
+    .nl-preview-iframe { width:100%; height:700px; border:none; display:block; }
+    .nl-preview-empty { padding:60px 24px; text-align:center; color:rgba(255,255,255,0.28); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; line-height:1.8; }
+
     /* Error banner */
     .nl-error { background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.25); border-radius:10px; padding:14px 18px; font-size:13px; color:rgba(248,113,113,0.90); line-height:1.6; margin-bottom:20px; display:none; }
-
-    /* Loading */
-    .nl-loading { padding:60px; text-align:center; color:rgba(255,255,255,0.28); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; }
-
-    /* Empty state */
+    .nl-loading { padding:40px; text-align:center; color:rgba(255,255,255,0.28); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; }
     .nl-empty { padding:60px 24px; text-align:center; }
     .nl-empty-title { font-size:20px; font-weight:700; color:rgba(255,255,255,0.60); margin-bottom:10px; }
     .nl-empty-body { font-size:14px; color:rgba(255,255,255,0.35); line-height:1.7; }
@@ -144,16 +108,16 @@
   <div class="nav-inner">
     <div class="nav-wordmark">FFX <span>·</span> Internal</div>
     <div class="nav-links">
-      <a href="/dashboard.html"           class="nav-link">Dashboard</a>
-      <a href="/dashboard-press.html"     class="nav-link">Press</a>
-      <a href="/dashboard-queue.html"     class="nav-link">Queue</a>
-      <a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a>
-      <a href="/dashboard-seo.html"       class="nav-link">SEO</a>
-      <a href="/dashboard-audience.html"  class="nav-link">Audience</a>
-      <a href="/dashboard-youtube.html"   class="nav-link">YouTube</a>
-      <a href="/dashboard-health.html"    class="nav-link">Health</a>
-      <a href="/dashboard-social.html"    class="nav-link">Social</a>
-      <a href="/dashboard-indexing.html"  class="nav-link">Indexing</a>
+      <a href="/dashboard.html"            class="nav-link">Dashboard</a>
+      <a href="/dashboard-press.html"      class="nav-link">Press</a>
+      <a href="/dashboard-queue.html"      class="nav-link">Queue</a>
+      <a href="/dashboard-knowledge.html"  class="nav-link">Knowledge</a>
+      <a href="/dashboard-seo.html"        class="nav-link">SEO</a>
+      <a href="/dashboard-audience.html"   class="nav-link">Audience</a>
+      <a href="/dashboard-youtube.html"    class="nav-link">YouTube</a>
+      <a href="/dashboard-health.html"     class="nav-link">Health</a>
+      <a href="/dashboard-social.html"     class="nav-link">Social</a>
+      <a href="/dashboard-indexing.html"   class="nav-link">Indexing</a>
       <a href="/dashboard-newsletter.html" class="nav-link active">Newsletter</a>
     </div>
   </div>
@@ -170,25 +134,31 @@
         style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
                background:rgba(122,92,255,0.12);color:rgba(167,139,250,1);
                border:1px solid rgba(122,92,255,0.30);border-radius:5px;padding:5px 14px;cursor:pointer;">
-        &#9889; Generate
+        ⚡ Generate
       </button>
       <button onclick="saveDraft()" id="saveBtn"
         style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
                background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.60);
                border:1px solid rgba(255,255,255,0.12);border-radius:5px;padding:5px 14px;cursor:pointer;">
-        &#8635; Save Draft
+        ↺ Save Draft
+      </button>
+      <button onclick="refreshPreview()" id="previewRefreshBtn"
+        style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+               background:rgba(201,168,76,0.10);color:rgba(201,168,76,0.80);
+               border:1px solid rgba(201,168,76,0.25);border-radius:5px;padding:5px 14px;cursor:pointer;">
+        ◎ Refresh Preview
       </button>
       <button onclick="previewSend()" id="previewSendBtn"
         style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
                background:rgba(56,189,248,0.10);color:rgba(56,189,248,0.80);
                border:1px solid rgba(56,189,248,0.25);border-radius:5px;padding:5px 14px;cursor:pointer;">
-        &#9993; Preview Send
+        ✉ Preview Send
       </button>
       <button onclick="publishNewsletter()" id="publishBtn"
         style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
                background:rgba(62,207,142,0.12);color:#3ecf8e;
                border:1px solid rgba(62,207,142,0.30);border-radius:5px;padding:5px 14px;cursor:pointer;">
-        &#9654; Publish &amp; Send
+        ▶ Publish &amp; Send
       </button>
       <div class="status-dot" id="statusDot" style="background:var(--muted);box-shadow:none;animation:none;"></div>
     </div>
@@ -197,19 +167,18 @@
 
 <div class="nl-wrap">
 
-  <!-- Error banner -->
   <div class="nl-error" id="errorBanner"></div>
 
   <!-- Step progress -->
   <div class="intel-steps" id="intelSteps">
-    <div class="intel-step pending" id="istep-0"><div class="intel-step-icon pending" id="istep-icon-0">&#9675;</div><div class="intel-step-label">Reading KV data — articles, signals, brief</div></div>
-    <div class="intel-step pending" id="istep-1"><div class="intel-step-icon pending" id="istep-icon-1">&#9675;</div><div class="intel-step-label">Calling Claude — Week in Markets + On This Day (web search)</div></div>
-    <div class="intel-step pending" id="istep-2"><div class="intel-step-icon pending" id="istep-icon-2">&#9675;</div><div class="intel-step-label">Calling Claude — Trending Question + Exclusive Article</div></div>
-    <div class="intel-step pending" id="istep-3"><div class="intel-step-icon pending" id="istep-icon-3">&#9675;</div><div class="intel-step-label">Calling Claude — 6 Lifestyle Sections (web search)</div></div>
-    <div class="intel-step pending" id="istep-4"><div class="intel-step-icon pending" id="istep-icon-4">&#9675;</div><div class="intel-step-label">Generating Mindset Line</div></div>
-    <div class="intel-step pending" id="istep-5"><div class="intel-step-icon pending" id="istep-icon-5">&#9675;</div><div class="intel-step-label">Building newsletter + saving draft to KV</div></div>
-    <div class="intel-step pending" id="istep-6"><div class="intel-step-icon pending" id="istep-icon-6">&#9675;</div><div class="intel-step-label">Saving draft to KV</div></div>
-    <div class="intel-step pending" id="istep-7"><div class="intel-step-icon pending" id="istep-icon-7">&#9675;</div><div class="intel-step-label">Complete</div></div>
+    <div class="intel-step pending" id="istep-0"><div class="intel-step-icon pending" id="istep-icon-0">○</div><div class="intel-step-label">Reading KV data — articles, signals, brief</div></div>
+    <div class="intel-step pending" id="istep-1"><div class="intel-step-icon pending" id="istep-icon-1">○</div><div class="intel-step-label">Calling Claude — Week in Markets + On This Day (web search)</div></div>
+    <div class="intel-step pending" id="istep-2"><div class="intel-step-icon pending" id="istep-icon-2">○</div><div class="intel-step-label">Calling Claude — Trending Question + Exclusive Article</div></div>
+    <div class="intel-step pending" id="istep-3"><div class="intel-step-icon pending" id="istep-icon-3">○</div><div class="intel-step-label">Calling Claude — 6 Lifestyle Sections (web search)</div></div>
+    <div class="intel-step pending" id="istep-4"><div class="intel-step-icon pending" id="istep-icon-4">○</div><div class="intel-step-label">Selecting Mindset Line from Knowledge database</div></div>
+    <div class="intel-step pending" id="istep-5"><div class="intel-step-icon pending" id="istep-icon-5">○</div><div class="intel-step-label">Building newsletter draft</div></div>
+    <div class="intel-step pending" id="istep-6"><div class="intel-step-icon pending" id="istep-icon-6">○</div><div class="intel-step-label">Saving draft to KV</div></div>
+    <div class="intel-step pending" id="istep-7"><div class="intel-step-icon pending" id="istep-icon-7">○</div><div class="intel-step-label">Complete</div></div>
   </div>
 
   <!-- Stats row -->
@@ -236,7 +205,7 @@
     </div>
   </div>
 
-  <!-- Setup inputs — shown when no draft, hidden when draft loaded -->
+  <!-- Setup panel -->
   <div class="nl-setup-panel" id="setupPanel">
     <div class="nl-setup-header">
       <span class="nl-setup-title">Setup of the Fortnight — Your Input</span>
@@ -252,144 +221,171 @@
         <input id="setupImageUrl" class="nl-input" type="url" placeholder="https://... (TradingView screenshot URL)" />
       </div>
       <div class="nl-field" style="display:flex;align-items:flex-end;">
-        <p style="font-size:12px;color:rgba(255,255,255,0.30);line-height:1.6;margin:0;">Leave blank to skip this section. You can add or edit after generation.</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.30);line-height:1.6;margin:0;">Leave blank to skip. You can add or edit after generation.</p>
       </div>
     </div>
   </div>
 
-  <!-- Draft editor — shown after generation -->
+  <!-- Two-column: editor + live preview -->
   <div id="draftEditor" style="display:none;">
+    <div class="nl-columns">
 
-    <!-- Preview panel -->
-    <div class="nl-preview-panel">
-      <div class="nl-preview-header">
-        <span class="nl-preview-title" id="previewTitle">Newsletter Preview</span>
-        <span class="nl-preview-meta" id="previewMeta"></span>
-      </div>
-
-      <!-- Week in Markets -->
-      <div class="nl-section" id="sectionMarkets">
-        <div class="nl-section-label">&#128200; Week in Markets</div>
-        <textarea id="editMarkets" class="nl-section-edit" rows="5" oninput="markDirty()"></textarea>
-        <div class="nl-section-sub" style="margin-top:8px;">
-          <div>
-            <label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Source URL</label>
-            <input id="editMarketsSource" class="nl-input" type="url" style="height:32px;font-size:12px;" oninput="markDirty()" />
+      <!-- LEFT: Editor -->
+      <div class="nl-editor-col">
+        <div class="nl-editor-panel">
+          <div class="nl-editor-header">
+            <span class="nl-editor-title" id="editorTitle">Draft Editor</span>
+            <span class="nl-editor-meta" id="editorMeta"></span>
           </div>
-          <div>
-            <label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Source Label</label>
-            <input id="editMarketsLabel" class="nl-input" type="text" style="height:32px;font-size:12px;" placeholder="e.g. Reuters" oninput="markDirty()" />
+
+          <!-- 1. Setup of the Fortnight — FIRST -->
+          <div class="nl-section" id="sectionSetup">
+            <div class="nl-section-label">Setup of the Fortnight</div>
+            <div class="nl-section-sub">
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Chart Image URL</label>
+                <input id="editSetupImageUrl" class="nl-input" type="url" style="height:36px;" oninput="markDirty()" />
+              </div>
+              <div id="setupImgPreview" style="grid-column:1/-1;display:none;">
+                <img id="setupImgTag" src="" style="max-width:100%;border-radius:6px;border:1px solid rgba(255,255,255,0.10);margin-bottom:8px;" />
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Setup Notes</label>
+                <textarea id="editSetupNote" class="nl-section-edit" rows="4" oninput="markDirty()"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Week in Markets -->
+          <div class="nl-section" id="sectionMarkets">
+            <div class="nl-section-label">Week in Markets</div>
+            <textarea id="editMarkets" class="nl-section-edit" rows="5" oninput="markDirty()"></textarea>
+            <div class="nl-section-sub" style="margin-top:8px;">
+              <div>
+                <label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Source URL</label>
+                <input id="editMarketsSource" class="nl-input" type="url" style="height:32px;font-size:12px;" oninput="markDirty()" />
+              </div>
+              <div>
+                <label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Source Label</label>
+                <input id="editMarketsLabel" class="nl-input" type="text" style="height:32px;font-size:12px;" placeholder="e.g. Reuters" oninput="markDirty()" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. On This Day -->
+          <div class="nl-section" id="sectionOnThisDay">
+            <div class="nl-section-label">On This Day in Markets</div>
+            <div class="nl-section-sub">
+              <div>
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Year</label>
+                <input id="editOnThisDayYear" class="nl-input" type="text" style="height:36px;" oninput="markDirty()" />
+              </div>
+              <div>
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Wikipedia URL</label>
+                <input id="editOnThisDayWiki" class="nl-input" type="url" style="height:36px;" oninput="markDirty()" />
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Event</label>
+                <textarea id="editOnThisDayEvent" class="nl-section-edit" rows="2" style="min-height:50px;" oninput="markDirty()"></textarea>
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Trader Lesson</label>
+                <textarea id="editOnThisDayLesson" class="nl-section-edit" rows="2" style="min-height:50px;" oninput="markDirty()"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Trending Question -->
+          <div class="nl-section" id="sectionTrending">
+            <div class="nl-section-label">Trending Question</div>
+            <div class="nl-section-sub">
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Question</label>
+                <input id="editTrendingQ" class="nl-input" type="text" style="height:36px;" oninput="markDirty()" />
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Answer</label>
+                <textarea id="editTrendingA" class="nl-section-edit" rows="5" oninput="markDirty()"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Newsletter Exclusive -->
+          <div class="nl-section" id="sectionExclusive">
+            <div class="nl-section-label">Newsletter Exclusive</div>
+            <div class="nl-section-sub">
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Title</label>
+                <input id="editExclusiveTitle" class="nl-input" type="text" style="height:36px;" oninput="markDirty()" />
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Hook Text (email — 150-200 words)</label>
+                <textarea id="editExclusiveBody" class="nl-section-edit" rows="5" oninput="markDirty()"></textarea>
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Full Editorial (site — 400-500 words)</label>
+                <textarea id="editExclusiveFull" class="nl-section-edit" rows="10" oninput="markDirty()"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. Articles — read only with live links -->
+          <div class="nl-section" id="sectionArticles">
+            <div class="nl-section-label">This Fortnight on the Blog</div>
+            <div id="articlesList"><div class="nl-loading" style="padding:20px;">Loading...</div></div>
+          </div>
+
+          <!-- 7. Lifestyle Edit — all 6 with source fields -->
+          <div class="nl-section" id="sectionLifestyle">
+            <div class="nl-section-label">The Lifestyle Edit</div>
+            <div id="lifestyleEditor"></div>
+          </div>
+
+          <!-- 8. Mindset Line -->
+          <div class="nl-section" id="sectionMindset">
+            <div class="nl-section-label">FFX Mindset Line — from Knowledge Database</div>
+            <input id="editMindset" class="nl-input" type="text" style="height:44px;font-size:15px;font-style:italic;" placeholder="Pulled from your knowledge nuggets." oninput="markDirty()" />
+            <div class="nl-mindset" id="mindsetPreview" style="margin-top:12px;display:none;">
+              <div class="nl-mindset-text" id="mindsetPreviewText"></div>
+            </div>
+          </div>
+
+        </div><!-- /.nl-editor-panel -->
+
+        <!-- Issue history -->
+        <div id="historySection" style="display:none;">
+          <div class="nl-history-panel">
+            <div class="nl-history-header">Past Issues</div>
+            <div id="historyList"><div class="nl-loading">Loading...</div></div>
           </div>
         </div>
-      </div>
 
-      <!-- On This Day -->
-      <div class="nl-section" id="sectionOnThisDay">
-        <div class="nl-section-label">&#128337; On This Day in Markets</div>
-        <div class="nl-section-sub">
-          <div>
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Year</label>
-            <input id="editOnThisDayYear" class="nl-input" type="text" style="height:36px;" oninput="markDirty()" />
+        <div class="nl-empty" id="emptyState" style="display:none;">
+          <div class="nl-empty-title">No newsletters yet.</div>
+          <div class="nl-empty-body">Fill in the setup details above (optional) and hit Generate.</div>
+        </div>
+
+      </div><!-- /.nl-editor-col -->
+
+      <!-- RIGHT: Live preview -->
+      <div class="nl-preview-col">
+        <div class="nl-live-preview">
+          <div class="nl-live-preview-header">
+            <span class="nl-live-preview-title">Live Preview</span>
+            <span id="previewTimestamp" style="font-size:10px;color:rgba(255,255,255,0.25);">Not rendered yet</span>
           </div>
-          <div style="grid-column:1/-1;">
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Event</label>
-            <textarea id="editOnThisDayEvent" class="nl-section-edit" rows="2" style="min-height:50px;" oninput="markDirty()"></textarea>
-          </div>
-          <div style="grid-column:1/-1;">
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Trader Lesson</label>
-            <textarea id="editOnThisDayLesson" class="nl-section-edit" rows="2" style="min-height:50px;" oninput="markDirty()"></textarea>
-          </div>
-          <div style="grid-column:1/-1;">
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Wikipedia URL</label>
-            <input id="editOnThisDayWiki" class="nl-input" type="url" style="height:36px;" oninput="markDirty()" />
+          <div class="nl-preview-iframe-wrap" id="previewWrap">
+            <div class="nl-preview-empty" id="previewEmpty">Generate a draft to see<br>the live email preview here.</div>
+            <iframe id="previewIframe" class="nl-preview-iframe" style="display:none;" title="Newsletter Preview"></iframe>
           </div>
         </div>
-      </div>
+      </div><!-- /.nl-preview-col -->
 
-      <!-- Trending Question -->
-      <div class="nl-section" id="sectionTrending">
-        <div class="nl-section-label">&#10067; Trending Question</div>
-        <div class="nl-section-sub">
-          <div style="grid-column:1/-1;">
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Question</label>
-            <input id="editTrendingQ" class="nl-input" type="text" style="height:36px;" oninput="markDirty()" />
-          </div>
-          <div style="grid-column:1/-1;">
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Answer</label>
-            <textarea id="editTrendingA" class="nl-section-edit" rows="4" oninput="markDirty()"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- Exclusive Article -->
-      <div class="nl-section" id="sectionExclusive">
-        <div class="nl-section-label">&#11088; Newsletter Exclusive</div>
-        <div class="nl-section-sub">
-          <div style="grid-column:1/-1;">
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Title</label>
-            <input id="editExclusiveTitle" class="nl-input" type="text" style="height:36px;" oninput="markDirty()" />
-          </div>
-          <div style="grid-column:1/-1;">
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Hook Text (shown in email — 150-200 words)</label>
-            <textarea id="editExclusiveBody" class="nl-section-edit" rows="5" oninput="markDirty()"></textarea>
-          </div>
-          <div style="grid-column:1/-1;">
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Full Editorial (shown on site — 400-500 words)</label>
-            <textarea id="editExclusiveFull" class="nl-section-edit" rows="10" oninput="markDirty()"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- Setup of the Fortnight -->
-      <div class="nl-section" id="sectionSetup">
-        <div class="nl-section-label">&#128200; Setup of the Fortnight</div>
-        <div class="nl-section-sub">
-          <div style="grid-column:1/-1;">
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Chart Image URL</label>
-            <input id="editSetupImageUrl" class="nl-input" type="url" style="height:36px;" oninput="markDirty()" />
-          </div>
-          <div style="grid-column:1/-1;">
-            <label style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:6px;">Setup Notes</label>
-            <textarea id="editSetupNote" class="nl-section-edit" rows="4" oninput="markDirty()"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- This Fortnight's Articles — read-only preview -->
-      <div class="nl-section" id="sectionArticles">
-        <div class="nl-section-label">&#128196; This Fortnight on the Blog</div>
-        <div id="articlesList"><div class="nl-loading" style="padding:20px;">Loading articles...</div></div>
-      </div>
-
-      <!-- Lifestyle Edit — all 6 editable -->
-      <div class="nl-section" id="sectionLifestyle">
-        <div class="nl-section-label">&#127774; The Lifestyle Edit</div>
-        <div id="lifestyleEditor"></div>
-      </div>
-
-      <!-- Mindset Line -->
-      <div class="nl-section" id="sectionMindset">
-        <div class="nl-section-label">&#10024; FFX Mindset Line</div>
-        <input id="editMindset" class="nl-input" type="text" style="height:44px;font-size:15px;font-style:italic;" placeholder="One sentence — the trading principle for this issue." oninput="markDirty()" />
-        <div class="nl-mindset" id="mindsetPreview" style="margin-top:12px;display:none;">
-          <div class="nl-mindset-text" id="mindsetPreviewText"></div>
-        </div>
-      </div>
-
-    </div><!-- /.nl-preview-panel -->
-
+    </div><!-- /.nl-columns -->
   </div><!-- /#draftEditor -->
 
-  <!-- Issue history -->
-  <div id="historySection" style="display:none;">
-    <div class="nl-history-panel">
-      <div class="nl-history-header">Past Issues</div>
-      <div id="historyList"><div class="nl-loading">Loading...</div></div>
-    </div>
-  </div>
-
-  <!-- Empty state -->
-  <div class="nl-empty" id="emptyState" style="display:none;">
+  <!-- Empty state when no draft AND no history -->
+  <div class="nl-empty" id="emptyStateTop" style="display:none;">
     <div class="nl-empty-title">No newsletters yet.</div>
     <div class="nl-empty-body">Fill in the setup details above (optional) and hit Generate to create your first issue.</div>
   </div>
@@ -402,114 +398,44 @@ var _isDirty       = false;
 var _progressPoll  = null;
 var _lastStep      = -1;
 
-// ── Init ───────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  loadIndex();
-});
+document.addEventListener('DOMContentLoaded', function() { loadIndex(); });
 
-// ── Load index and check for existing draft ────────────────────────────────
+// ── Load index ─────────────────────────────────────────────────────────────
 async function loadIndex() {
   try {
     var res  = await fetch('/api/newsletter');
-    var text = await res.text();
-    var data;
-    try { data = JSON.parse(text); } catch(e) {
-      showError('Failed to load newsletter index: ' + text.substring(0, 200));
-      return;
-    }
+    var data = await res.json();
     if (!res.ok) { showError(data.error || 'Load failed'); return; }
-
     renderStats(data);
-
     if (data.hasDraft) {
-      // Load and render existing draft
-      var draftRes  = await fetch('/api/newsletter-generate');
-      var draftText = await draftRes.text();
-      var draftData;
-      try { draftData = JSON.parse(draftText); } catch(e) {
-        showError('Failed to load draft: ' + draftText.substring(0, 200));
-        return;
-      }
-      if (draftData.draft) {
-        _currentDraft = draftData.draft;
-        renderDraft(_currentDraft);
-      }
+      var dr = await fetch('/api/newsletter-generate');
+      var dd = await dr.json();
+      if (dd.draft) { _currentDraft = dd.draft; renderDraft(_currentDraft); }
     }
-
     if (data.issues && data.issues.length > 0) {
       renderHistory(data.issues);
       document.getElementById('historySection').style.display = 'block';
     } else if (!data.hasDraft) {
-      document.getElementById('emptyState').style.display = 'block';
+      document.getElementById('emptyStateTop').style.display = 'block';
     }
-
-  } catch (err) {
-    showError('Network error: ' + err.message);
-  }
+  } catch (err) { showError('Network error: ' + err.message); }
 }
 
-// ── Preview Send ──────────────────────────────────────────────────────────
-async function previewSend() {
-  var btn   = document.getElementById('previewSendBtn');
-  var email = prompt('Send preview to email address:', 'salmankhanfx@fortitudefx.com');
-  if (!email || !email.includes('@')) return;
-
-  btn.disabled    = true;
-  btn.textContent = '&#9993; Sending...';
-  hideError();
-
-  // Collect latest edits before sending
-  collectEdits();
-  // Save edits first so the preview reflects current state
-  try {
-    await fetch('/api/newsletter-publish', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ draft: _currentDraft }),
-    });
-  } catch(e) {}
-
-  try {
-    var res  = await fetch('/api/newsletter-publish?preview=1&email=' + encodeURIComponent(email));
-    var text = await res.text();
-    var data;
-    try { data = JSON.parse(text); } catch(e) {
-      showError('Preview send failed: ' + text.substring(0, 200));
-      btn.textContent = '&#9993; Preview Send'; btn.disabled = false;
-      return;
-    }
-    if (!res.ok || data.error) {
-      showError('Preview send failed: ' + (data.error || 'Unknown error'));
-      btn.textContent = '&#9993; Preview Send'; btn.disabled = false;
-      return;
-    }
-    btn.textContent = '&#10003; Sent to ' + email;
-    setTimeout(function() { btn.textContent = '&#9993; Preview Send'; btn.disabled = false; }, 4000);
-  } catch (err) {
-    showError('Network error: ' + err.message);
-    btn.textContent = '&#9993; Preview Send'; btn.disabled = false;
-  }
-}
-
-// ── Generate newsletter ────────────────────────────────────────────────────
+// ── Generate ───────────────────────────────────────────────────────────────
 async function generateNewsletter() {
   var btn   = document.getElementById('generateBtn');
   var steps = document.getElementById('intelSteps');
-
-  btn.disabled    = true;
-  btn.textContent = '&#9889; Generating...';
+  btn.disabled = true;
+  btn.innerHTML = '⚡ Generating...';
   steps.style.display = 'flex';
   hideError();
-
   for (var i = 0; i < 8; i++) setStep(i, 'pending');
   _lastStep = -1;
-
-  // Start progress polling
   if (_progressPoll) { clearInterval(_progressPoll); _progressPoll = null; }
   _progressPoll = setInterval(async function() {
     try {
-      var pr   = await fetch('/api/newsletter?progress=1');
-      var pd   = await pr.json();
+      var pr = await fetch('/api/newsletter?progress=1');
+      var pd = await pr.json();
       if (pd.progress && pd.progress.step) {
         var s = pd.progress.step - 1;
         if (s !== _lastStep) {
@@ -520,90 +446,41 @@ async function generateNewsletter() {
       }
     } catch(e) {}
   }, 2000);
-
-  function cleanup() {
-    if (_progressPoll) { clearInterval(_progressPoll); _progressPoll = null; }
-  }
-
+  function cleanup() { if (_progressPoll) { clearInterval(_progressPoll); _progressPoll = null; } }
   try {
-    var setupNote     = document.getElementById('setupNote').value.trim();
-    var setupImageUrl = document.getElementById('setupImageUrl').value.trim();
-
     var res  = await fetch('/api/newsletter-generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ setupNote: setupNote, setupImageUrl: setupImageUrl }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ setupNote: document.getElementById('setupNote').value.trim(), setupImageUrl: document.getElementById('setupImageUrl').value.trim() }),
     });
-    var text = await res.text();
-    var data;
-    try { data = JSON.parse(text); } catch(e) {
-      cleanup();
-      showError('Generate failed: HTTP ' + res.status + ' — ' + text.substring(0, 300));
-      resetGenerateBtn(btn, steps);
-      return;
-    }
-
-    if (!res.ok || data.error) {
-      cleanup();
-      showError('Generate failed: ' + (data.error || 'Unknown error'));
-      resetGenerateBtn(btn, steps);
-      return;
-    }
-
-    // Job queued — record start time so poll ignores any stale draft
+    var data = await res.json();
+    if (!res.ok || data.error) { cleanup(); showError('Generate failed: ' + (data.error || 'Unknown')); resetGenerateBtn(btn, steps); return; }
     var generateStarted = new Date().toISOString();
-
-    // Now poll until a NEW draft appears in KV (consumer Worker is processing)
-    var draftPollMax      = 150; // 150 x 2s = 5 minutes max
-    var draftPollCount    = 0;
-    var draftPollInterval = setInterval(async function() {
-      draftPollCount++;
-      if (draftPollCount > draftPollMax) {
-        clearInterval(draftPollInterval);
-        cleanup();
-        showError('Generation timed out after 5 minutes. Check Cloudflare Worker logs.');
-        resetGenerateBtn(btn, steps);
-        return;
-      }
+    var pollMax = 150, pollCount = 0;
+    var pollInterval = setInterval(async function() {
+      pollCount++;
+      if (pollCount > pollMax) { clearInterval(pollInterval); cleanup(); showError('Generation timed out after 5 minutes.'); resetGenerateBtn(btn, steps); return; }
       try {
-        var draftRes  = await fetch('/api/newsletter-generate');
-        var draftText = await draftRes.text();
-        var draftData;
-        try { draftData = JSON.parse(draftText); } catch(e) { return; }
-        if (!draftData.draft) return;
-        // Ignore stale draft — only accept one generated after this job started
-        if (!draftData.draft.generatedAt || draftData.draft.generatedAt < generateStarted) return;
-        clearInterval(draftPollInterval);
-        cleanup();
+        var dr = await fetch('/api/newsletter-generate');
+        var dd = await dr.json();
+        if (!dd.draft || !dd.draft.generatedAt || dd.draft.generatedAt < generateStarted) return;
+        clearInterval(pollInterval); cleanup();
         for (var m = 0; m < 8; m++) setStep(m, 'done');
-        btn.textContent = '&#10003; Generated';
-        _currentDraft = draftData.draft;
-        _isDirty      = false;
+        btn.innerHTML = '✓ Generated';
+        _currentDraft = dd.draft; _isDirty = false;
         renderDraft(_currentDraft);
-        document.getElementById('emptyState').style.display = 'none';
-        document.getElementById('saveBtn').style.display    = 'inline-block';
+        document.getElementById('emptyStateTop').style.display = 'none';
+        document.getElementById('saveBtn').style.display = 'inline-block';
         document.getElementById('publishBtn').style.display = 'inline-block';
-        document.getElementById('statusDot').style.cssText  = '';
-        document.getElementById('headerCount').textContent  = 'Draft ready — Issue #' + _currentDraft.issueNumber;
-        setTimeout(function() {
-          btn.textContent     = '&#9889; Regenerate';
-          btn.disabled        = false;
-          steps.style.display = 'none';
-          for (var n = 0; n < 8; n++) setStep(n, 'pending');
-        }, 5000);
-      } catch(pollErr) { /* keep polling */ }
+        document.getElementById('statusDot').style.cssText = '';
+        document.getElementById('headerCount').textContent = 'Draft ready — Issue #' + _currentDraft.issueNumber;
+        setTimeout(function() { btn.innerHTML = '⚡ Regenerate'; btn.disabled = false; steps.style.display = 'none'; for (var n=0;n<8;n++) setStep(n,'pending'); }, 5000);
+      } catch(e) {}
     }, 2000);
-
-  } catch (err) {
-    cleanup();
-    showError('Network error: ' + err.message);
-    resetGenerateBtn(btn, steps);
-  }
+  } catch (err) { cleanup(); showError('Network error: ' + err.message); resetGenerateBtn(btn, steps); }
 }
 
 function resetGenerateBtn(btn, steps) {
-  btn.textContent    = '&#9889; Generate';
-  btn.disabled       = false;
+  btn.innerHTML = '⚡ Generate'; btn.disabled = false;
   setTimeout(function() { steps.style.display = 'none'; }, 3000);
 }
 
@@ -611,278 +488,414 @@ function resetGenerateBtn(btn, steps) {
 async function saveDraft() {
   if (!_currentDraft) return;
   var btn = document.getElementById('saveBtn');
-  btn.textContent = '&#8635; Saving...';
-  btn.disabled    = true;
-
+  btn.innerHTML = '↺ Saving...'; btn.disabled = true;
   collectEdits();
-
   try {
-    var res  = await fetch('/api/newsletter-publish', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ draft: _currentDraft }),
-    });
-    var text = await res.text();
-    var data;
-    try { data = JSON.parse(text); } catch(e) {
-      showError('Save failed: ' + text.substring(0, 200));
-      btn.textContent = '&#8635; Save Draft'; btn.disabled = false;
-      return;
-    }
-    if (!res.ok || data.error) {
-      showError('Save failed: ' + (data.error || 'Unknown error'));
-      btn.textContent = '&#8635; Save Draft'; btn.disabled = false;
-      return;
-    }
+    var res  = await fetch('/api/newsletter-publish', { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({draft:_currentDraft}) });
+    var data = await res.json();
+    if (!res.ok || data.error) { showError('Save failed: ' + (data.error || 'Unknown')); btn.innerHTML = '↺ Save Draft'; btn.disabled = false; return; }
+    _isDirty = false; btn.innerHTML = '✓ Saved';
+    setTimeout(function() { btn.innerHTML = '↺ Save Draft'; btn.disabled = false; }, 2000);
+  } catch (err) { showError('Save error: ' + err.message); btn.innerHTML = '↺ Save Draft'; btn.disabled = false; }
+}
 
-    _isDirty        = false;
-    btn.textContent = '&#10003; Saved';
-    setTimeout(function() { btn.textContent = '&#8635; Save Draft'; btn.disabled = false; }, 2000);
+// ── Refresh preview ────────────────────────────────────────────────────────
+function refreshPreview() {
+  collectEdits();
+  renderEmailPreview(_currentDraft);
+}
 
-  } catch (err) {
-    showError('Network error saving draft: ' + err.message);
-    btn.textContent = '&#8635; Save Draft'; btn.disabled = false;
-  }
+// ── Preview Send ───────────────────────────────────────────────────────────
+async function previewSend() {
+  var btn = document.getElementById('previewSendBtn');
+  var email = prompt('Send preview to email address:', 'salmankhanfx@fortitudefx.com');
+  if (!email || !email.includes('@')) return;
+  btn.disabled = true; btn.innerHTML = '✉ Sending...'; hideError();
+  collectEdits();
+  try {
+    await fetch('/api/newsletter-publish', { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({draft:_currentDraft}) });
+  } catch(e) {}
+  try {
+    var res  = await fetch('/api/newsletter-publish?preview=1&email=' + encodeURIComponent(email));
+    var data = await res.json();
+    if (!res.ok || data.error) { showError('Preview failed: ' + (data.error || 'Unknown')); btn.innerHTML = '✉ Preview Send'; btn.disabled = false; return; }
+    btn.innerHTML = '✓ Sent to ' + esc(email);
+    setTimeout(function() { btn.innerHTML = '✉ Preview Send'; btn.disabled = false; }, 4000);
+  } catch (err) { showError('Preview error: ' + err.message); btn.innerHTML = '✉ Preview Send'; btn.disabled = false; }
 }
 
 // ── Publish & Send ─────────────────────────────────────────────────────────
 async function publishNewsletter() {
   if (!_currentDraft) return;
-
-  var confirmed = window.confirm(
-    'Publish Issue #' + _currentDraft.issueNumber + ' and send to all List 4 subscribers?\n\n'
-    + 'This cannot be undone. Make sure you have reviewed the preview.'
-  );
-  if (!confirmed) return;
-
+  if (!window.confirm('Publish Issue #' + _currentDraft.issueNumber + ' and send to all List 4 subscribers?\n\nThis cannot be undone.')) return;
   var btn = document.getElementById('publishBtn');
-  btn.textContent = '&#9654; Publishing...';
-  btn.disabled    = true;
-  hideError();
-
+  btn.innerHTML = '▶ Publishing...'; btn.disabled = true; hideError();
   collectEdits();
-
   try {
-    var res  = await fetch('/api/newsletter-publish', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ draft: _currentDraft }),
-    });
-    var text = await res.text();
-    var data;
-    try { data = JSON.parse(text); } catch(e) {
-      showError('Publish failed: HTTP ' + res.status + ' — ' + text.substring(0, 300));
-      btn.textContent = '&#9654; Publish &amp; Send'; btn.disabled = false;
-      return;
-    }
-    if (!res.ok || data.error) {
-      showError('Publish failed: ' + (data.error || 'Unknown error'));
-      btn.textContent = '&#9654; Publish &amp; Send'; btn.disabled = false;
-      return;
-    }
-
-    btn.textContent = '&#10003; Sent — Issue #' + data.issueNumber;
-    document.getElementById('headerCount').textContent = 'Issue #' + data.issueNumber + ' sent';
-
-    // Hide draft editor, reload index
+    var res  = await fetch('/api/newsletter-publish', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({draft:_currentDraft}) });
+    var data = await res.json();
+    if (!res.ok || data.error) { showError('Publish failed: ' + (data.error || 'Unknown')); btn.innerHTML = '▶ Publish &amp; Send'; btn.disabled = false; return; }
+    btn.innerHTML = '✓ Sent — Issue #' + esc(String(data.issueNumber || ''));
+    document.getElementById('headerCount').textContent = 'Issue #' + (data.issueNumber || '') + ' sent';
     document.getElementById('draftEditor').style.display = 'none';
-    document.getElementById('setupPanel').style.display  = 'block';
-    document.getElementById('saveBtn').style.display     = 'none';
-
-    _currentDraft = null;
-    _isDirty      = false;
-
-    setTimeout(function() {
-      btn.textContent = '&#9654; Publish &amp; Send';
-      btn.disabled    = false;
-      btn.style.display = 'none';
-      loadIndex();
-    }, 3000);
-
-  } catch (err) {
-    showError('Network error publishing: ' + err.message);
-    btn.textContent = '&#9654; Publish &amp; Send'; btn.disabled = false;
-  }
+    document.getElementById('setupPanel').style.display = 'block';
+    document.getElementById('saveBtn').style.display = 'none';
+    _currentDraft = null; _isDirty = false;
+    setTimeout(function() { btn.innerHTML = '▶ Publish &amp; Send'; btn.disabled = false; btn.style.display = 'none'; loadIndex(); }, 3000);
+  } catch (err) { showError('Publish error: ' + err.message); btn.innerHTML = '▶ Publish &amp; Send'; btn.disabled = false; }
 }
 
-// ── Collect edits from form fields back into _currentDraft ─────────────────
+// ── Collect edits ──────────────────────────────────────────────────────────
 function collectEdits() {
   if (!_currentDraft) return;
-  // Preserve existing structure fields, only overwrite what the editor touches
-  _currentDraft.weekInMarkets = {
-    content:     document.getElementById('editMarkets').value,
-    sourceUrl:   document.getElementById('editMarketsSource') ? document.getElementById('editMarketsSource').value : ((_currentDraft.weekInMarkets && _currentDraft.weekInMarkets.sourceUrl) || ''),
-    sourceLabel: document.getElementById('editMarketsLabel')  ? document.getElementById('editMarketsLabel').value  : ((_currentDraft.weekInMarkets && _currentDraft.weekInMarkets.sourceLabel) || ''),
-  };
-  _currentDraft.onThisDay = {
-    year:    document.getElementById('editOnThisDayYear').value,
-    event:   document.getElementById('editOnThisDayEvent').value,
-    lesson:  document.getElementById('editOnThisDayLesson').value,
-    wikiUrl: document.getElementById('editOnThisDayWiki') ? document.getElementById('editOnThisDayWiki').value : ((_currentDraft.onThisDay && _currentDraft.onThisDay.wikiUrl) || ''),
-  };
-  _currentDraft.trendingQ = {
-    question:            document.getElementById('editTrendingQ').value,
-    answer:              document.getElementById('editTrendingA').value,
-    relatedArticleSlug:  _currentDraft.trendingQ && _currentDraft.trendingQ.relatedArticleSlug  || null,
-    relatedArticleTitle: _currentDraft.trendingQ && _currentDraft.trendingQ.relatedArticleTitle || null,
-  };
-  _currentDraft.exclusiveArticle = {
-    title:               document.getElementById('editExclusiveTitle').value,
-    hookText:            document.getElementById('editExclusiveBody').value,
-    fullText:            document.getElementById('editExclusiveFull') ? document.getElementById('editExclusiveFull').value : ((_currentDraft.exclusiveArticle && _currentDraft.exclusiveArticle.fullText) || ''),
-    relatedArticleSlug:  _currentDraft.exclusiveArticle && _currentDraft.exclusiveArticle.relatedArticleSlug  || null,
-    relatedArticleTitle: _currentDraft.exclusiveArticle && _currentDraft.exclusiveArticle.relatedArticleTitle || null,
-  };
   _currentDraft.setup = {
     imageUrl: document.getElementById('editSetupImageUrl').value,
     note:     document.getElementById('editSetupNote').value,
     hasSetup: !!(document.getElementById('editSetupImageUrl').value || document.getElementById('editSetupNote').value),
   };
+  _currentDraft.weekInMarkets = {
+    content:     document.getElementById('editMarkets').value,
+    sourceUrl:   document.getElementById('editMarketsSource').value,
+    sourceLabel: document.getElementById('editMarketsLabel').value,
+  };
+  _currentDraft.onThisDay = {
+    year:    document.getElementById('editOnThisDayYear').value,
+    event:   document.getElementById('editOnThisDayEvent').value,
+    lesson:  document.getElementById('editOnThisDayLesson').value,
+    wikiUrl: document.getElementById('editOnThisDayWiki').value,
+  };
+  _currentDraft.trendingQ = {
+    question:            document.getElementById('editTrendingQ').value,
+    answer:              document.getElementById('editTrendingA').value,
+    relatedArticleSlug:  (_currentDraft.trendingQ && _currentDraft.trendingQ.relatedArticleSlug)  || null,
+    relatedArticleTitle: (_currentDraft.trendingQ && _currentDraft.trendingQ.relatedArticleTitle) || null,
+  };
+  _currentDraft.exclusiveArticle = {
+    title:               document.getElementById('editExclusiveTitle').value,
+    hookText:            document.getElementById('editExclusiveBody').value,
+    fullText:            document.getElementById('editExclusiveFull').value,
+    relatedArticleSlug:  (_currentDraft.exclusiveArticle && _currentDraft.exclusiveArticle.relatedArticleSlug)  || null,
+    relatedArticleTitle: (_currentDraft.exclusiveArticle && _currentDraft.exclusiveArticle.relatedArticleTitle) || null,
+  };
   _currentDraft.mindsetLine = document.getElementById('editMindset').value;
-
-  // Collect lifestyle edits
   var ls = _currentDraft.lifestyle || {};
   ['travel','luxury','women','tech','fitness','entertainment'].forEach(function(key) {
     if (!ls[key]) ls[key] = {};
-    var titleEl = document.getElementById('ls-title-' + key);
-    var bodyEl  = document.getElementById('ls-body-' + key);
-    if (titleEl) ls[key].title = titleEl.value;
-    if (bodyEl)  ls[key].body  = bodyEl.value;
+    var t = document.getElementById('ls-title-' + key);
+    var b = document.getElementById('ls-body-' + key);
+    var u = document.getElementById('ls-url-' + key);
+    var l = document.getElementById('ls-label-' + key);
+    if (t) ls[key].title       = t.value;
+    if (b) ls[key].body        = b.value;
+    if (u) ls[key].sourceUrl   = u.value;
+    if (l) ls[key].sourceLabel = l.value;
   });
   _currentDraft.lifestyle = ls;
 }
 
 function markDirty() {
   _isDirty = true;
-  // Update mindset preview live
   var val = document.getElementById('editMindset') ? document.getElementById('editMindset').value : '';
   var preview = document.getElementById('mindsetPreview');
   var previewText = document.getElementById('mindsetPreviewText');
   if (preview && previewText) {
-    if (val.trim()) {
-      previewText.textContent = val;
-      preview.style.display   = 'block';
-    } else {
-      preview.style.display = 'none';
-    }
+    if (val.trim()) { previewText.textContent = val; preview.style.display = 'block'; }
+    else { preview.style.display = 'none'; }
+  }
+  // Update setup image preview
+  var imgUrl = document.getElementById('editSetupImageUrl') ? document.getElementById('editSetupImageUrl').value.trim() : '';
+  var imgWrap = document.getElementById('setupImgPreview');
+  var imgTag  = document.getElementById('setupImgTag');
+  if (imgWrap && imgTag) {
+    if (imgUrl) { imgTag.src = imgUrl; imgWrap.style.display = 'block'; }
+    else { imgWrap.style.display = 'none'; }
   }
 }
 
 // ── Render draft into editor ───────────────────────────────────────────────
 function renderDraft(draft) {
-  document.getElementById('setupPanel').style.display  = 'none';
+  document.getElementById('setupPanel').style.display = 'none';
   document.getElementById('draftEditor').style.display = 'block';
   document.getElementById('saveBtn').style.display          = 'inline-block';
   document.getElementById('previewSendBtn').style.display   = 'inline-block';
+  document.getElementById('previewRefreshBtn').style.display = 'inline-block';
   document.getElementById('publishBtn').style.display       = 'inline-block';
 
-  // Preview header
-  document.getElementById('previewTitle').textContent = 'Issue #' + draft.issueNumber + ' — ' + formatDate(draft.issueDate);
-  var metaEl = document.getElementById('previewMeta');
-  var genTime = draft.generatedAt ? ('Generated ' + formatDateTime(draft.generatedAt)) : '';
-  var viewLink = draft.status === 'published' ? ' &nbsp;·&nbsp; <a href="/newsletter-issue?date=' + draft.issueDate + '" target="_blank" style="color:#7a5cff;text-decoration:none;font-weight:700;">View Live Post &rarr;</a>' : '';
-  metaEl.innerHTML = esc(genTime) + viewLink;
+  document.getElementById('editorTitle').textContent = 'Issue #' + draft.issueNumber + ' — ' + formatDate(draft.issueDate);
+  var genTime  = draft.generatedAt ? ('Generated ' + formatDateTime(draft.generatedAt)) : '';
+  var viewLink = draft.status === 'published' ? ' · <a href="/newsletter-issue?date=' + draft.issueDate + '" target="_blank" style="color:#7a5cff;text-decoration:none;font-weight:700;">View Live Post →</a>' : '';
+  document.getElementById('editorMeta').innerHTML = esc(genTime) + viewLink;
 
-  // Populate editable fields — matches new draft structure from newsletter-generate.js
-  document.getElementById('editMarkets').value          = (draft.weekInMarkets && draft.weekInMarkets.content) || '';
-  document.getElementById('editMarketsSource').value    = (draft.weekInMarkets && draft.weekInMarkets.sourceUrl) || '';
-  document.getElementById('editMarketsLabel').value     = (draft.weekInMarkets && draft.weekInMarkets.sourceLabel) || '';
-  document.getElementById('editOnThisDayYear').value    = (draft.onThisDay && draft.onThisDay.year)    || '';
-  document.getElementById('editOnThisDayEvent').value   = (draft.onThisDay && draft.onThisDay.event)   || '';
-  document.getElementById('editOnThisDayLesson').value  = (draft.onThisDay && draft.onThisDay.lesson)  || '';
-  document.getElementById('editOnThisDayWiki').value    = (draft.onThisDay && draft.onThisDay.wikiUrl) || '';
-  document.getElementById('editTrendingQ').value        = (draft.trendingQ && draft.trendingQ.question) || '';
-  document.getElementById('editTrendingA').value        = (draft.trendingQ && draft.trendingQ.answer)   || '';
-  document.getElementById('editExclusiveTitle').value   = (draft.exclusiveArticle && draft.exclusiveArticle.title)    || '';
-  document.getElementById('editExclusiveBody').value    = (draft.exclusiveArticle && draft.exclusiveArticle.hookText) || '';
-  document.getElementById('editExclusiveFull').value    = (draft.exclusiveArticle && draft.exclusiveArticle.fullText) || '';
-  document.getElementById('editSetupImageUrl').value    = (draft.setup && draft.setup.imageUrl) || '';
-  document.getElementById('editSetupNote').value        = (draft.setup && draft.setup.note)     || '';
-  document.getElementById('editMindset').value          = draft.mindsetLine || '';
+  // Populate fields
+  document.getElementById('editSetupImageUrl').value   = (draft.setup && draft.setup.imageUrl) || '';
+  document.getElementById('editSetupNote').value       = (draft.setup && draft.setup.note)     || '';
+  document.getElementById('editMarkets').value         = (draft.weekInMarkets && draft.weekInMarkets.content)     || '';
+  document.getElementById('editMarketsSource').value   = (draft.weekInMarkets && draft.weekInMarkets.sourceUrl)   || '';
+  document.getElementById('editMarketsLabel').value    = (draft.weekInMarkets && draft.weekInMarkets.sourceLabel) || '';
+  document.getElementById('editOnThisDayYear').value   = (draft.onThisDay && draft.onThisDay.year)    || '';
+  document.getElementById('editOnThisDayEvent').value  = (draft.onThisDay && draft.onThisDay.event)   || '';
+  document.getElementById('editOnThisDayLesson').value = (draft.onThisDay && draft.onThisDay.lesson)  || '';
+  document.getElementById('editOnThisDayWiki').value   = (draft.onThisDay && draft.onThisDay.wikiUrl) || '';
+  document.getElementById('editTrendingQ').value       = (draft.trendingQ && draft.trendingQ.question) || '';
+  document.getElementById('editTrendingA').value       = (draft.trendingQ && draft.trendingQ.answer)   || '';
+  document.getElementById('editExclusiveTitle').value  = (draft.exclusiveArticle && draft.exclusiveArticle.title)    || '';
+  document.getElementById('editExclusiveBody').value   = (draft.exclusiveArticle && draft.exclusiveArticle.hookText) || '';
+  document.getElementById('editExclusiveFull').value   = (draft.exclusiveArticle && draft.exclusiveArticle.fullText) || '';
+  document.getElementById('editMindset').value         = draft.mindsetLine || '';
 
-  // Mindset preview
+  // Setup image preview
+  var imgUrl = (draft.setup && draft.setup.imageUrl) || '';
+  var imgWrap = document.getElementById('setupImgPreview');
+  var imgTag  = document.getElementById('setupImgTag');
+  if (imgUrl && imgWrap && imgTag) { imgTag.src = imgUrl; imgWrap.style.display = 'block'; }
+
   if (draft.mindsetLine) {
     document.getElementById('mindsetPreviewText').textContent = draft.mindsetLine;
     document.getElementById('mindsetPreview').style.display   = 'block';
   }
 
-  // Articles
   renderArticlesPreview(draft.articles || []);
-
-  // Lifestyle
   renderLifestyleEditor(draft.lifestyle || {});
+  renderEmailPreview(draft);
 }
 
+// ── Articles preview — clickable links ────────────────────────────────────
 function renderArticlesPreview(articles) {
   var el = document.getElementById('articlesList');
   if (!articles.length) {
-    el.innerHTML = '<p style="font-size:13px;color:rgba(255,255,255,0.30);padding:8px 0;">No articles from the past 14 days found in KV.</p>';
+    el.innerHTML = '<p style="font-size:13px;color:rgba(255,255,255,0.30);padding:8px 0;">No articles from past 14 days found.</p>';
     return;
   }
   el.innerHTML = articles.map(function(a) {
     return '<div class="nl-article-card">'
       + '<div class="nl-article-cat">' + esc(a.category || 'Strategy') + '</div>'
-      + '<div class="nl-article-title"><a href="' + esc(a.url) + '" target="_blank" style="color:rgba(255,255,255,0.85);text-decoration:none;">' + esc(a.title) + '</a></div>'
-      + (a.excerpt ? '<div class="nl-article-excerpt">' + esc(a.excerpt.substring(0, 100)) + '&hellip;</div>' : '')
-      + '<a href="' + esc(a.url) + '" target="_blank" class="nl-article-link">View article &rarr;</a>'
+      + '<div class="nl-article-title">'
+      + '<a href="' + esc(a.url) + '" target="_blank" style="color:rgba(255,255,255,0.85);text-decoration:none;">' + esc(a.title) + '</a>'
+      + '</div>'
+      + (a.excerpt ? '<div class="nl-article-excerpt">' + esc(a.excerpt.substring(0, 100)) + '…</div>' : '')
+      + '<a href="' + esc(a.url) + '" target="_blank" class="nl-article-link">Open article →</a>'
       + '</div>';
   }).join('');
 }
 
+// ── Lifestyle editor — all 6 with source URL + label ─────────────────────
 function renderLifestyleEditor(lifestyle) {
   var sections = [
-    { key: 'travel',        label: 'Trading Freedom \u2014 Travel & Destination', color: '#e06b1a' },
-    { key: 'luxury',        label: 'Luxury',                                       color: '#c9a84c' },
-    { key: 'women',         label: 'Women & Lifestyle',                            color: '#7a5cff' },
-    { key: 'tech',          label: 'Tech & AI',                                    color: '#38bdf8' },
-    { key: 'fitness',       label: 'Fitness, Diet & Mindset',                      color: '#3ecf8e' },
-    { key: 'entertainment', label: 'Entertainment',                                color: '#a855f7' },
+    { key:'travel',        label:'Trading Freedom — Travel & Destination', color:'#e06b1a' },
+    { key:'luxury',        label:'Luxury',                                  color:'#c9a84c' },
+    { key:'women',         label:'Women & Lifestyle',                       color:'#7a5cff' },
+    { key:'tech',          label:'Tech & AI',                               color:'#38bdf8' },
+    { key:'fitness',       label:'Fitness, Diet & Mindset',                 color:'#3ecf8e' },
+    { key:'entertainment', label:'Entertainment',                           color:'#a855f7' },
   ];
-
-  var html = '<div class="nl-lifestyle-grid">';
+  var html = '';
   sections.forEach(function(s) {
     var data = lifestyle[s.key] || {};
     var imgUrl = data.imageUrl || '';
     html += '<div class="nl-lifestyle-card" style="border-top:2px solid ' + s.color + ';">'
       + '<div class="nl-lifestyle-label" style="color:' + s.color + ';">' + esc(s.label) + '</div>'
-      + (imgUrl ? '<div style="margin-bottom:8px;border-radius:6px;overflow:hidden;height:120px;background:rgba(255,255,255,0.04);">'
-        + '<img src="' + imgUrl + '" style="width:100%;height:120px;object-fit:cover;display:block;" alt="' + esc(s.label) + '" />'
-        + '</div>' : '')
+      + (imgUrl ? '<img src="' + esc(imgUrl) + '" class="nl-lifestyle-image" alt="' + esc(s.label) + '" />' : '<div style="height:80px;background:rgba(255,255,255,0.03);border-radius:5px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;"><span style="font-size:11px;color:rgba(255,255,255,0.20);">No image</span></div>')
       + '<div style="margin-bottom:6px;">'
       + '<label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Title</label>'
       + '<input id="ls-title-' + s.key + '" class="nl-input" type="text" value="' + esc(data.title || '') + '" style="height:32px;font-size:12px;" oninput="markDirty()" />'
       + '</div>'
-      + '<div>'
+      + '<div style="margin-bottom:6px;">'
       + '<label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Body</label>'
       + '<textarea id="ls-body-' + s.key + '" class="nl-section-edit" rows="3" style="min-height:60px;font-size:12px;" oninput="markDirty()">' + esc(data.body || '') + '</textarea>'
       + '</div>'
+      + '<div class="nl-section-sub">'
+      + '<div>'
+      + '<label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Source URL</label>'
+      + '<input id="ls-url-' + s.key + '" class="nl-input" type="url" value="' + esc(data.sourceUrl || '') + '" style="height:28px;font-size:11px;" oninput="markDirty()" />'
+      + '</div>'
+      + '<div>'
+      + '<label style="font-size:9px;color:rgba(255,255,255,0.30);letter-spacing:0.10em;text-transform:uppercase;display:block;margin-bottom:4px;">Source Label</label>'
+      + '<input id="ls-label-' + s.key + '" class="nl-input" type="text" value="' + esc(data.sourceLabel || '') + '" style="height:28px;font-size:11px;" placeholder="e.g. GQ" oninput="markDirty()" />'
+      + '</div>'
+      + '</div>'
       + '</div>';
   });
-  html += '</div>';
-
   document.getElementById('lifestyleEditor').innerHTML = html;
 }
 
-// ── Render stats ───────────────────────────────────────────────────────────
+// ── Live email preview — renders full email HTML into iframe ──────────────
+function renderEmailPreview(draft) {
+  var iframe = document.getElementById('previewIframe');
+  var empty  = document.getElementById('previewEmpty');
+  if (!draft) { iframe.style.display = 'none'; empty.style.display = 'block'; return; }
+  var html = buildPreviewHtml(draft);
+  iframe.style.display = 'block';
+  empty.style.display  = 'none';
+  // Scale iframe content to fit 520px column
+  try {
+    iframe.srcdoc = html;
+  } catch(e) {
+    var doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+  }
+  document.getElementById('previewTimestamp').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+}
+
+// ── Build preview HTML (mirrors email template, browser-safe) ─────────────
+function buildPreviewHtml(draft) {
+  function e(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function fmtDate(d) { if(!d) return ''; return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); }
+
+  var ls = draft.lifestyle || {};
+  var lsDefs = [
+    {key:'travel',label:'Trading Freedom — Travel & Destination',color:'#e06b1a',bg:'#1a0e08'},
+    {key:'luxury',label:'Luxury',color:'#c9a84c',bg:'#1a1608'},
+    {key:'women',label:'Women & Lifestyle',color:'#7a5cff',bg:'#0f0c1f'},
+    {key:'tech',label:'Tech & AI',color:'#38bdf8',bg:'#071820'},
+    {key:'fitness',label:'Fitness, Diet & Mindset',color:'#3ecf8e',bg:'#081a12'},
+    {key:'entertainment',label:'Entertainment',color:'#a855f7',bg:'#160d1f'},
+  ];
+
+  var body = '';
+
+  // Issue intro
+  body += '<div style="padding:20px 36px 8px;">'
+    + '<p style="margin:0 0 3px;font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1a1a2e;">Issue #' + (draft.issueNumber||1) + ' &nbsp;&middot;&nbsp; ' + e(fmtDate(draft.issueDate)) + '</p>'
+    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#9999aa;">Bi-weekly intelligence for the serious forex trader.</p>'
+    + '</div>';
+
+  // 1. Setup
+  if (draft.setup && draft.setup.hasSetup) {
+    body += '<div style="background:#c9a84c;padding:11px 36px;"><p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#fff;">SETUP OF THE FORTNIGHT</p></div>';
+    body += '<div style="background:#fffdf5;padding:20px 36px;">';
+    if (draft.setup.imageUrl) body += '<img src="' + e(draft.setup.imageUrl) + '" style="max-width:100%;border-radius:4px;border:1px solid #e0d0a0;margin-bottom:14px;display:block;" />';
+    if (draft.setup.note) body += '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + e(draft.setup.note) + '</p>';
+    body += '</div><div style="height:20px;background:#f0f0f5;"></div>';
+  }
+
+  // 2. Week in Markets
+  if (draft.weekInMarkets && draft.weekInMarkets.content) {
+    body += '<div style="background:#e06b1a;padding:11px 36px;"><p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#fff;">WEEK IN MARKETS</p></div>';
+    body += '<div style="background:#fff;padding:24px 36px;">'
+      + '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;">What the market did — and what it told us.</p>'
+      + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + e(draft.weekInMarkets.content) + '</p>'
+      + (draft.weekInMarkets.sourceUrl ? '<a href="' + e(draft.weekInMarkets.sourceUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#e06b1a;text-decoration:none;">Via ' + e(draft.weekInMarkets.sourceLabel||'Source') + ' →</a>' : '')
+      + '</div><div style="height:20px;background:#f0f0f5;"></div>';
+  }
+
+  // 3. On This Day
+  if (draft.onThisDay && draft.onThisDay.event) {
+    body += '<div style="background:#c9a84c;padding:11px 36px;"><p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#fff;">ON THIS DAY IN MARKETS' + (draft.onThisDay.year ? ' — ' + e(draft.onThisDay.year) : '') + '</p></div>';
+    body += '<div style="background:#fff;padding:20px 36px;">'
+      + '<div style="padding:18px 22px;border-left:4px solid #c9a84c;background:#fffdf5;">'
+      + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">' + e(draft.onThisDay.event) + '</p>'
+      + (draft.onThisDay.lesson ? '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:13px;color:#555566;line-height:1.70;">' + e(draft.onThisDay.lesson) + '</p>' : '')
+      + (draft.onThisDay.wikiUrl ? '<a href="' + e(draft.onThisDay.wikiUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#c9a84c;text-decoration:none;">Read on Wikipedia →</a>' : '')
+      + '</div></div><div style="height:20px;background:#f0f0f5;"></div>';
+  }
+
+  // 4. Trending Question
+  if (draft.trendingQ && draft.trendingQ.question) {
+    body += '<div style="background:#7a5cff;padding:11px 36px;"><p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#fff;">TRENDING QUESTION</p></div>';
+    body += '<div style="background:#f8f7ff;padding:28px 36px;">'
+      + '<p style="margin:0 0 4px;font-family:Georgia,serif;font-size:52px;color:#7a5cff;line-height:1;opacity:0.35;">&ldquo;</p>'
+      + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;line-height:1.30;">' + e(draft.trendingQ.question) + '</p>'
+      + '<hr style="border:none;border-top:1px solid #eee;margin:0 0 14px;" />'
+      + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + e(draft.trendingQ.answer) + '</p>'
+      + (draft.trendingQ.relatedArticleSlug ? '<a href="https://fortitudefx.com/article?slug=' + e(draft.trendingQ.relatedArticleSlug) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#7a5cff;text-decoration:none;">Related: ' + e(draft.trendingQ.relatedArticleTitle||'') + ' →</a>' : '')
+      + '</div><div style="height:20px;background:#f0f0f5;"></div>';
+  }
+
+  // 5. Exclusive
+  if (draft.exclusiveArticle && draft.exclusiveArticle.title) {
+    body += '<div style="background:#0a0a12;padding:32px 36px;">'
+      + '<span style="background:#c9a84c;padding:3px 12px;border-radius:3px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#000;">NEWSLETTER EXCLUSIVE</span>'
+      + '<p style="margin:14px 0 10px;font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#fff;line-height:1.20;">' + e(draft.exclusiveArticle.title) + '</p>'
+      + '<div style="height:2px;background:#c9a84c;margin-bottom:16px;"></div>'
+      + '<p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:15px;color:rgba(255,255,255,0.82);line-height:1.82;">' + e(draft.exclusiveArticle.hookText||(draft.exclusiveArticle.fullText||'').substring(0,200)) + '</p>'
+      + '<a href="https://fortitudefx.com/newsletter-issue?date=' + e(draft.issueDate) + '#exclusive" target="_blank" style="display:inline-block;padding:10px 22px;background:#c9a84c;color:#000;font-family:Arial,sans-serif;font-size:12px;font-weight:700;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;border-radius:4px;">Read Full Editorial →</a>'
+      + '</div><div style="height:20px;background:#f0f0f5;"></div>';
+  }
+
+  // 6. Articles
+  if (draft.articles && draft.articles.length) {
+    body += '<div style="background:#7a5cff;padding:11px 36px;"><p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#fff;">THIS FORTNIGHT ON THE BLOG</p></div>';
+    body += '<div style="background:#fff;padding:20px 36px;">';
+    draft.articles.forEach(function(a) {
+      body += '<div style="margin-bottom:14px;border:1px solid #e8e8f0;border-radius:4px;overflow:hidden;">'
+        + '<div style="background:#1a1a2e;padding:6px 14px;"><p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#c9a84c;">' + e(a.category||'Strategy') + '</p></div>'
+        + '<div style="background:#f8f8fb;padding:14px 16px;">'
+        + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">' + e(a.title) + '</p>'
+        + (a.excerpt ? '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:13px;color:#666677;line-height:1.6;">' + e(a.excerpt.substring(0,120)) + '…</p>' : '')
+        + '<a href="' + e(a.url) + '" target="_blank" style="display:inline-block;padding:7px 16px;background:#1a1a2e;color:#c9a84c;font-family:Arial,sans-serif;font-size:11px;font-weight:700;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Read Article →</a>'
+        + '</div></div>';
+    });
+    body += '</div><div style="height:20px;background:#f0f0f5;"></div>';
+  }
+
+  // 7. Lifestyle
+  var hasLife = lsDefs.some(function(d){ return ls[d.key] && ls[d.key].title; });
+  if (hasLife) {
+    body += '<div style="background:#06060a;padding:32px 36px 12px;text-align:center;border-top:3px solid #c9a84c;">'
+      + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:#c9a84c;">The Lifestyle Edit</p>'
+      + '<p style="margin:0;font-family:Georgia,&quot;Times New Roman&quot;,serif;font-size:28px;font-style:italic;color:#fff;">The life the consistency builds toward.</p>'
+      + '</div><div style="background:#06060a;padding:8px 36px 32px;">';
+    lsDefs.forEach(function(d) {
+      var data = ls[d.key] || {};
+      if (!data.title) return;
+      body += '<div style="margin-bottom:20px;border-top:3px solid ' + d.color + ';">'
+        + (data.imageUrl ? '<img src="' + e(data.imageUrl) + '" style="width:100%;height:200px;object-fit:cover;display:block;" />' : '')
+        + '<div style="background:' + d.bg + ';padding:16px 20px;">'
+        + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:' + d.color + ';">' + e(d.label) + '</p>'
+        + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#fff;">' + e(data.title) + '</p>'
+        + '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:13px;color:#aaaacc;line-height:1.7;">' + e(data.body||'') + '</p>'
+        + (data.sourceUrl ? '<a href="' + e(data.sourceUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:' + d.color + ';text-decoration:none;letter-spacing:0.06em;text-transform:uppercase;">Via ' + e(data.sourceLabel||'Source') + ' →</a>' : '')
+        + '</div></div>';
+    });
+    body += '</div><div style="height:20px;background:#f0f0f5;"></div>';
+  }
+
+  // 8. Mindset Line
+  if (draft.mindsetLine) {
+    body += '<div style="background:#1a1a2e;padding:32px 36px;">'
+      + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#c9a84c;">FFX MINDSET LINE</p>'
+      + '<p style="margin:0;font-family:Georgia,&quot;Times New Roman&quot;,serif;font-size:21px;font-style:italic;color:#fff;line-height:1.5;">&ldquo;' + e(draft.mindsetLine) + '&rdquo;</p>'
+      + '</div><div style="height:20px;background:#f0f0f5;"></div>';
+  }
+
+  // 9. Discord CTA
+  body += '<div style="background:#f0eeff;padding:32px 36px;text-align:center;border-top:3px solid #7a5cff;">'
+    + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;">Not in the Discord yet?</p>'
+    + '<p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:14px;color:#555566;">Real-time chart markups, daily recaps, direct access to Salman.</p>'
+    + '<a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" style="display:inline-block;padding:13px 32px;background:#7a5cff;color:#fff;font-family:Arial,sans-serif;font-size:13px;font-weight:700;text-decoration:none;letter-spacing:0.06em;text-transform:uppercase;border-radius:999px;">Join Free →</a>'
+    + '</div>';
+
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{box-sizing:border-box;}body{margin:0;padding:0;background:#e8e8f0;font-family:Arial,sans-serif;}img{max-width:100%;height:auto;display:block;}</style></head>'
+    + '<body><div style="max-width:600px;margin:0 auto;background:#fff;">'
+    // Header
+    + '<div style="background:#0a0a12;padding:20px 36px;">'
+    + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.14em;color:#fff;">FORTITUDEFX™</p>'
+    + '<p style="margin:0 0 6px;font-family:Georgia,serif;font-size:30px;font-weight:700;color:#fff;">Catch The Wick™</p>'
+    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.40);">Issue #' + (draft.issueNumber||1) + ' &nbsp;·&nbsp; ' + e(fmtDate(draft.issueDate)) + ' &nbsp;·&nbsp; Bi-Weekly</p>'
+    + '</div>'
+    + body
+    + '<div style="background:#f4f4f8;padding:16px 36px;">'
+    + '<p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">© 2026 FortitudeFX™. Dubai, UAE.</p>'
+    + '</div>'
+    + '</div></body></html>';
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────
 function renderStats(data) {
   document.getElementById('statRow').style.display = 'grid';
   document.getElementById('statIssues').textContent = data.total || 0;
-
   if (data.lastSent) {
     document.getElementById('statLastSent').textContent  = formatDate(data.lastSent.issueDate);
     document.getElementById('statLastIssue').textContent = 'Issue #' + data.lastSent.issueNumber;
-    // Next issue = lastSent + 14 days, on a Monday
-    var last = new Date(data.lastSent.issueDate);
-    var next = new Date(last.getTime() + 14 * 24 * 3600 * 1000);
+    var next = new Date(new Date(data.lastSent.issueDate).getTime() + 14*24*3600*1000);
     document.getElementById('statNextIssue').textContent = formatDate(next.toISOString().split('T')[0]);
   } else {
     document.getElementById('statLastSent').textContent  = 'Not sent';
     document.getElementById('statNextIssue').textContent = 'Next Monday';
   }
-
   if (data.hasDraft) {
-    document.getElementById('statDraft').textContent     = 'Draft ready';
-    document.getElementById('statDraft').style.color     = '#3ecf8e';
+    document.getElementById('statDraft').textContent = 'Draft ready';
+    document.getElementById('statDraft').style.color = '#3ecf8e';
     document.getElementById('statDraftDate').textContent = data.draftDate || '';
   } else {
     document.getElementById('statDraft').textContent = 'No draft';
@@ -890,7 +903,7 @@ function renderStats(data) {
   }
 }
 
-// ── Render history ─────────────────────────────────────────────────────────
+// ── History ────────────────────────────────────────────────────────────────
 function renderHistory(issues) {
   var el = document.getElementById('historyList');
   if (!issues.length) { el.innerHTML = '<div class="nl-loading">No issues yet.</div>'; return; }
@@ -899,7 +912,7 @@ function renderHistory(issues) {
       + '<div class="nl-history-date">' + esc(formatDate(issue.date)) + '</div>'
       + '<div class="nl-history-subject">' + esc(issue.subject || '') + '</div>'
       + '<div class="nl-history-issue">Issue #' + esc(String(issue.issueNumber || '')) + '</div>'
-      + '<div><a href="/newsletter-issue?date=' + esc(issue.date) + '" target="_blank" class="nl-history-link">View &rarr;</a></div>'
+      + '<div><a href="/newsletter-issue?date=' + esc(issue.date) + '" target="_blank" class="nl-history-link">View →</a></div>'
       + '</div>';
   }).join('');
 }
@@ -911,33 +924,16 @@ function setStep(idx, state) {
   if (!step || !icon) return;
   step.className = 'intel-step ' + state;
   if (state === 'active')  { icon.className = 'intel-step-icon spinning'; icon.textContent = ''; }
-  if (state === 'done')    { icon.className = 'intel-step-icon done';     icon.textContent = '\u2713'; }
-  if (state === 'error')   { icon.className = 'intel-step-icon';          icon.textContent = '\u2717'; icon.style.color = '#ff4444'; }
-  if (state === 'pending') { icon.className = 'intel-step-icon pending';  icon.textContent = '\u25CB'; }
+  if (state === 'done')    { icon.className = 'intel-step-icon done';     icon.textContent = '✓'; }
+  if (state === 'error')   { icon.className = 'intel-step-icon';          icon.textContent = '✗'; icon.style.color = '#ff4444'; }
+  if (state === 'pending') { icon.className = 'intel-step-icon pending';  icon.textContent = '○'; }
 }
 
-// ── Error handling ─────────────────────────────────────────────────────────
-function showError(msg) {
-  var el = document.getElementById('errorBanner');
-  el.textContent  = msg;
-  el.style.display = 'block';
-}
-function hideError() {
-  document.getElementById('errorBanner').style.display = 'none';
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  var d = new Date(dateStr);
-  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
-}
-function formatDateTime(dateStr) {
-  if (!dateStr) return '';
-  var d = new Date(dateStr);
-  return d.toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai' }) + ' Dubai';
-}
+function showError(msg) { var el=document.getElementById('errorBanner'); el.textContent=msg; el.style.display='block'; }
+function hideError() { document.getElementById('errorBanner').style.display='none'; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function formatDate(d) { if(!d) return ''; return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function formatDateTime(d) { if(!d) return ''; return new Date(d).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'})+' Dubai'; }
 </script>
 </body>
 </html>
