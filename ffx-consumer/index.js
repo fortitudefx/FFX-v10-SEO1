@@ -658,10 +658,11 @@ async function processNewsletterJob(job, env) {
       env.FFX_KV.get('newsletter:index',     { type: 'json' }).catch(function() { return null; }),
     ]);
 
-    var brief         = kvResults[0];
-    var seoSignals    = kvResults[1];
-    var articlesIndex = kvResults[2];
-    var newsletterIdx = kvResults[4];
+    var brief            = kvResults[0];
+    var seoSignals       = kvResults[1];
+    var articlesIndex    = kvResults[2];
+    var newsletterLastSent = kvResults[3];
+    var newsletterIdx    = kvResults[4];
 
     var cutoff   = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
     var articles = Array.isArray(articlesIndex) ? articlesIndex.filter(function(a) { return a.publishedAt && a.publishedAt > cutoff; }).slice(0, 3) : [];
@@ -674,7 +675,7 @@ async function processNewsletterJob(job, env) {
 
     var articleContext = Array.isArray(articlesIndex) ? articlesIndex.slice(0, 20).map(function(a) { return a.slug + ' | ' + a.title + ' | ' + (a.category || '') + ' | ' + (a.excerpt || '').substring(0, 80); }).join('\n') : '';
     var topKeyword = (seoSignals && seoSignals.risingQueries && seoSignals.risingQueries[0] && seoSignals.risingQueries[0].query) || (seoSignals && seoSignals.topQueries && seoSignals.topQueries[0] && seoSignals.topQueries[0].query) || 'forex risk management';
-    var prevExclusiveTitle = (brief && brief.newsletterExclusiveTitle) || '';
+    var prevExclusiveTitle = (newsletterLastSent && newsletterLastSent.exclusiveTitle) || '';
 
     await writeProgress(2, 8, 'Calling Claude — Week in Markets + On This Day (web search)');
 
