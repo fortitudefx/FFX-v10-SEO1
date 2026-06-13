@@ -328,7 +328,28 @@ function buildNewsletterEmail(draft) {
     + '</td></tr></table>';
   body += spacer(12);
 
-  // ── 1. Week in Markets ────────────────────────────────────────────────────
+  // ── SECTION DIVIDER helper — heavy visual break between major sections ────
+  function sectionDivider() {
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+      + '<td width="3" bgcolor="#7a5cff" style="font-size:0;line-height:0;">&nbsp;</td>'
+      + '<td height="32" bgcolor="#06060a" style="font-size:0;line-height:0;">&nbsp;</td>'
+      + '<td width="3" bgcolor="#e06b1a" style="font-size:0;line-height:0;">&nbsp;</td>'
+      + '</tr></table>';
+  }
+
+  // ── 1. Setup of the Fortnight — FIRST ────────────────────────────────────
+  if (draft.setup && draft.setup.hasSetup) {
+    body += sectionBar('&#9654;', 'Setup of the Fortnight', '#c9a84c');
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#fffdf5;padding:20px 36px 20px;">';
+    if (draft.setup.imageUrl) {
+      body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr><td style="padding:0;font-size:0;line-height:0;"><img src="' + esc(draft.setup.imageUrl) + '" width="528" alt="Chart Setup" style="display:block;width:100%;max-width:528px;border-radius:6px;border:1px solid #e0d0a0;" /></td></tr></table>';
+    }
+    if (draft.setup.note) { body += bodyText(draft.setup.note); }
+    body += '</td></tr></table>';
+    body += sectionDivider();
+  }
+
+  // ── 2. Week in Markets ────────────────────────────────────────────────────
   if (draft.weekInMarkets && draft.weekInMarkets.content) {
     body += sectionBar('&#128200;', 'Week in Markets', '#e06b1a');
     body += contentBlock(
@@ -336,10 +357,10 @@ function buildNewsletterEmail(draft) {
       + bodyText(draft.weekInMarkets.content)
       + sourceLink(draft.weekInMarkets.sourceUrl, draft.weekInMarkets.sourceLabel)
     );
-    body += spacer(8);
+    body += sectionDivider();
   }
 
-  // ── 2. On This Day ────────────────────────────────────────────────────────
+  // ── 3. On This Day ────────────────────────────────────────────────────────
   if (draft.onThisDay && draft.onThisDay.event) {
     body += sectionBar('&#128337;', 'On This Day in Markets \u2014 ' + (draft.onThisDay.year || ''), '#c9a84c');
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
@@ -351,44 +372,36 @@ function buildNewsletterEmail(draft) {
       + (draft.onThisDay.wikiUrl ? '<a href="' + esc(draft.onThisDay.wikiUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#c9a84c;text-decoration:none;letter-spacing:0.04em;">Read on Wikipedia &rarr;</a>' : '')
       + '</td></tr></table>'
       + '</td></tr></table>';
-    body += spacer(8);
+    body += sectionDivider();
   }
 
-  // ── 3. Trending Question — pull quote design ──────────────────────────────
+  // ── 4. Trending Question — pull quote design ──────────────────────────────
   if (draft.trendingQ && draft.trendingQ.question) {
-    body += sectionBar('&#10067;', 'Trending Question', '#7a5cff');
+    body += sectionBar('?', 'Trending Question', '#7a5cff');
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
       + '<td style="background:#f8f7ff;padding:28px 36px 20px;">'
-      // Large quote mark
       + '<p style="margin:0 0 -8px;font-family:Georgia,serif;font-size:64px;color:#7a5cff;line-height:1;opacity:0.4;">&ldquo;</p>'
-      // Question in large bold
       + '<p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;line-height:1.30;letter-spacing:-0.01em;">' + esc(draft.trendingQ.question) + '</p>'
       + rule()
       + spacer(14)
-      // Full answer
       + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:15px;color:#333344;line-height:1.82;">' + esc(draft.trendingQ.answer) + '</p>'
       + (draft.trendingQ.relatedArticleSlug ? articleLink(draft.trendingQ.relatedArticleSlug, draft.trendingQ.relatedArticleTitle, '#7a5cff') : '')
       + '</td></tr></table>';
-    body += spacer(8);
+    body += sectionDivider();
   }
 
-  // ── 4. Newsletter Exclusive ───────────────────────────────────────────────
+  // ── 5. Newsletter Exclusive ───────────────────────────────────────────────
   if (draft.exclusiveArticle && draft.exclusiveArticle.title) {
     var exclusiveUrl = 'https://fortitudefx.com/newsletter-issue?date=' + draft.issueDate + '#exclusive';
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
       + '<td bgcolor="#0a0a12" style="padding:28px 36px;">'
-      // Exclusive badge
       + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr>'
       + '<td style="background:#c9a84c;padding:4px 12px;border-radius:3px;">'
-      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#000000;">&#11088; NEWSLETTER EXCLUSIVE</p>'
+      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#000000;">NEWSLETTER EXCLUSIVE</p>'
       + '</td></tr></table>'
-      // Title
       + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#ffffff;line-height:1.20;letter-spacing:-0.01em;">' + esc(draft.exclusiveArticle.title) + '</p>'
-      // Gold top border line
       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr><td height="2" bgcolor="#c9a84c" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
-      // Hook text
       + '<p style="margin:0 0 18px;font-family:Arial,sans-serif;font-size:15px;color:rgba(255,255,255,0.80);line-height:1.82;">' + esc(draft.exclusiveArticle.hookText || draft.exclusiveArticle.fullText.substring(0, 200)) + '</p>'
-      // Read full editorial CTA
       + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:' + (draft.exclusiveArticle.relatedArticleSlug ? '10px' : '0') + ';"><tr>'
       + '<td style="background:#c9a84c;border-radius:4px;">'
       + '<a href="' + esc(exclusiveUrl) + '" target="_blank" style="display:inline-block;padding:11px 24px;font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#000000;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Read Full Editorial &rarr;</a>'
@@ -397,17 +410,7 @@ function buildNewsletterEmail(draft) {
         ? '<p style="margin:0;"><a href="https://fortitudefx.com/article?slug=' + esc(draft.exclusiveArticle.relatedArticleSlug) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;color:rgba(201,168,76,0.70);text-decoration:none;">Related: ' + esc(draft.exclusiveArticle.relatedArticleTitle || '') + ' &rarr;</a></p>'
         : '')
       + '</td></tr></table>';
-    body += spacer(8);
-  }
-
-  // ── 5. Setup of the Fortnight ─────────────────────────────────────────────
-  if (draft.setup && draft.setup.hasSetup) {
-    body += sectionBar('&#128200;', 'Setup of the Fortnight', '#c9a84c');
-    body += contentBlock(
-      (draft.setup.imageUrl ? '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;"><tr><td><img src="' + esc(draft.setup.imageUrl) + '" alt="Chart Setup" style="max-width:100%;border-radius:8px;border:1px solid #e0e0e8;display:block;" /></td></tr></table>' : '')
-      + (draft.setup.note ? bodyText(draft.setup.note) : '')
-    );
-    body += spacer(8);
+    body += sectionDivider();
   }
 
   // ── 6. Articles ───────────────────────────────────────────────────────────
@@ -416,7 +419,7 @@ function buildNewsletterEmail(draft) {
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:20px 36px 8px;">';
     for (var a = 0; a < draft.articles.length; a++) { body += articleCard(draft.articles[a]); }
     body += '</td></tr></table>';
-    body += spacer(8);
+    body += sectionDivider();
   }
 
   // ── 7. Lifestyle Edit ─────────────────────────────────────────────────────
@@ -431,12 +434,13 @@ function buildNewsletterEmail(draft) {
   ];
   var hasLifestyle = lsDefs.some(function(d) { return ls[d.key] && ls[d.key].title; });
   if (hasLifestyle) {
+    // Lifestyle Edit header — distinct script-style visual break
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td bgcolor="#06060a" style="padding:24px 36px 8px;">'
-      + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:#c9a84c;">&#127774;&nbsp;&nbsp;The Lifestyle Edit</p>'
-      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:18px;font-weight:700;color:#ffffff;">The life the consistency builds toward.</p>'
+      + '<td bgcolor="#06060a" style="padding:32px 36px 16px;text-align:center;border-top:4px solid #c9a84c;">'
+      + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.30em;text-transform:uppercase;color:#c9a84c;">The Lifestyle Edit</p>'
+      + '<p style="margin:0;font-family:Georgia,serif;font-size:28px;font-style:italic;font-weight:400;color:#ffffff;letter-spacing:0.01em;">The life the consistency builds toward.</p>'
       + '</td></tr></table>';
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#06060a" style="padding:12px 36px 24px;">';
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#06060a" style="padding:12px 36px 32px;">';
     lsDefs.forEach(function(d) {
       var data = ls[d.key] || {};
       if (data.title) {
@@ -444,15 +448,15 @@ function buildNewsletterEmail(draft) {
       }
     });
     body += '</td></tr></table>';
-    body += spacer(8);
+    body += sectionDivider();
   }
 
-  // ── 8. Mindset Line ───────────────────────────────────────────────────────
+  // ── 8. Mindset Line — from Knowledge database ─────────────────────────────
   if (draft.mindsetLine) {
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
       + '<td bgcolor="#1a1a2e" style="padding:28px 36px;">'
       + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.20em;text-transform:uppercase;color:#c9a84c;">FFX Mindset Line</p>'
-      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#ffffff;line-height:1.42;font-style:italic;">&ldquo;' + esc(draft.mindsetLine) + '&rdquo;</p>'
+      + '<p style="margin:0;font-family:Georgia,serif;font-size:20px;font-weight:400;color:#ffffff;line-height:1.42;font-style:italic;">&ldquo;' + esc(draft.mindsetLine) + '&rdquo;</p>'
       + '</td></tr></table>';
     body += spacer(8);
   }
@@ -569,7 +573,7 @@ function buildMasterTemplate(opts) {
 
     // FOOTER
     + '<tr><td colspan="2" bgcolor="#f4f4f8" style="padding:16px 36px;">'
-    + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;line-height:1.65;">' + esc(opts.footerNote) + '</p>'
+    + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;line-height:1.65;">' + (opts.footerNote || '') + '</p>'
     + '<p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">&copy; 2026 FortitudeFX&#8482;. Dubai, UAE. &nbsp;&#183;&nbsp; <a href="https://fortitudefx.com/privacy" style="color:#7a5cff;text-decoration:none;">Privacy</a></p>'
     + '</td></tr>'
 
