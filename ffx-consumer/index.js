@@ -677,27 +677,45 @@ async function processNewsletterJob(job, env) {
     var topKeyword = (seoSignals && seoSignals.risingQueries && seoSignals.risingQueries[0] && seoSignals.risingQueries[0].query) || (seoSignals && seoSignals.topQueries && seoSignals.topQueries[0] && seoSignals.topQueries[0].query) || 'forex risk management';
     var prevExclusiveTitle = (newsletterLastSent && newsletterLastSent.exclusiveTitle) || '';
 
-    await writeProgress(2, 8, 'Calling Claude — Week in Markets + On This Day (web search)');
+    await writeProgress(2, 8, 'Calling Claude — On This Day in Markets (web search)');
 
-    var marketsPrompt = 'You are writing for FortitudeFX — a forex trading education brand built around the Catch The Wick (CTW) mechanical entry framework. Voice: direct, authoritative, specific, no fluff.\n\nGenerate TWO sections for the bi-weekly FFX newsletter dated ' + issueDate + ':\n\n1. WEEK IN MARKETS (200-250 words)\nWeb search for the most significant forex and macro market events from the past 14 days. Name the pairs, the levels, the events. Frame through CTW lens: what did the wicks reveal, where were the 2-candle setups. Find one credible source URL (Reuters, Bloomberg, FT, Investing.com) for the main story.\n\n2. ON THIS DAY IN MARKETS\nFind a significant historical forex or macro event on or near ' + issueDate + ' in any past year. Must be real. One punchy paragraph — what happened, why it mattered, one trader lesson. Find the Wikipedia URL for this event.\n\nCRITICAL INSTRUCTION: Return ONLY a JSON object. First character must be {. Last must be }. No preamble. No markdown.\n{"weekInMarkets":{"content":"...","sourceUrl":"https://...","sourceLabel":"Reuters"},"onThisDay":{"year":"YYYY","event":"...","lesson":"...","wikiUrl":"https://en.wikipedia.org/wiki/..."}}';
+    var onThisDayPrompt = 'You are writing for FortitudeFX — a forex trading education brand. Voice: direct, authoritative, specific.\n\nGenerate ONE section for the bi-weekly FFX newsletter dated ' + issueDate + ':\n\nON THIS DAY IN MARKETS\nFind a significant historical forex, macro, or financial markets event on or near ' + issueDate + ' in any past year. Must be real and verifiable. One punchy paragraph — what happened, why it mattered to traders, one clear lesson. Find the Wikipedia URL for this event.\n\nCRITICAL INSTRUCTION: Return ONLY a JSON object. First character must be {. Last must be }. No preamble. No markdown.\n{"onThisDay":{"year":"YYYY","event":"what happened in one punchy paragraph","lesson":"the trader lesson in one clear sentence","wikiUrl":"https://en.wikipedia.org/wiki/..."}}';
 
-    var marketsRes  = await fetch(ANTHROPIC_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'web-search-2025-03-05' }, body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 2000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: marketsPrompt }] }) });
-    var marketsData = await marketsRes.json();
-    var marketsText = '';
-    if (marketsData.content) { for (var i = 0; i < marketsData.content.length; i++) { if (marketsData.content[i].type === 'text') marketsText += marketsData.content[i].text; } }
-    var marketsJson = extractJson(marketsText) || {};
-    if (!marketsJson.weekInMarkets) { marketsJson.weekInMarkets = { content: '', sourceUrl: '', sourceLabel: '' }; marketsJson.onThisDay = { year: '', event: '', lesson: '', wikiUrl: '' }; }
+    var onThisDayRes  = await fetch(ANTHROPIC_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'web-search-2025-03-05' }, body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 1000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: onThisDayPrompt }] }) });
+    var onThisDayData = await onThisDayRes.json();
+    var onThisDayText = '';
+    if (onThisDayData.content) { for (var i = 0; i < onThisDayData.content.length; i++) { if (onThisDayData.content[i].type === 'text') onThisDayText += onThisDayData.content[i].text; } }
+    var onThisDayJson = extractJson(onThisDayText) || {};
+    if (!onThisDayJson.onThisDay) { onThisDayJson.onThisDay = { year: '', event: '', lesson: '', wikiUrl: '' }; }
 
-    await writeProgress(3, 8, 'Calling Claude — Trending Question + Exclusive Article');
+    await writeProgress(3, 8, 'Calling Claude — FFX Perspective + Trending Question');
 
-    var articlePrompt = 'You are writing for FortitudeFX in Salman Khan\'s voice. Direct, authoritative, no fluff. CTW framework: 2-candle story, HTF/LTF pairs, 5 entry models.\n\nTop SEO keyword: ' + topKeyword + '\nCurrent market context: ' + ((marketsJson.weekInMarkets && marketsJson.weekInMarkets.content) || 'USD strength in focus').substring(0, 300) + '\n\nExisting articles for cross-referencing (slug | title | category | excerpt):\n' + articleContext + '\n\nGenerate TWO sections:\n\n1. TRENDING QUESTION (150-200 words)\nPick the most interesting trading question based on the keyword and market context. Answer it fully in Salman\'s voice. Full paragraph, not a one-liner. If any existing article above is closely related, return its slug and title.\n\n2. NEWSLETTER EXCLUSIVE EDITORIAL\nWrite a newsletter-exclusive editorial tied to current market conditions. Previous exclusive: "' + prevExclusiveTitle + '" — do not repeat. Return hookText (150-200 words punchy opening) and fullText (400-500 words complete editorial). Check articles list for most related article.\n\nCRITICAL INSTRUCTION: Return ONLY a JSON object. First character must be {. Last must be }. No preamble. No markdown.\n{"trendingQ":{"question":"...","answer":"full paragraph","relatedArticleSlug":"slug-or-null","relatedArticleTitle":"title-or-null"},"exclusiveArticle":{"title":"...","hookText":"150-200 word hook","fullText":"400-500 word editorial","relatedArticleSlug":"slug-or-null","relatedArticleTitle":"title-or-null"}}';
+    // Build intelligence context for Perspective — grounded in what audience is actually searching
+    var intelContext = '';
+    if (brief) {
+      if (brief.articleBrief) {
+        var ab = brief.articleBrief;
+        if (ab.targetQuery)    intelContext += 'Top searched keyword right now: "' + ab.targetQuery + '"\n';
+        if (ab.angle)          intelContext += 'Recommended angle: ' + ab.angle + '\n';
+        if (ab.contentPillar)  intelContext += 'Content pillar: ' + ab.contentPillar + '\n';
+        if (ab.keyPoints && ab.keyPoints.length) intelContext += 'Key points the audience wants answered:\n' + ab.keyPoints.map(function(p){ return '- ' + p; }).join('\n') + '\n';
+      }
+      if (brief.promptInjection) {
+        if (brief.promptInjection.currentSignals)     intelContext += 'Current signals: ' + brief.promptInjection.currentSignals + '\n';
+        if (brief.promptInjection.historicalLearning) intelContext += 'What has worked: ' + brief.promptInjection.historicalLearning + '\n';
+        if (brief.promptInjection.avoidance)          intelContext += 'Avoid: ' + brief.promptInjection.avoidance + '\n';
+      }
+    }
 
-    var articleRes  = await fetch(ANTHROPIC_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 2500, messages: [{ role: 'user', content: articlePrompt }] }) });
+    var perspectivePrompt = 'You are writing for FortitudeFX in Salman Khan\'s voice. Salman is a professional forex trader and founder of FortitudeFX. Voice: direct, institutional, calm authority, slightly contrarian, never motivational fluff. The Catch The Wick (CTW) methodology: mechanical 2-candle entry system — wick candle + reversal candle. 5 models: LC-E, LE-I, LC-ZIE, LC-ZR, LC-FR. Any pair, any timeframe, zero guesswork.\n\nINTELLIGENCE CONTEXT — what your audience is searching for right now:\n' + (intelContext || 'Focus on risk management and mechanical entry discipline.\n') + '\nExisting articles (slug | title | category) — cross-link where relevant:\n' + articleContext + '\n\nGenerate TWO sections:\n\n1. THE FFX PERSPECTIVE (newsletter-exclusive original article)\nThis is the flagship section of the newsletter. Write a 500-600 word original article in Salman\'s voice targeting the top searched keyword above. Rules:\n- First sentence is a direct statement — never a question, never a preamble\n- Specific, tactical, grounded in real market mechanics\n- References real pairs, real levels, real CTW setups where relevant\n- Includes 1-2 internal cross-links to existing articles listed above\n- Ends with one clear actionable takeaway\n- Maximum 1 exclamation mark in the entire piece\n- Never mention competitors\n- hookText: first 150-200 words shown in the email\n- fullText: complete 500-600 word article shown on the site\n- Do NOT repeat previous perspective title: "' + prevExclusiveTitle + '"\n\n2. TRENDING QUESTION (150-200 words)\nPick the most interesting mechanical trading question your audience is asking right now based on the intelligence context. Answer it fully in Salman\'s voice — direct, complete, no hedging. If any existing article is closely related, return its slug and title.\n\nCRITICAL INSTRUCTION: Return ONLY a JSON object. First character must be {. Last must be }. No preamble. No markdown.\n{"perspective":{"title":"...","hookText":"first 150-200 words of the article","fullText":"complete 500-600 word article","relatedArticleSlug":"slug-or-null","relatedArticleTitle":"title-or-null"},"trendingQ":{"question":"...","answer":"full 150-200 word paragraph","relatedArticleSlug":"slug-or-null","relatedArticleTitle":"title-or-null"}}';
+
+    var articleRes  = await fetch(ANTHROPIC_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 3000, messages: [{ role: 'user', content: perspectivePrompt }] }) });
     var articleData = await articleRes.json();
     var articleText = '';
     if (articleData.content) { for (var j = 0; j < articleData.content.length; j++) { if (articleData.content[j].type === 'text') articleText += articleData.content[j].text; } }
     var articleJson = extractJson(articleText) || {};
-    if (!articleJson.trendingQ) { articleJson.trendingQ = { question: '', answer: '', relatedArticleSlug: null, relatedArticleTitle: null }; articleJson.exclusiveArticle = { title: '', hookText: '', fullText: '', relatedArticleSlug: null, relatedArticleTitle: null }; }
+    if (!articleJson.perspective) { articleJson.perspective = { title: '', hookText: '', fullText: '', relatedArticleSlug: null, relatedArticleTitle: null }; }
+    if (!articleJson.trendingQ)   { articleJson.trendingQ   = { question: '', answer: '', relatedArticleSlug: null, relatedArticleTitle: null }; }
 
     await writeProgress(4, 8, 'Calling Claude — 6 Lifestyle Sections (web search)');
 
@@ -827,23 +845,38 @@ async function processNewsletterJob(job, env) {
 
     var allFeaturedSlugs = articles.map(function(a) { return a.slug; });
     if (articleJson.trendingQ && articleJson.trendingQ.relatedArticleSlug) allFeaturedSlugs.push(articleJson.trendingQ.relatedArticleSlug);
-    if (articleJson.exclusiveArticle && articleJson.exclusiveArticle.relatedArticleSlug) allFeaturedSlugs.push(articleJson.exclusiveArticle.relatedArticleSlug);
+    if (articleJson.perspective && articleJson.perspective.relatedArticleSlug) allFeaturedSlugs.push(articleJson.perspective.relatedArticleSlug);
 
     var draft = {
-      issueNumber:   issueNumber,
-      issueDate:     issueDate,
-      generatedAt:   new Date().toISOString(),
-      status:        'draft',
-      weekInMarkets: { content: (marketsJson.weekInMarkets && marketsJson.weekInMarkets.content) || '', sourceUrl: (marketsJson.weekInMarkets && marketsJson.weekInMarkets.sourceUrl) || '', sourceLabel: (marketsJson.weekInMarkets && marketsJson.weekInMarkets.sourceLabel) || 'Source' },
-      onThisDay:     { year: (marketsJson.onThisDay && marketsJson.onThisDay.year) || '', event: (marketsJson.onThisDay && marketsJson.onThisDay.event) || '', lesson: (marketsJson.onThisDay && marketsJson.onThisDay.lesson) || '', wikiUrl: (marketsJson.onThisDay && marketsJson.onThisDay.wikiUrl) || '' },
-      trendingQ:     { question: (articleJson.trendingQ && articleJson.trendingQ.question) || '', answer: (articleJson.trendingQ && articleJson.trendingQ.answer) || '', relatedArticleSlug: (articleJson.trendingQ && articleJson.trendingQ.relatedArticleSlug) || null, relatedArticleTitle: (articleJson.trendingQ && articleJson.trendingQ.relatedArticleTitle) || null },
-      exclusiveArticle: { title: (articleJson.exclusiveArticle && articleJson.exclusiveArticle.title) || '', hookText: (articleJson.exclusiveArticle && articleJson.exclusiveArticle.hookText) || '', fullText: (articleJson.exclusiveArticle && articleJson.exclusiveArticle.fullText) || '', relatedArticleSlug: (articleJson.exclusiveArticle && articleJson.exclusiveArticle.relatedArticleSlug) || null, relatedArticleTitle: (articleJson.exclusiveArticle && articleJson.exclusiveArticle.relatedArticleTitle) || null },
-      mindsetLine:   mindsetLine,
-      setup:         { note: setupNote, imageUrl: setupImageUrl, hasSetup: !!(setupNote || setupImageUrl) },
-      articles:      articles.map(function(a) { return { slug: a.slug, title: a.title, excerpt: a.excerpt || '', category: a.category || '', youtubeUrl: a.youtubeUrl || '', publishedAt: a.publishedAt || '', url: 'https://fortitudefx.com/article?slug=' + a.slug }; }),
-      lifestyle:     lifestyleJson,
+      issueNumber:  issueNumber,
+      issueDate:    issueDate,
+      generatedAt:  new Date().toISOString(),
+      status:       'draft',
+      perspective:  {
+        title:               (articleJson.perspective && articleJson.perspective.title)               || '',
+        hookText:            (articleJson.perspective && articleJson.perspective.hookText)            || '',
+        fullText:            (articleJson.perspective && articleJson.perspective.fullText)            || '',
+        relatedArticleSlug:  (articleJson.perspective && articleJson.perspective.relatedArticleSlug)  || null,
+        relatedArticleTitle: (articleJson.perspective && articleJson.perspective.relatedArticleTitle) || null,
+      },
+      onThisDay:    {
+        year:    (onThisDayJson.onThisDay && onThisDayJson.onThisDay.year)    || '',
+        event:   (onThisDayJson.onThisDay && onThisDayJson.onThisDay.event)   || '',
+        lesson:  (onThisDayJson.onThisDay && onThisDayJson.onThisDay.lesson)  || '',
+        wikiUrl: (onThisDayJson.onThisDay && onThisDayJson.onThisDay.wikiUrl) || '',
+      },
+      trendingQ:    {
+        question:            (articleJson.trendingQ && articleJson.trendingQ.question)            || '',
+        answer:              (articleJson.trendingQ && articleJson.trendingQ.answer)              || '',
+        relatedArticleSlug:  (articleJson.trendingQ && articleJson.trendingQ.relatedArticleSlug)  || null,
+        relatedArticleTitle: (articleJson.trendingQ && articleJson.trendingQ.relatedArticleTitle) || null,
+      },
+      mindsetLine:  mindsetLine,
+      setup:        { note: setupNote, imageUrl: setupImageUrl, hasSetup: !!(setupNote || setupImageUrl) },
+      articles:     articles.map(function(a) { return { slug: a.slug, title: a.title, excerpt: a.excerpt || '', category: a.category || '', youtubeUrl: a.youtubeUrl || '', publishedAt: a.publishedAt || '', url: 'https://fortitudefx.com/article?slug=' + a.slug }; }),
+      lifestyle:    lifestyleJson,
       featuredSlugs: allFeaturedSlugs,
-      subject:       'Catch The Wick™ · Issue #' + issueNumber + ' · ' + formatDateDisplay(issueDate),
+      subject:      'Catch The Wick™ · Issue #' + issueNumber + ' · ' + formatDateDisplay(issueDate),
     };
 
     await writeProgress(7, 8, 'Saving draft to KV');
