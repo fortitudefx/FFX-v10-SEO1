@@ -160,12 +160,13 @@ export async function onRequestPost(context) {
 
     // ── Step 6: Update newsletter:last_sent ───────────────────────────────
     await env.FFX_KV.put('newsletter:last_sent', JSON.stringify({
-      issueNumber:     draft.issueNumber,
-      issueDate:       draft.issueDate,
-      sentAt:          issue.publishedAt,
-      campaignId:      campaignId,
-      exclusiveTitle:  draft.exclusiveArticle && draft.exclusiveArticle.title || '',
-      trendingTopic:   draft.trendingQ && draft.trendingQ.question || '',
+      issueNumber:      draft.issueNumber,
+      issueDate:        draft.issueDate,
+      sentAt:           issue.publishedAt,
+      campaignId:       campaignId,
+      exclusiveTitle:   draft.perspective && draft.perspective.title || '',
+      perspectiveTitle: draft.perspective && draft.perspective.title || '',
+      trendingTopic:    draft.trendingQ && draft.trendingQ.question || '',
     }));
 
     // ── Step 6b: Write newsletter:performance for intelligence engine ────
@@ -303,7 +304,7 @@ function buildNewsletterEmail(draft) {
       + imgBlock
       + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
       + '<td style="background:' + (bgColor || '#16181f') + ';padding:18px 22px 16px;">'
-      + '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:' + color + ';">' + esc(label) + '</p>'
+      + '<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:16px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:' + color + ';">' + esc(label) + '</p>'
       + '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;">' + esc(title) + '</p>'
       + '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;color:#aaaacc;line-height:1.70;">' + esc(bodyTxt) + '</p>'
       + (sourceUrl ? '<a href="' + esc(sourceUrl) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:' + color + ';text-decoration:none;letter-spacing:0.06em;text-transform:uppercase;">Via ' + esc(sourceLabel || 'Source') + ' &rarr;</a>' : '')
@@ -337,14 +338,30 @@ function buildNewsletterEmail(draft) {
     body += gap();
   }
 
-  // ── 2. Week in Markets ────────────────────────────────────────────────────
-  if (draft.weekInMarkets && draft.weekInMarkets.content) {
-    body += sectionBar('Week in Markets', '#e06b1a');
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td bgcolor="#ffffff" style="padding:24px 36px 8px;">'
-      + '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;line-height:1.22;letter-spacing:-0.01em;">What the market did &mdash; and what it told us.</p>'
-      + bodyText(draft.weekInMarkets.content)
-      + sourceLink(draft.weekInMarkets.sourceUrl, draft.weekInMarkets.sourceLabel)
+  // ── 2. THE FFX PERSPECTIVE — flagship editorial, bold and dominant ────────
+  if (draft.perspective && draft.perspective.title) {
+    var perspectiveUrl = 'https://fortitudefx.com/newsletter-issue?date=' + draft.issueDate + '#perspective';
+    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#0a0a12" style="padding:0;">'
+      // 5px solid gold top bar
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="5" bgcolor="#c9a84c" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
+      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:28px 36px 32px;">'
+      // THE FFX PERSPECTIVE — large, bold, gold — hits the eyes first
+      + '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:22px;font-weight:900;color:#c9a84c;letter-spacing:0.14em;text-transform:uppercase;line-height:1;">THE FFX PERSPECTIVE</p>'
+      // Short gold underline
+      + '<table role="presentation" width="80" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;"><tr><td height="3" bgcolor="#c9a84c" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
+      // Article title — Georgia serif, white, 28px
+      + '<p style="margin:0 0 18px;font-family:Georgia,\'Times New Roman\',serif;font-size:28px;font-weight:700;color:#ffffff;line-height:1.22;letter-spacing:-0.01em;">' + esc(draft.perspective.title) + '</p>'
+      // Hook text
+      + '<p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:15px;color:rgba(255,255,255,0.82);line-height:1.85;">' + esc(draft.perspective.hookText || (draft.perspective.fullText || '').substring(0, 200)) + '</p>'
+      // CTA
+      + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:' + (draft.perspective.relatedArticleSlug ? '14px' : '0') + ';"><tr>'
+      + '<td bgcolor="#c9a84c" style="border-radius:4px;">'
+      + '<a href="' + esc(perspectiveUrl) + '" target="_blank" style="display:inline-block;padding:13px 28px;font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#000000;text-decoration:none;letter-spacing:0.10em;text-transform:uppercase;">Read Full Perspective &rarr;</a>'
+      + '</td></tr></table>'
+      + (draft.perspective.relatedArticleSlug
+        ? '<p style="margin:14px 0 0;"><a href="https://fortitudefx.com/article?slug=' + esc(draft.perspective.relatedArticleSlug) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;color:rgba(201,168,76,0.65);text-decoration:none;letter-spacing:0.03em;">Related: ' + esc(draft.perspective.relatedArticleTitle || '') + ' &rarr;</a></p>'
+        : '')
+      + '</td></tr></table>'
       + '</td></tr></table>';
     body += gap();
   }
@@ -379,30 +396,7 @@ function buildNewsletterEmail(draft) {
     body += gap();
   }
 
-  // ── 5. Newsletter Exclusive ───────────────────────────────────────────────
-  if (draft.exclusiveArticle && draft.exclusiveArticle.title) {
-    var exclusiveUrl = 'https://fortitudefx.com/newsletter-issue?date=' + draft.issueDate + '#exclusive';
-    body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      + '<td bgcolor="#0a0a12" style="padding:32px 36px;">'
-      + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;"><tr>'
-      + '<td bgcolor="#c9a84c" style="padding:4px 14px;border-radius:3px;">'
-      + '<p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#000000;">NEWSLETTER EXCLUSIVE</p>'
-      + '</td></tr></table>'
-      + '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#ffffff;line-height:1.20;letter-spacing:-0.01em;">' + esc(draft.exclusiveArticle.title) + '</p>'
-      + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;"><tr><td height="2" bgcolor="#c9a84c" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>'
-      + '<p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:15px;color:rgba(255,255,255,0.82);line-height:1.82;">' + esc(draft.exclusiveArticle.hookText || (draft.exclusiveArticle.fullText || '').substring(0, 200)) + '</p>'
-      + '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:' + (draft.exclusiveArticle.relatedArticleSlug ? '12px' : '0') + ';"><tr>'
-      + '<td bgcolor="#c9a84c" style="border-radius:4px;">'
-      + '<a href="' + esc(exclusiveUrl) + '" target="_blank" style="display:inline-block;padding:11px 24px;font-family:Arial,sans-serif;font-size:12px;font-weight:700;color:#000000;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Read Full Editorial &rarr;</a>'
-      + '</td></tr></table>'
-      + (draft.exclusiveArticle.relatedArticleSlug
-        ? '<p style="margin:0;"><a href="https://fortitudefx.com/article?slug=' + esc(draft.exclusiveArticle.relatedArticleSlug) + '" target="_blank" style="font-family:Arial,sans-serif;font-size:12px;color:rgba(201,168,76,0.70);text-decoration:none;letter-spacing:0.03em;">Related: ' + esc(draft.exclusiveArticle.relatedArticleTitle || '') + ' &rarr;</a></p>'
-        : '')
-      + '</td></tr></table>';
-    body += gap();
-  }
-
-  // ── 6. Articles ───────────────────────────────────────────────────────────
+  // ── 5. Articles ───────────────────────────────────────────────────────────
   if (draft.articles && draft.articles.length > 0) {
     body += sectionBar('This Fortnight on the Blog', '#7a5cff');
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
@@ -412,7 +406,7 @@ function buildNewsletterEmail(draft) {
     body += gap();
   }
 
-  // ── 7. The Lifestyle Edit ─────────────────────────────────────────────────
+  // ── 6. The Lifestyle Edit ─────────────────────────────────────────────────
   var ls = draft.lifestyle || {};
   var lsDefs = [
     { key:'travel',        label:'Trading Freedom \u2014 Travel & Destination', color:'#e06b1a', bg:'#1a0e08' },
@@ -433,15 +427,13 @@ function buildNewsletterEmail(draft) {
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#06060a" style="padding:8px 36px 36px;">';
     lsDefs.forEach(function(d) {
       var data = ls[d.key] || {};
-      if (data.title) {
-        body += lifestyleCard(d.label, data.title, data.body || '', d.color, d.bg, data.imageUrl || '', data.sourceUrl || '', data.sourceLabel || '');
-      }
+      if (data.title) { body += lifestyleCard(d.label, data.title, data.body || '', d.color, d.bg, data.imageUrl || '', data.sourceUrl || '', data.sourceLabel || ''); }
     });
     body += '</td></tr></table>';
     body += gap();
   }
 
-  // ── 8. Mindset Line ───────────────────────────────────────────────────────
+  // ── 7. Mindset Line ───────────────────────────────────────────────────────
   if (draft.mindsetLine) {
     body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
       + '<td bgcolor="#1a1a2e" style="padding:32px 36px;">'
@@ -451,7 +443,7 @@ function buildNewsletterEmail(draft) {
     body += spacer(8);
   }
 
-  // ── 9. Discord CTA ────────────────────────────────────────────────────────
+  // ── 8. Discord CTA ────────────────────────────────────────────────────────
   body += '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
     + '<td bgcolor="#f0eeff" style="padding:32px 36px;text-align:center;border-top:3px solid #7a5cff;">'
     + '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:20px;font-weight:700;color:#1a1a2e;">Not in the Discord yet?</p>'
