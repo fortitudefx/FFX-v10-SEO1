@@ -230,6 +230,7 @@
   <!-- Tab bar -->
   <div class="yt-tabs">
     <button class="yt-tab active" id="tabGenerate" onclick="switchYtTab('generate')">&#9889; Generate</button>
+    <button class="yt-tab" id="tabContent" onclick="switchYtTab('content')">&#9997; Platform Content</button>
     <button class="yt-tab" id="tabPerformance" onclick="switchYtTab('performance')">&#128202; Performance</button>
   </div>
 
@@ -401,6 +402,18 @@
 
   </div><!-- /#panel-generate -->
 
+  <!-- Tab: Platform Content -->
+  <div class="yt-panel" id="panel-content">
+    <div id="contentPanelInner">
+      <div class="yt-panel-card" style="padding:60px 40px;text-align:center;">
+        <div style="font-size:13px;color:rgba(255,255,255,0.25);line-height:2;">
+          Generate content first using the Generate tab.<br>
+          <span style="font-size:11px;color:rgba(255,255,255,0.15);">Article, X, LinkedIn, Discord and Tumblr content will appear here once generation is complete.</span>
+        </div>
+      </div>
+    </div>
+  </div><!-- /#panel-content -->
+
   <!-- Tab: Performance -->
   <div class="yt-panel" id="panel-performance">
 
@@ -437,71 +450,82 @@
 
 <script>
 // ── State ─────────────────────────────────────────────────────────────────
-let _currentVideoId = null;
-let _currentMeta = null;
-let _currentThumbUrl = null;
+var _currentVideoId  = null;
+var _currentMeta     = null;
+var _pollTimer       = null;
+var _currentJobId    = null;
+var _phase2Triggered = false;
+
+// ── Step definitions ──────────────────────────────────────────────────────
+// Phase 1 steps — consumer Worker (same labels as Queue dashboard)
+var PHASE1_STEPS = {
+  transcript:          '① Fetching transcript from YouTube',
+  global_article:      '② Writing global article',
+  global_platforms:    '③ Writing platform content',
+  regional_article:    '④ Writing regional article',
+  regional_platforms:  '⑤ Writing regional platforms',
+  library:             '⑥ Extracting knowledge nuggets',
+};
+// Phase 2 steps — SEO package
+var PHASE2_STEPS = {
+  reading_signals:   '⑦ Reading SEO signals + intelligence brief',
+  claude_generating: '⑧ Claude generating title, description, tags',
+  building_thumbnail:'⑨ Building thumbnail concept + Leonardo prompt',
+  writing_kv:        '⑩ Saving to knowledge store',
+};
+
+var ALL_STEP_KEYS = [
+  'transcript','global_article','global_platforms',
+  'regional_article','regional_platforms','library',
+  'reading_signals','claude_generating','building_thumbnail','writing_kv',
+];
+var ALL_STEP_LABELS = Object.assign({}, PHASE1_STEPS, PHASE2_STEPS);
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function esc(str) {
   if (!str) return '';
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function extractVideoId(url) {
   if (!url) return null;
   url = url.trim();
-  // Standard watch URL
-  let m = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  var m = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
   if (m) return m[1];
-  // Short URL
   m = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
   if (m) return m[1];
-  // Embed URL
   m = url.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
   if (m) return m[1];
-  // If raw 11-char ID pasted
   m = url.match(/^([a-zA-Z0-9_-]{11})$/);
   if (m) return m[1];
   return null;
 }
 
-// showError/hideError replaced by showStepError/hideStepError above
+function stopPolling() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+}
 
-// ── Steps — uses shared .step / .step-spinner from dashboard-styles.css ──────
-var YT_STEPS = [
-  'cache_check',
-  'reading_signals',
-  'claude_generating',
-  'thumbnail_concept',
-  'writing_kv',
-];
-var YT_STEP_LABELS = {
-  cache_check:       '① Checking for cached metadata',
-  reading_signals:   '② Reading transcript + SEO signals + intelligence brief',
-  claude_generating: '③ Claude generating title, description, tags',
-  thumbnail_concept: '④ Building thumbnail concept + Leonardo prompt',
-  writing_kv:        '⑤ Saving to knowledge store',
-};
-
-function setSteps(activeStep, doneUpTo, errorStep) {
-  // activeStep: string key of current step
-  // doneUpTo: index up to which steps are done (-1 = none)
-  // errorStep: string key of errored step (optional)
-  const container = document.getElementById('progressSteps');
-  const area = document.getElementById('progressArea');
+// ── Progress rendering — uses shared .step / .step-spinner CSS ────────────
+function renderSteps(activeStepKey, errorStepKey, errorMsg) {
+  var container = document.getElementById('progressSteps');
+  var area      = document.getElementById('progressArea');
   area.classList.add('visible');
-  hideStepError();
 
-  const activeIdx = YT_STEPS.indexOf(activeStep);
-  container.innerHTML = YT_STEPS.map(function(s, i) {
-    var isError = errorStep && s === errorStep;
-    var isDone  = doneUpTo !== undefined && i <= doneUpTo && !isError;
-    var isActive = s === activeStep && !isError;
-    var cls = isDone ? 'done' : isActive ? 'active' : isError ? 'active' : 'pending';
+  var activeIdx = ALL_STEP_KEYS.indexOf(activeStepKey);
+  var errorIdx  = errorStepKey ? ALL_STEP_KEYS.indexOf(errorStepKey) : -1;
+
+  container.innerHTML = ALL_STEP_KEYS.map(function(key, i) {
+    var label   = ALL_STEP_LABELS[key] || key;
+    var isError = errorIdx !== -1 && i === errorIdx;
+    var isDone  = !isError && (
+      errorIdx !== -1 ? i < errorIdx : activeIdx !== -1 ? i < activeIdx : false
+    );
+    var isActive = !isError && !isDone && i === activeIdx;
+    var isPending = !isError && !isDone && !isActive;
+
+    var cls  = isDone ? 'done' : isActive ? 'active' : 'pending';
     var icon = isDone
       ? '\u2713'
       : isError
@@ -509,36 +533,47 @@ function setSteps(activeStep, doneUpTo, errorStep) {
         : isActive
           ? '<div class="step-spinner"></div>'
           : '\u25cb';
+
     return '<div class="step ' + cls + (isError ? '" style="color:var(--red)' : '') + '">'
-      + icon + ' ' + (YT_STEP_LABELS[s] || s)
-      + '</div>';
+      + icon + ' ' + esc(label) + '</div>';
   }).join('');
+
+  // Error message block
+  var errEl = document.getElementById('errorArea');
+  if (errorMsg) {
+    errEl.textContent = errorMsg;
+    errEl.classList.add('visible');
+  } else {
+    errEl.classList.remove('visible');
+    errEl.textContent = '';
+  }
 }
 
-function showStepError(msg) {
-  var el = document.getElementById('errorArea');
-  el.textContent = msg;
-  el.classList.add('visible');
-}
-
-function hideStepError() {
-  var el = document.getElementById('errorArea');
-  el.classList.remove('visible');
-  el.textContent = '';
+function renderAllDone() {
+  var container = document.getElementById('progressSteps');
+  container.innerHTML = ALL_STEP_KEYS.map(function(key) {
+    return '<div class="step done">\u2713 ' + esc(ALL_STEP_LABELS[key] || key) + '</div>';
+  }).join('');
+  document.getElementById('errorArea').classList.remove('visible');
 }
 
 function hideProgress() {
   document.getElementById('progressArea').classList.remove('visible');
-  hideStepError();
+  document.getElementById('errorArea').classList.remove('visible');
 }
 
-// ── Main generate handler ────────────────────────────────────────────────
+// ── Main generate handler ─────────────────────────────────────────────────
 async function handleGenerate() {
   var urlInput = document.getElementById('ytUrlInput');
   var btn      = document.getElementById('generateBtn');
   var url      = urlInput.value.trim();
 
-  // Reset UI
+  // Reset everything
+  stopPolling();
+  _currentVideoId  = null;
+  _currentMeta     = null;
+  _currentJobId    = null;
+  _phase2Triggered = false;
   document.getElementById('outputArea').classList.remove('visible');
   document.getElementById('publishBlock').classList.remove('visible');
   document.getElementById('videoPreview').classList.remove('visible');
@@ -552,130 +587,245 @@ async function handleGenerate() {
 
   var videoId = extractVideoId(url);
   if (!videoId) {
-    // Show progress area with error
-    setSteps('cache_check', -1, 'cache_check');
-    showStepError('Could not extract a YouTube video ID from that URL. Paste a full YouTube watch URL (youtube.com/watch?v=...)');
+    document.getElementById('progressArea').classList.add('visible');
+    renderSteps('transcript', 'transcript', '\u2715 Could not extract a YouTube video ID. Paste a full YouTube watch URL (youtube.com/watch?v=...)');
     return;
   }
 
   _currentVideoId = videoId;
 
-  // Show video preview thumbnail immediately
+  // Show thumbnail preview immediately
   document.getElementById('videoThumb').src = 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg';
   document.getElementById('videoIdDisplay').textContent = videoId;
-  document.getElementById('videoTitle').textContent = 'Loading…';
+  document.getElementById('videoTitle').textContent = 'Generating\u2026';
   document.getElementById('cachedBadge').style.display = 'none';
   document.getElementById('videoPreview').classList.add('visible');
 
   btn.disabled = true;
-  btn.innerHTML = 'Checking…';
+  btn.textContent = 'Generating\u2026';
 
-  // ── Step 1: Check KV cache ──────────────────────────────────────────────
-  setSteps('cache_check', -1);
+  // ── Check cache first — if both video: and youtube:metadata: exist, render immediately ──
+  renderSteps('transcript', null, null);
 
   try {
-    var cacheRes  = await fetch('/api/youtube-metadata?videoId=' + encodeURIComponent(videoId));
+    var cacheRes  = await fetch('/api/youtube-generate?videoId=' + encodeURIComponent(videoId));
     var cacheData = await cacheRes.json();
 
-    if (cacheData.metadata && cacheData.metadata.primaryTitle) {
-      // Cache hit — mark all steps done, render immediately
-      setSteps('writing_kv', YT_STEPS.length - 1);
-      document.getElementById('videoTitle').textContent = cacheData.metadata.primaryTitle;
-      document.getElementById('cachedBadge').style.display = '';
-      renderOutput(cacheData.metadata);
-      btn.disabled = false;
-      btn.innerHTML = 'Regenerate';
-      setTimeout(hideProgress, 600);
-      return;
+    if (cacheData.phase === 'complete') {
+      // Both phases already done — load SEO package directly
+      var seoRes  = await fetch('/api/youtube-metadata?videoId=' + encodeURIComponent(videoId));
+      var seoData = await seoRes.json();
+      if (seoData.metadata && seoData.metadata.primaryTitle) {
+        renderAllDone();
+        document.getElementById('videoTitle').textContent = seoData.metadata.primaryTitle;
+        document.getElementById('cachedBadge').style.display = '';
+        renderOutput(seoData.metadata);
+        btn.disabled = false;
+        btn.textContent = 'Regenerate';
+        setTimeout(hideProgress, 800);
+        return;
+      }
     }
   } catch(e) {
-    // Cache miss — not an error, continue
+    // Cache check failed — proceed to fresh generation
   }
 
-  // ── Step 2: Reading transcript + signals ──────────────────────────────
-  // (happens server-side inside youtube-metadata.js — show as active while POST runs)
-  setSteps('reading_signals', 0); // cache_check done, reading_signals active
+  // ── POST to youtube-generate — triggers Phase 1 queue job ────────────────
+  try {
+    var genRes  = await fetch('/api/youtube-generate', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ youtubeUrl: url }),
+    });
+    var genData = await genRes.json();
 
-  btn.innerHTML = 'Generating…';
+    if (!genRes.ok || genData.error) {
+      renderSteps('transcript', 'transcript', '\u2715 ' + (genData.error || 'Failed to start generation'));
+      btn.disabled = false;
+      btn.textContent = 'Try Again';
+      return;
+    }
+
+    _currentJobId = genData.jobId;
+
+    // Start polling
+    startPolling(videoId);
+
+  } catch(err) {
+    renderSteps('transcript', 'transcript', '\u2715 Network error: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Try Again';
+  }
+}
+
+// ── Poll loop ─────────────────────────────────────────────────────────────
+function startPolling(videoId) {
+  stopPolling();
+  poll(videoId);
+  _pollTimer = setInterval(function() { poll(videoId); }, 3000);
+}
+
+async function poll(videoId) {
+  try {
+    var res  = await fetch('/api/youtube-generate?videoId=' + encodeURIComponent(videoId));
+    var data = await res.json();
+
+    if (data.error) {
+      stopPolling();
+      renderSteps('transcript', 'transcript', '\u2715 ' + data.error);
+      resetBtn();
+      return;
+    }
+
+    var phase = data.phase || 'phase1';
+    var step  = data.step  || 'transcript';
+    var status = data.status || 'processing';
+
+    // ── Error ──────────────────────────────────────────────────────────────
+    if (status === 'error') {
+      stopPolling();
+      var failStep = step || 'transcript';
+      var errMsg   = '\u2715 ' + (data.reason || 'Generation failed');
+      // Map consumer step names to our step keys
+      if (failStep === 'kv_write')           failStep = 'library';
+      if (failStep === 'unknown')             failStep = 'transcript';
+      renderSteps(failStep, failStep, errMsg);
+      resetBtn();
+      return;
+    }
+
+    // ── Phase 1 — consumer Worker running ─────────────────────────────────
+    if (phase === 'phase1') {
+      renderSteps(step, null, null);
+      return;
+    }
+
+    // ── Phase 1 complete, Phase 2 starting ────────────────────────────────
+    if (phase === 'phase2' && !_phase2Triggered) {
+      _phase2Triggered = true;
+      renderSteps('reading_signals', null, null);
+      // Trigger Phase 2 — SEO package generation
+      triggerPhase2(videoId);
+      return;
+    }
+
+    // ── Phase 2 running — step updated by triggerPhase2 directly ──────────
+    // Status polling handles phase2 display inline — nothing to do here
+
+    // ── Complete ───────────────────────────────────────────────────────────
+    if (phase === 'complete' && status === 'complete') {
+      stopPolling();
+      await loadSEOPackage(videoId);
+    }
+
+  } catch(err) {
+    // Non-fatal poll error — keep polling
+    console.error('[poll] error:', err.message);
+  }
+}
+
+// ── Phase 2 — SEO package generation ─────────────────────────────────────
+async function triggerPhase2(videoId) {
+  var url = document.getElementById('ytUrlInput').value.trim();
+
+  // Step 7 active
+  renderSteps('reading_signals', null, null);
 
   try {
+    // Small delay so reading_signals step is visible
+    await new Promise(function(r) { setTimeout(r, 600); });
+    renderSteps('claude_generating', null, null);
 
-    // ── Step 3 + 4 + 5 happen server-side in one POST call ───────────────
-    // Show step 3 (Claude) as active after a short delay for realism
-    var claudeTimer = setTimeout(function() {
-      setSteps('claude_generating', 1); // reading_signals done, claude active
-    }, 1200);
-
-    var res = await fetch('/api/youtube-metadata', {
+    var res  = await fetch('/api/youtube-metadata', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ videoId: videoId, youtubeUrl: url }),
     });
-
-    clearTimeout(claudeTimer);
     var data = await res.json();
 
     if (!res.ok || data.error) {
-      // Show which step failed based on error message
+      stopPolling();
       var failStep = 'claude_generating';
-      var errMsg   = data.error || 'Generation failed.';
-      if (errMsg.toLowerCase().includes('transcript')) {
-        failStep = 'reading_signals';
-        errMsg   = errMsg + ' Make sure the video has been processed through the Queue dashboard first.';
-      } else if (errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('anthropic')) {
-        failStep = 'claude_generating';
-      }
-      setSteps(failStep, YT_STEPS.indexOf(failStep) - 1, failStep);
-      showStepError('✕ ' + errMsg);
-      btn.disabled = false;
-      btn.innerHTML = 'Try Again';
+      var errMsg   = data.error || 'SEO package generation failed';
+      if (errMsg.toLowerCase().includes('transcript')) failStep = 'reading_signals';
+      renderSteps(failStep, failStep, '\u2715 ' + errMsg);
+      resetBtn();
       return;
     }
 
-    // ── All steps complete ────────────────────────────────────────────────
-    setSteps('writing_kv', YT_STEPS.length - 1);
-    document.getElementById('videoTitle').textContent = data.metadata.primaryTitle || videoId;
-    renderOutput(data.metadata);
-    btn.disabled = false;
-    btn.innerHTML = 'Regenerate';
-    setTimeout(hideProgress, 1000);
+    // Phase 2 complete
+    stopPolling();
+    renderSteps('writing_kv', null, null);
+    await new Promise(function(r) { setTimeout(r, 400); });
+    renderAllDone();
+    await loadSEOPackage(videoId);
 
   } catch(err) {
-    try { clearTimeout(claudeTimer); } catch(e) {}
-    setSteps('claude_generating', 1, 'claude_generating');
-    showStepError('✕ Network error: ' + err.message);
-    btn.disabled = false;
-    btn.innerHTML = 'Try Again';
+    stopPolling();
+    renderSteps('claude_generating', 'claude_generating', '\u2715 Network error: ' + err.message);
+    resetBtn();
   }
 }
 
-// ── Render full output ────────────────────────────────────────────────────
+// ── Load SEO package and render output ────────────────────────────────────
+async function loadSEOPackage(videoId) {
+  try {
+    var res  = await fetch('/api/youtube-metadata?videoId=' + encodeURIComponent(videoId));
+    var data = await res.json();
+
+    if (!data.metadata || !data.metadata.primaryTitle) {
+      renderSteps('writing_kv', 'writing_kv', '\u2715 SEO package not found. Try regenerating.');
+      resetBtn();
+      return;
+    }
+
+    document.getElementById('videoTitle').textContent = data.metadata.primaryTitle;
+    renderOutput(data.metadata);
+
+    var btn = document.getElementById('generateBtn');
+    btn.disabled = false;
+    btn.textContent = 'Regenerate';
+
+    setTimeout(hideProgress, 1200);
+
+  } catch(err) {
+    renderSteps('writing_kv', 'writing_kv', '\u2715 Failed to load output: ' + err.message);
+    resetBtn();
+  }
+}
+
+function resetBtn() {
+  var btn = document.getElementById('generateBtn');
+  btn.disabled = false;
+  btn.textContent = 'Try Again';
+}
+
+// ── Render full SEO output ────────────────────────────────────────────────
 function renderOutput(meta) {
   _currentMeta = meta;
 
   // Title
-  const titleText = meta.primaryTitle || '';
+  var titleText = meta.primaryTitle || '';
   document.getElementById('primaryTitleText').textContent = titleText;
-  const charCount = titleText.length;
-  const countEl = document.getElementById('titleCharCount');
+  var charCount = titleText.length;
+  var countEl   = document.getElementById('titleCharCount');
   countEl.textContent = charCount + ' / 60 characters';
   if (charCount > 60) countEl.classList.add('over');
   else countEl.classList.remove('over');
 
   // Alternatives
-  const altsEl = document.getElementById('alternativesEl');
+  var altsEl = document.getElementById('alternativesEl');
   altsEl.innerHTML = '';
   if (meta.titleAlternatives && meta.titleAlternatives.length) {
     meta.titleAlternatives.forEach(function(alt, i) {
-      const div = document.createElement('div');
+      var div = document.createElement('div');
       div.className = 'yt-alt-item';
-      div.title = 'Click to copy';
-      div.innerHTML = '<div class="yt-alt-label">Alt ' + (i + 1) + '</div>'
+      div.innerHTML = '<div class="yt-alt-badge">Alt ' + (i+1) + '</div>'
         + '<div class="yt-alt-text">'
         + '<div class="yt-alt-title">' + esc(alt.title || '') + '</div>'
         + '<div class="yt-alt-reason">' + esc(alt.reasoning || '') + '</div>'
         + '</div>'
-        + '<button class="yt-alt-copy" onclick="event.stopPropagation();copyText(\'' + esc(alt.title || '') + '\', this)">Copy</button>';
+        + '<button class="yt-alt-copy" onclick="event.stopPropagation();copyText(\'' + esc(alt.title||'') + '\',this)">Copy</button>';
       div.addEventListener('click', function() {
         copyText(alt.title || '', div.querySelector('.yt-alt-copy'));
       });
@@ -684,25 +834,23 @@ function renderOutput(meta) {
   }
 
   // Description
-  const hook = (meta.description && meta.description.hook) || '';
-  const full = (meta.description && meta.description.full) || '';
+  var hook = (meta.description && meta.description.hook) || '';
+  var full = (meta.description && meta.description.full) || '';
   document.getElementById('hookText').textContent = hook;
   document.getElementById('descFullText').textContent = full;
 
   // Tags
-  const tags = meta.tags || [];
-  const tagsWrap = document.getElementById('tagsWrap');
-  tagsWrap.innerHTML = tags.map(function(t) {
+  var tags = meta.tags || [];
+  document.getElementById('tagsWrap').innerHTML = tags.map(function(t) {
     return '<span class="yt-tag">' + esc(t) + '</span>';
   }).join('');
   document.getElementById('tagCount').textContent = tags.length + ' tags';
 
   // Signals
-  const signalsRow = document.getElementById('signalsRow');
+  var signalsRow = document.getElementById('signalsRow');
   signalsRow.innerHTML = '<span class="yt-signals-label">Powered by</span>';
-  const signals = meta.signalsUsed || [];
-  signals.forEach(function(s) {
-    const chip = document.createElement('span');
+  (meta.signalsUsed || []).forEach(function(s) {
+    var chip = document.createElement('span');
     chip.className = 'yt-signal-chip';
     chip.textContent = s;
     signalsRow.appendChild(chip);
@@ -711,54 +859,47 @@ function renderOutput(meta) {
   // Generated at
   if (meta.generatedAt) {
     try {
-      const d = new Date(meta.generatedAt);
-      document.getElementById('generatedAtEl').textContent = 'Generated ' + d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      var d = new Date(meta.generatedAt);
+      document.getElementById('generatedAtEl').textContent = 'Generated ' + d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
     } catch(e) {}
   }
 
-  // Thumbnail section
+  // Thumbnail
   renderThumbnailSection(meta);
 
-  // Show output
+  // Show output + publish block
   document.getElementById('outputArea').classList.add('visible');
-
-  // Show Mark as Published block
   renderPublishBlock(meta);
+
+  // Populate Tab 2 with generated content
+  if (_currentVideoId) {
+    populateContentTab(_currentVideoId);
+  }
 }
 
-// ── Render thumbnail section ───────────────────────────────────────────────
+// ── Render thumbnail section ──────────────────────────────────────────────
 function renderThumbnailSection(meta) {
-  const tc = meta.thumbnailConcept || {};
-  const hookText = tc.textOverlay || '';
-  const reasoning = tc.reasoning || '';
-  const leonardoPrompt = tc.leonardoPrompt || '';
-  const hasApiKey = tc.apiKeyConfigured !== false; // default assume configured
+  var tc        = meta.thumbnailConcept || {};
+  var hookText  = tc.textOverlay || '';
+  var reasoning = tc.reasoning  || '';
+  var prompt    = tc.leonardoPrompt || '';
 
-  // Hook text
-  const hookBlock = document.getElementById('thumbHookBlock');
-  const hookEl = document.getElementById('thumbHookText');
   if (hookText) {
-    hookEl.textContent = hookText;
-    hookBlock.style.display = '';
+    document.getElementById('thumbHookText').textContent = hookText;
+    document.getElementById('thumbHookBlock').style.display = '';
   }
-
-  // Concept
-  const conceptEl = document.getElementById('thumbConceptText');
   if (reasoning) {
-    conceptEl.textContent = reasoning;
-    conceptEl.style.display = '';
+    document.getElementById('thumbConceptText').textContent = reasoning;
+    document.getElementById('thumbConceptText').style.display = '';
   }
 
-  // Generate button
-  document.getElementById('thumbGenerateBtn').style.display = leonardoPrompt ? '' : 'none';
+  document.getElementById('thumbGenerateBtn').style.display = prompt ? '' : 'none';
 
-  // Leonardo prompt section
-  if (leonardoPrompt) {
-    document.getElementById('leonardoPromptText').textContent = leonardoPrompt;
+  if (prompt) {
+    document.getElementById('leonardoPromptText').textContent = prompt;
     document.getElementById('leonardoPromptSection').style.display = '';
   }
 
-  // No API key notice
   if (tc.apiKeyConfigured === false) {
     document.getElementById('thumbNoApiNotice').classList.add('visible');
     document.getElementById('thumbGenerateBtn').style.display = 'none';
@@ -768,151 +909,110 @@ function renderThumbnailSection(meta) {
 // ── Generate thumbnail via Leonardo ──────────────────────────────────────
 async function generateThumbnail() {
   if (!_currentMeta || !_currentVideoId) return;
-
-  const btn = document.getElementById('thumbGenerateBtn');
+  var btn = document.getElementById('thumbGenerateBtn');
   btn.disabled = true;
-  btn.textContent = 'Generating…';
-
-  // Show spinner, hide placeholder and existing image
+  btn.textContent = 'Generating\u2026';
   document.getElementById('thumbPlaceholder').style.display = 'none';
   document.getElementById('thumbImg').classList.remove('visible');
   document.getElementById('thumbGenerating').classList.add('visible');
   document.getElementById('thumbDownloadBtn').classList.add('hidden');
 
   try {
-    const res = await fetch('/api/youtube-thumbnail', {
-      method: 'POST',
+    var res  = await fetch('/api/youtube-thumbnail', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        videoId: _currentVideoId,
-        leonardoPrompt: (_currentMeta.thumbnailConcept || {}).leonardoPrompt || '',
-        hookText: (_currentMeta.thumbnailConcept || {}).textOverlay || '',
+        videoId:        _currentVideoId,
+        leonardoPrompt: (_currentMeta.thumbnailConcept||{}).leonardoPrompt || '',
+        hookText:       (_currentMeta.thumbnailConcept||{}).textOverlay    || '',
       }),
     });
-
-    const data = await res.json();
-
+    var data = await res.json();
     document.getElementById('thumbGenerating').classList.remove('visible');
 
     if (!res.ok || data.error) {
-      document.getElementById('thumbPlaceholder').innerHTML = '<div class="yt-thumb-placeholder-icon" style="color:rgba(248,113,113,0.60);">&#10005;</div><div class="yt-thumb-placeholder-text" style="color:rgba(248,113,113,0.60);">' + esc(data.error || 'Generation failed') + '</div>';
+      document.getElementById('thumbPlaceholder').innerHTML = '<div class="yt-thumb-placeholder-icon" style="color:rgba(248,113,113,0.60);">\u2715</div><div class="yt-thumb-placeholder-text" style="color:rgba(248,113,113,0.60);">' + esc(data.error||'Generation failed') + '</div>';
       document.getElementById('thumbPlaceholder').style.display = '';
-      btn.disabled = false;
-      btn.textContent = '&#9889; Retry';
+      btn.disabled = false; btn.innerHTML = '&#9889; Retry';
       return;
     }
 
-    // Success — show image
-    _currentThumbUrl = data.imageUrl;
-    const img = document.getElementById('thumbImg');
+    var img = document.getElementById('thumbImg');
     img.src = data.imageUrl;
     img.classList.add('visible');
-
-    // Download button
-    const dlBtn = document.getElementById('thumbDownloadBtn');
+    var dlBtn = document.getElementById('thumbDownloadBtn');
     dlBtn.href = data.imageUrl;
     dlBtn.classList.remove('hidden');
-
     btn.disabled = false;
-    btn.textContent = '&#8635; Regenerate';
+    btn.innerHTML = '&#8635; Regenerate';
 
   } catch(err) {
     document.getElementById('thumbGenerating').classList.remove('visible');
     document.getElementById('thumbPlaceholder').style.display = '';
-    document.getElementById('thumbPlaceholder').innerHTML = '<div class="yt-thumb-placeholder-icon">&#128248;</div><div class="yt-thumb-placeholder-text">Network error — retry</div>';
-    btn.disabled = false;
-    btn.innerHTML = '&#9889; Retry';
+    btn.disabled = false; btn.innerHTML = '&#9889; Retry';
   }
 }
 
 // ── Copy helpers ──────────────────────────────────────────────────────────
 function copyField(field, btn) {
   if (!_currentMeta) return;
-  let text = '';
-  if (field === 'primaryTitle') text = _currentMeta.primaryTitle || '';
-  else if (field === 'descFull') text = (_currentMeta.description && _currentMeta.description.full) || '';
-  else if (field === 'tags') text = (_currentMeta.tags || []).join(', ');
-
+  var text = field === 'primaryTitle' ? (_currentMeta.primaryTitle || '')
+           : field === 'descFull'     ? ((_currentMeta.description||{}).full || '')
+           : field === 'tags'         ? (_currentMeta.tags||[]).join(', ')
+           : '';
   copyText(text, btn);
 }
 
 function copyText(text, btn) {
   navigator.clipboard.writeText(text).then(function() {
-    const original = btn.innerHTML;
+    var orig = btn.innerHTML;
     btn.classList.add('copied');
-    btn.textContent = '&#10003; Copied';
-    setTimeout(function() {
-      btn.classList.remove('copied');
-      btn.innerHTML = original;
-    }, 2000);
+    btn.textContent = '\u2713 Copied';
+    setTimeout(function() { btn.classList.remove('copied'); btn.innerHTML = orig; }, 2000);
   }).catch(function() {
-    // Fallback
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
-    btn.textContent = '&#10003; Copied';
+    btn.textContent = '\u2713 Copied';
     setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
   });
 }
 
 function copyLeonardoPrompt(btn) {
-  const text = document.getElementById('leonardoPromptText').textContent;
-  copyText(text, btn);
+  copyText(document.getElementById('leonardoPromptText').textContent, btn);
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  const input = document.getElementById('ytUrlInput');
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') handleGenerate();
-  });
-
-  // Check URL params — allow deep-linking ?videoId=xxx
-  const params = new URLSearchParams(window.location.search);
-  const vid = params.get('videoId') || params.get('v');
-  if (vid) {
-    input.value = 'https://www.youtube.com/watch?v=' + vid;
-    handleGenerate();
-  }
-});
 // ── Tab switching ─────────────────────────────────────────────────────────
 function switchYtTab(tab) {
   document.querySelectorAll('.yt-tab').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.yt-panel').forEach(function(p) { p.classList.remove('active'); });
   document.getElementById('tabGenerate').classList.toggle('active', tab === 'generate');
+  document.getElementById('tabContent').classList.toggle('active', tab === 'content');
   document.getElementById('tabPerformance').classList.toggle('active', tab === 'performance');
   document.getElementById('panel-generate').classList.toggle('active', tab === 'generate');
+  document.getElementById('panel-content').classList.toggle('active', tab === 'content');
   document.getElementById('panel-performance').classList.toggle('active', tab === 'performance');
   if (tab === 'performance') loadPerformanceTab();
+  if (tab === 'content') loadContentTab();
 }
 
-// ── Render Mark as Published block ───────────────────────────────────────
+// ── Mark as Published ─────────────────────────────────────────────────────
 function renderPublishBlock(meta) {
   if (!meta || !_currentVideoId) return;
-
-  const block = document.getElementById('publishBlock');
-  const choices = document.getElementById('titleChoices');
-
-  // Build title choices
-  const options = [
+  var choices = document.getElementById('titleChoices');
+  var options = [
     { key: 'primary', badge: 'Claude Primary', title: meta.primaryTitle || '' },
   ];
-  if (meta.titleAlternatives && meta.titleAlternatives[0]) {
+  if (meta.titleAlternatives && meta.titleAlternatives[0])
     options.push({ key: 'alt1', badge: 'Claude Alt 1', title: meta.titleAlternatives[0].title || '' });
-  }
-  if (meta.titleAlternatives && meta.titleAlternatives[1]) {
+  if (meta.titleAlternatives && meta.titleAlternatives[1])
     options.push({ key: 'alt2', badge: 'Claude Alt 2', title: meta.titleAlternatives[1].title || '' });
-  }
   options.push({ key: 'own', badge: 'My Own Title', title: 'I wrote my own title' });
 
   choices.innerHTML = '';
   options.forEach(function(opt) {
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.className = 'yt-title-choice';
     div.dataset.key = opt.key;
     div.innerHTML = '<div class="yt-choice-radio"></div>'
@@ -923,119 +1023,93 @@ function renderPublishBlock(meta) {
     div.addEventListener('click', function() {
       document.querySelectorAll('.yt-title-choice').forEach(function(c) { c.classList.remove('selected'); });
       div.classList.add('selected');
-      const ownWrap = document.getElementById('ownTitleWrap');
-      if (opt.key === 'own') {
-        ownWrap.classList.add('visible');
-        document.getElementById('ownTitleInput').focus();
-      } else {
-        ownWrap.classList.remove('visible');
-      }
+      var ownWrap = document.getElementById('ownTitleWrap');
+      if (opt.key === 'own') { ownWrap.classList.add('visible'); document.getElementById('ownTitleInput').focus(); }
+      else ownWrap.classList.remove('visible');
     });
     choices.appendChild(div);
   });
 
-  // Pre-select primary
-  const firstChoice = choices.querySelector('.yt-title-choice');
-  if (firstChoice) firstChoice.classList.add('selected');
+  var first = choices.querySelector('.yt-title-choice');
+  if (first) first.classList.add('selected');
 
-  // Reset success state
   document.getElementById('publishSuccess').classList.remove('visible');
   document.getElementById('markPublishedBtn').disabled = false;
   document.getElementById('markPublishedBtn').innerHTML = 'Mark as Published &rarr;';
-
-  block.classList.add('visible');
+  document.getElementById('publishBlock').classList.add('visible');
 }
 
-// ── Mark as Published ─────────────────────────────────────────────────────
 async function markAsPublished() {
   if (!_currentVideoId || !_currentMeta) return;
-
-  const selected = document.querySelector('.yt-title-choice.selected');
-  if (!selected) {
-    alert('Please select which title you used.');
-    return;
-  }
-
-  const titleUsed = selected.dataset.key;
-  const ownTitle  = titleUsed === 'own' ? (document.getElementById('ownTitleInput').value.trim()) : '';
-
+  var selected = document.querySelector('.yt-title-choice.selected');
+  if (!selected) { alert('Please select which title you used.'); return; }
+  var titleUsed = selected.dataset.key;
+  var ownTitle  = titleUsed === 'own' ? document.getElementById('ownTitleInput').value.trim() : '';
   if (titleUsed === 'own' && !ownTitle) {
     document.getElementById('ownTitleInput').style.borderColor = 'rgba(248,113,113,0.50)';
     setTimeout(function() { document.getElementById('ownTitleInput').style.borderColor = ''; }, 2000);
     return;
   }
 
-  const btn = document.getElementById('markPublishedBtn');
+  var btn = document.getElementById('markPublishedBtn');
   btn.disabled = true;
-  btn.textContent = 'Saving…';
+  btn.textContent = 'Saving\u2026';
 
   try {
-    const res = await fetch('/api/youtube-signals?action=publish', {
-      method: 'POST',
+    var res  = await fetch('/api/youtube-signals?action=publish', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        videoId:   _currentVideoId,
-        titleUsed: titleUsed,
-        ownTitle:  ownTitle,
-      }),
+      body:    JSON.stringify({ videoId: _currentVideoId, titleUsed: titleUsed, ownTitle: ownTitle }),
     });
-
-    const data = await res.json();
+    var data = await res.json();
 
     if (!res.ok || data.error) {
       btn.disabled = false;
       btn.innerHTML = 'Mark as Published &rarr;';
-      const successEl = document.getElementById('publishSuccess');
-      successEl.textContent = 'Error: ' + (data.error || 'Save failed');
-      successEl.style.background = 'rgba(248,113,113,0.08)';
-      successEl.style.borderColor = 'rgba(248,113,113,0.25)';
-      successEl.style.color = 'rgba(248,113,113,0.90)';
-      successEl.classList.add('visible');
+      var sEl = document.getElementById('publishSuccess');
+      sEl.textContent = 'Error: ' + (data.error || 'Save failed');
+      sEl.style.background = 'rgba(248,113,113,0.08)';
+      sEl.style.borderColor = 'rgba(248,113,113,0.25)';
+      sEl.style.color = 'rgba(248,113,113,0.90)';
+      sEl.classList.add('visible');
       return;
     }
 
-    // Success
-    btn.innerHTML = '&#10003; Published';
+    btn.innerHTML = '\u2713 Published';
     btn.style.background = 'rgba(62,207,142,0.12)';
     btn.style.borderColor = 'rgba(62,207,142,0.30)';
     btn.style.color = 'rgba(62,207,142,0.90)';
 
-    const titleLabel = titleUsed === 'primary' ? 'Claude Primary'
-      : titleUsed === 'alt1' ? 'Claude Alt 1'
-      : titleUsed === 'alt2' ? 'Claude Alt 2'
-      : 'Your Own Title';
-
-    const successEl = document.getElementById('publishSuccess');
-    successEl.innerHTML = '&#10003; Marked as published using <strong>' + esc(titleLabel) + '</strong>: &ldquo;' + esc(data.actualTitle) + '&rdquo;<br>'
-      + '<span style="font-size:11px;color:rgba(62,207,142,0.65);">Come back in 48-72 hours and hit Refresh All KPIs in the Performance tab to capture views and engagement.</span>';
-    successEl.classList.add('visible');
+    var labelMap = { primary: 'Claude Primary', alt1: 'Claude Alt 1', alt2: 'Claude Alt 2', own: 'Your Own Title' };
+    var sEl = document.getElementById('publishSuccess');
+    sEl.innerHTML = '\u2713 Marked as published using <strong>' + esc(labelMap[titleUsed]||titleUsed) + '</strong>: \u201c' + esc(data.actualTitle) + '\u201d<br>'
+      + '<span style="font-size:11px;color:rgba(62,207,142,0.65);">Video now in Press dashboard. Return in 48-72hrs and hit Refresh All KPIs in the Performance tab.</span>';
+    sEl.classList.add('visible');
 
   } catch(err) {
     btn.disabled = false;
     btn.innerHTML = 'Mark as Published &rarr;';
-    console.error('markAsPublished error:', err);
   }
 }
 
-// ── Load Performance tab ──────────────────────────────────────────────────
+// ── Performance tab ───────────────────────────────────────────────────────
 async function loadPerformanceTab() {
-  const tableBody = document.getElementById('perfTableBody');
-  tableBody.innerHTML = '<div class="yt-loading">Loading…</div>';
+  var tableBody = document.getElementById('perfTableBody');
+  tableBody.innerHTML = '<div class="yt-loading">Loading\u2026</div>';
 
   try {
-    const res  = await fetch('/api/youtube-signals');
-    const data = await res.json();
+    var res  = await fetch('/api/youtube-signals');
+    var data = await res.json();
 
     if (!res.ok || data.error) {
-      tableBody.innerHTML = '<div class="yt-perf-empty" style="color:rgba(248,113,113,0.70);">' + esc(data.error || 'Failed to load') + '</div>';
+      tableBody.innerHTML = '<div class="yt-perf-empty" style="color:rgba(248,113,113,0.70);">' + esc(data.error||'Failed to load') + '</div>';
       return;
     }
 
-    // Channel stats row
     renderChannelStats(data.channelSignals);
 
     if (!data.records || !data.records.length) {
-      tableBody.innerHTML = '<div class="yt-perf-empty">No published videos yet.<br><span style="font-size:11px;color:rgba(255,255,255,0.18);">Generate an SEO package in the Generate tab, publish the video on YouTube, then click “Mark as Published”.</span></div>';
+      tableBody.innerHTML = '<div class="yt-perf-empty">No published videos yet.<br><span style="font-size:11px;color:rgba(255,255,255,0.18);">Generate and mark videos as published in the Generate tab.</span></div>';
       return;
     }
 
@@ -1046,18 +1120,16 @@ async function loadPerformanceTab() {
   }
 }
 
-// ── Render channel stats ──────────────────────────────────────────────────
 function renderChannelStats(signals) {
-  const row = document.getElementById('channelStatsRow');
+  var row = document.getElementById('channelStatsRow');
   if (!signals) { row.style.display = 'none'; return; }
-
-  const ch = signals.channelStats || {};
-  row.style.display = 'flex';
+  var ch = signals.channelStats || {};
+  row.style.display = 'grid';
   row.innerHTML = [
-    { label: 'Subscribers',    value: fmt(ch.subscriberCount), sub: 'total' },
+    { label: 'Subscribers',       value: fmt(ch.subscriberCount),    sub: 'total' },
     { label: 'Avg Views / Video', value: fmt(signals.channelAvgViews), sub: 'FFX system videos' },
-    { label: 'Videos Measured', value: (signals.totalMeasured || 0) + '', sub: 'published via FFX' },
-    { label: 'Total Channel Views', value: fmt(ch.totalViewCount), sub: 'all time' },
+    { label: 'Videos Measured',   value: (signals.totalMeasured||0)+'', sub: 'published via FFX' },
+    { label: 'Total Channel Views', value: fmt(ch.totalViewCount),   sub: 'all time' },
   ].map(function(s) {
     return '<div class="yt-channel-stat">'
       + '<div class="yt-channel-stat-label">' + esc(s.label) + '</div>'
@@ -1067,138 +1139,517 @@ function renderChannelStats(signals) {
   }).join('');
 }
 
-// ── Render performance table rows ─────────────────────────────────────────
 function renderPerfTable(records) {
-  const tableBody = document.getElementById('perfTableBody');
-  if (!records.length) {
-    tableBody.innerHTML = '<div class="yt-perf-empty">No data yet.</div>';
-    return;
-  }
+  var tableBody = document.getElementById('perfTableBody');
+  if (!records.length) { tableBody.innerHTML = '<div class="yt-perf-empty">No data yet.</div>'; return; }
 
-  // Sort: newest published first
-  const sorted = records.slice().sort(function(a, b) {
-    return new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0);
+  var sorted = records.slice().sort(function(a,b) {
+    return new Date(b.publishedAt||0) - new Date(a.publishedAt||0);
   });
 
   tableBody.innerHTML = '';
-
   sorted.forEach(function(record) {
-    const perf = record.performance;
-    const pub  = record.published;
+    var perf = record.performance;
+    var pub  = record.published;
+    var videoId    = record.videoId || '';
+    var youtubeUrl = (pub && pub.youtubeUrl) || ('https://www.youtube.com/watch?v=' + videoId);
+    var title      = (pub && pub.actualTitle) || (perf && perf.actualTitle) || videoId;
+    var titleUsed  = (pub && pub.titleUsed)   || (perf && perf.titleUsed)   || 'unknown';
+    var views    = perf ? perf.viewCount    : null;
+    var likes    = perf ? perf.likeCount    : null;
+    var comments = perf ? perf.commentCount : null;
+    var beatAvg  = perf ? perf.beatAverage  : null;
+    var statsAt  = perf ? perf.statsUpdatedAt : null;
 
-    const videoId    = record.videoId || '';
-    const publishedAt = record.publishedAt || '';
-    const youtubeUrl = (pub && pub.youtubeUrl) || ('https://www.youtube.com/watch?v=' + videoId);
-    const title      = (pub && pub.actualTitle) || (perf && perf.actualTitle) || videoId;
-    const titleUsed  = (pub && pub.titleUsed) || (perf && perf.titleUsed) || 'unknown';
-
-    // Stats
-    const views    = perf ? perf.viewCount    : null;
-    const likes    = perf ? perf.likeCount    : null;
-    const comments = perf ? perf.commentCount : null;
-    const beatAvg  = perf ? perf.beatAverage  : null;
-    const statsUpdatedAt = perf ? perf.statsUpdatedAt : null;
-
-    // View colour
     var viewClass = 'none';
     if (views !== null) {
-      if (beatAvg === true) viewClass = 'good';
-      else if (beatAvg === false && perf.viewsVsAvgPct !== null && perf.viewsVsAvgPct > -20) viewClass = 'ok';
-      else if (beatAvg === false) viewClass = 'low';
-      else viewClass = 'ok';
+      viewClass = beatAvg === true ? 'good' : (perf && perf.viewsVsAvgPct !== null && perf.viewsVsAvgPct > -20) ? 'ok' : 'low';
     }
 
-    // Stats age
-    var statsAge = '—'; var staleClass = 'fresh';
-    if (statsUpdatedAt) {
-      var daysAgo = Math.floor((Date.now() - new Date(statsUpdatedAt)) / 86400000);
+    var statsAge = '\u2014'; var staleClass = 'fresh';
+    if (statsAt) {
+      var daysAgo = Math.floor((Date.now() - new Date(statsAt)) / 86400000);
       statsAge = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : daysAgo + ' days ago';
       if (daysAgo > 7) staleClass = 'stale';
-    } else {
-      statsAge = 'Not fetched'; staleClass = 'stale';
-    }
+    } else { statsAge = 'Not fetched'; staleClass = 'stale'; }
 
-    // Title choice chip
     var chipClass = titleUsed === 'primary' ? 'primary' : titleUsed === 'alt1' ? 'alt1' : titleUsed === 'alt2' ? 'alt2' : 'own';
     var chipLabel = titleUsed === 'primary' ? 'Primary' : titleUsed === 'alt1' ? 'Alt 1' : titleUsed === 'alt2' ? 'Alt 2' : 'Own';
 
-    const row = document.createElement('div');
+    var row = document.createElement('div');
     row.className = 'yt-perf-row';
     row.innerHTML = '<img class="yt-perf-thumb" src="https://img.youtube.com/vi/' + esc(videoId) + '/mqdefault.jpg" onerror="this.style.opacity=0.3" alt="">'
       + '<div class="yt-perf-title-cell">'
       + '<div class="yt-perf-video-title" title="' + esc(title) + '">' + esc(title) + '</div>'
       + '<a class="yt-perf-video-url" href="' + esc(youtubeUrl) + '" target="_blank" onclick="event.stopPropagation()">youtube.com/watch?v=' + esc(videoId) + '</a>'
       + '</div>'
-      + '<div class="yt-perf-stat ' + viewClass + '">' + (views !== null ? fmt(views) : '—') + '</div>'
-      + '<div class="yt-perf-stat ' + (likes !== null ? 'ok' : 'none') + '">' + (likes !== null ? fmt(likes) : '—') + '</div>'
-      + '<div class="yt-perf-stat ' + (comments !== null ? 'ok' : 'none') + '">' + (comments !== null ? fmt(comments) : '—') + '</div>'
+      + '<div class="yt-perf-stat ' + viewClass + '">' + (views !== null ? fmt(views) : '\u2014') + '</div>'
+      + '<div class="yt-perf-stat ' + (likes !== null ? 'ok' : 'none') + '">' + (likes !== null ? fmt(likes) : '\u2014') + '</div>'
+      + '<div class="yt-perf-stat ' + (comments !== null ? 'ok' : 'none') + '">' + (comments !== null ? fmt(comments) : '\u2014') + '</div>'
       + '<div><span class="yt-choice-chip ' + chipClass + '">' + chipLabel + '</span></div>'
       + '<div class="yt-perf-age ' + staleClass + '">' + esc(statsAge) + '</div>'
       + '<div><button class="btn-row-refresh" onclick="refreshSingleVideo(\'' + esc(videoId) + '\', this)">Refresh</button></div>';
-
     tableBody.appendChild(row);
   });
 }
 
-// ── Refresh All KPIs ──────────────────────────────────────────────────────
 async function refreshAllKPIs() {
-  const btn = document.getElementById('refreshKpisBtn');
+  var btn = document.getElementById('refreshKpisBtn');
   btn.disabled = true;
-  btn.innerHTML = '&#8635; Refreshing…';
+  btn.innerHTML = '&#8635; Refreshing\u2026';
+  try {
+    var res  = await fetch('/api/youtube-signals', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    var data = await res.json();
+    if (!res.ok || data.error) { btn.disabled = false; btn.innerHTML = '&#8635; Refresh All KPIs'; alert('Error: ' + (data.error||'Refresh failed')); return; }
+    btn.innerHTML = '\u2713 Updated ' + (data.updatedCount||0) + ' videos';
+    setTimeout(function() { btn.disabled = false; btn.innerHTML = '&#8635; Refresh All KPIs'; }, 3000);
+    loadPerformanceTab();
+  } catch(err) { btn.disabled = false; btn.innerHTML = '&#8635; Refresh All KPIs'; alert('Network error: ' + err.message); }
+}
+
+async function refreshSingleVideo(videoId, btn) {
+  var orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '\u2026';
+  try {
+    await fetch('/api/youtube-signals', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    await loadPerformanceTab();
+  } catch(err) { btn.disabled = false; btn.textContent = orig; }
+}
+
+function fmt(n) {
+  if (n === null || n === undefined) return '\u2014';
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n/1000).toFixed(1)    + 'K';
+  return String(n);
+}
+
+// ── Tab 2: Platform Content — identical to Queue expanded view ────────────
+
+var YT_PLATFORMS = [
+  { key: 'blog',    label: 'Blog' },
+  { key: 'x',       label: 'X' },
+  { key: 'linkedin', label: 'LinkedIn' },
+  { key: 'discord',  label: 'Discord' },
+  { key: 'tumblr',   label: 'Tumblr' },
+];
+
+var YT_FIELD_MAP = {
+  blog:     ['body'],
+  x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
+  linkedin: ['linkedin'],
+  discord:  ['discord'],
+  tumblr:   ['tumblr'],
+};
+
+// Called when Tab 2 is clicked — loads or reloads content
+async function loadContentTab() {
+  if (!_currentVideoId) return; // No video yet — placeholder stays
+  await populateContentTab(_currentVideoId);
+}
+
+// Fetch video record + edits and build the full expanded view
+async function populateContentTab(videoId) {
+  var inner = document.getElementById('contentPanelInner');
+  inner.innerHTML = '<div class="yt-panel-card" style="padding:40px;text-align:center;">'
+    + '<div class="loading-spin" style="margin:0 auto 12px;"></div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,0.28);letter-spacing:0.08em;text-transform:uppercase;">Loading content…</div>'
+    + '</div>';
 
   try {
-    const res  = await fetch('/api/youtube-signals', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-    const data = await res.json();
+    var url = document.getElementById('ytUrlInput').value.trim();
+    var videoRes = await fetch('/api/video-content?videoId=' + encodeURIComponent(videoId));
+    var editsRes = await fetch('/api/queue-edits?videoId='   + encodeURIComponent(videoId));
 
-    if (!res.ok || data.error) {
-      btn.disabled = false;
-      btn.innerHTML = '&#8635; Refresh All KPIs';
-      alert('Error: ' + (data.error || 'Refresh failed'));
+    var videoData = videoRes.ok ? await videoRes.json() : null;
+    var editsData = editsRes.ok ? await editsRes.json() : { edits: {}, editedFields: [] };
+
+    if (!videoData || !videoData.video) {
+      inner.innerHTML = '<div class="yt-panel-card" style="padding:60px 40px;text-align:center;">'
+        + '<div style="font-size:13px;color:rgba(248,113,113,0.70);line-height:1.8;">'
+        + (videoData && videoData.error ? escHtml(videoData.error) : 'Content not found. Generate the video first.')
+        + '</div></div>';
       return;
     }
 
-    btn.innerHTML = '&#10003; Updated ' + (data.updatedCount || 0) + ' videos';
-    setTimeout(function() {
-      btn.disabled = false;
-      btn.innerHTML = '&#8635; Refresh All KPIs';
-    }, 3000);
-
-    loadPerformanceTab();
+    buildContentTab(inner, videoData.video, editsData, videoId, url);
 
   } catch(err) {
-    btn.disabled = false;
-    btn.innerHTML = '&#8635; Refresh All KPIs';
-    alert('Network error: ' + err.message);
+    inner.innerHTML = '<div class="yt-panel-card" style="padding:40px;text-align:center;">'
+      + '<div style="font-size:13px;color:rgba(248,113,113,0.70);">Error: ' + escHtml(err.message) + '</div></div>';
   }
 }
 
-// ── Refresh single video ──────────────────────────────────────────────────
-async function refreshSingleVideo(videoId, btn) {
-  const original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '…';
+function buildContentTab(container, videoRecord, editsData, videoId, youtubeUrl) {
+  var platforms    = videoRecord.platforms || {};
+  var slug         = videoRecord.slug      || '';
+  var queueEdits   = editsData.edits       || {};
+  var editedFields = editsData.editedFields || [];
+
+  var gc     = (platforms.blog_global && platforms.blog_global.content) || {};
+  var tweets = [1,2,3,4,5,6].map(function(i) {
+    return queueEdits['tweet'+i] || gc['tweet'+i];
+  }).filter(Boolean);
+
+  var panelsData = [
+    { key: 'article', label: 'Article', platformKey: 'blog',
+      html: function() {
+        return '<div class="content-block article-body" data-field="body" data-edit-active="false">'
+          + (queueEdits.body || gc.body || '<em>No article body found.</em>') + '</div>';
+      }
+    },
+    { key: 'x', label: 'X', platformKey: 'x',
+      html: function() {
+        return tweets.length
+          ? '<div class="tweet-list">' + tweets.map(function(t, i) {
+              return '<div class="tweet-item" data-field="tweet'+(i+1)+'" data-edit-active="false">'
+                + '<span class="tweet-num">' + (i+1) + '</span>'
+                + '<span class="tweet-text">' + escHtml(t) + '</span></div>';
+            }).join('') + '</div>'
+          : '<div class="content-block"><em>No tweets found.</em></div>';
+      }
+    },
+    { key: 'linkedin', label: 'LinkedIn', platformKey: 'linkedin',
+      html: function() {
+        return '<div class="content-block" data-field="linkedin" data-edit-active="false">'
+          + (queueEdits.linkedin || (platforms.linkedin && platforms.linkedin.content && platforms.linkedin.content.text) || gc.linkedin || '<em>No LinkedIn content.</em>') + '</div>';
+      }
+    },
+    { key: 'discord', label: 'Discord', platformKey: 'discord',
+      html: function() {
+        return '<div class="content-block" data-field="discord" data-edit-active="false">'
+          + (queueEdits.discord || (platforms.discord && platforms.discord.content && platforms.discord.content.text) || gc.discord || '<em>No Discord content.</em>') + '</div>';
+      }
+    },
+    { key: 'tumblr', label: 'Tumblr', platformKey: 'tumblr',
+      html: function() {
+        return '<div class="content-block" data-field="tumblr" data-edit-active="false">'
+          + (queueEdits.tumblr || (platforms.tumblr && platforms.tumblr.content && platforms.tumblr.content.text) || gc.tumblr || '<em>No Tumblr content.</em>') + '</div>';
+      }
+    },
+  ];
+
+  var wrap = document.createElement('div');
+  wrap.className = 'yt-panel-card';
+
+  var tabBar        = document.createElement('div'); tabBar.className = 'platform-tabs';
+  var panelContainer = document.createElement('div'); panelContainer.className = 'platform-panels';
+
+  panelsData.forEach(function(p, idx) {
+    var isEdited = editedFields.some(function(f) {
+      return (YT_FIELD_MAP[p.platformKey] || [p.key]).includes(f);
+    });
+
+    // Tab button
+    var tab = document.createElement('button');
+    tab.className = 'ptab' + (idx === 0 ? ' active' : '');
+    tab.dataset.panel = p.key;
+    tab.innerHTML = p.label + (isEdited ? '<span class="ptab-chip ptab-chip-edited">⚠ Edited</span>' : '');
+    tab.addEventListener('click', function() { ytSwitchPlatformTab(panelContainer, tabBar, p.key); });
+    tabBar.appendChild(tab);
+
+    // Panel
+    var panel = document.createElement('div');
+    panel.className = 'ppanel' + (idx === 0 ? ' active' : '');
+    panel.dataset.panel = p.key;
+
+    var sbCls = isEdited ? 'psb-chip-edited' : 'psb-chip-pend';
+    var sbTxt = isEdited ? '⚠ Edited — not published' : '○ Not published';
+    var regenYtUrl = encodeURIComponent(youtubeUrl || '');
+
+        panel.innerHTML = '<div class="platform-status-bar">'
+      + '<div class="psb-left"><span class="psb-status-chip ' + sbCls + '">' + sbTxt + '</span></div>'
+      + '<div class="psb-right"><button class="btn-regen-platform" onclick="ytRegenPlatform(event,&quot;' + escHtml(videoId) + '&quot;,&quot;' + escHtml(p.platformKey) + '&quot;,&quot;' + escHtml(slug) + '&quot;,&quot;' + regenYtUrl + '&quot;)">'
+      + '↺ Regenerate ' + p.label + '</button></div>'
+      + '</div>' + p.html();
+
+    panelContainer.appendChild(panel);
+  });
+
+  // Publish action row
+  var actionRow = document.createElement('div');
+  actionRow.className = 'action-row';
+  actionRow.innerHTML = '<span class="action-label">Publish to:</span>';
+
+  YT_PLATFORMS.forEach(function(p) {
+    var chk = document.createElement('div');
+    chk.className = 'platform-checkbox checked';
+    chk.dataset.platform = p.key;
+    chk.dataset.checked  = 'true';
+    chk.innerHTML = '<span class="chk-dot"></span>' + p.label;
+    chk.addEventListener('click', function() {
+      var checked = chk.dataset.checked === 'true';
+      chk.dataset.checked = checked ? 'false' : 'true';
+      if (!checked) {
+        chk.classList.add('checked');
+        chk.innerHTML = '<span class="chk-dot"></span>' + p.label;
+      } else {
+        chk.classList.remove('checked');
+        chk.innerHTML = '<span class="chk-dot"></span>' + p.label + ' —';
+      }
+    });
+    actionRow.appendChild(chk);
+  });
+
+  var pubBtn = document.createElement('button');
+  pubBtn.className = 'btn-publish';
+  pubBtn.textContent = 'Publish';
+  pubBtn.onclick = function() {
+    ytPublishContent(videoId, slug, actionRow, pubBtn, wrap, videoRecord, editsData);
+  };
+  actionRow.appendChild(pubBtn);
+
+  var pubResult = document.createElement('div');
+  pubResult.className = 'pub-result';
+
+  var inner = document.createElement('div');
+  inner.className = 'expanded-inner';
+
+  // Wire up click-to-edit on content blocks
+  panelContainer.querySelectorAll('.content-block[data-field]').forEach(function(el) {
+    el.addEventListener('click', function() {
+      ytMakeEditable(el, videoId, el.dataset.field, editsData, tabBar);
+    });
+  });
+  panelContainer.querySelectorAll('.tweet-item[data-field]').forEach(function(el) {
+    el.addEventListener('click', function() {
+      var ts = el.querySelector('.tweet-text');
+      if (ts) ytMakeEditable(ts, videoId, el.dataset.field, editsData, tabBar);
+    });
+  });
+
+  inner.appendChild(tabBar);
+  inner.appendChild(panelContainer);
+  inner.appendChild(actionRow);
+  inner.appendChild(pubResult);
+  wrap.appendChild(inner);
+  container.innerHTML = '';
+  container.appendChild(wrap);
+}
+
+// ── Platform tab switcher (scoped to content panel) ───────────────────────
+function ytSwitchPlatformTab(pc, tb, key) {
+  tb.querySelectorAll('.ptab').forEach(function(t) {
+    t.classList.toggle('active', t.dataset.panel === key);
+  });
+  pc.querySelectorAll('.ppanel').forEach(function(p) {
+    p.classList.toggle('active', p.dataset.panel === key);
+  });
+}
+
+// ── Click-to-edit (same logic as Queue, prefixed yt to avoid name clash) ──
+function ytMakeEditable(el, videoId, field, editsData, tabBar) {
+  if (el.dataset.editActive === 'true') return;
+  el.dataset.editActive = 'true';
+  var original = el.innerText;
+  el.setAttribute('contenteditable', 'true');
+  el.focus();
+
+  var bar = el.nextElementSibling;
+  if (!bar || !bar.classList.contains('edit-save-bar')) {
+    bar = document.createElement('div');
+    bar.className = 'edit-save-bar';
+    bar.innerHTML = '<span class="edit-save-bar-label">Editing ' + field + ' — unsaved</span>'
+      + '<button class="btn-edit-discard">Discard</button>'
+      + '<button class="btn-edit-save">Save</button>';
+    el.parentNode.insertBefore(bar, el.nextSibling);
+  }
+  bar.classList.add('visible');
+
+  bar.querySelector('.btn-edit-save').onclick = function() {
+    ytSaveEdit(el, bar, videoId, field, editsData, tabBar);
+  };
+  bar.querySelector('.btn-edit-discard').onclick = function() {
+    el.setAttribute('contenteditable', 'false');
+    el.innerText = original;
+    el.dataset.editActive = 'false';
+    bar.classList.remove('visible');
+    bar.remove();
+  };
+}
+
+async function ytSaveEdit(el, bar, videoId, field, editsData, tabBar) {
+  var saveBtn = bar.querySelector('.btn-edit-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  var value = field === 'body' ? el.innerHTML : el.innerText.trim();
 
   try {
-    // For single video refresh, we post the full batch but it's cheap
-    // Future: add ?videoId= param to youtube-signals for targeted refresh
-    const res  = await fetch('/api/youtube-signals', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    await loadPerformanceTab();
+    var res  = await fetch('/api/queue-edits', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ videoId: videoId, field: field, value: value }),
+    });
+    var data = await res.json();
+
+    if (!res.ok) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+      bar.querySelector('.edit-save-bar-label').textContent = 'Error: ' + (data.error || 'Save failed');
+      return;
+    }
+
+    editsData.edits = editsData.edits || {};
+    editsData.edits[field] = value;
+    if (!editsData.editedFields) editsData.editedFields = [];
+    if (!editsData.editedFields.includes(field)) editsData.editedFields.push(field);
+
+    el.setAttribute('contenteditable', 'false');
+    el.dataset.editActive = 'false';
+    bar.classList.remove('visible');
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+
+    // Update tab badge
+    var tabKey = field === 'body' ? 'article' : (/^tweet/.test(field) ? 'x' : field);
+    var tabEl  = tabBar.querySelector('.ptab[data-panel="' + tabKey + '"]');
+    if (tabEl && !tabEl.innerHTML.includes('ptab-chip-edited')) {
+      var lblMap = { article:'Article', x:'X', linkedin:'LinkedIn', discord:'Discord', tumblr:'Tumblr' };
+      tabEl.innerHTML = (lblMap[tabKey]||tabKey) + '<span class="ptab-chip ptab-chip-edited">⚠ Edited</span>';
+    }
+
   } catch(err) {
-    btn.disabled = false;
-    btn.textContent = original;
-    console.error('Single refresh error:', err.message);
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+    bar.querySelector('.edit-save-bar-label').textContent = 'Network error — try again';
   }
 }
 
-// ── Format number ─────────────────────────────────────────────────────────
-function fmt(n) {
-  if (n === null || n === undefined) return '—';
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-  if (n >= 1000)    return (n / 1000).toFixed(1)    + 'K';
-  return String(n);
+// ── Regenerate individual platform (same as Queue regenPlatform) ──────────
+async function ytRegenPlatform(event, videoId, platform, slug, encodedYtUrl) {
+  event.stopPropagation();
+  var btn          = event.target;
+  var panel        = btn.closest('.ppanel');
+  var originalText = btn.textContent;
+
+  btn.disabled = true;
+  btn.textContent = '↺ Regenerating…';
+
+  var progressEl = null;
+  if (panel) {
+    progressEl = document.createElement('div');
+    progressEl.style.cssText = 'padding:20px 0 8px;font-size:13px;font-weight:600;color:rgba(255,255,255,0.70);display:flex;flex-direction:column;gap:8px;';
+    progressEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
+      + '<div class="loading-spin" style="width:14px;height:14px;border-width:2px;flex-shrink:0;"></div>'
+      + '<span id="ytRegenStatus-' + videoId + '">Sending transcript to Claude…</span></div>';
+    panel.appendChild(progressEl);
+  }
+
+  var setStatus = function(msg, color) {
+    var el = document.getElementById('ytRegenStatus-' + videoId);
+    if (el) { el.textContent = msg; if (color) el.style.color = color; }
+  };
+
+  try {
+    setStatus('Claude is regenerating ' + platform + ' content…');
+    var ytUrl = decodeURIComponent(encodedYtUrl || '');
+    var res   = await fetch('/api/regenerate-platform', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ videoId: videoId, platform: platform, slug: slug, youtubeUrl: ytUrl }),
+    });
+    var data = await res.json();
+
+    if (!res.ok || data.error) {
+      if (progressEl) progressEl.remove();
+      btn.textContent = '✕ ' + (data.error || 'Error');
+      btn.style.color = '#ff4444';
+      setTimeout(function() { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 5000);
+      return;
+    }
+
+    setStatus('Done — reloading content…', '#3ecf8e');
+    btn.textContent = '✓ Done';
+    btn.style.color = '#3ecf8e';
+
+    // Reload Tab 2 content
+    if (_currentVideoId) await populateContentTab(_currentVideoId);
+
+    if (progressEl) progressEl.remove();
+    setTimeout(function() { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 2000);
+
+  } catch(err) {
+    if (progressEl) progressEl.remove();
+    btn.textContent = '✕ Network error';
+    btn.style.color = '#ff4444';
+    setTimeout(function() { btn.textContent = originalText; btn.style.color = ''; btn.disabled = false; }, 4000);
+  }
 }
+
+// ── Publish content to platforms (same as Queue publishQueueItem) ─────────
+async function ytPublishContent(videoId, slug, actionRow, pubBtn, container, videoRecord, editsData) {
+  var platforms = {};
+  actionRow.querySelectorAll('.platform-checkbox').forEach(function(el) {
+    platforms[el.dataset.platform] = el.dataset.checked === 'true';
+  });
+
+  if (!Object.values(platforms).some(function(v) { return v; })) {
+    ytShowPubResult(container, 'Select at least one platform.', false);
+    return;
+  }
+
+  pubBtn.disabled = true;
+  pubBtn.textContent = 'Publishing…';
+
+  var gc      = (videoRecord.platforms && videoRecord.platforms.blog_global && videoRecord.platforms.blog_global.content) || {};
+  var merged  = Object.assign({}, gc, editsData.edits || {});
+  var regional = (videoRecord.platforms && videoRecord.platforms.blog_regional && videoRecord.platforms.blog_regional.content) || null;
+
+  try {
+    var res  = await fetch('/press-publish', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        videoId:         videoId,
+        slug:            slug,
+        platforms:       platforms,
+        content:         merged,
+        regionalContent: regional,
+        source:          'queue',
+      }),
+    });
+    var data = await res.json();
+
+    if (!res.ok) {
+      ytShowPubResult(container, data.error || 'Publish failed.', false);
+      pubBtn.disabled = false;
+      pubBtn.textContent = 'Publish';
+      return;
+    }
+
+    ytShowPubResult(container, '✓ Published — now in Press dashboard', true);
+    pubBtn.disabled = false;
+    pubBtn.textContent = 'Publish';
+
+  } catch(err) {
+    ytShowPubResult(container, 'Network error: ' + err.message, false);
+    pubBtn.disabled = false;
+    pubBtn.textContent = 'Publish';
+  }
+}
+
+function ytShowPubResult(container, msg, ok) {
+  var el = container.querySelector('.pub-result');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'pub-result ' + (ok ? 'ok' : 'err');
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  var input = document.getElementById('ytUrlInput');
+  input.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleGenerate(); });
+  var params = new URLSearchParams(window.location.search);
+  var vid = params.get('videoId') || params.get('v');
+  if (vid) { input.value = 'https://www.youtube.com/watch?v=' + vid; handleGenerate(); }
+});
 
 </script>
 </body>
