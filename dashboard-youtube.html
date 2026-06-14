@@ -318,6 +318,197 @@
     .yt-generated-at {
       font-size: 11px; color: rgba(255,255,255,0.22); padding: 12px 24px 0;
     }
+
+    /* ── Tabs ── */
+    .yt-tab-bar {
+      display: flex; gap: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 24px;
+    }
+    .yt-tab {
+      font-family: var(--font); font-size: 13px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(255,255,255,0.38); background: none; border: none;
+      padding: 14px 28px; cursor: pointer; position: relative; transition: color 0.15s;
+    }
+    .yt-tab:hover { color: rgba(255,255,255,0.65); }
+    .yt-tab.active { color: rgba(255,255,255,0.92); }
+    .yt-tab.active::after {
+      content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+      height: 2px; background: rgba(201,168,76,0.80);
+    }
+    .yt-panel { display: none; }
+    .yt-panel.active { display: block; }
+
+    /* ── Mark as Published ── */
+    .yt-publish-block {
+      display: none;
+      background: #16181f;
+      border: 1px solid rgba(201,168,76,0.20);
+      border-radius: var(--radius-xl);
+      padding: 24px 28px;
+      margin-top: 20px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .yt-publish-block.visible { display: block; }
+    .yt-publish-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(201,168,76,0.70); margin-bottom: 14px;
+    }
+    .yt-publish-subtitle {
+      font-size: 13px; color: rgba(255,255,255,0.50); margin-bottom: 16px; line-height: 1.5;
+    }
+    .yt-title-choices { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .yt-title-choice {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; cursor: pointer; transition: all 0.15s;
+    }
+    .yt-title-choice:hover { background: rgba(255,255,255,0.06); border-color: rgba(201,168,76,0.25); }
+    .yt-title-choice.selected { background: rgba(201,168,76,0.08); border-color: rgba(201,168,76,0.40); }
+    .yt-choice-radio {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; margin-top: 2px;
+      transition: all 0.15s;
+    }
+    .yt-title-choice.selected .yt-choice-radio {
+      border-color: rgba(201,168,76,0.80); background: rgba(201,168,76,0.80);
+    }
+    .yt-choice-info { flex: 1; }
+    .yt-choice-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(201,168,76,0.60); margin-bottom: 3px;
+    }
+    .yt-choice-title { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.80); }
+    .yt-own-title-wrap { display: none; margin-top: 8px; }
+    .yt-own-title-wrap.visible { display: block; }
+    .yt-own-title-input {
+      width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px; color: var(--text); font-family: var(--font); font-size: 13px;
+      padding: 10px 14px; outline: none; transition: border-color 0.15s; margin-top: 8px;
+    }
+    .yt-own-title-input:focus { border-color: rgba(201,168,76,0.40); }
+    .btn-mark-published {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(62,207,142,0.12); color: rgba(62,207,142,0.90);
+      border: 1px solid rgba(62,207,142,0.30); border-radius: 8px;
+      padding: 12px 28px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-mark-published:hover { background: rgba(62,207,142,0.20); color: #fff; }
+    .btn-mark-published:disabled { opacity: 0.4; cursor: not-allowed; }
+    .yt-publish-success {
+      display: none; padding: 12px 16px; margin-top: 12px;
+      background: rgba(62,207,142,0.08); border: 1px solid rgba(62,207,142,0.25);
+      border-radius: 6px; font-size: 13px; color: rgba(62,207,142,0.90);
+    }
+    .yt-publish-success.visible { display: block; }
+
+    /* ── Performance tab ── */
+    .yt-perf-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .yt-perf-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.38);
+    }
+    .btn-refresh-kpis {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(201,168,76,0.10); color: rgba(201,168,76,0.80);
+      border: 1px solid rgba(201,168,76,0.25); border-radius: 6px;
+      padding: 10px 20px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-refresh-kpis:hover { background: rgba(201,168,76,0.18); color: #fff; }
+    .btn-refresh-kpis:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .yt-perf-table {
+      background: #16181f;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .yt-perf-thead {
+      display: grid;
+      grid-template-columns: 100px 1fr 90px 70px 80px 100px 90px 90px;
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      color: rgba(255,255,255,0.30);
+    }
+    .yt-perf-row {
+      display: grid;
+      grid-template-columns: 100px 1fr 90px 70px 80px 100px 90px 90px;
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      align-items: center;
+      transition: background 0.15s;
+    }
+    .yt-perf-row:last-child { border-bottom: none; }
+    .yt-perf-row:hover { background: rgba(255,255,255,0.02); }
+    .yt-perf-thumb {
+      width: 90px; height: 51px; border-radius: 4px; object-fit: cover;
+      background: rgba(255,255,255,0.06);
+    }
+    .yt-perf-title-cell {
+      padding-left: 12px; min-width: 0;
+    }
+    .yt-perf-video-title {
+      font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.80);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 3px;
+    }
+    .yt-perf-video-url {
+      font-size: 11px; color: rgba(255,255,255,0.28); text-decoration: none;
+    }
+    .yt-perf-video-url:hover { color: rgba(201,168,76,0.70); }
+    .yt-perf-stat { font-size: 14px; font-weight: 700; }
+    .yt-perf-stat.good { color: rgba(62,207,142,0.90); }
+    .yt-perf-stat.ok   { color: rgba(201,168,76,0.80); }
+    .yt-perf-stat.low  { color: rgba(255,255,255,0.35); }
+    .yt-perf-stat.none { color: rgba(255,255,255,0.20); }
+    .yt-choice-chip {
+      display: inline-block; font-size: 9px; font-weight: 700;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .yt-choice-chip.primary { background: rgba(62,207,142,0.10); color: rgba(62,207,142,0.80); border: 1px solid rgba(62,207,142,0.20); }
+    .yt-choice-chip.alt1    { background: rgba(201,168,76,0.10); color: rgba(201,168,76,0.80); border: 1px solid rgba(201,168,76,0.20); }
+    .yt-choice-chip.alt2    { background: rgba(201,168,76,0.08); color: rgba(201,168,76,0.65); border: 1px solid rgba(201,168,76,0.15); }
+    .yt-choice-chip.own     { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.45); border: 1px solid rgba(255,255,255,0.12); }
+    .yt-perf-age { font-size: 11px; }
+    .yt-perf-age.stale { color: rgba(248,113,113,0.80); }
+    .yt-perf-age.fresh { color: rgba(255,255,255,0.35); }
+    .btn-row-refresh {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: none; color: rgba(255,255,255,0.28);
+      border: 1px solid rgba(255,255,255,0.10); border-radius: 4px;
+      padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-row-refresh:hover { color: rgba(201,168,76,0.80); border-color: rgba(201,168,76,0.30); }
+    .yt-perf-empty {
+      padding: 60px 40px; text-align: center;
+      font-size: 13px; color: rgba(255,255,255,0.25); line-height: 2;
+    }
+    .yt-channel-stats {
+      display: flex; gap: 24px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .yt-channel-stat {
+      background: #16181f; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 16px 20px; flex: 1; min-width: 140px;
+    }
+    .yt-channel-stat-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      color: rgba(255,255,255,0.28); margin-bottom: 6px;
+    }
+    .yt-channel-stat-value {
+      font-size: 22px; font-weight: 700; color: rgba(255,255,255,0.90);
+    }
+    .yt-channel-stat-sub {
+      font-size: 11px; color: rgba(255,255,255,0.28); margin-top: 2px;
+    }
+
   </style>
 </head>
 <body>
@@ -351,6 +542,15 @@
 </div>
 
 <div class="yt-layout">
+
+  <!-- Tab bar -->
+  <div class="yt-tab-bar">
+    <button class="yt-tab active" id="tabGenerate" onclick="switchYtTab('generate')">&#9889; Generate</button>
+    <button class="yt-tab" id="tabPerformance" onclick="switchYtTab('performance')">&#128202; Performance</button>
+  </div>
+
+  <!-- Tab: Generate -->
+  <div class="yt-panel active" id="panel-generate">
 
   <!-- URL Input -->
   <div class="yt-input-card">
@@ -517,7 +717,61 @@
     </div>
   </div>
 
-</div>
+  <!-- Mark as Published -->
+  <div class="yt-publish-block" id="publishBlock">
+    <div class="yt-publish-label">&#10003; Mark as Published</div>
+    <div class="yt-publish-subtitle">
+      Which title did you use in YouTube Studio? This tells the intelligence engine
+      what actually went live — so it learns what works.
+    </div>
+    <div class="yt-title-choices" id="titleChoices"></div>
+    <div class="yt-own-title-wrap" id="ownTitleWrap">
+      <input class="yt-own-title-input" id="ownTitleInput" type="text" placeholder="Paste the exact title you used on YouTube…">
+    </div>
+    <button class="btn-mark-published" id="markPublishedBtn" onclick="markAsPublished()">
+      Mark as Published &rarr;
+    </button>
+    <div class="yt-publish-success" id="publishSuccess"></div>
+  </div>
+
+  </div><!-- /#panel-generate -->
+
+  <!-- Tab: Performance -->
+  <div class="yt-panel" id="panel-performance">
+
+    <div class="yt-perf-header">
+      <div class="yt-perf-title">YouTube KPIs — FFX System Videos Only</div>
+      <button class="btn-refresh-kpis" id="refreshKpisBtn" onclick="refreshAllKPIs()">
+        &#8635; Refresh All KPIs
+      </button>
+    </div>
+
+    <!-- Channel stats row -->
+    <div class="yt-channel-stats" id="channelStatsRow" style="display:none;"></div>
+
+    <!-- Performance table -->
+    <div class="yt-perf-table">
+      <div class="yt-perf-thead">
+        <div>Video</div>
+        <div>Title Used</div>
+        <div>Views</div>
+        <div>Likes</div>
+        <div>Comments</div>
+        <div>Title Choice</div>
+        <div>Stats Age</div>
+        <div>Actions</div>
+      </div>
+      <div id="perfTableBody">
+        <div class="yt-perf-empty">
+          Loading performance data&hellip;<br>
+          <span style="font-size:11px;color:rgba(255,255,255,0.18);">Videos appear here after you mark them as published in the Generate tab.</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#panel-performance -->
+
+</div><!-- /.yt-layout -->
 
 <script>
 // ── State ─────────────────────────────────────────────────────────────────
@@ -775,6 +1029,9 @@ function renderOutput(meta) {
 
   // Show output
   document.getElementById('outputArea').classList.add('visible');
+
+  // Show Mark as Published block
+  renderPublishBlock(meta);
 }
 
 // ── Render thumbnail section ───────────────────────────────────────────────
@@ -931,6 +1188,326 @@ document.addEventListener('DOMContentLoaded', function() {
     handleGenerate();
   }
 });
+// ── Tab switching ─────────────────────────────────────────────────────────
+function switchYtTab(tab) {
+  document.querySelectorAll('.yt-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.yt-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('tabGenerate').classList.toggle('active', tab === 'generate');
+  document.getElementById('tabPerformance').classList.toggle('active', tab === 'performance');
+  document.getElementById('panel-generate').classList.toggle('active', tab === 'generate');
+  document.getElementById('panel-performance').classList.toggle('active', tab === 'performance');
+  if (tab === 'performance') loadPerformanceTab();
+}
+
+// ── Render Mark as Published block ───────────────────────────────────────
+function renderPublishBlock(meta) {
+  if (!meta || !_currentVideoId) return;
+
+  const block = document.getElementById('publishBlock');
+  const choices = document.getElementById('titleChoices');
+
+  // Build title choices
+  const options = [
+    { key: 'primary', badge: 'Claude Primary', title: meta.primaryTitle || '' },
+  ];
+  if (meta.titleAlternatives && meta.titleAlternatives[0]) {
+    options.push({ key: 'alt1', badge: 'Claude Alt 1', title: meta.titleAlternatives[0].title || '' });
+  }
+  if (meta.titleAlternatives && meta.titleAlternatives[1]) {
+    options.push({ key: 'alt2', badge: 'Claude Alt 2', title: meta.titleAlternatives[1].title || '' });
+  }
+  options.push({ key: 'own', badge: 'My Own Title', title: 'I wrote my own title' });
+
+  choices.innerHTML = '';
+  options.forEach(function(opt) {
+    const div = document.createElement('div');
+    div.className = 'yt-title-choice';
+    div.dataset.key = opt.key;
+    div.innerHTML = '<div class="yt-choice-radio"></div>'
+      + '<div class="yt-choice-info">'
+      + '<div class="yt-choice-badge">' + esc(opt.badge) + '</div>'
+      + '<div class="yt-choice-title">' + esc(opt.title) + '</div>'
+      + '</div>';
+    div.addEventListener('click', function() {
+      document.querySelectorAll('.yt-title-choice').forEach(function(c) { c.classList.remove('selected'); });
+      div.classList.add('selected');
+      const ownWrap = document.getElementById('ownTitleWrap');
+      if (opt.key === 'own') {
+        ownWrap.classList.add('visible');
+        document.getElementById('ownTitleInput').focus();
+      } else {
+        ownWrap.classList.remove('visible');
+      }
+    });
+    choices.appendChild(div);
+  });
+
+  // Pre-select primary
+  const firstChoice = choices.querySelector('.yt-title-choice');
+  if (firstChoice) firstChoice.classList.add('selected');
+
+  // Reset success state
+  document.getElementById('publishSuccess').classList.remove('visible');
+  document.getElementById('markPublishedBtn').disabled = false;
+  document.getElementById('markPublishedBtn').innerHTML = 'Mark as Published &rarr;';
+
+  block.classList.add('visible');
+}
+
+// ── Mark as Published ─────────────────────────────────────────────────────
+async function markAsPublished() {
+  if (!_currentVideoId || !_currentMeta) return;
+
+  const selected = document.querySelector('.yt-title-choice.selected');
+  if (!selected) {
+    alert('Please select which title you used.');
+    return;
+  }
+
+  const titleUsed = selected.dataset.key;
+  const ownTitle  = titleUsed === 'own' ? (document.getElementById('ownTitleInput').value.trim()) : '';
+
+  if (titleUsed === 'own' && !ownTitle) {
+    document.getElementById('ownTitleInput').style.borderColor = 'rgba(248,113,113,0.50)';
+    setTimeout(function() { document.getElementById('ownTitleInput').style.borderColor = ''; }, 2000);
+    return;
+  }
+
+  const btn = document.getElementById('markPublishedBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch('/api/youtube-signals?action=publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        videoId:   _currentVideoId,
+        titleUsed: titleUsed,
+        ownTitle:  ownTitle,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      btn.disabled = false;
+      btn.innerHTML = 'Mark as Published &rarr;';
+      const successEl = document.getElementById('publishSuccess');
+      successEl.textContent = 'Error: ' + (data.error || 'Save failed');
+      successEl.style.background = 'rgba(248,113,113,0.08)';
+      successEl.style.borderColor = 'rgba(248,113,113,0.25)';
+      successEl.style.color = 'rgba(248,113,113,0.90)';
+      successEl.classList.add('visible');
+      return;
+    }
+
+    // Success
+    btn.innerHTML = '&#10003; Published';
+    btn.style.background = 'rgba(62,207,142,0.12)';
+    btn.style.borderColor = 'rgba(62,207,142,0.30)';
+    btn.style.color = 'rgba(62,207,142,0.90)';
+
+    const titleLabel = titleUsed === 'primary' ? 'Claude Primary'
+      : titleUsed === 'alt1' ? 'Claude Alt 1'
+      : titleUsed === 'alt2' ? 'Claude Alt 2'
+      : 'Your Own Title';
+
+    const successEl = document.getElementById('publishSuccess');
+    successEl.innerHTML = '&#10003; Marked as published using <strong>' + esc(titleLabel) + '</strong>: &ldquo;' + esc(data.actualTitle) + '&rdquo;<br>'
+      + '<span style="font-size:11px;color:rgba(62,207,142,0.65);">Come back in 48-72 hours and hit Refresh All KPIs in the Performance tab to capture views and engagement.</span>';
+    successEl.classList.add('visible');
+
+  } catch(err) {
+    btn.disabled = false;
+    btn.innerHTML = 'Mark as Published &rarr;';
+    console.error('markAsPublished error:', err);
+  }
+}
+
+// ── Load Performance tab ──────────────────────────────────────────────────
+async function loadPerformanceTab() {
+  const tableBody = document.getElementById('perfTableBody');
+  tableBody.innerHTML = '<div class="yt-perf-empty"><div class="loading-spin" style="margin:0 auto 12px;"></div>Loading…</div>';
+
+  try {
+    const res  = await fetch('/api/youtube-signals');
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      tableBody.innerHTML = '<div class="yt-perf-empty" style="color:rgba(248,113,113,0.70);">' + esc(data.error || 'Failed to load') + '</div>';
+      return;
+    }
+
+    // Channel stats row
+    renderChannelStats(data.channelSignals);
+
+    if (!data.records || !data.records.length) {
+      tableBody.innerHTML = '<div class="yt-perf-empty">No published videos yet.<br><span style="font-size:11px;color:rgba(255,255,255,0.18);">Generate an SEO package in the Generate tab, publish the video on YouTube, then click “Mark as Published”.</span></div>';
+      return;
+    }
+
+    renderPerfTable(data.records);
+
+  } catch(err) {
+    tableBody.innerHTML = '<div class="yt-perf-empty" style="color:rgba(248,113,113,0.70);">Network error: ' + esc(err.message) + '</div>';
+  }
+}
+
+// ── Render channel stats ──────────────────────────────────────────────────
+function renderChannelStats(signals) {
+  const row = document.getElementById('channelStatsRow');
+  if (!signals) { row.style.display = 'none'; return; }
+
+  const ch = signals.channelStats || {};
+  row.style.display = 'flex';
+  row.innerHTML = [
+    { label: 'Subscribers',    value: fmt(ch.subscriberCount), sub: 'total' },
+    { label: 'Avg Views / Video', value: fmt(signals.channelAvgViews), sub: 'FFX system videos' },
+    { label: 'Videos Measured', value: (signals.totalMeasured || 0) + '', sub: 'published via FFX' },
+    { label: 'Total Channel Views', value: fmt(ch.totalViewCount), sub: 'all time' },
+  ].map(function(s) {
+    return '<div class="yt-channel-stat">'
+      + '<div class="yt-channel-stat-label">' + esc(s.label) + '</div>'
+      + '<div class="yt-channel-stat-value">' + esc(s.value) + '</div>'
+      + '<div class="yt-channel-stat-sub">' + esc(s.sub) + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Render performance table rows ─────────────────────────────────────────
+function renderPerfTable(records) {
+  const tableBody = document.getElementById('perfTableBody');
+  if (!records.length) {
+    tableBody.innerHTML = '<div class="yt-perf-empty">No data yet.</div>';
+    return;
+  }
+
+  // Sort: newest published first
+  const sorted = records.slice().sort(function(a, b) {
+    return new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0);
+  });
+
+  tableBody.innerHTML = '';
+
+  sorted.forEach(function(record) {
+    const perf = record.performance;
+    const pub  = record.published;
+
+    const videoId    = record.videoId || '';
+    const publishedAt = record.publishedAt || '';
+    const youtubeUrl = (pub && pub.youtubeUrl) || ('https://www.youtube.com/watch?v=' + videoId);
+    const title      = (pub && pub.actualTitle) || (perf && perf.actualTitle) || videoId;
+    const titleUsed  = (pub && pub.titleUsed) || (perf && perf.titleUsed) || 'unknown';
+
+    // Stats
+    const views    = perf ? perf.viewCount    : null;
+    const likes    = perf ? perf.likeCount    : null;
+    const comments = perf ? perf.commentCount : null;
+    const beatAvg  = perf ? perf.beatAverage  : null;
+    const statsUpdatedAt = perf ? perf.statsUpdatedAt : null;
+
+    // View colour
+    var viewClass = 'none';
+    if (views !== null) {
+      if (beatAvg === true) viewClass = 'good';
+      else if (beatAvg === false && perf.viewsVsAvgPct !== null && perf.viewsVsAvgPct > -20) viewClass = 'ok';
+      else if (beatAvg === false) viewClass = 'low';
+      else viewClass = 'ok';
+    }
+
+    // Stats age
+    var statsAge = '—'; var staleClass = 'fresh';
+    if (statsUpdatedAt) {
+      var daysAgo = Math.floor((Date.now() - new Date(statsUpdatedAt)) / 86400000);
+      statsAge = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : daysAgo + ' days ago';
+      if (daysAgo > 7) staleClass = 'stale';
+    } else {
+      statsAge = 'Not fetched'; staleClass = 'stale';
+    }
+
+    // Title choice chip
+    var chipClass = titleUsed === 'primary' ? 'primary' : titleUsed === 'alt1' ? 'alt1' : titleUsed === 'alt2' ? 'alt2' : 'own';
+    var chipLabel = titleUsed === 'primary' ? 'Primary' : titleUsed === 'alt1' ? 'Alt 1' : titleUsed === 'alt2' ? 'Alt 2' : 'Own';
+
+    const row = document.createElement('div');
+    row.className = 'yt-perf-row';
+    row.innerHTML = '<img class="yt-perf-thumb" src="https://img.youtube.com/vi/' + esc(videoId) + '/mqdefault.jpg" onerror="this.style.opacity='0.3'" alt="">'
+      + '<div class="yt-perf-title-cell">'
+      + '<div class="yt-perf-video-title" title="' + esc(title) + '">' + esc(title) + '</div>'
+      + '<a class="yt-perf-video-url" href="' + esc(youtubeUrl) + '" target="_blank" onclick="event.stopPropagation()">youtube.com/watch?v=' + esc(videoId) + '</a>'
+      + '</div>'
+      + '<div class="yt-perf-stat ' + viewClass + '">' + (views !== null ? fmt(views) : '—') + '</div>'
+      + '<div class="yt-perf-stat ' + (likes !== null ? 'ok' : 'none') + '">' + (likes !== null ? fmt(likes) : '—') + '</div>'
+      + '<div class="yt-perf-stat ' + (comments !== null ? 'ok' : 'none') + '">' + (comments !== null ? fmt(comments) : '—') + '</div>'
+      + '<div><span class="yt-choice-chip ' + chipClass + '">' + chipLabel + '</span></div>'
+      + '<div class="yt-perf-age ' + staleClass + '">' + esc(statsAge) + '</div>'
+      + '<div><button class="btn-row-refresh" onclick="refreshSingleVideo('' + esc(videoId) + '', this)">Refresh</button></div>';
+
+    tableBody.appendChild(row);
+  });
+}
+
+// ── Refresh All KPIs ──────────────────────────────────────────────────────
+async function refreshAllKPIs() {
+  const btn = document.getElementById('refreshKpisBtn');
+  btn.disabled = true;
+  btn.innerHTML = '&#8635; Refreshing…';
+
+  try {
+    const res  = await fetch('/api/youtube-signals', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      btn.disabled = false;
+      btn.innerHTML = '&#8635; Refresh All KPIs';
+      alert('Error: ' + (data.error || 'Refresh failed'));
+      return;
+    }
+
+    btn.innerHTML = '&#10003; Updated ' + (data.updatedCount || 0) + ' videos';
+    setTimeout(function() {
+      btn.disabled = false;
+      btn.innerHTML = '&#8635; Refresh All KPIs';
+    }, 3000);
+
+    loadPerformanceTab();
+
+  } catch(err) {
+    btn.disabled = false;
+    btn.innerHTML = '&#8635; Refresh All KPIs';
+    alert('Network error: ' + err.message);
+  }
+}
+
+// ── Refresh single video ──────────────────────────────────────────────────
+async function refreshSingleVideo(videoId, btn) {
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  try {
+    // For single video refresh, we post the full batch but it's cheap
+    // Future: add ?videoId= param to youtube-signals for targeted refresh
+    const res  = await fetch('/api/youtube-signals', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    await loadPerformanceTab();
+  } catch(err) {
+    btn.disabled = false;
+    btn.textContent = original;
+    console.error('Single refresh error:', err.message);
+  }
+}
+
+// ── Format number ─────────────────────────────────────────────────────────
+function fmt(n) {
+  if (n === null || n === undefined) return '—';
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n / 1000).toFixed(1)    + 'K';
+  return String(n);
+}
+
 </script>
 </body>
 </html>
