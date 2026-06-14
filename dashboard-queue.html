@@ -124,31 +124,6 @@
       letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.8;
     }
 
-    /* YT Metadata panel */
-    .btn-yt-meta {
-      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-      background: rgba(255,0,0,0.08); color: rgba(255,100,100,0.80);
-      border: 1px solid rgba(255,0,0,0.20); border-radius: 5px;
-      padding: 4px 10px; cursor: pointer; transition: all 0.15s; margin-top: 6px; display: inline-block;
-    }
-    .btn-yt-meta:hover { background: rgba(255,0,0,0.14); border-color: rgba(255,0,0,0.35); color: #fff; }
-    .btn-yt-meta:disabled { opacity: 0.5; cursor: not-allowed; }
-    .yt-meta-panel {
-      padding: 20px 24px;
-      background: rgba(255,0,0,0.04);
-      border-top: 1px solid rgba(255,0,0,0.12);
-    }
-    .yt-meta-title-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
-    .yt-meta-label { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,100,100,0.70); flex-shrink: 0; }
-    .yt-meta-value { font-size: 14px; color: rgba(255,255,255,0.85); font-weight: 600; flex: 1; }
-    .yt-meta-alt { font-size: 12px; color: rgba(255,255,255,0.50); margin-bottom: 4px; cursor: pointer; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .yt-meta-alt:hover { color: rgba(255,255,255,0.80); }
-    .yt-meta-desc { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.6; white-space: pre-wrap; max-height: 200px; overflow-y: auto; background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 6px; margin-bottom: 10px; }
-    .yt-meta-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
-    .yt-meta-tag { font-size: 10px; color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); padding: 2px 8px; border-radius: 4px; }
-    .yt-meta-thumb { font-size: 13px; color: rgba(255,255,255,0.65); font-style: italic; margin-bottom: 10px; }
-    .btn-copy-meta { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.50); border: 1px solid rgba(255,255,255,0.12); border-radius: 5px; padding: 4px 12px; cursor: pointer; margin-right: 6px; transition: all 0.15s; }
-    .btn-copy-meta:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.80); }
 
     /* Manual add form */
     .queue-add-form {
@@ -463,10 +438,6 @@ function buildQueueRow(item) {
       + '</div>'
     : '';
 
-  // YT Metadata button — only for orange state (content ready, transcript exists)
-  const ytMetaBtn = isOrange
-    ? '<button class="btn-yt-meta" id="ytbtn-'+videoId+'" onclick="event.stopPropagation();generateYTMetadata(\''+videoId+'\',\''+escHtml(ytUrl)+'\',\''+escHtml(title)+'\')">▶ YT Metadata</button>'
-    : '';
 
   const summary = document.createElement('div');
   summary.className = 'row-summary';
@@ -478,7 +449,7 @@ function buildQueueRow(item) {
     + (ytUrl ? '<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '')
     + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:6px;justify-content:flex-start;padding-top:4px;">'
-    + badgeHtml + actionHtml + parkBtn + ytMetaBtn + reorderBtns
+    + badgeHtml + actionHtml + parkBtn + reorderBtns
     + (item.state==='generating'&&item.jobId ? '<div class="row-progress" id="rp-'+videoId+'"><div class="step active"><div class="step-spinner"></div> Starting\u2026</div></div>' : '')
     + '</div>'
     + '<div class="row-date">'+formatDate(item.addedAt)+(isOrange?'<span class="row-chevron">\u25bc</span>':'')+'</div>';
@@ -790,187 +761,6 @@ async function moveQueueItem(videoId, direction){
     console.error('[reorder] Error:', err);
     btns.forEach(b=>{b.style.opacity='';b.disabled=false;});
   }
-}
-
-async function generateYTMetadata(videoId,youtubeUrl,title){
-  const btn = document.getElementById('ytbtn-'+videoId);
-  if(btn){ btn.disabled=true; btn.textContent='Generating…'; }
-  try{
-    const res = await fetch('/api/youtube-metadata',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({videoId,youtubeUrl,title})
-    });
-    const data = await res.json();
-    if(!res.ok){
-      if(btn){ btn.disabled=false; btn.textContent='▶ YT Metadata'; }
-      const row=document.querySelector('.queue-row[data-videoid="'+videoId+'"]');
-      if(row){
-        const errDiv=document.createElement('div');
-        errDiv.style.cssText='font-size:12px;color:var(--red);margin-top:6px;padding:6px 10px;background:var(--red-bg);border:1px solid var(--red-bd);border-radius:4px;';
-        errDiv.textContent='YT Metadata error: '+(data.error||'Unknown error');
-        btn.parentNode.insertBefore(errDiv,btn.nextSibling);
-      }
-      return;
-    }
-    if(btn){ btn.textContent='✓ YT Meta Ready'; btn.style.background='rgba(62,207,142,0.10)'; btn.style.color='rgba(62,207,142,0.80)'; btn.style.borderColor='rgba(62,207,142,0.25)'; }
-    // Show metadata panel below the row
-    const row=document.querySelector('.queue-row[data-videoid="'+videoId+'"]');
-    if(row){ renderYTMetaPanel(row,data.metadata); }
-  }catch(err){
-    if(btn){ btn.disabled=false; btn.textContent='▶ YT Metadata'; }
-    console.error('YT Metadata error:',err);
-  }
-}
-
-// Store YT metadata per videoId for copy buttons to access without JSON.stringify in HTML
-const _ytMetaStore = {};
-
-function renderYTMetaPanel(row, meta) {
-  const existing = row.querySelector('.yt-meta-panel');
-  if (existing) {
-    // Toggle collapse if already rendered
-    const body = existing.querySelector('.yt-meta-body');
-    const chevron = existing.querySelector('.yt-meta-chevron');
-    if (body) {
-      const collapsed = body.style.display === 'none';
-      body.style.display = collapsed ? 'block' : 'none';
-      if (chevron) chevron.textContent = collapsed ? '▲' : '▼';
-    }
-    return;
-  }
-
-  const videoId = row.dataset.videoid || '';
-  _ytMetaStore[videoId] = meta;
-
-  const panel = document.createElement('div');
-  panel.className = 'yt-meta-panel';
-
-  // Header — click to collapse
-  const header = document.createElement('div');
-  header.className = 'yt-meta-header';
-  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:14px;';
-  header.innerHTML = '<span style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,100,100,0.80);">▶ YT Metadata</span>'
-    + '<span class="yt-meta-chevron" style="font-size:11px;color:rgba(255,255,255,0.30);">▲</span>';
-
-  const body = document.createElement('div');
-  body.className = 'yt-meta-body';
-
-  header.addEventListener('click', () => {
-    const collapsed = body.style.display === 'none';
-    body.style.display = collapsed ? 'block' : 'none';
-    header.querySelector('.yt-meta-chevron').textContent = collapsed ? '▲' : '▼';
-  });
-
-  // Build body content using DOM methods — no JSON.stringify in HTML attributes
-  const tags = (meta.tags || []).map(t => '<span class="yt-meta-tag">' + escHtml(t) + '</span>').join('');
-  const descHook = meta.description?.hook || '';
-  const descFull = meta.description?.full || '';
-
-  // Title row
-  const titleDiv = document.createElement('div');
-  titleDiv.className = 'yt-meta-title-row';
-  titleDiv.innerHTML = '<span class="yt-meta-label">Title</span>'
-    + '<span class="yt-meta-value">' + escHtml(meta.primaryTitle || '') + '</span>';
-  const copyTitleBtn = document.createElement('button');
-  copyTitleBtn.className = 'btn-copy-meta';
-  copyTitleBtn.textContent = 'Copy Title';
-  copyTitleBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(_ytMetaStore[videoId]?.primaryTitle || '').then(() => {
-      copyTitleBtn.textContent = '✓ Copied';
-      setTimeout(() => { copyTitleBtn.textContent = 'Copy Title'; }, 2000);
-    });
-  });
-  titleDiv.appendChild(copyTitleBtn);
-  body.appendChild(titleDiv);
-
-  // Alternatives
-  if (meta.titleAlternatives && meta.titleAlternatives.length) {
-    const altsDiv = document.createElement('div');
-    altsDiv.style.marginBottom = '10px';
-    meta.titleAlternatives.forEach((a, i) => {
-      const altEl = document.createElement('div');
-      altEl.className = 'yt-meta-alt';
-      altEl.title = a.reasoning || '';
-      altEl.textContent = 'Alt ' + (i + 1) + ': ' + (a.title || '');
-      altEl.addEventListener('click', () => {
-        navigator.clipboard.writeText(a.title || '').then(() => {
-          altEl.style.color = 'rgba(62,207,142,0.80)';
-          setTimeout(() => { altEl.style.color = ''; }, 2000);
-        });
-      });
-      altsDiv.appendChild(altEl);
-    });
-    body.appendChild(altsDiv);
-  }
-
-  // Hook
-  const hookLabel = document.createElement('div');
-  hookLabel.className = 'yt-meta-label';
-  hookLabel.style.cssText = 'margin-bottom:6px;';
-  hookLabel.textContent = 'Hook (first 125 chars)';
-  body.appendChild(hookLabel);
-  const hookDesc = document.createElement('div');
-  hookDesc.className = 'yt-meta-desc';
-  hookDesc.style.maxHeight = '60px';
-  hookDesc.textContent = descHook;
-  body.appendChild(hookDesc);
-
-  // Full description
-  const descLabel = document.createElement('div');
-  descLabel.className = 'yt-meta-label';
-  descLabel.style.marginBottom = '6px';
-  descLabel.textContent = 'Full Description';
-  body.appendChild(descLabel);
-  const descEl = document.createElement('div');
-  descEl.className = 'yt-meta-desc';
-  descEl.textContent = descFull;
-  body.appendChild(descEl);
-  const copyDescBtn = document.createElement('button');
-  copyDescBtn.className = 'btn-copy-meta';
-  copyDescBtn.textContent = 'Copy Description';
-  copyDescBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(_ytMetaStore[videoId]?.description?.full || '').then(() => {
-      copyDescBtn.textContent = '✓ Copied';
-      setTimeout(() => { copyDescBtn.textContent = 'Copy Description'; }, 2000);
-    });
-  });
-  body.appendChild(copyDescBtn);
-
-  // Tags
-  const tagsLabel = document.createElement('div');
-  tagsLabel.className = 'yt-meta-label';
-  tagsLabel.style.cssText = 'margin:10px 0 6px;';
-  tagsLabel.textContent = 'Tags';
-  body.appendChild(tagsLabel);
-  const tagsDiv = document.createElement('div');
-  tagsDiv.className = 'yt-meta-tags';
-  tagsDiv.innerHTML = tags;
-  body.appendChild(tagsDiv);
-  const copyTagsBtn = document.createElement('button');
-  copyTagsBtn.className = 'btn-copy-meta';
-  copyTagsBtn.textContent = 'Copy Tags';
-  copyTagsBtn.addEventListener('click', () => {
-    const t = (_ytMetaStore[videoId]?.tags || []).join(', ');
-    navigator.clipboard.writeText(t).then(() => {
-      copyTagsBtn.textContent = '✓ Copied';
-      setTimeout(() => { copyTagsBtn.textContent = 'Copy Tags'; }, 2000);
-    });
-  });
-  body.appendChild(copyTagsBtn);
-
-  // Thumbnail concept
-  if (meta.thumbnailConcept) {
-    const thumbDiv = document.createElement('div');
-    thumbDiv.className = 'yt-meta-thumb';
-    thumbDiv.style.marginTop = '10px';
-    thumbDiv.innerHTML = '🖼 Thumbnail: <strong>' + escHtml(meta.thumbnailConcept.textOverlay || '') + '</strong> — ' + escHtml(meta.thumbnailConcept.reasoning || '');
-    body.appendChild(thumbDiv);
-  }
-
-  panel.appendChild(header);
-  panel.appendChild(body);
-  row.appendChild(panel);
 }
 
 function startPolling(jobId,videoId,summaryEl){
