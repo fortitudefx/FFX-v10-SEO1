@@ -110,6 +110,21 @@ ${transcript.slice(0, 3000)}${transcript.length > 3000 ? '\n[...transcript conti
       if (brief.articleBrief?.targetQuery) ctx += `Primary target query: "${brief.articleBrief.targetQuery}"\n`;
       if (brief.promptInjection?.currentSignals) ctx += `Current signals: ${brief.promptInjection.currentSignals}\n`;
       if (brief.weeklyInsight?.momentum) ctx += `Site momentum: ${brief.weeklyInsight.momentum}\n`;
+
+      // YouTube strategy from intelligence engine — apply proven patterns
+      if (brief.youtubeStrategy) {
+        const ys = brief.youtubeStrategy;
+        ctx += `\n━━ YOUTUBE STRATEGY (from intelligence engine — evidence-based) ━━\n`;
+        ctx += `Channel momentum: ${ys.channelMomentum || 'unknown'}\n`;
+        if (ys.recommendedTitleFormat) ctx += `RECOMMENDED title format (beat channel avg): ${ys.recommendedTitleFormat}\n`;
+        if (ys.recommendedVisualScene) ctx += `RECOMMENDED visual scene (beat channel avg): ${ys.recommendedVisualScene}\n`;
+        if (ys.recommendedEmotionalRegister) ctx += `RECOMMENDED emotional register: ${ys.recommendedEmotionalRegister}\n`;
+        if (ys.recommendedHookStyle) ctx += `RECOMMENDED hook style: ${ys.recommendedHookStyle}\n`;
+        if (ys.avoidTitleFormat) ctx += `AVOID title format (underperformed): ${ys.avoidTitleFormat}\n`;
+        if (ys.avoidVisualScene) ctx += `AVOID visual scene (underperformed): ${ys.avoidVisualScene}\n`;
+        if (ys.reasoning) ctx += `Evidence: ${ys.reasoning}\n`;
+        ctx += `INSTRUCTION: Apply the recommended patterns above unless the transcript content strongly dictates otherwise. The channel average is the benchmark — beat it.\n`;
+      }
     }
 
     if (seoSignals) {

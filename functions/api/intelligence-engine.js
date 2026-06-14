@@ -76,6 +76,13 @@ export async function onRequestPost(context) {
       }
     }
 
+
+    // Read YouTube performance signals — only FFX-system published videos
+    const [ytSignals, ytTitleLearning] = await Promise.all([
+      env.FFX_KV.get('youtube:signals',        { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('youtube:title:learning', { type: 'json' }).catch(() => null),
+    ]);
+
     await writeProgress(env, 2, 'Reading content performance history', 'done');
 
     // ── STEP 3: Build context + call Claude ──────────────────────────────
@@ -156,9 +163,95 @@ export async function onRequestPost(context) {
       signalContextWithNewsletter += '='.repeat(50) + '\n';
     }
 
+    // Append YouTube performance intelligence context
+    let finalContext = signalContextWithNewsletter;
+
+    if (ytSignals || (Array.isArray(ytTitleLearning) && ytTitleLearning.length > 0)) {
+      finalContext += '\n\n' + '='.repeat(50) + '\nYOUTUBE CHANNEL INTELLIGENCE\n' + '='.repeat(50) + '\n';
+      finalContext += '(Only covers videos where the FFX SEO system was used AND video was marked as published)\n';
+
+      // Channel snapshot
+      if (ytSignals) {
+        finalContext += '\nCHANNEL SNAPSHOT:\n';
+        if (ytSignals.channelStats) {
+          finalContext += '  Subscribers: ' + (ytSignals.channelStats.subscriberCount || 0).toLocaleString() + '\n';
+          finalContext += '  Total channel views: ' + (ytSignals.channelStats.totalViewCount || 0).toLocaleString() + '\n';
+        }
+        finalContext += '  FFX-system videos measured: ' + (ytSignals.totalMeasured || 0) + '\n';
+        finalContext += '  Channel avg views per video: ' + (ytSignals.channelAvgViews || 0).toLocaleString() + '\n';
+
+        // Top performers
+        if (ytSignals.topPerformers && ytSignals.topPerformers.length > 0) {
+          finalContext += '\nTOP PERFORMING VIDEOS (beat channel average):\n';
+          ytSignals.topPerformers.forEach(function(v) {
+            finalContext += '  "' + (v.title || '') + '" — ' + (v.viewCount || 0).toLocaleString() + ' views';
+            if (v.beatAverage) finalContext += ' ✓ beat avg';
+            if (v.visualScene) finalContext += ' | scene: ' + v.visualScene;
+            if (v.thumbnailHook) finalContext += ' | hook: "' + v.thumbnailHook + '"';
+            finalContext += '\n';
+          });
+        }
+
+        // Title choice performance
+        if (ytSignals.titleChoiceStats) {
+          finalContext += '\nTITLE CHOICE PERFORMANCE (did Claude primary title get used? did it win?):\n';
+          var tcs = ytSignals.titleChoiceStats;
+          if (tcs.primary) finalContext += '  Primary title: ' + tcs.primary.count + ' videos, avg ' + tcs.primary.avgViews.toLocaleString() + ' views, beat avg ' + tcs.primary.beatAvgRate + '% of time\n';
+          if (tcs.alt1)    finalContext += '  Alt 1 title:   ' + tcs.alt1.count + ' videos, avg ' + tcs.alt1.avgViews.toLocaleString() + ' views, beat avg ' + tcs.alt1.beatAvgRate + '% of time\n';
+          if (tcs.alt2)    finalContext += '  Alt 2 title:   ' + tcs.alt2.count + ' videos, avg ' + tcs.alt2.avgViews.toLocaleString() + ' views, beat avg ' + tcs.alt2.beatAvgRate + '% of time\n';
+          if (tcs.own)     finalContext += '  Own title:     ' + tcs.own.count + ' videos, avg ' + tcs.own.avgViews.toLocaleString() + ' views, beat avg ' + tcs.own.beatAvgRate + '% of time\n';
+        }
+
+        // Visual scene performance
+        if (ytSignals.visualSceneStats) {
+          finalContext += '\nVISUAL SCENE PERFORMANCE (thumbnail visual type vs channel average):\n';
+          Object.entries(ytSignals.visualSceneStats).forEach(function(entry) {
+            var scene = entry[0]; var stats = entry[1];
+            finalContext += '  Scene ' + scene + ': ' + stats.count + ' videos, avg ' + stats.avgViews.toLocaleString() + ' views, beat avg ' + stats.beatAvgRate + '% of time\n';
+          });
+        }
+      }
+
+      // Title learning patterns
+      if (Array.isArray(ytTitleLearning) && ytTitleLearning.length > 0) {
+        var winners = ytTitleLearning.filter(function(e) { return e.beatAverage; });
+        var losers  = ytTitleLearning.filter(function(e) { return e.beatAverage === false; });
+
+        if (winners.length > 0) {
+          finalContext += '\nTITLE PATTERNS THAT BEAT CHANNEL AVERAGE:\n';
+          // Opening word patterns
+          var winWords = {};
+          winners.forEach(function(w) {
+            if (w.titleStartsWithWord) {
+              winWords[w.titleStartsWithWord] = (winWords[w.titleStartsWithWord] || 0) + 1;
+            }
+          });
+          var topWords = Object.entries(winWords).sort(function(a,b){return b[1]-a[1];}).slice(0,3);
+          if (topWords.length > 0) finalContext += '  Best opening words: ' + topWords.map(function(e){return e[0] + ' (' + e[1] + 'x)';}).join(', ') + '\n';
+          finalContext += '  Titles with numbers: ' + winners.filter(function(w){return w.titleHasNumber;}).length + '/' + winners.length + ' winners had numbers\n';
+          finalContext += '  Titles with question: ' + winners.filter(function(w){return w.titleHasQuestion;}).length + '/' + winners.length + ' winners were questions\n';
+        }
+
+        if (losers.length > 0) {
+          finalContext += '\nTITLE PATTERNS BELOW CHANNEL AVERAGE:\n';
+          var loseWords = {};
+          losers.forEach(function(l) {
+            if (l.titleStartsWithWord) {
+              loseWords[l.titleStartsWithWord] = (loseWords[l.titleStartsWithWord] || 0) + 1;
+            }
+          });
+          var bottomWords = Object.entries(loseWords).sort(function(a,b){return b[1]-a[1];}).slice(0,3);
+          if (bottomWords.length > 0) finalContext += '  Underperforming opening words: ' + bottomWords.map(function(e){return e[0] + ' (' + e[1] + 'x)';}).join(', ') + '\n';
+        }
+      }
+
+      finalContext += '='.repeat(50) + '\n';
+      finalContext += 'INSTRUCTION: Use this data to populate the youtubeStrategy field in your response. Base every recommendation on the evidence above — not assumptions.\n';
+    }
+
     let brief;
     try {
-      brief = await callClaudeAnalyst(signalContextWithNewsletter, env.ANTHROPIC_API_KEY);
+      brief = await callClaudeAnalyst(finalContext, env.ANTHROPIC_API_KEY);
     } catch(claudeErr) {
       await writeProgress(env, 3, 'Claude analyst failed: ' + claudeErr.message, 'error');
       throw claudeErr;
@@ -825,6 +918,18 @@ async function callClaudeAnalyst(signalContext, apiKey) {
     + '    "keyRisk": "biggest audience risk — what could hurt retention or growth",\n'
     + '    "forecast": "30-day audience projection based on current trajectory"\n'
     + '  }\n'
+    + '  },\n'
+    + '  "youtubeStrategy": {\n'
+    + '    "channelMomentum": "growing|stable|declining — based on view trends",\n'
+    + '    "recommendedTitleFormat": "specific title format that beat channel average — e.g. start with Why, include specific pair/level, use number",\n'
+    + '    "recommendedVisualScene": "A|B|C|D|E — the visual scene with highest beat-average rate. If no data yet: recommend D (SIGNAL_MOMENT) as default",\n'
+    + '    "recommendedEmotionalRegister": "1|2|3|4 — the emotional register that performed best",\n'
+    + '    "recommendedHookStyle": "describe the hook pattern that drove best engagement — e.g. institutional action, specific pair + outcome, curiosity gap",\n'
+    + '    "avoidTitleFormat": "title format that underperformed — be specific",\n'
+    + '    "avoidVisualScene": "scene that underperformed — be specific",\n'
+    + '    "useClaudeTitle": true,\n'
+    + '    "reasoning": "evidence-based explanation referencing specific data points from the YouTube intelligence above. If no data yet, say so honestly."\n'
+    + '  },\n'
     + '}\n\n'
     + '  },\n'    + '  "threadMandate": {\n'    + '    "platform": "babypips|forexfactory|reddit|quora",\n'    + '    "topic": "specific thread topic based on signals",\n'    + '    "angle": "mentor educator angle — experienced practitioner sharing insight, never question-asker",\n'    + '    "draftPost": "full draft post in Salman Khan voice — calm institutional slightly contrarian. Platform-formatted. No self-promotion. No product links. 150-400 words.",\n'    + '    "suggestedTitle": "thread title or opening line",\n'    + '    "reasoning": "why this topic on this platform now"\n'    + '  }\n'    + '}\n\n'    + 'THREAD MANDATE: Platform by day of week: Monday=babypips, Tuesday=forexfactory, Wednesday=reddit, Thursday=quora. Voice: babypips=educational structured, forexfactory=journal-style practitioner honest, reddit=contrarian direct challenges beliefs, quora=expert answer 300w senior practitioner. Never mention FortitudeFX Discord Bootcamp or any product in draftPost.\n'    + 'CRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. Start with { end with }';;
 
