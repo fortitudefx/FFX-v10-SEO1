@@ -40,20 +40,12 @@
     .yt-video-id { font-size:11px; color:rgba(255,255,255,0.30); }
     .yt-cached-badge { font-size:9px; font-weight:700; letter-spacing:0.10em; text-transform:uppercase; background:rgba(62,207,142,0.10); color:rgba(62,207,142,0.80); border:1px solid rgba(62,207,142,0.25); border-radius:4px; padding:3px 10px; flex-shrink:0; }
 
-    /* ── Progress steps — identical to newsletter intel-step ── */
-    .yt-steps { display:flex; flex-direction:column; gap:8px; padding:16px 24px; }
-    .yt-step { display:flex; align-items:center; gap:10px; }
-    .yt-step-icon { width:20px; height:20px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:14px; }
-    .yt-step-icon.spinning::after { content:''; display:block; width:14px; height:14px; border:2px solid rgba(201,168,76,0.30); border-top-color:#C9A84C; border-radius:50%; animation:yt-spin 0.8s linear infinite; }
-    @keyframes yt-spin { to { transform:rotate(360deg); } }
-    .yt-step-icon.done { color:#3ecf8e; font-size:16px; }
-    .yt-step-icon.pending { color:rgba(255,255,255,0.20); font-size:16px; }
-    .yt-step.pending .yt-step-label { font-size:14px; color:rgba(255,255,255,0.35); }
-    .yt-step.done    .yt-step-label { font-size:14px; color:rgba(255,255,255,0.85); }
-    .yt-step.active  .yt-step-label { font-size:14px; color:#ffffff; font-weight:600; }
-    .yt-step.error   .yt-step-label { font-size:14px; color:#ff4444; }
+    /* ── Progress — uses shared .step .step-spinner from dashboard-styles.css ── */
+    .yt-steps { display:flex; flex-direction:column; padding:16px 24px 8px; }
     .yt-progress { display:none; }
     .yt-progress.visible { display:block; }
+    .yt-step-error { margin:0 24px 16px; padding:10px 14px; background:var(--red-bg); border:1px solid var(--red-bd); border-radius:6px; font-size:12px; color:var(--red); line-height:1.6; display:none; }
+    .yt-step-error.visible { display:block; }
 
     /* ── Error ── */
     .yt-error { display:none; margin:0 24px 16px; padding:12px 16px; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.20); border-radius:8px; font-size:13px; color:rgba(248,113,113,0.90); line-height:1.5; }
@@ -114,7 +106,7 @@
     .yt-thumb-img.visible { display:block; }
     .yt-thumb-generating { display:none; flex-direction:column; align-items:center; gap:12px; color:rgba(255,255,255,0.50); }
     .yt-thumb-generating.visible { display:flex; }
-    .yt-thumb-gen-spinner { width:28px; height:28px; border:2px solid rgba(201,168,76,0.20); border-top-color:rgba(201,168,76,0.80); border-radius:50%; animation:yt-spin 0.8s linear infinite; }
+    .yt-thumb-gen-spinner { width:28px; height:28px; border:2px solid rgba(201,168,76,0.20); border-top-color:rgba(201,168,76,0.80); border-radius:50%; animation:spin 0.7s linear infinite; }
     .yt-thumb-gen-text { font-size:10px; font-weight:700; letter-spacing:0.10em; text-transform:uppercase; }
     .yt-thumb-hook-label { font-size:9px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.30); margin-bottom:6px; }
     .yt-thumb-hook-text { font-size:20px; font-weight:900; letter-spacing:-0.01em; color:rgba(201,168,76,0.95); line-height:1.2; text-transform:uppercase; }
@@ -273,11 +265,9 @@
 
     <!-- Progress -->
     <div class="yt-progress" id="progressArea">
-      <div class="yt-steps" id="progressSteps"></div>
+      <div class="yt-steps row-progress" id="progressSteps"></div>
+      <div class="yt-step-error" id="errorArea"></div>
     </div>
-
-    <!-- Error -->
-    <div class="yt-error" id="errorArea"></div>
   </div>
 
   <!-- Output -->
@@ -479,42 +469,78 @@ function extractVideoId(url) {
   return null;
 }
 
-function showError(msg) {
-  const el = document.getElementById('errorArea');
-  el.textContent = msg;
-  el.classList.add('visible');
-}
-function hideError() {
-  const el = document.getElementById('errorArea');
-  el.classList.remove('visible');
-}
+// showError/hideError replaced by showStepError/hideStepError above
 
-function setProgress(steps) {
+// ── Steps — uses shared .step / .step-spinner from dashboard-styles.css ──────
+var YT_STEPS = [
+  'cache_check',
+  'reading_signals',
+  'claude_generating',
+  'thumbnail_concept',
+  'writing_kv',
+];
+var YT_STEP_LABELS = {
+  cache_check:       '① Checking for cached metadata',
+  reading_signals:   '② Reading transcript + SEO signals + intelligence brief',
+  claude_generating: '③ Claude generating title, description, tags',
+  thumbnail_concept: '④ Building thumbnail concept + Leonardo prompt',
+  writing_kv:        '⑤ Saving to knowledge store',
+};
+
+function setSteps(activeStep, doneUpTo, errorStep) {
+  // activeStep: string key of current step
+  // doneUpTo: index up to which steps are done (-1 = none)
+  // errorStep: string key of errored step (optional)
   const container = document.getElementById('progressSteps');
   const area = document.getElementById('progressArea');
   area.classList.add('visible');
-  container.innerHTML = steps.map(function(s) {
-    var iconHtml = '';
-    var cls = s.status;
-    if (s.status === 'done')   iconHtml = '<div class="yt-step-icon done">&#10003;</div>';
-    else if (s.status === 'active') iconHtml = '<div class="yt-step-icon spinning"></div>';
-    else if (s.status === 'error')  iconHtml = '<div class="yt-step-icon" style="color:#ff4444;">&#10005;</div>';
-    else                            iconHtml = '<div class="yt-step-icon pending">&#9675;</div>';
-    return '<div class="yt-step ' + cls + '">' + iconHtml + '<span class="yt-step-label">' + esc(s.label) + '</span></div>';
+  hideStepError();
+
+  const activeIdx = YT_STEPS.indexOf(activeStep);
+  container.innerHTML = YT_STEPS.map(function(s, i) {
+    var isError = errorStep && s === errorStep;
+    var isDone  = doneUpTo !== undefined && i <= doneUpTo && !isError;
+    var isActive = s === activeStep && !isError;
+    var cls = isDone ? 'done' : isActive ? 'active' : isError ? 'active' : 'pending';
+    var icon = isDone
+      ? '\u2713'
+      : isError
+        ? '\u2715'
+        : isActive
+          ? '<div class="step-spinner"></div>'
+          : '\u25cb';
+    return '<div class="step ' + cls + (isError ? '" style="color:var(--red)' : '') + '">'
+      + icon + ' ' + (YT_STEP_LABELS[s] || s)
+      + '</div>';
   }).join('');
 }
+
+function showStepError(msg) {
+  var el = document.getElementById('errorArea');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+function hideStepError() {
+  var el = document.getElementById('errorArea');
+  el.classList.remove('visible');
+  el.textContent = '';
+}
+
 function hideProgress() {
   document.getElementById('progressArea').classList.remove('visible');
+  hideStepError();
 }
 
 // ── Main generate handler ────────────────────────────────────────────────
 async function handleGenerate() {
-  const urlInput = document.getElementById('ytUrlInput');
-  const btn = document.getElementById('generateBtn');
-  const url = urlInput.value.trim();
+  var urlInput = document.getElementById('ytUrlInput');
+  var btn      = document.getElementById('generateBtn');
+  var url      = urlInput.value.trim();
 
-  hideError();
+  // Reset UI
   document.getElementById('outputArea').classList.remove('visible');
+  document.getElementById('publishBlock').classList.remove('visible');
   document.getElementById('videoPreview').classList.remove('visible');
   hideProgress();
 
@@ -524,15 +550,17 @@ async function handleGenerate() {
     return;
   }
 
-  const videoId = extractVideoId(url);
+  var videoId = extractVideoId(url);
   if (!videoId) {
-    showError('Could not extract a valid YouTube video ID from that URL. Paste a full YouTube watch URL.');
+    // Show progress area with error
+    setSteps('cache_check', -1, 'cache_check');
+    showStepError('Could not extract a YouTube video ID from that URL. Paste a full YouTube watch URL (youtube.com/watch?v=...)');
     return;
   }
 
   _currentVideoId = videoId;
 
-  // Show video preview immediately
+  // Show video preview thumbnail immediately
   document.getElementById('videoThumb').src = 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg';
   document.getElementById('videoIdDisplay').textContent = videoId;
   document.getElementById('videoTitle').textContent = 'Loading…';
@@ -540,92 +568,84 @@ async function handleGenerate() {
   document.getElementById('videoPreview').classList.add('visible');
 
   btn.disabled = true;
-  btn.textContent = 'Checking…';
+  btn.innerHTML = 'Checking…';
 
-  setProgress([
-    { label: 'Checking for cached metadata…', status: 'active' },
-    { label: 'Fetching transcript + signals', status: 'pending' },
-    { label: 'Claude generating SEO package', status: 'pending' },
-    { label: 'Building thumbnail concept', status: 'pending' },
-  ]);
+  // ── Step 1: Check KV cache ──────────────────────────────────────────────
+  setSteps('cache_check', -1);
 
-  // Step 1: Check KV cache first
   try {
-    const cacheRes = await fetch('/api/youtube-metadata?videoId=' + encodeURIComponent(videoId));
-    const cacheData = await cacheRes.json();
+    var cacheRes  = await fetch('/api/youtube-metadata?videoId=' + encodeURIComponent(videoId));
+    var cacheData = await cacheRes.json();
 
     if (cacheData.metadata && cacheData.metadata.primaryTitle) {
-      // Cache hit — render immediately
-      setProgress([
-        { label: 'Cached metadata found', status: 'done' },
-        { label: 'Rendering from cache', status: 'done' },
-      ]);
-      document.getElementById('videoTitle').textContent = cacheData.metadata.primaryTitle || videoId;
+      // Cache hit — mark all steps done, render immediately
+      setSteps('writing_kv', YT_STEPS.length - 1);
+      document.getElementById('videoTitle').textContent = cacheData.metadata.primaryTitle;
       document.getElementById('cachedBadge').style.display = '';
       renderOutput(cacheData.metadata);
       btn.disabled = false;
-      btn.textContent = 'Regenerate';
-      setTimeout(hideProgress, 800);
+      btn.innerHTML = 'Regenerate';
+      setTimeout(hideProgress, 600);
       return;
     }
   } catch(e) {
-    // Cache miss is fine — proceed to generate
+    // Cache miss — not an error, continue
   }
 
-  // Step 2: Generate fresh
-  setProgress([
-    { label: 'No cache found — fetching transcript + signals', status: 'done' },
-    { label: 'Fetching transcript + signals', status: 'active' },
-    { label: 'Claude generating SEO package', status: 'pending' },
-    { label: 'Building thumbnail concept', status: 'pending' },
-  ]);
+  // ── Step 2: Reading transcript + signals ──────────────────────────────
+  // (happens server-side inside youtube-metadata.js — show as active while POST runs)
+  setSteps('reading_signals', 0); // cache_check done, reading_signals active
 
-  btn.textContent = 'Generating…';
+  btn.innerHTML = 'Generating…';
 
   try {
-    setProgress([
-      { label: 'Transcript + signals fetched', status: 'done' },
-      { label: 'Transcript + signals fetched', status: 'done' },
-      { label: 'Claude generating SEO package…', status: 'active' },
-      { label: 'Building thumbnail concept', status: 'pending' },
-    ]);
 
-    const res = await fetch('/api/youtube-metadata', {
-      method: 'POST',
+    // ── Step 3 + 4 + 5 happen server-side in one POST call ───────────────
+    // Show step 3 (Claude) as active after a short delay for realism
+    var claudeTimer = setTimeout(function() {
+      setSteps('claude_generating', 1); // reading_signals done, claude active
+    }, 1200);
+
+    var res = await fetch('/api/youtube-metadata', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoId: videoId, youtubeUrl: url }),
+      body:    JSON.stringify({ videoId: videoId, youtubeUrl: url }),
     });
 
-    const data = await res.json();
+    clearTimeout(claudeTimer);
+    var data = await res.json();
 
     if (!res.ok || data.error) {
-      setProgress([
-        { label: 'Error during generation', status: 'error' },
-      ]);
-      showError(data.error || 'Generation failed. Check that the video has been processed through the queue first (transcript must exist).');
+      // Show which step failed based on error message
+      var failStep = 'claude_generating';
+      var errMsg   = data.error || 'Generation failed.';
+      if (errMsg.toLowerCase().includes('transcript')) {
+        failStep = 'reading_signals';
+        errMsg   = errMsg + ' Make sure the video has been processed through the Queue dashboard first.';
+      } else if (errMsg.toLowerCase().includes('api key') || errMsg.toLowerCase().includes('anthropic')) {
+        failStep = 'claude_generating';
+      }
+      setSteps(failStep, YT_STEPS.indexOf(failStep) - 1, failStep);
+      showStepError('✕ ' + errMsg);
       btn.disabled = false;
-      btn.textContent = 'Generate Package';
+      btn.innerHTML = 'Try Again';
       return;
     }
 
-    setProgress([
-      { label: 'SEO package generated', status: 'done' },
-      { label: 'SEO package generated', status: 'done' },
-      { label: 'SEO package generated', status: 'done' },
-      { label: 'Thumbnail concept ready', status: 'done' },
-    ]);
-
+    // ── All steps complete ────────────────────────────────────────────────
+    setSteps('writing_kv', YT_STEPS.length - 1);
     document.getElementById('videoTitle').textContent = data.metadata.primaryTitle || videoId;
     renderOutput(data.metadata);
     btn.disabled = false;
-    btn.textContent = 'Regenerate';
+    btn.innerHTML = 'Regenerate';
     setTimeout(hideProgress, 1000);
 
   } catch(err) {
-    setProgress([{ label: 'Network error', status: 'error' }]);
-    showError('Network error: ' + err.message);
+    try { clearTimeout(claudeTimer); } catch(e) {}
+    setSteps('claude_generating', 1, 'claude_generating');
+    showStepError('✕ Network error: ' + err.message);
     btn.disabled = false;
-    btn.textContent = 'Generate Package';
+    btn.innerHTML = 'Try Again';
   }
 }
 
@@ -1104,7 +1124,7 @@ function renderPerfTable(records) {
 
     const row = document.createElement('div');
     row.className = 'yt-perf-row';
-    row.innerHTML = '<img class="yt-perf-thumb" src="https://img.youtube.com/vi/' + esc(videoId) + '/mqdefault.jpg" onerror="this.style.opacity='0.3'" alt="">'
+    row.innerHTML = '<img class="yt-perf-thumb" src="https://img.youtube.com/vi/' + esc(videoId) + '/mqdefault.jpg" onerror="this.style.opacity=0.3" alt="">'
       + '<div class="yt-perf-title-cell">'
       + '<div class="yt-perf-video-title" title="' + esc(title) + '">' + esc(title) + '</div>'
       + '<a class="yt-perf-video-url" href="' + esc(youtubeUrl) + '" target="_blank" onclick="event.stopPropagation()">youtube.com/watch?v=' + esc(videoId) + '</a>'
@@ -1114,7 +1134,7 @@ function renderPerfTable(records) {
       + '<div class="yt-perf-stat ' + (comments !== null ? 'ok' : 'none') + '">' + (comments !== null ? fmt(comments) : '—') + '</div>'
       + '<div><span class="yt-choice-chip ' + chipClass + '">' + chipLabel + '</span></div>'
       + '<div class="yt-perf-age ' + staleClass + '">' + esc(statsAge) + '</div>'
-      + '<div><button class="btn-row-refresh" onclick="refreshSingleVideo('' + esc(videoId) + '', this)">Refresh</button></div>';
+      + '<div><button class="btn-row-refresh" onclick="refreshSingleVideo(\'' + esc(videoId) + '\', this)">Refresh</button></div>';
 
     tableBody.appendChild(row);
   });
