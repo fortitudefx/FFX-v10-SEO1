@@ -1,4 +1,331 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>FFX YouTube</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"><style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}:root{--bg:#1a1c21;--bg2:#20232a;--surface:#252830;--surface2:#2c2f38;--border:#32353f;--border2:#3d4150;--text:#e2e0db;--text-mid:#b8b5ae;--muted:#7a7870;--dim:#4a4845;--green:#4d9e72;--blue:#5b8fc4;--mono:"IBM Plex Mono",monospace;--sans:"IBM Plex Sans",sans-serif;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;line-height:1.7;}.nav{border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;position:sticky;top:0;background:var(--bg);z-index:100;gap:0;}.nav-wordmark{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.08em;color:var(--text);margin-right:36px;flex-shrink:0;}.nav-wordmark span{color:var(--muted);font-weight:400;}.nav-links{display:flex;gap:2px;flex:1;}.nav-link{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:7px 14px;border-radius:3px;color:var(--muted);text-decoration:none;transition:background 0.15s,color 0.15s;}.nav-link:hover{background:var(--surface);color:var(--text-mid);}.nav-link.active{background:var(--surface2);color:var(--text);}main{max-width:800px;margin:0 auto;padding:60px 32px;}.page-title{font-family:var(--mono);font-size:18px;font-weight:600;letter-spacing:0.02em;color:var(--text);margin-bottom:4px;}.page-sub{font-size:14px;color:var(--muted);margin-bottom:40px;}.placeholder-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:40px;text-align:center;}.placeholder-title{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text-mid);margin-bottom:12px;}.placeholder-body{font-family:var(--mono);font-size:13px;color:var(--muted);line-height:1.8;}</style></head><body><nav class="nav"><div class="nav-wordmark">FFX <span>Internal</span></div>    <div class="nav-links">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFX YouTube</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/dashboard-styles.css">
+  <style>
+    .yt-layout {
+      max-width: var(--content-max);
+      width: calc(100% - 80px);
+      margin: 32px auto 80px;
+      position: relative; z-index: 1;
+    }
+
+    /* URL Input card */
+    .yt-input-card {
+      background: #16181f;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-xl);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .yt-input-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.38); margin-bottom: 12px;
+    }
+    .yt-input-row {
+      display: flex; gap: 12px; align-items: center;
+    }
+    .yt-url-input {
+      flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 14px;
+      padding: 12px 16px; outline: none; transition: border-color 0.15s;
+    }
+    .yt-url-input:focus { border-color: rgba(201,168,76,0.40); }
+    .yt-url-input::placeholder { color: rgba(255,255,255,0.22); }
+    .btn-yt-generate {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(201,168,76,0.12); color: rgba(201,168,76,0.90);
+      border: 1px solid rgba(201,168,76,0.30); border-radius: 8px;
+      padding: 12px 24px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .btn-yt-generate:hover { background: rgba(201,168,76,0.20); border-color: rgba(201,168,76,0.50); color: #fff; }
+    .btn-yt-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Video preview row */
+    .yt-video-preview {
+      display: none; align-items: center; gap: 16px; margin-top: 16px;
+      padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .yt-video-preview.visible { display: flex; }
+    .yt-video-thumb {
+      width: 120px; height: 68px; border-radius: 5px; object-fit: cover;
+      background: rgba(255,255,255,0.06); flex-shrink: 0;
+    }
+    .yt-video-info { flex: 1; min-width: 0; }
+    .yt-video-title {
+      font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px;
+    }
+    .yt-video-id { font-size: 11px; color: rgba(255,255,255,0.30); }
+    .yt-cached-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(62,207,142,0.10); color: rgba(62,207,142,0.80);
+      border: 1px solid rgba(62,207,142,0.25); border-radius: 4px; padding: 3px 10px;
+      flex-shrink: 0;
+    }
+
+    /* Progress */
+    .yt-progress {
+      display: none; padding: 20px 0;
+    }
+    .yt-progress.visible { display: block; }
+    .yt-progress-steps {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .yt-step {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: rgba(255,255,255,0.40);
+    }
+    .yt-step.active { color: rgba(255,255,255,0.85); }
+    .yt-step.done { color: rgba(62,207,142,0.80); }
+    .yt-step.error { color: rgba(248,113,113,0.80); }
+    .yt-step-icon { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+    .yt-spinner {
+      width: 14px; height: 14px; border: 2px solid rgba(201,168,76,0.20);
+      border-top-color: rgba(201,168,76,0.80); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Error banner */
+    .yt-error {
+      display: none; margin-top: 16px; padding: 12px 16px;
+      background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.20);
+      border-radius: 6px; font-size: 13px; color: rgba(248,113,113,0.90); line-height: 1.5;
+    }
+    .yt-error.visible { display: block; }
+
+    /* Output area */
+    .yt-output { display: none; }
+    .yt-output.visible { display: block; }
+
+    /* Two-column layout: left = SEO output, right = thumbnail */
+    .yt-columns {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* Section cards */
+    .yt-section {
+      background: #16181f;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.03);
+      margin-bottom: 20px;
+    }
+    .yt-section-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .yt-section-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(201,168,76,0.80);
+    }
+    .btn-copy {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.50);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 5px;
+      padding: 5px 14px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-copy:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.85); }
+    .btn-copy.copied { background: rgba(62,207,142,0.10); color: rgba(62,207,142,0.80); border-color: rgba(62,207,142,0.25); }
+
+    /* Title section */
+    .yt-primary-title {
+      padding: 20px 24px;
+      font-size: 18px; font-weight: 700; color: rgba(255,255,255,0.92); line-height: 1.4;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .yt-char-count {
+      font-size: 11px; color: rgba(255,255,255,0.30); margin-top: 4px; font-weight: 400;
+    }
+    .yt-char-count.over { color: rgba(248,113,113,0.80); }
+    .yt-alternatives { padding: 16px 24px; display: flex; flex-direction: column; gap: 10px; }
+    .yt-alt-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 14px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06); border-radius: 6px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .yt-alt-item:hover { background: rgba(255,255,255,0.06); border-color: rgba(201,168,76,0.20); }
+    .yt-alt-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(201,168,76,0.60); flex-shrink: 0; margin-top: 2px; min-width: 36px;
+    }
+    .yt-alt-text { flex: 1; }
+    .yt-alt-title { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.80); margin-bottom: 3px; }
+    .yt-alt-reason { font-size: 11px; color: rgba(255,255,255,0.35); line-height: 1.5; }
+    .yt-alt-copy {
+      font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.28); flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 3px 8px;
+      cursor: pointer; transition: all 0.15s; background: none;
+    }
+    .yt-alt-copy:hover { color: rgba(201,168,76,0.80); border-color: rgba(201,168,76,0.30); }
+
+    /* Description section */
+    .yt-hook-block {
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .yt-hook-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.30); margin-bottom: 8px;
+    }
+    .yt-hook-text {
+      font-size: 14px; color: rgba(255,255,255,0.85); line-height: 1.6;
+      font-style: italic;
+    }
+    .yt-desc-block {
+      padding: 16px 24px;
+    }
+    .yt-desc-text {
+      font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.75;
+      white-space: pre-wrap; font-family: monospace;
+      background: rgba(255,255,255,0.03); border-radius: 6px;
+      padding: 14px 16px; max-height: 340px; overflow-y: auto;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .yt-desc-note {
+      font-size: 11px; color: rgba(255,165,0,0.70); margin-top: 8px; line-height: 1.5;
+    }
+
+    /* Tags section */
+    .yt-tags-block { padding: 16px 24px; }
+    .yt-tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+    .yt-tag {
+      font-size: 11px; color: rgba(255,255,255,0.55);
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);
+      padding: 4px 10px; border-radius: 4px;
+    }
+    .yt-tag-count {
+      font-size: 11px; color: rgba(255,255,255,0.28); margin-top: 10px;
+    }
+
+    /* Thumbnail column */
+    .yt-thumb-column { position: sticky; top: calc(var(--nav-h) + var(--header-h) + 20px); }
+
+    .yt-thumb-section {
+      background: #16181f;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    /* Thumbnail preview area */
+    .yt-thumb-preview {
+      width: 100%; aspect-ratio: 16/9;
+      background: #0a0a12;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .yt-thumb-placeholder {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      color: rgba(255,255,255,0.20);
+    }
+    .yt-thumb-placeholder-icon { font-size: 32px; }
+    .yt-thumb-placeholder-text { font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; }
+    .yt-thumb-img {
+      width: 100%; height: 100%; object-fit: cover; display: none;
+    }
+    .yt-thumb-img.visible { display: block; }
+    .yt-thumb-generating {
+      display: none; flex-direction: column; align-items: center; gap: 12px;
+      color: rgba(255,255,255,0.50);
+    }
+    .yt-thumb-generating.visible { display: flex; }
+    .yt-thumb-gen-spinner {
+      width: 32px; height: 32px; border: 3px solid rgba(201,168,76,0.15);
+      border-top-color: rgba(201,168,76,0.80); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .yt-thumb-gen-text { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    /* Thumbnail controls */
+    .yt-thumb-controls { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .yt-thumb-hook {
+      padding: 0 20px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 14px;
+    }
+    .yt-thumb-hook-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.30); margin-bottom: 6px;
+    }
+    .yt-thumb-hook-text {
+      font-size: 22px; font-weight: 900; letter-spacing: -0.01em;
+      color: rgba(201,168,76,0.95); line-height: 1.2;
+      text-transform: uppercase;
+    }
+    .yt-thumb-concept {
+      font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.6;
+      margin-bottom: 14px; padding: 0 20px;
+    }
+    .yt-thumb-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-thumb-generate {
+      flex: 1;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(201,168,76,0.12); color: rgba(201,168,76,0.90);
+      border: 1px solid rgba(201,168,76,0.30); border-radius: 6px;
+      padding: 10px 16px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-thumb-generate:hover { background: rgba(201,168,76,0.20); color: #fff; }
+    .btn-thumb-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-thumb-download {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.60);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+      padding: 10px 16px; cursor: pointer; transition: all 0.15s; text-decoration: none;
+      display: inline-flex; align-items: center;
+    }
+    .btn-thumb-download:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.90); }
+    .btn-thumb-download.hidden { display: none; }
+
+    /* No API key notice */
+    .yt-thumb-no-api {
+      display: none; padding: 14px 20px;
+      background: rgba(255,165,0,0.06); border-top: 1px solid rgba(255,165,0,0.15);
+      font-size: 12px; color: rgba(255,165,0,0.80); line-height: 1.6;
+    }
+    .yt-thumb-no-api.visible { display: block; }
+
+    /* Signals used */
+    .yt-signals {
+      padding: 14px 24px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .yt-signals-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.24); margin-right: 4px;
+    }
+    .yt-signal-chip {
+      font-size: 10px; color: rgba(62,207,142,0.70);
+      background: rgba(62,207,142,0.08); border: 1px solid rgba(62,207,142,0.15);
+      padding: 2px 8px; border-radius: 4px;
+    }
+
+    /* Generated at */
+    .yt-generated-at {
+      font-size: 11px; color: rgba(255,255,255,0.22); padding: 12px 24px 0;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-wordmark">FFX <span>·</span> Internal</div>
+    <div class="nav-links">
       <a href="/dashboard.html" class="nav-link">Dashboard</a>
       <a href="/dashboard-press.html" class="nav-link">Press</a>
       <a href="/dashboard-queue.html" class="nav-link">Queue</a>
@@ -10,4 +337,600 @@
       <a href="/dashboard-social.html" class="nav-link">Social</a>
       <a href="/dashboard-indexing.html" class="nav-link">Indexing</a>
       <a href="/dashboard-newsletter.html" class="nav-link">Newsletter</a>
-    </div></nav><main><div class="page-title">YouTube Performance</div><div class="page-sub">Subscribers, views, watch time, top videos, 7-day performance</div><div class="placeholder-card"><div class="placeholder-title">YouTube Analytics API — Coming Soon</div><div class="placeholder-body">YouTube Data API v3 key already exists (YOUTUBE_API_KEY).<br>Requires YouTube Analytics API scope added to the same project.<br>Once connected: subscriber count, view count, watch time,<br>top performing videos, last 7 days growth.</div></div></main></body></html>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-header-left">
+      <div class="wordmark">FFX <span>YouTube</span></div>
+      <div class="header-count" id="headerStatus">SEO + Thumbnail Generator</div>
+    </div>
+  </div>
+</div>
+
+<div class="yt-layout">
+
+  <!-- URL Input -->
+  <div class="yt-input-card">
+    <div class="yt-input-label">YouTube Video URL</div>
+    <div class="yt-input-row">
+      <input
+        class="yt-url-input"
+        id="ytUrlInput"
+        type="text"
+        placeholder="https://www.youtube.com/watch?v=..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button class="btn-yt-generate" id="generateBtn" onclick="handleGenerate()">
+        Generate Package
+      </button>
+    </div>
+
+    <!-- Video preview once URL parsed -->
+    <div class="yt-video-preview" id="videoPreview">
+      <img class="yt-video-thumb" id="videoThumb" src="" alt="" onerror="this.style.display='none'">
+      <div class="yt-video-info">
+        <div class="yt-video-title" id="videoTitle">—</div>
+        <div class="yt-video-id" id="videoIdDisplay">—</div>
+      </div>
+      <span class="yt-cached-badge" id="cachedBadge" style="display:none;">&#x2713; Cached</span>
+    </div>
+
+    <!-- Progress -->
+    <div class="yt-progress" id="progressArea">
+      <div class="yt-progress-steps" id="progressSteps"></div>
+    </div>
+
+    <!-- Error -->
+    <div class="yt-error" id="errorArea"></div>
+  </div>
+
+  <!-- Output -->
+  <div class="yt-output" id="outputArea">
+    <div class="yt-columns">
+
+      <!-- Left: SEO Package -->
+      <div class="yt-seo-column">
+
+        <!-- TITLE -->
+        <div class="yt-section">
+          <div class="yt-section-header">
+            <div class="yt-section-title">Title</div>
+            <button class="btn-copy" id="copyTitleBtn" onclick="copyField('primaryTitle', this)">Copy</button>
+          </div>
+          <div class="yt-primary-title" id="primaryTitleEl">
+            <span id="primaryTitleText">—</span>
+            <div class="yt-char-count" id="titleCharCount"></div>
+          </div>
+          <div class="yt-alternatives" id="alternativesEl"></div>
+        </div>
+
+        <!-- DESCRIPTION -->
+        <div class="yt-section">
+          <div class="yt-section-header">
+            <div class="yt-section-title">Description — Copy &amp; Paste to YT Studio</div>
+            <button class="btn-copy" id="copyDescBtn" onclick="copyField('descFull', this)">Copy All</button>
+          </div>
+          <div class="yt-hook-block">
+            <div class="yt-hook-label">Hook (first 125 chars — visible before "Show More")</div>
+            <div class="yt-hook-text" id="hookText">—</div>
+          </div>
+          <div class="yt-desc-block">
+            <div class="yt-desc-text" id="descFullText">—</div>
+            <div class="yt-desc-note">
+              &#9888; Replace [TIMESTAMPS] with your actual chapter timestamps after upload.
+              Format: 0:00 Intro — paste the chapter block exactly as shown.
+            </div>
+          </div>
+        </div>
+
+        <!-- TAGS -->
+        <div class="yt-section">
+          <div class="yt-section-header">
+            <div class="yt-section-title">Tags</div>
+            <button class="btn-copy" id="copyTagsBtn" onclick="copyField('tags', this)">Copy All</button>
+          </div>
+          <div class="yt-tags-block">
+            <div class="yt-tags-wrap" id="tagsWrap"></div>
+            <div class="yt-tag-count" id="tagCount"></div>
+          </div>
+        </div>
+
+        <!-- SIGNALS -->
+        <div class="yt-section">
+          <div class="yt-section-header">
+            <div class="yt-section-title">Intelligence Signals Used</div>
+          </div>
+          <div class="yt-signals" id="signalsRow">
+            <span class="yt-signals-label">Powered by</span>
+          </div>
+          <div class="yt-generated-at" id="generatedAtEl"></div>
+          <div style="height:14px;"></div>
+        </div>
+
+      </div>
+
+      <!-- Right: Thumbnail -->
+      <div class="yt-thumb-column">
+        <div class="yt-thumb-section">
+          <div class="yt-section-header">
+            <div class="yt-section-title">Thumbnail</div>
+          </div>
+
+          <!-- Preview area -->
+          <div class="yt-thumb-preview">
+            <div class="yt-thumb-placeholder" id="thumbPlaceholder">
+              <div class="yt-thumb-placeholder-icon">&#128248;</div>
+              <div class="yt-thumb-placeholder-text">Generate to preview</div>
+            </div>
+            <div class="yt-thumb-generating" id="thumbGenerating">
+              <div class="yt-thumb-gen-spinner"></div>
+              <div class="yt-thumb-gen-text">Generating with Leonardo…</div>
+            </div>
+            <img class="yt-thumb-img" id="thumbImg" src="" alt="Generated thumbnail">
+          </div>
+
+          <!-- Hook text overlay concept -->
+          <div class="yt-thumb-hook" id="thumbHookBlock" style="display:none;">
+            <div class="yt-thumb-hook-label">Hook Text Overlay</div>
+            <div class="yt-thumb-hook-text" id="thumbHookText">—</div>
+          </div>
+
+          <!-- Concept description -->
+          <div class="yt-thumb-concept" id="thumbConceptText" style="display:none;"></div>
+
+          <!-- No API key notice -->
+          <div class="yt-thumb-no-api" id="thumbNoApiNotice">
+            <strong>LEONARDO_API_KEY not set.</strong><br>
+            Add it to ffx-consumer Worker secrets to enable automatic thumbnail generation.
+            The prompt is generated below — you can use it manually in Leonardo.ai.
+          </div>
+
+          <!-- Controls -->
+          <div class="yt-thumb-controls">
+            <div class="yt-thumb-actions">
+              <button class="btn-thumb-generate" id="thumbGenerateBtn" onclick="generateThumbnail()" style="display:none;">
+                &#9889; Generate Thumbnail
+              </button>
+              <a class="btn-thumb-download hidden" id="thumbDownloadBtn" href="#" download="ffx-thumbnail.png">
+                &#11123; Download PNG
+              </a>
+            </div>
+          </div>
+
+          <!-- Leonardo prompt (always shown when metadata generated) -->
+          <div id="leonardoPromptSection" style="display:none; border-top:1px solid rgba(255,255,255,0.07);">
+            <div style="padding:14px 20px 6px;">
+              <div class="yt-thumb-hook-label">Leonardo Prompt (use manually if no API key)</div>
+              <div id="leonardoPromptText" style="font-size:11px;color:rgba(255,255,255,0.45);line-height:1.7;background:rgba(255,255,255,0.03);padding:10px 12px;border-radius:5px;font-family:monospace;margin-top:6px;"></div>
+              <button class="btn-copy" style="margin-top:8px;" onclick="copyLeonardoPrompt(this)">Copy Prompt</button>
+            </div>
+            <div style="height:14px;"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+let _currentVideoId = null;
+let _currentMeta = null;
+let _currentThumbUrl = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function extractVideoId(url) {
+  if (!url) return null;
+  url = url.trim();
+  // Standard watch URL
+  let m = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
+  // Short URL
+  m = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
+  // Embed URL
+  m = url.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
+  // If raw 11-char ID pasted
+  m = url.match(/^([a-zA-Z0-9_-]{11})$/);
+  if (m) return m[1];
+  return null;
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorArea');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+function hideError() {
+  const el = document.getElementById('errorArea');
+  el.classList.remove('visible');
+}
+
+function setProgress(steps) {
+  // steps: array of {label, status: 'pending'|'active'|'done'|'error'}
+  const container = document.getElementById('progressSteps');
+  const area = document.getElementById('progressArea');
+  area.classList.add('visible');
+  container.innerHTML = steps.map(function(s) {
+    let iconHtml = '';
+    if (s.status === 'done') iconHtml = '<div class="yt-step-icon" style="color:rgba(62,207,142,0.80);">&#10003;</div>';
+    else if (s.status === 'active') iconHtml = '<div class="yt-step-icon"><div class="yt-spinner"></div></div>';
+    else if (s.status === 'error') iconHtml = '<div class="yt-step-icon">&#10005;</div>';
+    else iconHtml = '<div class="yt-step-icon" style="color:rgba(255,255,255,0.20);">&#9675;</div>';
+    return '<div class="yt-step ' + s.status + '">' + iconHtml + '<span>' + esc(s.label) + '</span></div>';
+  }).join('');
+}
+function hideProgress() {
+  document.getElementById('progressArea').classList.remove('visible');
+}
+
+// ── Main generate handler ────────────────────────────────────────────────
+async function handleGenerate() {
+  const urlInput = document.getElementById('ytUrlInput');
+  const btn = document.getElementById('generateBtn');
+  const url = urlInput.value.trim();
+
+  hideError();
+  document.getElementById('outputArea').classList.remove('visible');
+  document.getElementById('videoPreview').classList.remove('visible');
+  hideProgress();
+
+  if (!url) {
+    urlInput.style.borderColor = 'rgba(248,113,113,0.50)';
+    setTimeout(function() { urlInput.style.borderColor = ''; }, 2000);
+    return;
+  }
+
+  const videoId = extractVideoId(url);
+  if (!videoId) {
+    showError('Could not extract a valid YouTube video ID from that URL. Paste a full YouTube watch URL.');
+    return;
+  }
+
+  _currentVideoId = videoId;
+
+  // Show video preview immediately
+  document.getElementById('videoThumb').src = 'https://img.youtube.com/vi/' + videoId + '/mqdefault.jpg';
+  document.getElementById('videoIdDisplay').textContent = videoId;
+  document.getElementById('videoTitle').textContent = 'Loading…';
+  document.getElementById('cachedBadge').style.display = 'none';
+  document.getElementById('videoPreview').classList.add('visible');
+
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+
+  setProgress([
+    { label: 'Checking for cached metadata…', status: 'active' },
+    { label: 'Fetching transcript + signals', status: 'pending' },
+    { label: 'Claude generating SEO package', status: 'pending' },
+    { label: 'Building thumbnail concept', status: 'pending' },
+  ]);
+
+  // Step 1: Check KV cache first
+  try {
+    const cacheRes = await fetch('/api/youtube-metadata?videoId=' + encodeURIComponent(videoId));
+    const cacheData = await cacheRes.json();
+
+    if (cacheData.metadata && cacheData.metadata.primaryTitle) {
+      // Cache hit — render immediately
+      setProgress([
+        { label: 'Cached metadata found', status: 'done' },
+        { label: 'Rendering from cache', status: 'done' },
+      ]);
+      document.getElementById('videoTitle').textContent = cacheData.metadata.primaryTitle || videoId;
+      document.getElementById('cachedBadge').style.display = '';
+      renderOutput(cacheData.metadata);
+      btn.disabled = false;
+      btn.textContent = 'Regenerate';
+      setTimeout(hideProgress, 800);
+      return;
+    }
+  } catch(e) {
+    // Cache miss is fine — proceed to generate
+  }
+
+  // Step 2: Generate fresh
+  setProgress([
+    { label: 'No cache found — fetching transcript + signals', status: 'done' },
+    { label: 'Fetching transcript + signals', status: 'active' },
+    { label: 'Claude generating SEO package', status: 'pending' },
+    { label: 'Building thumbnail concept', status: 'pending' },
+  ]);
+
+  btn.textContent = 'Generating…';
+
+  try {
+    setProgress([
+      { label: 'Transcript + signals fetched', status: 'done' },
+      { label: 'Transcript + signals fetched', status: 'done' },
+      { label: 'Claude generating SEO package…', status: 'active' },
+      { label: 'Building thumbnail concept', status: 'pending' },
+    ]);
+
+    const res = await fetch('/api/youtube-metadata', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId: videoId, youtubeUrl: url }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      setProgress([
+        { label: 'Error during generation', status: 'error' },
+      ]);
+      showError(data.error || 'Generation failed. Check that the video has been processed through the queue first (transcript must exist).');
+      btn.disabled = false;
+      btn.textContent = 'Generate Package';
+      return;
+    }
+
+    setProgress([
+      { label: 'SEO package generated', status: 'done' },
+      { label: 'SEO package generated', status: 'done' },
+      { label: 'SEO package generated', status: 'done' },
+      { label: 'Thumbnail concept ready', status: 'done' },
+    ]);
+
+    document.getElementById('videoTitle').textContent = data.metadata.primaryTitle || videoId;
+    renderOutput(data.metadata);
+    btn.disabled = false;
+    btn.textContent = 'Regenerate';
+    setTimeout(hideProgress, 1000);
+
+  } catch(err) {
+    setProgress([{ label: 'Network error', status: 'error' }]);
+    showError('Network error: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Generate Package';
+  }
+}
+
+// ── Render full output ────────────────────────────────────────────────────
+function renderOutput(meta) {
+  _currentMeta = meta;
+
+  // Title
+  const titleText = meta.primaryTitle || '';
+  document.getElementById('primaryTitleText').textContent = titleText;
+  const charCount = titleText.length;
+  const countEl = document.getElementById('titleCharCount');
+  countEl.textContent = charCount + ' / 60 characters';
+  if (charCount > 60) countEl.classList.add('over');
+  else countEl.classList.remove('over');
+
+  // Alternatives
+  const altsEl = document.getElementById('alternativesEl');
+  altsEl.innerHTML = '';
+  if (meta.titleAlternatives && meta.titleAlternatives.length) {
+    meta.titleAlternatives.forEach(function(alt, i) {
+      const div = document.createElement('div');
+      div.className = 'yt-alt-item';
+      div.title = 'Click to copy';
+      div.innerHTML = '<div class="yt-alt-label">Alt ' + (i + 1) + '</div>'
+        + '<div class="yt-alt-text">'
+        + '<div class="yt-alt-title">' + esc(alt.title || '') + '</div>'
+        + '<div class="yt-alt-reason">' + esc(alt.reasoning || '') + '</div>'
+        + '</div>'
+        + '<button class="yt-alt-copy" onclick="event.stopPropagation();copyText(\'' + esc(alt.title || '') + '\', this)">Copy</button>';
+      div.addEventListener('click', function() {
+        copyText(alt.title || '', div.querySelector('.yt-alt-copy'));
+      });
+      altsEl.appendChild(div);
+    });
+  }
+
+  // Description
+  const hook = (meta.description && meta.description.hook) || '';
+  const full = (meta.description && meta.description.full) || '';
+  document.getElementById('hookText').textContent = hook;
+  document.getElementById('descFullText').textContent = full;
+
+  // Tags
+  const tags = meta.tags || [];
+  const tagsWrap = document.getElementById('tagsWrap');
+  tagsWrap.innerHTML = tags.map(function(t) {
+    return '<span class="yt-tag">' + esc(t) + '</span>';
+  }).join('');
+  document.getElementById('tagCount').textContent = tags.length + ' tags';
+
+  // Signals
+  const signalsRow = document.getElementById('signalsRow');
+  signalsRow.innerHTML = '<span class="yt-signals-label">Powered by</span>';
+  const signals = meta.signalsUsed || [];
+  signals.forEach(function(s) {
+    const chip = document.createElement('span');
+    chip.className = 'yt-signal-chip';
+    chip.textContent = s;
+    signalsRow.appendChild(chip);
+  });
+
+  // Generated at
+  if (meta.generatedAt) {
+    try {
+      const d = new Date(meta.generatedAt);
+      document.getElementById('generatedAtEl').textContent = 'Generated ' + d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch(e) {}
+  }
+
+  // Thumbnail section
+  renderThumbnailSection(meta);
+
+  // Show output
+  document.getElementById('outputArea').classList.add('visible');
+}
+
+// ── Render thumbnail section ───────────────────────────────────────────────
+function renderThumbnailSection(meta) {
+  const tc = meta.thumbnailConcept || {};
+  const hookText = tc.textOverlay || '';
+  const reasoning = tc.reasoning || '';
+  const leonardoPrompt = tc.leonardoPrompt || '';
+  const hasApiKey = tc.apiKeyConfigured !== false; // default assume configured
+
+  // Hook text
+  const hookBlock = document.getElementById('thumbHookBlock');
+  const hookEl = document.getElementById('thumbHookText');
+  if (hookText) {
+    hookEl.textContent = hookText;
+    hookBlock.style.display = '';
+  }
+
+  // Concept
+  const conceptEl = document.getElementById('thumbConceptText');
+  if (reasoning) {
+    conceptEl.textContent = reasoning;
+    conceptEl.style.display = '';
+  }
+
+  // Generate button
+  document.getElementById('thumbGenerateBtn').style.display = leonardoPrompt ? '' : 'none';
+
+  // Leonardo prompt section
+  if (leonardoPrompt) {
+    document.getElementById('leonardoPromptText').textContent = leonardoPrompt;
+    document.getElementById('leonardoPromptSection').style.display = '';
+  }
+
+  // No API key notice
+  if (tc.apiKeyConfigured === false) {
+    document.getElementById('thumbNoApiNotice').classList.add('visible');
+    document.getElementById('thumbGenerateBtn').style.display = 'none';
+  }
+}
+
+// ── Generate thumbnail via Leonardo ──────────────────────────────────────
+async function generateThumbnail() {
+  if (!_currentMeta || !_currentVideoId) return;
+
+  const btn = document.getElementById('thumbGenerateBtn');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+
+  // Show spinner, hide placeholder and existing image
+  document.getElementById('thumbPlaceholder').style.display = 'none';
+  document.getElementById('thumbImg').classList.remove('visible');
+  document.getElementById('thumbGenerating').classList.add('visible');
+  document.getElementById('thumbDownloadBtn').classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/youtube-thumbnail', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        videoId: _currentVideoId,
+        leonardoPrompt: (_currentMeta.thumbnailConcept || {}).leonardoPrompt || '',
+        hookText: (_currentMeta.thumbnailConcept || {}).textOverlay || '',
+      }),
+    });
+
+    const data = await res.json();
+
+    document.getElementById('thumbGenerating').classList.remove('visible');
+
+    if (!res.ok || data.error) {
+      document.getElementById('thumbPlaceholder').innerHTML = '<div class="yt-thumb-placeholder-icon" style="color:rgba(248,113,113,0.60);">&#10005;</div><div class="yt-thumb-placeholder-text" style="color:rgba(248,113,113,0.60);">' + esc(data.error || 'Generation failed') + '</div>';
+      document.getElementById('thumbPlaceholder').style.display = '';
+      btn.disabled = false;
+      btn.textContent = '&#9889; Retry';
+      return;
+    }
+
+    // Success — show image
+    _currentThumbUrl = data.imageUrl;
+    const img = document.getElementById('thumbImg');
+    img.src = data.imageUrl;
+    img.classList.add('visible');
+
+    // Download button
+    const dlBtn = document.getElementById('thumbDownloadBtn');
+    dlBtn.href = data.imageUrl;
+    dlBtn.classList.remove('hidden');
+
+    btn.disabled = false;
+    btn.textContent = '&#8635; Regenerate';
+
+  } catch(err) {
+    document.getElementById('thumbGenerating').classList.remove('visible');
+    document.getElementById('thumbPlaceholder').style.display = '';
+    document.getElementById('thumbPlaceholder').innerHTML = '<div class="yt-thumb-placeholder-icon">&#128248;</div><div class="yt-thumb-placeholder-text">Network error — retry</div>';
+    btn.disabled = false;
+    btn.innerHTML = '&#9889; Retry';
+  }
+}
+
+// ── Copy helpers ──────────────────────────────────────────────────────────
+function copyField(field, btn) {
+  if (!_currentMeta) return;
+  let text = '';
+  if (field === 'primaryTitle') text = _currentMeta.primaryTitle || '';
+  else if (field === 'descFull') text = (_currentMeta.description && _currentMeta.description.full) || '';
+  else if (field === 'tags') text = (_currentMeta.tags || []).join(', ');
+
+  copyText(text, btn);
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(function() {
+    const original = btn.innerHTML;
+    btn.classList.add('copied');
+    btn.textContent = '&#10003; Copied';
+    setTimeout(function() {
+      btn.classList.remove('copied');
+      btn.innerHTML = original;
+    }, 2000);
+  }).catch(function() {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '&#10003; Copied';
+    setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+  });
+}
+
+function copyLeonardoPrompt(btn) {
+  const text = document.getElementById('leonardoPromptText').textContent;
+  copyText(text, btn);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  const input = document.getElementById('ytUrlInput');
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleGenerate();
+  });
+
+  // Check URL params — allow deep-linking ?videoId=xxx
+  const params = new URLSearchParams(window.location.search);
+  const vid = params.get('videoId') || params.get('v');
+  if (vid) {
+    input.value = 'https://www.youtube.com/watch?v=' + vid;
+    handleGenerate();
+  }
+});
+</script>
+</body>
+</html>
