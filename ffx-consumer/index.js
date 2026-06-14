@@ -41,72 +41,118 @@ async function processJob(job, env) {
     jobId, videoId, startedAt: new Date().toISOString()
   }), { expirationTtl: 1800 });
 
-  await updateJob(env, jobId, videoId, 'processing', 'transcript');
-
-  let transcript;
+  // ── Check for checkpoint — resume from regional article if global already done ──
+  // Written after global platforms succeed. Lets retry skip the first 2 Claude calls.
+  const CHECKPOINT_KEY = 'video:checkpoint:' + videoId;
+  let checkpoint = null;
   try {
-    transcript = await fetchTranscriptSupadata(youtubeUrl, env.SUPADATA_API_KEY);
-    console.log('[FFX] Transcript fetched, length:', transcript?.length);
-  } catch (err) {
-    await failJob(env, jobId, videoId, 'transcript',
-      'Transcript fetch failed: ' + err.message + '. Ensure captions are enabled on this video in YouTube Studio.', false);
-    return;
+    checkpoint = await env.FFX_KV.get(CHECKPOINT_KEY, { type: 'json' }).catch(function() { return null; });
+  } catch(e) {}
+
+  let transcript, globalContent, globalArticle, selectedLinkedin, selectedDiscord, selectedX, regionName, regionIndex;
+
+  if (checkpoint && checkpoint.globalContent && checkpoint.transcript) {
+    // ── RESUME PATH — global work already done, skip to regional ─────────────
+    console.log('[FFX] Checkpoint found — resuming from regional article for:', videoId);
+    transcript      = checkpoint.transcript;
+    globalContent   = checkpoint.globalContent;
+    globalArticle   = checkpoint.globalArticle;
+    selectedLinkedin = checkpoint.selectedLinkedin;
+    selectedDiscord  = checkpoint.selectedDiscord;
+    selectedX        = checkpoint.selectedX;
+    regionName       = checkpoint.regionName;
+    regionIndex      = checkpoint.regionIndex;
+    // Step markers — show correct progress from resume point
+    await updateJob(env, jobId, videoId, 'processing', 'regional_article');
+
+  } else {
+    // ── FRESH PATH — run full pipeline from transcript ────────────────────────
+    await updateJob(env, jobId, videoId, 'processing', 'transcript');
+
+    try {
+      transcript = await fetchTranscriptSupadata(youtubeUrl, env.SUPADATA_API_KEY);
+      console.log('[FFX] Transcript fetched, length:', transcript?.length);
+    } catch (err) {
+      await failJob(env, jobId, videoId, 'transcript',
+        'Transcript fetch failed: ' + err.message + '. Ensure captions are enabled on this video in YouTube Studio.', false);
+      return;
+    }
+
+    if (!transcript || transcript.trim().length < 100) {
+      await failJob(env, jobId, videoId, 'transcript',
+        'Transcript too short or empty. Enable captions in YouTube Studio and try again.', false);
+      return;
+    }
+
+    try {
+      await env.FFX_KV.put('transcript:' + videoId, transcript);
+      console.log('[FFX] Transcript stored permanently:', videoId);
+    } catch (err) {
+      console.error('[FFX] Transcript KV write failed (non-fatal):', err.message);
+    }
+
+    const linkedinFormats = ['WALL', 'SHORT', 'SINGLE', 'STORY', 'CONTRARIAN'];
+    const discordFormats  = ['NUGGET', 'DROP', 'QUESTION'];
+    const xFormats        = ['THREAD', 'SINGLE', 'MINI', 'HOTTAKE'];
+    selectedLinkedin = linkedinFormats[Math.floor(Math.random() * linkedinFormats.length)];
+    selectedDiscord  = discordFormats[Math.floor(Math.random() * discordFormats.length)];
+    selectedX        = xFormats[Math.floor(Math.random() * xFormats.length)];
+    console.log('[FFX] Formats:', selectedLinkedin, selectedDiscord, selectedX);
+
+    const regions = ['GCC', 'US/Canada', 'EU/UK/Germany', 'SEA/Asia'];
+    regionIndex = 0;
+    try {
+      const stored = await env.FFX_KV.get('config:regionCycle');
+      regionIndex = stored !== null ? parseInt(stored, 10) % 4 : 0;
+    } catch {}
+    regionName = regions[regionIndex];
+    console.log('[FFX] Region:', regionName);
+
+    await updateJob(env, jobId, videoId, 'processing', 'global_article');
+    try {
+      globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug, env);
+      console.log('[FFX] Global article done, slug:', globalArticle.slug);
+    } catch (err) {
+      await failJob(env, jobId, videoId, 'global_article', formatClaudeError(err, 'Global article'), true);
+      return;
+    }
+
+    await updateJob(env, jobId, videoId, 'processing', 'global_platforms');
+    let globalPlatforms;
+    try {
+      globalPlatforms = await callClaudePlatforms(transcript, youtubeUrl, env.ANTHROPIC_API_KEY,
+        selectedLinkedin, selectedDiscord, selectedX, 'Global', globalArticle.slug);
+      console.log('[FFX] Global platforms done');
+    } catch (err) {
+      await failJob(env, jobId, videoId, 'global_platforms', formatClaudeError(err, 'Global platforms'), true);
+      return;
+    }
+
+    globalContent = Object.assign({}, globalArticle, globalPlatforms, { region: 'Global', regionLabel: 'Global', videoId, youtubeUrl });
+
+    // ── Write checkpoint after global work succeeds — enables smart retry ─────
+    // TTL 3600s — checkpoint clears automatically if not used within 1 hour
+    try {
+      await env.FFX_KV.put(CHECKPOINT_KEY, JSON.stringify({
+        transcript:      transcript,
+        globalContent:   globalContent,
+        globalArticle:   globalArticle,
+        selectedLinkedin: selectedLinkedin,
+        selectedDiscord:  selectedDiscord,
+        selectedX:        selectedX,
+        regionName:       regionName,
+        regionIndex:      regionIndex,
+        savedAt:          new Date().toISOString(),
+      }), { expirationTtl: 3600 });
+      console.log('[FFX] Checkpoint saved after global work for:', videoId);
+    } catch(cpErr) {
+      console.error('[FFX] Checkpoint write failed (non-fatal — retry will re-run global):', cpErr.message);
+    }
+
+    await updateJob(env, jobId, videoId, 'processing', 'regional_article');
   }
 
-  if (!transcript || transcript.trim().length < 100) {
-    await failJob(env, jobId, videoId, 'transcript',
-      'Transcript too short or empty. Enable captions in YouTube Studio and try again.', false);
-    return;
-  }
-
-  try {
-    await env.FFX_KV.put('transcript:' + videoId, transcript);
-    console.log('[FFX] Transcript stored permanently:', videoId);
-  } catch (err) {
-    console.error('[FFX] Transcript KV write failed (non-fatal):', err.message);
-  }
-
-  const linkedinFormats = ['WALL', 'SHORT', 'SINGLE', 'STORY', 'CONTRARIAN'];
-  const discordFormats  = ['NUGGET', 'DROP', 'QUESTION'];
-  const xFormats        = ['THREAD', 'SINGLE', 'MINI', 'HOTTAKE'];
-  const selectedLinkedin = linkedinFormats[Math.floor(Math.random() * linkedinFormats.length)];
-  const selectedDiscord  = discordFormats[Math.floor(Math.random() * discordFormats.length)];
-  const selectedX        = xFormats[Math.floor(Math.random() * xFormats.length)];
-  console.log('[FFX] Formats:', selectedLinkedin, selectedDiscord, selectedX);
-
-  const regions = ['GCC', 'US/Canada', 'EU/UK/Germany', 'SEA/Asia'];
-  let regionIndex = 0;
-  try {
-    const stored = await env.FFX_KV.get('config:regionCycle');
-    regionIndex = stored !== null ? parseInt(stored, 10) % 4 : 0;
-  } catch {}
-  const regionName = regions[regionIndex];
-  console.log('[FFX] Region:', regionName);
-
-  await updateJob(env, jobId, videoId, 'processing', 'global_article');
-  let globalArticle;
-  try {
-    globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug, env);
-    console.log('[FFX] Global article done, slug:', globalArticle.slug);
-  } catch (err) {
-    await failJob(env, jobId, videoId, 'global_article', formatClaudeError(err, 'Global article'), true);
-    return;
-  }
-
-  await updateJob(env, jobId, videoId, 'processing', 'global_platforms');
-  let globalPlatforms;
-  try {
-    globalPlatforms = await callClaudePlatforms(transcript, youtubeUrl, env.ANTHROPIC_API_KEY,
-      selectedLinkedin, selectedDiscord, selectedX, 'Global', globalArticle.slug);
-    console.log('[FFX] Global platforms done');
-  } catch (err) {
-    await failJob(env, jobId, videoId, 'global_platforms', formatClaudeError(err, 'Global platforms'), true);
-    return;
-  }
-
-  const globalContent = Object.assign({}, globalArticle, globalPlatforms, { region: 'Global', regionLabel: 'Global', videoId, youtubeUrl });
-
-  await updateJob(env, jobId, videoId, 'processing', 'regional_article');
+  // ── REGIONAL ARTICLE ─────────────────────────────────────────────────────
   let regionalArticle;
   try {
     regionalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, regionName, globalArticle.slug, existingSlug);
@@ -265,6 +311,9 @@ async function processJob(job, env) {
   await kvPut(env, 'job:' + jobId, JSON.stringify({
     status: 'complete', videoId, generatedAt: new Date().toISOString(),
   }), { expirationTtl: 86400 });
+
+  // Clear checkpoint — job complete, no longer needed
+  try { await env.FFX_KV.delete('video:checkpoint:' + videoId); } catch {}
 
   try { await env.FFX_KV.delete('lock:generating'); } catch {}
   console.log('[FFX] Job complete:', jobId);
