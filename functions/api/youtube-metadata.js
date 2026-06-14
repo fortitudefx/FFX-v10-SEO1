@@ -145,37 +145,74 @@ TITLE RULES:
 - Under 60 characters (YouTube truncates at 60 in search)
 - Primary keyword in first 3 words where possible
 - Salman's voice — direct, specific, not clickbait
+- First word should be a power word: "Why", "How", specific pair/level, specific pattern name
 - Suggest 1 primary title + 2 alternatives with reasoning
 
 DESCRIPTION RULES:
-- First 125 characters (before "Show more") must hook immediately with the core insight
-- Structure: hook → key timestamps → article link → Discord CTA → social links
-- Include exact keywords from rising queries
-- Discord join link: https://discord.com/invite/fWAPJdR8TR
+- First 125 characters (before "Show more") must hook immediately — state the core insight directly, no fluff
+- Structure: hook → body explanation → [TIMESTAMPS] → article link → Discord CTA → website
+- Include exact keywords from rising queries naturally woven in
+- Discord: https://discord.com/invite/fWAPJdR8TR
 - Article URL: ${articleUrl}
 - Website: https://fortitudefx.com
+- Use \\n for line breaks. Chapters must be on separate lines: "0:00 Introduction\\n2:34 Next Chapter"
+- The [TIMESTAMPS] placeholder marks where Salman pastes chapter timestamps after upload
 
 TAGS RULES:
 - 15-20 tags maximum
-- Mix: brand tags, methodology tags, topic tags, question tags
-- Always include: FortitudeFX, Catch the Wick, forex trading, price action
-- Add specific tags from this video's content
+- Mix: brand tags, methodology tags (catch the wick, CTW, wick trading), topic-specific tags, question tags
+- Always include: FortitudeFX, Catch the Wick, forex trading, price action, forex strategy
+- Add 8-10 specific tags from this exact video's content (pairs mentioned, patterns shown, concepts taught)
+
+THUMBNAIL RULES — READ CAREFULLY, EVERY FIELD IS MANDATORY:
+Choose the VISUAL SCENE that fits this video's content best:
+  A) DRAMATIC_CHART — extreme candlestick spike or crash, cinematic lighting, sense of danger or opportunity
+  B) PRICE_ACTION — close-up of a key forex level being hit, precision and tension
+  C) VOLATILITY_STORM — chaotic multi-candle market motion, storm energy, urgency
+  D) SIGNAL_MOMENT — single clean setup with zones or arrows, surgical and authoritative
+  E) AFTERMATH — chart showing the result after the move, proof energy
+
+Choose the EMOTIONAL REGISTER that creates the strongest curiosity gap:
+  1) SHOCK — viewer sees something unexpected. For: reversals, surprises, results
+  2) AUTHORITY — calm certainty, institutional. For: strategy, system explanations
+  3) URGENCY — right now energy. For: live setups, current market conditions
+  4) REVELATION — moment of understanding. For: concepts, psychology, "why" videos
+
+Choose COLOUR TEMPERATURE based on content:
+  COOL (blue-teal): analytical, educational, system-based content
+  WARM (gold-orange): opportunity, profit, live setup content
+  RED_ACCENT: risk, stop losses, loss analysis — use sparingly
+
+textOverlay: 3-5 words MAXIMUM. ALL CAPS. Creates a question or tension in the viewer's mind.
+Strong examples: "THEY SWEPT MY STOP", "PRICE NEVER LIES", "THIS SETUP NEVER FAILS", "WHY PRICE REVERSED HERE"
+Weak examples (never use): "FOREX TRADING TIPS", "HOW TO TRADE FOREX", "CATCH THE WICK TUTORIAL"
+
+leonardoPrompt: A rich, detailed image generation prompt for Leonardo AI Phoenix model.
+MUST follow this exact structure:
+"[specific scene based on visual scene choice], [lighting description], [colour palette], [mood], cinematic 16:9 composition, left 40 percent of frame is dark clean negative space #0a0a12 with no visual elements for text overlay, right 60 percent contains the main visual subject, gold accent lighting #c9a84c, dark editorial background #0a0a12, [colour temperature specific details], ultra sharp focus, high contrast, professional financial editorial photography, cinematic depth, no text, no watermarks, no logos, no people, 1280x720 YouTube thumbnail format"
+Make the [specific scene] section vivid and different each time — this is what creates visual variety across videos.
+
+reasoning: One sentence explaining the CTR psychology — why this specific combination of scene + hook + emotion will make someone stop scrolling.
 
 Return ONLY a valid JSON object:
 {
-  "primaryTitle": "main suggested title — under 60 chars",
+  "primaryTitle": "main title — under 60 chars, keyword-first",
   "titleAlternatives": [
-    { "title": "alternative 1", "reasoning": "why this format" },
-    { "title": "alternative 2", "reasoning": "why this format" }
+    { "title": "alternative 1 under 60 chars", "reasoning": "explain the CTR angle" },
+    { "title": "alternative 2 under 60 chars", "reasoning": "explain the CTR angle" }
   ],
   "description": {
-    "hook": "first 125 characters — the hook before Show More cutoff",
-    "full": "complete description with timestamps placeholder [TIMESTAMPS], links, CTAs. Use \\n for line breaks."
+    "hook": "first 125 characters — the hook before Show More. Direct, specific, no preamble.",
+    "full": "complete description. Hook paragraph. Body. \\n[TIMESTAMPS]\\n\\nRead the full breakdown: ${articleUrl}\\n\\nJoin 7000+ traders learning Catch The Wick:\\nhttps://discord.com/invite/fWAPJdR8TR\\n\\nFree resources: https://fortitudefx.com"
   },
-  "tags": ["tag1", "tag2", "tag3"],
+  "tags": ["FortitudeFX", "Catch the Wick", "forex trading", "price action", "tag4", "tag5"],
   "thumbnailConcept": {
-    "textOverlay": "bold text for thumbnail — 3-5 words max",
-    "reasoning": "why this thumbnail concept will drive CTR"
+    "visualScene": "A or B or C or D or E — the code letter you chose",
+    "emotionalRegister": "1 or 2 or 3 or 4 — the number you chose",
+    "colourTemperature": "COOL or WARM or RED_ACCENT",
+    "textOverlay": "3-5 WORD ALL CAPS HOOK",
+    "leonardoPrompt": "full rich Leonardo AI prompt as specified above — minimum 80 words",
+    "reasoning": "one sentence CTR psychology explanation"
   },
   "briefVersion": "${brief?.generatedAt || new Date().toISOString()}",
   "signalsUsed": ["seo", "ga4", "transcript", "brief"]
@@ -193,7 +230,7 @@ CRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. Start wi
       },
       body: JSON.stringify({
         model: ANTHROPIC_MODEL,
-        max_tokens: 2000,
+        max_tokens: 3000,
         messages: [{ role: 'user', content: ctx }],
       }),
     });
