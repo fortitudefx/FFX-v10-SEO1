@@ -77,11 +77,8 @@ export async function onRequestPost(context) {
     }
 
 
-    // Read YouTube performance signals — only FFX-system published videos
-    const [ytSignals, ytTitleLearning] = await Promise.all([
-      env.FFX_KV.get('youtube:signals',        { type: 'json' }).catch(() => null),
-      env.FFX_KV.get('youtube:title:learning', { type: 'json' }).catch(() => null),
-    ]);
+    // Read YouTube title learning — ytSignals already read in Step 1 above
+    const ytTitleLearning = await env.FFX_KV.get('youtube:title:learning', { type: 'json' }).catch(() => null);
 
     await writeProgress(env, 2, 'Reading content performance history', 'done');
 
