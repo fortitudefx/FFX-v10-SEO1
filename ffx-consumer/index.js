@@ -29,7 +29,7 @@ export default {
 };
 
 async function processJob(job, env) {
-  // Route newsletter jobs to separate handler — no timeout, no lock conflict
+  // Route newsletter jobs to separate handler
   if (job.type === 'newsletter') {
     await processNewsletterJob(job, env);
     return;
@@ -41,32 +41,28 @@ async function processJob(job, env) {
     jobId, videoId, startedAt: new Date().toISOString()
   }), { expirationTtl: 1800 });
 
-  // ── Check for checkpoint — resume from regional article if global already done ──
-  // Written after global platforms succeed. Lets retry skip the first 2 Claude calls.
+  // Check for checkpoint — resume from regional if global already succeeded
   const CHECKPOINT_KEY = 'video:checkpoint:' + videoId;
   let checkpoint = null;
-  try {
-    checkpoint = await env.FFX_KV.get(CHECKPOINT_KEY, { type: 'json' }).catch(function() { return null; });
-  } catch(e) {}
+  try { checkpoint = await env.FFX_KV.get(CHECKPOINT_KEY, { type: 'json' }).catch(function() { return null; }); } catch(e) {}
 
   let transcript, globalContent, globalArticle, selectedLinkedin, selectedDiscord, selectedX, regionName, regionIndex;
 
   if (checkpoint && checkpoint.globalContent && checkpoint.transcript) {
-    // ── RESUME PATH — global work already done, skip to regional ─────────────
+    // RESUME — skip transcript + global steps
     console.log('[FFX] Checkpoint found — resuming from regional article for:', videoId);
-    transcript      = checkpoint.transcript;
-    globalContent   = checkpoint.globalContent;
-    globalArticle   = checkpoint.globalArticle;
+    transcript       = checkpoint.transcript;
+    globalContent    = checkpoint.globalContent;
+    globalArticle    = checkpoint.globalArticle;
     selectedLinkedin = checkpoint.selectedLinkedin;
     selectedDiscord  = checkpoint.selectedDiscord;
     selectedX        = checkpoint.selectedX;
     regionName       = checkpoint.regionName;
     regionIndex      = checkpoint.regionIndex;
-    // Step markers — show correct progress from resume point
     await updateJob(env, jobId, videoId, 'processing', 'regional_article');
 
   } else {
-    // ── FRESH PATH — run full pipeline from transcript ────────────────────────
+    // FRESH — run from transcript
     await updateJob(env, jobId, videoId, 'processing', 'transcript');
 
     try {
@@ -130,29 +126,28 @@ async function processJob(job, env) {
 
     globalContent = Object.assign({}, globalArticle, globalPlatforms, { region: 'Global', regionLabel: 'Global', videoId, youtubeUrl });
 
-    // ── Write checkpoint after global work succeeds — enables smart retry ─────
-    // TTL 3600s — checkpoint clears automatically if not used within 1 hour
+    // Save checkpoint after global succeeds — permanent, cleared only on publish
     try {
       await env.FFX_KV.put(CHECKPOINT_KEY, JSON.stringify({
-        transcript:      transcript,
-        globalContent:   globalContent,
-        globalArticle:   globalArticle,
+        transcript: transcript,
+        globalContent: globalContent,
+        globalArticle: globalArticle,
         selectedLinkedin: selectedLinkedin,
-        selectedDiscord:  selectedDiscord,
-        selectedX:        selectedX,
-        regionName:       regionName,
-        regionIndex:      regionIndex,
-        savedAt:          new Date().toISOString(),
-      }), { expirationTtl: 3600 });
-      console.log('[FFX] Checkpoint saved after global work for:', videoId);
+        selectedDiscord: selectedDiscord,
+        selectedX: selectedX,
+        regionName: regionName,
+        regionIndex: regionIndex,
+        savedAt: new Date().toISOString(),
+      }));
+      console.log('[FFX] Checkpoint saved for:', videoId);
     } catch(cpErr) {
-      console.error('[FFX] Checkpoint write failed (non-fatal — retry will re-run global):', cpErr.message);
+      console.error('[FFX] Checkpoint write failed (non-fatal):', cpErr.message);
     }
 
     await updateJob(env, jobId, videoId, 'processing', 'regional_article');
   }
 
-  // ── REGIONAL ARTICLE ─────────────────────────────────────────────────────
+  // REGIONAL ARTICLE
   let regionalArticle;
   try {
     regionalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, regionName, globalArticle.slug, existingSlug);
@@ -312,7 +307,8 @@ async function processJob(job, env) {
     status: 'complete', videoId, generatedAt: new Date().toISOString(),
   }), { expirationTtl: 86400 });
 
-  // Clear checkpoint — job complete, no longer needed
+  // Clear checkpoint on complete — it has served its purpose for retries
+  // Note: video:checkpoint:{videoId} also cleared by youtube-signals.js on publish
   try { await env.FFX_KV.delete('video:checkpoint:' + videoId); } catch {}
 
   try { await env.FFX_KV.delete('lock:generating'); } catch {}
@@ -540,7 +536,7 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-5',
-      max_tokens: 3500,
+      max_tokens: 8000,
       system: systemPrompt,
       messages: [{ role: 'user', content: 'Transcript:\n\n' + transcript + '\n\nVOICE: This is Salman speaking - founder of FortitudeFX. Write in his voice - direct, calm, experienced, institutional tone.' + (isRegional ? '\n\nREGIONAL: Write the ' + region + ' variant.' : '') }],
     }),
@@ -549,16 +545,32 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
   console.log('[FFX] Claude article status:', res.status, 'region:', region);
   if (!res.ok) throw new Error('Anthropic ' + res.status + ': ' + await res.text());
 
-  const data    = await res.json();
+  const data       = await res.json();
+  const stopReason = data.stop_reason || '';
+
+  // stop_reason === 'max_tokens' means Claude hit the ceiling and truncated
+  // With max_tokens:8000 this should never happen — but catch it explicitly
+  if (stopReason === 'max_tokens') {
+    throw new Error('Claude article hit token ceiling (stop_reason: max_tokens). Response truncated — cannot parse JSON. Contact support if this persists.');
+  }
+
+  if (!data.content || !data.content[0] || !data.content[0].text) {
+    throw new Error('Claude article returned empty response for ' + region + '. stop_reason: ' + stopReason);
+  }
+
   const rawText = data.content[0].text.trim();
   const first   = rawText.indexOf('{');
   const last    = rawText.lastIndexOf('}');
-  if (first === -1 || last === -1) throw new Error('No JSON object found in Claude article response');
+  if (first === -1 || last === -1) {
+    throw new Error('No JSON object found in Claude ' + region + ' article response. stop_reason: ' + stopReason + '. Response starts: ' + rawText.slice(0, 120));
+  }
   const cleaned = rawText.slice(first, last + 1);
 
   let parsed;
-  try { parsed = JSON.parse(cleaned); } catch (e) {
-    throw new Error('Claude article returned invalid JSON: ' + e.message);
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (e) {
+    throw new Error('Claude ' + region + ' article invalid JSON: ' + e.message.slice(0, 80) + '. stop_reason: ' + stopReason);
   }
 
   const required = ['slug', 'title', 'excerpt', 'category', 'tags', 'readTime', 'body'];
