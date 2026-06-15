@@ -492,50 +492,37 @@ TAGS RULES:
 
 THUMBNAIL RULES:
 
-CRITICAL: THREE INPUTS INFORM THE THUMBNAIL — use all three.
+ARCHITECTURE: Leonardo generates PURE ABSTRACT ATMOSPHERE only — no charts, no financial objects, no bars.
+Your TradingView chart screenshot is uploaded separately and blended on top by the canvas.
+Leonardo's job is MOOD and CINEMATIC LIGHT only. Nothing financial enters the Leonardo prompt.
 
-INPUT 1 — TRANSCRIPT: What specific price action concept is shown in this video?
-INPUT 2 — YOUTUBE SEARCH QUERIES (from Weight 2 signals above): What do people search to find videos like this?
-INPUT 3 — COMPETITOR TITLES (from Weight 3 signals above): What visual concepts rank for this topic?
+STEP 1 — READ THE TRANSCRIPT and identify the emotional tone of this video:
+- Educational/concept (what something means, how something works) → MOOD A
+- Live setup/opportunity (entry, current market, act now) → MOOD B  
+- Danger/reversal/stop hunt (risk, swept, wrong side) → MOOD C
+- Authority/system (mechanical rules, precision, the method) → MOOD D
 
-STEP 1 — PICK THE FOREX VISUAL ELEMENT:
-Choose EXACTLY ONE from this list. Use these EXACT phrases — no substitutions, no synonyms.
-"Candlestick" as a word is BANNED. Use "price bar" or "OHLC bar" instead.
+STEP 2 — BUILD THE LEONARDO PROMPT using ONLY the selected mood template below.
+DO NOT add any financial language. DO NOT add chart elements. DO NOT mention candles, bars, wicks, price, forex, trading.
 
-FOREX ELEMENT OPTIONS (pick the one that best matches the transcript):
-A — "a single large green OHLC price bar with tall body and tiny upper wick, three-dimensional macro"
-B — "a single OHLC price bar with an extreme long upper wick spike three times the body height"
-C — "two OHLC price bars side by side, first tall green body then smaller reversal bar, macro close-up"
-D — "a horizontal gold price level line with a single OHLC price bar wick touching and rejecting it"
-E — "three consecutive green OHLC price bars forming a staircase momentum sequence, macro"
-F — "a single large red OHLC price bar with long lower shadow, three-dimensional"
-G — "two OHLC price bars — one momentum bar followed by one smaller wick rejection bar"
-H — "a clean horizontal support level line glowing gold on pure black, minimal and dramatic"
+MOOD A — Educational/Concept (calm gold light in darkness):
+"Abstract dark cinematic atmosphere, single warm amber light source from upper right casting soft golden glow into pure black void, light disperses gently into darkness, deep shadows everywhere, pure black background, no objects, no people, no text, no financial elements, minimal abstract light photography, 1472x832"
 
-The choice must be directly informed by the transcript topic:
-- Momentum candle concept → A or E
-- Wick methodology → B or D or G
-- 2-candle entry setup → C or G
-- Stop hunt / swept liquidity → B or D
-- Structure / levels → D or H
-- Bearish reversal → F
+MOOD B — Opportunity/Urgency (dynamic gold energy):
+"Abstract dramatic dark atmosphere, intense concentrated amber light beam piercing through pure black from upper right, dynamic gold particles dispersing into darkness, sense of movement and energy, pure black void, no objects, no people, no charts, cinematic abstract light on black, 1472x832"
 
-STEP 2 — BUILD THE COMPLETE PROMPT:
-Replace [FOREX_ELEMENT] in the template below with your chosen option verbatim.
+MOOD C — Danger/Reversal (dramatic dark tension):
+"Abstract dark tension atmosphere, single sharp gold light cutting through heavy deep black from upper right, dramatic contrast between bright gold edge and pure black darkness, ominous mood, no objects, no people, no text, pure cinematic black with single gold light source, 1472x832"
 
-LOCKED FFX TEMPLATE (copy exactly, only replace [FOREX_ELEMENT]):
-"[FOREX_ELEMENT], extreme macro close-up photograph, subject isolated on pure black background #0a0a12 with no other elements, subject fills right 60% of frame, left 40% pure black void with zero detail or gradient, single amber rim light from upper right at 45 degrees casting warm gold outline #c9a84c on subject edges only, all other areas pure black, Hasselblad medium format macro photography, f/2.8 shallow depth of field, razor sharp focus on subject surface texture, cinematic film grain, warm amber desaturated color grade, no grid lines, no text, no labels, no annotations, no chart background, no screen, no computer, no overlays, pure black background, 1472x832 aspect ratio"
+MOOD D — Authority/System (precise surgical light):
+"Abstract minimal dark atmosphere, thin precise gold light line from upper right on pure black background, surgical precision, architectural calm, deep black void with single defined amber accent, no objects, no people, no financial elements, ultra minimal cinematic darkness, 1472x832"
 
 STEP 3 — HOOK TEXT (textOverlay):
-Maximum 3 words. ALL CAPS. Must create a specific curiosity gap tied to the video's core insight.
-Must make the target viewer (retail forex trader) think "I need to know what this means."
+Maximum 3 words. ALL CAPS. Specific curiosity gap from the transcript's core insight.
+Informed by YouTube search queries from the signals above — what does this specific audience NOT know?
 
-Hook informed by YouTube search queries — if people search "momentum candle forex" the hook should reference what they don't know about it:
-Strong: "THIS BAR LIES", "PRICE ALREADY TOLD YOU", "STRUCTURE ALREADY BROKE", "THE WICK SWEPT IT", "BEFORE THE ENTRY"
-Weak (banned): "FOREX TIPS", "TRADE THIS NOW", "CATCH THE WICK", "WATCH THIS VIDEO", anything generic
-
-The hook and the visual element together must function as a single complete curiosity gap:
-Visual shows the element → Hook implies there is something hidden about it → viewer clicks to find out.
+Strong hooks: "PRICE ALREADY TOLD YOU", "STRUCTURE ALREADY BROKE", "THE WICK REVEALS", "BEFORE THE ENTRY", "THEY ALREADY MOVED"
+Banned: "FOREX TIPS", "TRADE THIS NOW", "CATCH THE WICK", anything generic or brand-name
 
 Return ONLY a valid JSON object:
 {
@@ -551,11 +538,11 @@ Return ONLY a valid JSON object:
   "chapters": ["0:00 Introduction", "1:24 Chapter Name", "etc — OR empty array if no timestamp data"],
   "tags": ["FortitudeFX", "Catch the Wick", "forex trading", "price action", "forex strategy", "Salman Khan forex", "tag7", "tag8"],
   "thumbnailConcept": {
-    "forexElement": "the letter you chose (A-H) and the exact phrase from the options list",
-    "textOverlay": "3 WORD ALL CAPS HOOK — specific tension from transcript, informed by YouTube search queries",
-    "leonardoPrompt": "the complete filled template — [FOREX_ELEMENT] replaced with your chosen phrase, full template copied verbatim",
-    "searchQueryInformed": "which YouTube search query from the signals informed the hook text",
-    "reasoning": "one sentence — why this element + hook creates a specific curiosity gap for a retail forex trader searching this topic"
+    "mood": "A, B, C, or D — which mood matches this video's emotional tone",
+    "textOverlay": "3 WORD ALL CAPS HOOK — specific curiosity gap from transcript, informed by YouTube search queries",
+    "leonardoPrompt": "the complete mood template copied exactly as written above — no modifications, no additions",
+    "searchQueryInformed": "which YouTube search query informed the hook text",
+    "reasoning": "one sentence — why this mood + hook combination will stop a retail forex trader mid-scroll"
   },
   "signalsApplied": {
     "primaryTitleSignal": "which signal drove the title choice",
