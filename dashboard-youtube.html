@@ -1252,38 +1252,24 @@ async function compositeAll(bgUrl, chartDataUrl, hookText) {
       // ── Layer 1: Leonardo atmospheric background ───────────────────────
       ctx.drawImage(bgImg, 0, 0, 1280, 720);
 
-      // ── Layer 2: Chart screenshot — darkened and blended ────────────────
-      // TradingView screenshots have light backgrounds that wash out dark atmosphere
-      // Solution: draw chart to offscreen canvas, darken with multiply overlay,
-      // then blend at reduced opacity so Leonardo atmosphere remains dominant
+      // ── Layer 2: Chart screenshot — screen blend over dark background ────
+      // TradingView screenshots have WHITE/LIGHT backgrounds
+      // Screen blend mode: white pixels become transparent, dark chart elements show
+      // This makes the white background disappear and preserves candles/levels/zones
       if (chartDataUrl) {
         var chartImg = new Image();
         chartImg.onload = function() {
-          // Step A: Draw chart to offscreen canvas
-          var offscreen    = document.createElement('canvas');
-          offscreen.width  = 1280;
-          offscreen.height = 720;
-          var offCtx = offscreen.getContext('2d');
-
-          // Scale chart to right 70% of frame
+          // Use 'screen' composite operation — white disappears, darks stay
+          // Screen formula: 1 - (1-a)(1-b) — white(1) * anything = 1 (transparent on dark bg)
+          ctx.globalCompositeOperation = 'screen';
+          ctx.globalAlpha = 0.45; // Low opacity so dark Leonardo bg dominates
+          // Draw chart covering right 70% of frame
           var cw = Math.round(1280 * 0.72);
           var ch = 720;
           var cx = Math.round(1280 * 0.28);
-          offCtx.drawImage(chartImg, cx, 0, cw, ch);
-
-          // Step B: Dark multiply overlay — kills white/light background
-          // 'multiply' blend darkens light pixels, preserves dark ones
-          offCtx.globalCompositeOperation = 'multiply';
-          offCtx.fillStyle = 'rgba(8, 8, 16, 0.72)'; // near-black darkening layer
-          offCtx.fillRect(0, 0, 1280, 720);
-          offCtx.globalCompositeOperation = 'source-over';
-
-          // Step C: Blend darkened chart onto Leonardo background at 55% opacity
-          // Lower opacity so dark atmospheric background stays dominant
-          ctx.globalAlpha = 0.55;
-          ctx.drawImage(offscreen, 0, 0);
+          ctx.drawImage(chartImg, cx, 0, cw, ch);
           ctx.globalAlpha = 1.0;
-
+          ctx.globalCompositeOperation = 'source-over'; // reset blend mode
           finishComposite(ctx, canvas, hookText, resolve, reject);
         };
         chartImg.onerror = function() {
