@@ -458,9 +458,7 @@ DESCRIPTION RULES:
   [CHAPTERS]
   \\n\\n
   Read the full breakdown: ${articleUrl}\\n\\n
-  Join 7,000+ traders learning Catch The Wick™:\\n
-  https://discord.com/invite/fWAPJdR8TR\\n\\n
-  Free resources: https://fortitudefx.com
+  Join free — resources + community: https://fortitudefx.com/joinfree
 
 - Each bullet must be specific to THIS video — what Salman actually covers in the transcript
 - Never: generic trading advice, vague benefits, "you will learn how to..."
@@ -533,7 +531,7 @@ Return ONLY a valid JSON object:
   ],
   "description": {
     "hook": "first 125 chars — Salman speaking directly, core insight, no preamble",
-    "full": "complete description with chapter markers (or [TIMESTAMPS] if no timestamp data), article link, Discord, website"
+    "full": "complete description with chapter markers (or [TIMESTAMPS] if no timestamp data), article link, joinfree CTA"
   },
   "chapters": ["0:00 Introduction", "1:24 Chapter Name", "etc — OR empty array if no timestamp data"],
   "tags": ["FortitudeFX", "Catch the Wick", "forex trading", "price action", "forex strategy", "Salman Khan forex", "tag7", "tag8"],
