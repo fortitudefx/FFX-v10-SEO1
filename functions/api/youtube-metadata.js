@@ -97,15 +97,43 @@ export async function onRequestPost(context) {
       }
     } catch(e) {}
 
+    // ── Fetch timestamps directly if not already in KV ─────────────────
+    // Handles case where video was processed before timestamped fetch was built,
+    // or where Phase 1 was skipped (phase1Complete) so consumer never ran fetchTranscriptTimestamped
+    let resolvedTimestamps = transcriptTimestamps;
+    if (!Array.isArray(resolvedTimestamps) || resolvedTimestamps.length === 0) {
+      const ytUrlForTs = youtubeUrl || `https://www.youtube.com/watch?v=${videoId}`;
+      if (ytUrlForTs && env.SUPADATA_API_KEY) {
+        try {
+          const tsApiUrl = 'https://api.supadata.ai/v1/youtube/transcript?url=' + encodeURIComponent(ytUrlForTs);
+          const tsRes = await fetch(tsApiUrl, { headers: { 'x-api-key': env.SUPADATA_API_KEY } });
+          if (tsRes.ok) {
+            const tsData = await tsRes.json();
+            if (Array.isArray(tsData.content) && tsData.content.length > 0 && typeof tsData.content[0] === 'object' && typeof tsData.content[0].start === 'number') {
+              resolvedTimestamps = tsData.content.filter(function(s) {
+                return s && typeof s.text === 'string' && typeof s.start === 'number';
+              });
+              // Write to KV permanently so future regenerations are instant
+              if (resolvedTimestamps.length > 0) {
+                await env.FFX_KV.put(`transcript:timestamps:${videoId}`, JSON.stringify(resolvedTimestamps)).catch(function() {});
+                console.log('[youtube-metadata] Timestamped transcript fetched and stored:', resolvedTimestamps.length, 'chunks');
+              }
+            }
+          }
+        } catch(tsErr) {
+          console.error('[youtube-metadata] Direct timestamp fetch failed (non-fatal):', tsErr.message);
+        }
+      }
+    }
+
     // ── Build chapter outline from timestamps ────────────────────────────
     let chapterContext = '';
-    if (Array.isArray(transcriptTimestamps) && transcriptTimestamps.length > 0) {
-      // Sample every Nth chunk to give Claude the full video timeline without overwhelming context
-      const totalChunks = transcriptTimestamps.length;
-      const step = Math.max(1, Math.floor(totalChunks / 60)); // ~60 sample points
-      const sampled = transcriptTimestamps.filter((_, i) => i % step === 0);
+    if (Array.isArray(resolvedTimestamps) && resolvedTimestamps.length > 0) {
+      const totalChunks = resolvedTimestamps.length;
+      const step = Math.max(1, Math.floor(totalChunks / 60));
+      const sampled = resolvedTimestamps.filter(function(_, i) { return i % step === 0; });
       chapterContext = `\n━━ TIMESTAMPED TRANSCRIPT (for chapter generation) ━━\n`;
-      chapterContext += `Total duration: approximately ${formatSeconds(transcriptTimestamps[transcriptTimestamps.length-1].start + (transcriptTimestamps[transcriptTimestamps.length-1].duration || 0))}\n`;
+      chapterContext += `Total duration: approximately ${formatSeconds(resolvedTimestamps[resolvedTimestamps.length-1].start + (resolvedTimestamps[resolvedTimestamps.length-1].duration || 0))}\n`;
       chapterContext += `Sampled transcript with timestamps:\n`;
       sampled.forEach(function(chunk) {
         chapterContext += `[${formatSeconds(chunk.start)}] ${chunk.text}\n`;
@@ -368,22 +396,34 @@ TITLE RULES:
 - Suggest 1 primary title + 2 alternatives with reasoning
 
 DESCRIPTION RULES:
-- First 125 characters must hook immediately — Salman's direct voice, no preamble
-- Structure:
-  [Hook line — core insight from video, first person]
-  
-  [2-3 sentence body — what they will learn, specific and mechanical]
-  
-  [CHAPTERS — paste chapter markers here exactly as shown below]
-  
-  Read the full breakdown: ${articleUrl}
-  
-  Join 7,000+ traders learning Catch The Wick™:
-  https://discord.com/invite/fWAPJdR8TR
-  
+- First 125 characters must hook immediately — Salman's direct voice, core insight, no preamble
+- Structure EXACTLY as follows (use \\n for every line break):
+
+  [Hook line — one direct sentence, core insight from video, first person]
+  \\n\\n
+  [1-2 sentence body intro — what this video establishes, Salman's voice]
+  \\n\\n
+  [Bullet list — what viewer will learn. EACH item on its own line starting with — (em dash + space)]
+  Format:
+  — [specific thing 1]\\n
+  — [specific thing 2]\\n
+  — [specific thing 3]\\n
+  — [specific thing 4]\\n
+  \\n
+  [One closing line — the payoff or system reference]
+  \\n\\n
+  [CHAPTERS]
+  \\n\\n
+  Read the full breakdown: ${articleUrl}\\n\\n
+  Join 7,000+ traders learning Catch The Wick™:\\n
+  https://discord.com/invite/fWAPJdR8TR\\n\\n
   Free resources: https://fortitudefx.com
-- Weave rising search queries naturally into the body — not forced, not keyword-stuffed
-- Use \\n for line breaks
+
+- Each bullet must be specific to THIS video — what Salman actually covers in the transcript
+- Never: generic trading advice, vague benefits, "you will learn how to..."
+- Always: specific concepts, specific mechanics, specific CTW terminology from the transcript
+- Weave rising search queries naturally into the hook or body — not forced
+- The — bullet format is NON-NEGOTIABLE. Never collapse bullets into a paragraph.
 
 CHAPTER GENERATION RULES — MANDATORY:
 ${chapterContext ? `You have timestamped transcript data above. USE IT to generate accurate chapter markers.
