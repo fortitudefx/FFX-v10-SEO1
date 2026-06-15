@@ -492,37 +492,60 @@ TAGS RULES:
 
 THUMBNAIL RULES:
 
-ARCHITECTURE: Leonardo generates PURE ABSTRACT ATMOSPHERE only — no charts, no financial objects, no bars.
-Your TradingView chart screenshot is uploaded separately and blended on top by the canvas.
-Leonardo's job is MOOD and CINEMATIC LIGHT only. Nothing financial enters the Leonardo prompt.
+USE THIS EXACT PROMPT STRUCTURE for every thumbnail. Fill in the bracketed sections from the transcript.
+This structure is proven for YouTube thumbnails. Follow it precisely.
 
-STEP 1 — READ THE TRANSCRIPT and identify the emotional tone of this video:
-- Educational/concept (what something means, how something works) → MOOD A
-- Live setup/opportunity (entry, current market, act now) → MOOD B  
-- Danger/reversal/stop hunt (risk, swept, wrong side) → MOOD C
-- Authority/system (mechanical rules, precision, the method) → MOOD D
+LEONARDO PROMPT TEMPLATE — copy this structure exactly, fill the brackets:
 
-STEP 2 — BUILD THE LEONARDO PROMPT using ONLY the selected mood template below.
-DO NOT add any financial language. DO NOT add chart elements. DO NOT mention candles, bars, wicks, price, forex, trading.
+"Create a professional YouTube thumbnail.
 
-MOOD A — Educational/Concept (calm gold light in darkness):
-"Abstract dark cinematic atmosphere, single warm amber light source from upper right casting soft golden glow into pure black void, light disperses gently into darkness, deep shadows everywhere, pure black background, no objects, no people, no text, no financial elements, minimal abstract light photography, 1472x832"
+Visual Story:
+[describe the trading scene as cinematic visuals — what is HAPPENING in this video.
+Use visual language: glowing screens, dramatic price movement, dark trading environment.
+Examples:
+- Momentum candle video: "Dark trading environment. Single large glowing green price bar dominating the screen. Market momentum visible. Clean chart on dark screen."
+- Stop hunt video: "Dark screens showing price sweeping through a level then reversing violently. Dramatic red and green contrast."
+- Structure video: "Clean dark chart showing a clear horizontal level. Price approaching with tension. Dark atmospheric trading room."
+- Entry setup video: "Precise chart moment. Two bars forming a perfect setup. Dark screens. Gold light on the key level."
+Never describe a physical candle, wax, or object. Always describe a SCENE on a trading screen.]
 
-MOOD B — Opportunity/Urgency (dynamic gold energy):
-"Abstract dramatic dark atmosphere, intense concentrated amber light beam piercing through pure black from upper right, dynamic gold particles dispersing into darkness, sense of movement and energy, pure black void, no objects, no people, no charts, cinematic abstract light on black, 1472x832"
+Style:
+Premium YouTube thumbnail.
+Modern financial education channel.
+Luxury brand aesthetic — dark, gold accents, cinematic.
+Ultra realistic.
+Cinematic lighting — dark with single gold/amber light source.
+Sharp focus.
+High detail.
+Professional financial content creator aesthetic.
+Dark background — near black with gold accent tones.
+FortitudeFX channel aesthetic — institutional, precise, authoritative.
 
-MOOD C — Danger/Reversal (dramatic dark tension):
-"Abstract dark tension atmosphere, single sharp gold light cutting through heavy deep black from upper right, dramatic contrast between bright gold edge and pure black darkness, ominous mood, no objects, no people, no text, pure cinematic black with single gold light source, 1472x832"
+Psychology:
+[pick one based on transcript]:
+- Educational video: Create curiosity. Make viewer ask: what does this tell me that I am missing?
+- Setup video: Create urgency. Make viewer ask: am I seeing this opportunity right now?
+- Reversal/danger video: Create tension. Make viewer ask: is this happening to me?
+- System video: Create authority. Make viewer trust this is the definitive answer.
 
-MOOD D — Authority/System (precise surgical light):
-"Abstract minimal dark atmosphere, thin precise gold light line from upper right on pure black background, surgical precision, architectural calm, deep black void with single defined amber accent, no objects, no people, no financial elements, ultra minimal cinematic darkness, 1472x832"
+Composition:
+Dark scene occupying right 60% of frame.
+Strong focal point on the key visual element.
+High contrast — dark background, bright focal point.
+Clear negative space on left 40% for text overlay.
+No clutter.
+No watermark.
+No logo.
+No text in image.
+16:9 aspect ratio.
+4K quality."
 
-STEP 3 — HOOK TEXT (textOverlay):
+STEP 2 — HOOK TEXT (textOverlay):
 Maximum 3 words. ALL CAPS. Specific curiosity gap from the transcript's core insight.
-Informed by YouTube search queries from the signals above — what does this specific audience NOT know?
+Informed by YouTube search queries — what does this specific audience NOT know?
 
 Strong hooks: "PRICE ALREADY TOLD YOU", "STRUCTURE ALREADY BROKE", "THE WICK REVEALS", "BEFORE THE ENTRY", "THEY ALREADY MOVED"
-Banned: "FOREX TIPS", "TRADE THIS NOW", "CATCH THE WICK", anything generic or brand-name
+Banned: "FOREX TIPS", "TRADE THIS NOW", "CATCH THE WICK", anything generic
 
 Return ONLY a valid JSON object:
 {
@@ -538,11 +561,10 @@ Return ONLY a valid JSON object:
   "chapters": ["0:00 Introduction", "1:24 Chapter Name", "etc — OR empty array if no timestamp data"],
   "tags": ["FortitudeFX", "Catch the Wick", "forex trading", "price action", "forex strategy", "Salman Khan forex", "tag7", "tag8"],
   "thumbnailConcept": {
-    "mood": "A, B, C, or D — which mood matches this video's emotional tone",
-    "textOverlay": "3 WORD ALL CAPS HOOK — specific curiosity gap from transcript, informed by YouTube search queries",
-    "leonardoPrompt": "the complete mood template copied exactly as written above — no modifications, no additions",
+    "textOverlay": "3 WORD ALL CAPS HOOK — specific curiosity gap from transcript",
+    "leonardoPrompt": "the complete prompt using the template above — Visual Story filled from transcript, Psychology selected, all other sections copied exactly",
     "searchQueryInformed": "which YouTube search query informed the hook text",
-    "reasoning": "one sentence — why this mood + hook combination will stop a retail forex trader mid-scroll"
+    "reasoning": "one sentence — why this visual story + hook will stop a retail forex trader mid-scroll"
   },
   "signalsApplied": {
     "primaryTitleSignal": "which signal drove the title choice",
