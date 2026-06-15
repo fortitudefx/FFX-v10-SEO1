@@ -491,36 +491,32 @@ TAGS RULES:
 - Include both short-tail (forex trading) and long-tail (catch the wick momentum candle strategy) tags
 
 THUMBNAIL RULES:
-Choose VISUAL SCENE (A-E):
-  A) DRAMATIC_CHART — extreme candlestick spike or crash, cinematic, danger or opportunity
-  B) PRICE_ACTION — key forex level being hit, precision, tension
-  C) VOLATILITY_STORM — chaotic multi-candle motion, urgency
-  D) SIGNAL_MOMENT — single clean setup with zones or arrows, surgical, authoritative
-  E) AFTERMATH — after the move, proof energy, "I told you so"
 
-Choose EMOTIONAL REGISTER (1-4):
-  1) SHOCK — unexpected result, reversal, surprise
-  2) AUTHORITY — calm certainty, institutional, system explanation
-  3) URGENCY — right now, live setup, current market
-  4) REVELATION — moment of understanding, concept, "why" video
+CRITICAL ARCHITECTURE — READ CAREFULLY:
+The thumbnail uses a LOCKED BRAND TEMPLATE with ONE variable you fill from the transcript.
+Do NOT write a free-form description. Fill ONLY the [VISUAL_SUBJECT] slot.
 
-Choose COLOUR TEMPERATURE:
-  COOL (blue-teal): analytical, educational, system-based
-  WARM (gold-orange): opportunity, profit, live setup
-  RED_ACCENT: risk, stop loss, loss analysis (use sparingly)
+THE LOCKED FFX TEMPLATE (never changes — this is the brand):
+"[VISUAL_SUBJECT], single subject extreme close-up, perfectly isolated against pure black background #0a0a12, subject positioned in right 55% of frame, left 45% of frame is pure black emptiness with zero detail, single warm gold rim light source from upper right edge only #c9a84c creating a thin glowing outline on the subject, deep black shadows everywhere else, anamorphic cinematic lens compression, f/1.2 ultra shallow depth of field, ultra sharp on subject surface, the rest falls to pure black, desaturated color grade except warm amber and gold tones on subject edges, no text, no labels, no arrows, no grid lines, no annotations, no watermarks, no people, no chart overlays, pure black left half of frame, film grain, 1472x832"
 
-textOverlay: 3-5 words MAX. ALL CAPS. Creates tension or curiosity. Must be aggressive.
-Strong: "THIS CANDLE TELLS ALL", "YOUR STOP GETS HUNTED", "PRICE NEVER LIES HERE", "THEY SWEPT YOUR STOP"
-Weak: "FOREX TRADING TIPS", "HOW TO TRADE", "CATCH THE WICK SETUP" (too generic)
+YOUR ONLY JOB — fill [VISUAL_SUBJECT] with 6-10 words describing the specific visual from THIS video:
+- Momentum candle video: "single large bullish candlestick with long dominant body"
+- Wick video: "single candlestick with extreme long upper wick rejection"
+- Structure break: "two candlesticks side by side momentum then reversal"
+- Stop hunt: "sharp candlestick wick piercing through a horizontal price level"
+- Entry setup: "clean two-candle formation on dark chart surface"
+- Risk management: "single red bearish candle in isolation"
 
-leonardoPrompt: Rich Leonardo AI Phoenix model prompt. MUST include:
-- Specific scene (vivid, different every video)
-- "cinematic 16:9 composition, left 40% of frame is dark clean negative space #0a0a12 for text overlay"
-- "right 60% contains the main visual subject"
-- "gold accent lighting #c9a84c, dark editorial background #0a0a12"
-- "ultra sharp focus, high contrast, professional financial editorial photography"
-- "no text, no watermarks, no logos, no people, 1280x720 YouTube thumbnail"
-- Minimum 80 words
+The [VISUAL_SUBJECT] must be:
+- Specific to what THIS video is actually about (read the transcript)
+- A physical forex chart element — candlestick, wick, level, formation
+- Simple — one or two elements maximum. Not a full chart scene.
+- NOT generic ("forex chart", "trading screen", "candlestick pattern")
+
+textOverlay: 3 words MAXIMUM. ALL CAPS. Single aggressive statement that creates a question or tension.
+Strong examples: "THIS TELLS ALL", "PRICE NEVER LIES", "THEY SWEPT IT", "STRUCTURE SHIFTS HERE", "THE WICK REVEALS"
+Weak (never use): "FOREX TRADING TIPS", "LEARN THIS NOW", "CATCH THE WICK" (brand name, not a hook)
+The hook must make a viewer think "what does it tell? I need to know" — it is incomplete without clicking.
 
 Return ONLY a valid JSON object:
 {
@@ -536,12 +532,10 @@ Return ONLY a valid JSON object:
   "chapters": ["0:00 Introduction", "1:24 Chapter Name", "etc — OR empty array if no timestamp data"],
   "tags": ["FortitudeFX", "Catch the Wick", "forex trading", "price action", "forex strategy", "Salman Khan forex", "tag7", "tag8"],
   "thumbnailConcept": {
-    "visualScene": "A/B/C/D/E",
-    "emotionalRegister": "1/2/3/4",
-    "colourTemperature": "COOL/WARM/RED_ACCENT",
-    "textOverlay": "3-5 WORD ALL CAPS HOOK",
-    "leonardoPrompt": "full 80+ word Leonardo prompt",
-    "reasoning": "one sentence — CTR psychology + which discovery signal (search vs suggested) informed the choice"
+    "visualSubject": "6-10 words describing the specific forex visual from this video transcript",
+    "textOverlay": "3 WORD ALL CAPS HOOK — specific tension, NOT generic",
+    "leonardoPrompt": "LOCKED TEMPLATE with [VISUAL_SUBJECT] replaced by your visualSubject — copy the full template and substitute the slot",
+    "reasoning": "one sentence — why this specific visual subject and hook will make the target viewer stop scrolling"
   },
   "signalsApplied": {
     "primaryTitleSignal": "which signal drove the title choice",
