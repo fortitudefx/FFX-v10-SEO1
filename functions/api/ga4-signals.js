@@ -38,7 +38,8 @@ export async function onRequestPost(context) {
 
     const fmt = d => d.toISOString().split('T')[0];
 
-    const [overview7, prevOverview7, pages7, sources7, countries7, devices7, channels7, newReturn7] = await Promise.all([
+    const [overview7, prevOverview7, pages7, sources7, countries7, devices7, channels7, newReturn7,
+           ytReferralPages, ytReferralEvents] = await Promise.all([
       ga4Query(token, { dateRanges: [{ startDate: fmt(start7), endDate: fmt(endDate) }], metrics: [{ name:'activeUsers' },{ name:'sessions' },{ name:'averageSessionDuration' },{ name:'bounceRate' }] }),
       ga4Query(token, { dateRanges: [{ startDate: fmt(prevStart), endDate: fmt(prevEnd) }], metrics: [{ name:'activeUsers' },{ name:'sessions' },{ name:'averageSessionDuration' },{ name:'bounceRate' }] }),
       ga4Query(token, { dateRanges: [{ startDate: fmt(start7), endDate: fmt(endDate) }], dimensions: [{ name:'pagePath' }], metrics: [{ name:'sessions' },{ name:'averageSessionDuration' },{ name:'bounceRate' }], limit: 15, orderBys: [{ metric: { metricName:'sessions' }, desc: true }] }),
@@ -47,6 +48,10 @@ export async function onRequestPost(context) {
       ga4Query(token, { dateRanges: [{ startDate: fmt(start7), endDate: fmt(endDate) }], dimensions: [{ name:'deviceCategory' }], metrics: [{ name:'sessions' }] }),
       ga4Query(token, { dateRanges: [{ startDate: fmt(start7), endDate: fmt(endDate) }], dimensions: [{ name:'sessionDefaultChannelGroup' }], metrics: [{ name:'activeUsers' },{ name:'sessions' }], orderBys: [{ metric: { metricName:'sessions' }, desc: true }] }),
       ga4Query(token, { dateRanges: [{ startDate: fmt(start7), endDate: fmt(endDate) }], dimensions: [{ name:'newVsReturning' }], metrics: [{ name:'activeUsers' }] }),
+      // YouTube referral: which pages get traffic from youtube.com (last 28 days)
+      ga4Query(token, { dateRanges: [{ startDate: fmt(start28), endDate: fmt(endDate) }], dimensions: [{ name:'pagePath' },{ name:'sessionSource' }], metrics: [{ name:'sessions' },{ name:'averageSessionDuration' }], dimensionFilter: { filter: { fieldName:'sessionSource', stringFilter: { matchType:'CONTAINS', value:'youtube' } } }, limit: 20, orderBys: [{ metric: { metricName:'sessions' }, desc: true }] }).catch(function() { return null; }),
+      // YouTube referral: conversion events from youtube.com sessions (Discord clicks, bootcamp views)
+      ga4Query(token, { dateRanges: [{ startDate: fmt(start28), endDate: fmt(endDate) }], dimensions: [{ name:'eventName' },{ name:'sessionSource' }], metrics: [{ name:'eventCount' }], dimensionFilter: { filter: { fieldName:'sessionSource', stringFilter: { matchType:'CONTAINS', value:'youtube' } } }, limit: 20, orderBys: [{ metric: { metricName:'eventCount' }, desc: true }] }).catch(function() { return null; }),
     ]);
 
     const c = overview7.rows?.[0]?.metricValues || [];
@@ -94,6 +99,31 @@ export async function onRequestPost(context) {
     else if (userDelta !== null && userDelta > 0) momentum = 'growing';
     else if (userDelta !== null && userDelta < -10) momentum = 'declining';
 
+    // ── Process YouTube referral data ────────────────────────────────────
+    var ytReferralPagesData = [];
+    if (ytReferralPages && ytReferralPages.rows) {
+      ytReferralPagesData = ytReferralPages.rows
+        .filter(function(r) { return r.dimensionValues[1].value.includes('youtube'); })
+        .map(function(r) { return {
+          path:     r.dimensionValues[0].value,
+          sessions: parseInt(r.metricValues[0].value),
+          avgDuration: parseFloat(r.metricValues[1].value),
+        }; })
+        .slice(0, 10);
+    }
+
+    var ytConversionData = [];
+    if (ytReferralEvents && ytReferralEvents.rows) {
+      ytConversionData = ytReferralEvents.rows
+        .filter(function(r) { return r.dimensionValues[1].value.includes('youtube'); })
+        .map(function(r) { return {
+          event:      r.dimensionValues[0].value,
+          eventCount: parseInt(r.metricValues[0].value),
+        }; })
+        .filter(function(r) { return r.event !== 'session_start' && r.event !== 'first_visit' && r.event !== 'page_view'; })
+        .slice(0, 10);
+    }
+
     const signals = {
       generatedAt: now.toISOString(),
       period:      { start: fmt(start7), end: fmt(endDate) },
@@ -112,6 +142,11 @@ export async function onRequestPost(context) {
       topCountries: (countries7.rows||[]).map(r => ({ country: r.dimensionValues[0].value, users: parseInt(r.metricValues[0].value) })),
       devices:      (devices7.rows||[]).map(r => ({ device: r.dimensionValues[0].value, sessions: parseInt(r.metricValues[0].value) })),
       channels:     (channels7.rows||[]).map(r => ({ channel: r.dimensionValues[0].value, users: parseInt(r.metricValues[0].value), sessions: parseInt(r.metricValues[1].value) })),
+      youtubeReferralData: {
+        topPages:        ytReferralPagesData,
+        conversions:     ytConversionData,
+        totalYtSessions: ytReferralPagesData.reduce(function(s, r) { return s + r.sessions; }, 0),
+      },
     };
 
     await env.FFX_KV.put(SIGNALS_KEY, JSON.stringify(signals));
