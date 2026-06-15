@@ -126,6 +126,9 @@ async function handleMarkPublished(request, env) {
 
     await env.FFX_KV.put('youtube:published:' + videoId, JSON.stringify(publishedRecord));
 
+    // Clear generation checkpoint on publish — video is live, no more retries needed
+    try { await env.FFX_KV.delete('video:checkpoint:' + videoId); } catch {}
+
     // Update youtube:published:index
     const index = await env.FFX_KV.get('youtube:published:index', { type: 'json' }).catch(() => []);
     const arr   = Array.isArray(index) ? index : [];
