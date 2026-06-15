@@ -53,14 +53,15 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json', 'Accept': 'application/json' }, authHeader),
       body: JSON.stringify({
-        modelId:       PHOENIX_1_MODEL,
-        prompt:        leonardoPrompt,
-        num_images:    1,
-        width:         1472,
-        height:        832,
-        contrast:      4,          // High contrast — critical for dark cinematic thumbnails
-        alchemy:       true,       // Quality mode — better detail and lighting
-        enhancePrompt: false,      // Use our exact prompt, do not modify it
+        modelId:        PHOENIX_1_MODEL,
+        prompt:         leonardoPrompt,
+        negative_prompt: 'teal, cyan, blue color grading, neon glow, neon lines, glowing lines, grid lines, chart grid, chart annotations, text overlay, watermark, labels, arrows, indicators, price labels, axis labels, white background, bright background, colorful, busy background, multiple elements, stock photo style, generic finance photo, amateurish, low contrast, flat lighting, overexposed, cluttered, complex scene, multiple charts, trading platform UI, computer screen, person, human, face, hand, multiple candles filling entire frame, full chart view',
+        num_images:     1,
+        width:          1472,
+        height:         832,
+        contrast:       4,     // High — essential for dark cinematic thumbnails
+        alchemy:        true,  // Quality mode — better shadow detail and lighting
+        enhancePrompt:  false, // Never modify our locked template prompt
       }),
     });
 
