@@ -37,6 +37,24 @@ async function processJob(job, env) {
   const { jobId, videoId, youtubeUrl, existingSlug } = job;
   console.log('[FFX] Processing job:', jobId, 'videoId:', videoId);
 
+  // ── Skip Phase 1 entirely if video already fully generated ──────────────
+  // Happens when: regenerate pressed after success, or Phase 2 (SEO) failed
+  // All KV data from Phase 1 is permanent — no need to re-run 4 Claude calls
+  try {
+    const existingVideo = await env.FFX_KV.get('video:' + videoId, { type: 'json' }).catch(function() { return null; });
+    if (existingVideo && existingVideo.slug && existingVideo.platforms) {
+      console.log('[FFX] video:' + videoId + ' already exists — skipping Phase 1, marking job complete');
+      await kvPut(env, 'job:' + jobId, JSON.stringify({
+        status: 'complete', videoId: videoId, generatedAt: existingVideo.generatedAt || new Date().toISOString(),
+        skipped: true,
+      }), { expirationTtl: 86400 });
+      try { await env.FFX_KV.delete('lock:generating'); } catch {}
+      return;
+    }
+  } catch(skipErr) {
+    console.error('[FFX] Skip-check failed (non-fatal, continuing):', skipErr.message);
+  }
+
   await kvPut(env, 'lock:generating', JSON.stringify({
     jobId, videoId, startedAt: new Date().toISOString()
   }), { expirationTtl: 1800 });
@@ -85,6 +103,18 @@ async function processJob(job, env) {
       console.log('[FFX] Transcript stored permanently:', videoId);
     } catch (err) {
       console.error('[FFX] Transcript KV write failed (non-fatal):', err.message);
+    }
+
+    // Fetch and store timestamped chunks for chapter generation in youtube-metadata.js
+    // Non-fatal — plain text already stored, timestamps are bonus data
+    try {
+      const timestampedChunks = await fetchTranscriptTimestamped(youtubeUrl, env.SUPADATA_API_KEY);
+      if (timestampedChunks && timestampedChunks.length > 0) {
+        await env.FFX_KV.put('transcript:timestamps:' + videoId, JSON.stringify(timestampedChunks));
+        console.log('[FFX] Timestamped transcript stored:', timestampedChunks.length, 'chunks');
+      }
+    } catch(tsErr) {
+      console.error('[FFX] Timestamped transcript store failed (non-fatal):', tsErr.message);
     }
 
     const linkedinFormats = ['WALL', 'SHORT', 'SINGLE', 'STORY', 'CONTRARIAN'];
@@ -437,14 +467,58 @@ async function kvPut(env, key, value, options) {
 
 async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
   if (!apiKey) throw new Error('SUPADATA_API_KEY not set');
-  const url = 'https://api.supadata.ai/v1/youtube/transcript?url=' + encodeURIComponent(youtubeUrl) + '&text=true';
-  const res = await fetch(url, { headers: { 'x-api-key': apiKey } });
-  console.log('[FFX] Supadata status:', res.status);
-  if (!res.ok) throw new Error('Supadata ' + res.status + ': ' + await res.text());
-  const data = await res.json();
-  if (data.content && typeof data.content === 'string') return data.content.trim();
-  if (Array.isArray(data.content)) return data.content.map(function(s){ return s.text || ''; }).join(' ').trim();
-  throw new Error('Unexpected Supadata response: ' + JSON.stringify(data).slice(0, 200));
+
+  // Fetch plain text transcript for article/platform generation
+  const textUrl = 'https://api.supadata.ai/v1/youtube/transcript?url=' + encodeURIComponent(youtubeUrl) + '&text=true';
+  const textRes = await fetch(textUrl, { headers: { 'x-api-key': apiKey } });
+  console.log('[FFX] Supadata text status:', textRes.status);
+  if (!textRes.ok) throw new Error('Supadata ' + textRes.status + ': ' + await textRes.text());
+  const textData = await textRes.json();
+
+  let plainText = '';
+  if (textData.content && typeof textData.content === 'string') {
+    plainText = textData.content.trim();
+  } else if (Array.isArray(textData.content)) {
+    plainText = textData.content.map(function(s){ return s.text || ''; }).join(' ').trim();
+  } else {
+    throw new Error('Unexpected Supadata text response: ' + JSON.stringify(textData).slice(0, 200));
+  }
+
+  return plainText;
+}
+
+// Separate function — fetch timestamped chunks for chapter generation
+// Called alongside fetchTranscriptSupadata but stored separately
+// Returns array of { text, start, duration } — start is seconds from video start
+async function fetchTranscriptTimestamped(youtubeUrl, apiKey) {
+  if (!apiKey) {
+    console.error('[FFX] SUPADATA_API_KEY not set — skipping timestamped fetch');
+    return null;
+  }
+  try {
+    // Without &text=true, Supadata returns timestamped chunks
+    const tsUrl = 'https://api.supadata.ai/v1/youtube/transcript?url=' + encodeURIComponent(youtubeUrl);
+    const tsRes = await fetch(tsUrl, { headers: { 'x-api-key': apiKey } });
+    console.log('[FFX] Supadata timestamped status:', tsRes.status);
+    if (!tsRes.ok) {
+      console.error('[FFX] Supadata timestamped fetch failed:', tsRes.status);
+      return null;
+    }
+    const tsData = await tsRes.json();
+    if (Array.isArray(tsData.content) && tsData.content.length > 0 && typeof tsData.content[0] === 'object') {
+      // Validate structure: each item should have text and start
+      const valid = tsData.content.filter(function(s) {
+        return s && typeof s.text === 'string' && typeof s.start === 'number';
+      });
+      console.log('[FFX] Timestamped chunks fetched:', valid.length);
+      return valid;
+    }
+    console.error('[FFX] Supadata timestamped: unexpected structure');
+    return null;
+  } catch(e) {
+    console.error('[FFX] fetchTranscriptTimestamped failed (non-fatal):', e.message);
+    return null;
+  }
 }
 
 async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalSlug, existingSlug, env) {
