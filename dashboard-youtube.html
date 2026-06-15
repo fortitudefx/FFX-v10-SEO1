@@ -1043,11 +1043,18 @@ async function generateThumbnail() {
       return;
     }
 
+    // Composite hook text onto Leonardo image via canvas
+    var hookText = (_currentMeta.thumbnailConcept || {}).textOverlay || '';
+    var composited = await compositeHookText(data.imageUrl, hookText);
+
     var img = document.getElementById('thumbImg');
-    img.src = data.imageUrl;
+    img.src = composited.dataUrl;
     img.classList.add('visible');
+
+    // Download button uses composited PNG — not raw Leonardo URL
     var dlBtn = document.getElementById('thumbDownloadBtn');
-    dlBtn.href = data.imageUrl;
+    dlBtn.href = composited.dataUrl;
+    dlBtn.download = 'ffx-thumbnail-' + (_currentVideoId || 'video') + '.png';
     dlBtn.classList.remove('hidden');
     btn.disabled = false;
     btn.innerHTML = '&#8635; Regenerate';
@@ -1057,6 +1064,143 @@ async function generateThumbnail() {
     document.getElementById('thumbPlaceholder').style.display = '';
     btn.disabled = false; btn.innerHTML = '&#9889; Retry';
   }
+}
+
+// ── Canvas compositing — hook text overlay onto Leonardo image ────────────
+// Renders at 1280x720 (YouTube spec). Hook text in left 40% zone.
+// Font: bold sans-serif, white with dark shadow for readability on any background.
+// Returns: { dataUrl: 'data:image/png;base64,...' }
+async function compositeHookText(imageUrl, hookText) {
+  return new Promise(function(resolve) {
+
+    // If no hook text, return the raw image as-is
+    if (!hookText || !hookText.trim()) {
+      resolve({ dataUrl: imageUrl });
+      return;
+    }
+
+    var canvas  = document.createElement('canvas');
+    canvas.width  = 1280;
+    canvas.height = 720;
+    var ctx = canvas.getContext('2d');
+
+    var img = new Image();
+    // Allow cross-origin image loading from Leonardo CDN
+    img.crossOrigin = 'anonymous';
+
+    img.onload = function() {
+      // Draw the Leonardo image scaled to 1280x720
+      ctx.drawImage(img, 0, 0, 1280, 720);
+
+      // ── Hook text compositing ────────────────────────────────────────
+      // Text lives in left 40% of frame (0 to 512px)
+      // Positioned vertically centred, slightly above middle for visual weight
+      var textZoneWidth = 512;  // 40% of 1280
+      var text          = hookText.toUpperCase().trim();
+
+      // Font sizing — fit text within left zone
+      // Start at 96px, reduce until it fits within ~480px (leaving 16px padding each side)
+      var maxTextWidth = textZoneWidth - 48; // 16px padding each side + some breathing room
+      var fontSize     = 96;
+      var minFontSize  = 40;
+      ctx.font = 'bold ' + fontSize + 'px "DM Sans", "Arial Black", Arial, sans-serif';
+
+      // Split into lines if text is long (over 2 words usually fits on 2 lines)
+      var words = text.split(' ');
+      var lines = [];
+
+      if (words.length <= 2) {
+        // Single line
+        while (fontSize > minFontSize && ctx.measureText(text).width > maxTextWidth) {
+          fontSize -= 4;
+          ctx.font = 'bold ' + fontSize + 'px "DM Sans", "Arial Black", Arial, sans-serif';
+        }
+        lines = [text];
+      } else if (words.length === 3) {
+        // Try to split at midpoint
+        var line1 = words.slice(0, 2).join(' ');
+        var line2 = words.slice(2).join(' ');
+        while (fontSize > minFontSize &&
+          (ctx.measureText(line1).width > maxTextWidth || ctx.measureText(line2).width > maxTextWidth)) {
+          fontSize -= 4;
+          ctx.font = 'bold ' + fontSize + 'px "DM Sans", "Arial Black", Arial, sans-serif';
+        }
+        lines = [line1, line2];
+      } else {
+        // 4-5 words — split roughly in half
+        var mid   = Math.ceil(words.length / 2);
+        var line1 = words.slice(0, mid).join(' ');
+        var line2 = words.slice(mid).join(' ');
+        while (fontSize > minFontSize &&
+          (ctx.measureText(line1).width > maxTextWidth || ctx.measureText(line2).width > maxTextWidth)) {
+          fontSize -= 4;
+          ctx.font = 'bold ' + fontSize + 'px "DM Sans", "Arial Black", Arial, sans-serif';
+        }
+        lines = [line1, line2];
+      }
+
+      var lineHeight = Math.round(fontSize * 1.15);
+      var totalTextHeight = lines.length * lineHeight;
+
+      // Vertical position: centre of image, pulled up slightly
+      var startY = Math.round((720 / 2) - (totalTextHeight / 2) + (fontSize * 0.15));
+
+      // Left aligned within the left zone, with padding
+      var textX = 32; // 32px from left edge
+
+      lines.forEach(function(line, i) {
+        var y = startY + (i * lineHeight);
+
+        // ── Shadow / outline for readability on any background ──────────
+        ctx.shadowColor   = 'rgba(0, 0, 0, 0.90)';
+        ctx.shadowBlur    = 12;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+
+        // Thin dark stroke outline
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.95)';
+        ctx.lineWidth   = 8;
+        ctx.lineJoin    = 'round';
+        ctx.strokeText(line, textX, y);
+
+        // Gold accent underline on first line only — FFX brand mark
+        if (i === 0) {
+          var lineW = ctx.measureText(line).width;
+          ctx.shadowColor   = 'transparent';
+          ctx.shadowBlur    = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+          ctx.fillStyle   = '#c9a84c'; // FFX gold
+          ctx.fillRect(textX, y + 6, Math.min(lineW, maxTextWidth), 4);
+        }
+
+        // White fill text on top
+        ctx.shadowColor   = 'rgba(0, 0, 0, 0.80)';
+        ctx.shadowBlur    = 8;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(line, textX, y);
+      });
+
+      // Reset shadow
+      ctx.shadowColor   = 'transparent';
+      ctx.shadowBlur    = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      var dataUrl = canvas.toDataURL('image/png', 1.0);
+      resolve({ dataUrl: dataUrl });
+    };
+
+    img.onerror = function() {
+      // If cross-origin fails, return raw URL — cannot composite
+      console.warn('[compositeHookText] Cross-origin image load failed — returning raw URL');
+      resolve({ dataUrl: imageUrl });
+    };
+
+    img.src = imageUrl;
+  });
 }
 
 // ── Copy helpers ──────────────────────────────────────────────────────────
