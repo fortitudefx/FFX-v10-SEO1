@@ -40,7 +40,7 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers });
   }
 
-  const { videoId, youtubeUrl, title } = body;
+  const { videoId, youtubeUrl, title, thumbOnly } = body;
   if (!videoId) return new Response(JSON.stringify({ error: 'videoId required' }), { status: 400, headers });
 
   try {
@@ -567,7 +567,64 @@ Return ONLY a valid JSON object:
 
 CRITICAL: Return ONLY the raw JSON. No markdown. No code fences. Start with { end with }.`;
 
-    // ── Call Claude ───────────────────────────────────────────────────────
+    // ── thumbOnly fast path: skip full SEO, generate thumbnail concept only ──
+    if (thumbOnly) {
+      const thumbCtx = `You are generating a YouTube thumbnail concept for FortitudeFX™.
+
+VIDEO TRANSCRIPT (first 1500 chars):
+${transcript.slice(0, 1500)}
+
+YOUTUBE SEARCH SIGNALS:
+${ytAnalyticsSignals && ytAnalyticsSignals.topYouTubeSearchQueries
+  ? 'Top YouTube search queries: ' + ytAnalyticsSignals.topYouTubeSearchQueries.slice(0,5).map(function(q){return '"'+q.query+'"';}).join(', ')
+  : 'No YouTube search data yet.'}
+
+${ytSearchGlobalSignals && ytSearchGlobalSignals.competitorTitles
+  ? 'Competitor titles for this niche: ' + ytSearchGlobalSignals.competitorTitles.slice(0,5).map(function(t){return '"'+t.title+'"';}).join(', ')
+  : ''}
+
+` + ctx.slice(ctx.indexOf('THUMBNAIL RULES:'));
+
+      const thumbRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model:      ANTHROPIC_MODEL,
+          max_tokens: 800,
+          messages:   [{ role: 'user', content: thumbCtx + '\n\nReturn ONLY a valid JSON object:\n{\n  "thumbnailConcept": {\n    "forexElement": "letter A-H and exact phrase chosen",\n    "textOverlay": "3 WORD ALL CAPS HOOK",\n    "leonardoPrompt": "complete filled template with [FOREX_ELEMENT] replaced",\n    "searchQueryInformed": "which search query informed the hook",\n    "reasoning": "one sentence CTR psychology explanation"\n  }\n}\nCRITICAL: Return ONLY raw JSON. Start with { end with }.' }],
+        }),
+      });
+
+      if (!thumbRes.ok) throw new Error('Claude thumbOnly ' + thumbRes.status);
+      const thumbData = await thumbRes.json();
+      if (thumbData.stop_reason === 'max_tokens') throw new Error('Claude thumbOnly response truncated');
+      const thumbRaw  = thumbData.content[0].text.trim();
+      const thumbF    = thumbRaw.indexOf('{');
+      const thumbL    = thumbRaw.lastIndexOf('}');
+      if (thumbF === -1 || thumbL === -1) throw new Error('No JSON in thumbOnly response');
+      const thumbParsed = JSON.parse(thumbRaw.slice(thumbF, thumbL + 1));
+      if (!thumbParsed.thumbnailConcept) throw new Error('thumbnailConcept missing from thumbOnly response');
+
+      // Merge into existing metadata
+      const existingMeta = await env.FFX_KV.get(\`youtube:metadata:\${videoId}\`, { type: 'json' }).catch(function() { return null; });
+      const mergedMeta   = Object.assign({}, existingMeta || {}, {
+        thumbnailConcept: thumbParsed.thumbnailConcept,
+        videoId:          videoId,
+        youtubeUrl:       youtubeUrl || (existingMeta && existingMeta.youtubeUrl) || '',
+        signalsUsed:      signalsAvailable,
+        hasTimestamps:    Array.isArray(resolvedTimestamps) && resolvedTimestamps.length > 0,
+        apiKeyConfigured: false,
+      });
+      await env.FFX_KV.put(\`youtube:metadata:\${videoId}\`, JSON.stringify(mergedMeta));
+      console.log('[youtube-metadata] thumbOnly complete for:', videoId);
+      return new Response(JSON.stringify({ success: true, metadata: mergedMeta }), { status: 200, headers });
+    }
+
+    // ── Call Claude (full SEO package) ────────────────────────────────────
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
