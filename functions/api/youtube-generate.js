@@ -52,28 +52,33 @@ export async function onRequestGet(context) {
     // Read jobId for this videoId
     var jobId = await env.FFX_KV.get('youtube:yt:jobId:' + videoId).catch(function() { return null; });
 
-    // Phase 2 check — SEO package complete
-    var seoMeta = await env.FFX_KV.get('youtube:metadata:' + videoId, { type: 'json' }).catch(function() { return null; });
-    if (seoMeta && seoMeta.primaryTitle) {
+    // ── Phase 1 complete check — only based on video:{videoId} existing ──
+    // SEO package (youtube:metadata) is NEVER used to determine phase — it always regenerates
+    var videoRecord = await env.FFX_KV.get('video:' + videoId, { type: 'json' }).catch(function() { return null; });
+    if (videoRecord && videoRecord.slug && videoRecord.platforms) {
+      // Phase 1 is fully done — article + platforms + library all in KV
+      // Dashboard should skip Phase 1 and go straight to Phase 2 (SEO regenerates fresh)
       return json({
-        phase: 'complete',
-        step: 'complete',
-        status: 'complete',
+        phase1Complete: true,
+        phase: 'phase2_ready',
+        status: 'phase1_complete',
         videoId: videoId,
         jobId: jobId || null,
+        videoTitle: videoRecord.title || null,
+        articleSlug: videoRecord.slug || null,
       });
     }
 
-    // Phase 1 check — no jobId yet
+    // Phase 1 check — no jobId yet, nothing in KV
     if (!jobId) {
-      return json({ phase: 'idle', status: 'idle', videoId: videoId });
+      return json({ phase: 'idle', status: 'idle', videoId: videoId, phase1Complete: false });
     }
 
-    // Read job record
+    // Read job record for in-progress job
     var job = await env.FFX_KV.get('job:' + jobId, { type: 'json' }).catch(function() { return null; });
 
     if (!job) {
-      return json({ phase: 'phase1', status: 'pending', step: 'transcript', jobId: jobId, videoId: videoId });
+      return json({ phase: 'phase1', status: 'pending', step: 'transcript', jobId: jobId, videoId: videoId, phase1Complete: false });
     }
 
     if (job.status === 'error') {
@@ -84,17 +89,31 @@ export async function onRequestGet(context) {
         reason: job.reason || 'Generation failed',
         jobId: jobId,
         videoId: videoId,
+        phase1Complete: false,
       });
     }
 
     if (job.status === 'complete') {
-      // Phase 1 done — phase 2 (SEO) either running or about to run
+      // Job just completed — video: may not be written yet, re-check
+      var freshVideo = await env.FFX_KV.get('video:' + videoId, { type: 'json' }).catch(function() { return null; });
+      if (freshVideo && freshVideo.slug) {
+        return json({
+          phase1Complete: true,
+          phase: 'phase2_ready',
+          status: 'phase1_complete',
+          videoId: videoId,
+          jobId: jobId,
+          videoTitle: freshVideo.title || null,
+        });
+      }
+      // Job complete but video: not written yet — treat as phase2
       return json({
         phase: 'phase2',
         status: 'processing',
         step: 'reading_signals',
         jobId: jobId,
         videoId: videoId,
+        phase1Complete: true,
       });
     }
 
@@ -105,6 +124,7 @@ export async function onRequestGet(context) {
       step: job.step || 'transcript',
       jobId: jobId,
       videoId: videoId,
+      phase1Complete: false,
     });
 
   } catch(err) {
