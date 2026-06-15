@@ -581,7 +581,7 @@ ${ytSearchGlobalSignals && ytSearchGlobalSignals.competitorTitles
         },
         body: JSON.stringify({
           model:      ANTHROPIC_MODEL,
-          max_tokens: 800,
+          max_tokens: 1200,
           messages:   [{ role: 'user', content: thumbCtx + '\n\nReturn ONLY a valid JSON object:\n{\n  "thumbnailConcept": {\n    "forexElement": "letter A-H and exact phrase chosen",\n    "textOverlay": "3 WORD ALL CAPS HOOK",\n    "leonardoPrompt": "complete filled template with [FOREX_ELEMENT] replaced",\n    "searchQueryInformed": "which search query informed the hook",\n    "reasoning": "one sentence CTR psychology explanation"\n  }\n}\nCRITICAL: Return ONLY raw JSON. Start with { end with }.' }],
         }),
       });
