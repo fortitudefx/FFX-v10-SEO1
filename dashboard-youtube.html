@@ -193,6 +193,33 @@
 
     /* ── Loading ── */
     .yt-loading { padding:40px; text-align:center; color:rgba(255,255,255,0.28); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; }
+
+    /* ── Chart upload zone ── */
+    .chart-upload-zone {
+      margin:0 20px 16px;
+      border:2px dashed rgba(201,168,76,0.30);
+      border-radius:8px;
+      padding:20px;
+      text-align:center;
+      cursor:pointer;
+      transition:all 0.15s;
+      background:rgba(201,168,76,0.04);
+      position:relative;
+    }
+    .chart-upload-zone:hover { border-color:rgba(201,168,76,0.60); background:rgba(201,168,76,0.08); }
+    .chart-upload-zone.drag-over { border-color:#c9a84c; background:rgba(201,168,76,0.12); }
+    .chart-upload-zone.has-image { border-style:solid; border-color:rgba(201,168,76,0.50); }
+    .chart-upload-label { font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(201,168,76,0.70); margin-bottom:6px; }
+    .chart-upload-sub { font-size:11px; color:rgba(255,255,255,0.35); margin-top:4px; }
+    .chart-preview-img { width:100%; border-radius:4px; display:none; }
+    .chart-preview-img.visible { display:block; }
+    .chart-upload-input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+    .btn-clear-chart { font-size:9px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:rgba(248,113,113,0.70); background:none; border:1px solid rgba(248,113,113,0.25); border-radius:4px; padding:3px 10px; cursor:pointer; margin-top:8px; display:none; font-family:inherit; }
+    .btn-clear-chart.visible { display:inline-block; }
+    .btn-compose { flex:1; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; background:rgba(201,168,76,0.12); color:rgba(201,168,76,0.90); border:1px solid rgba(201,168,76,0.30); border-radius:6px; padding:9px 14px; cursor:pointer; transition:all 0.15s; font-family:inherit; display:none; }
+    .btn-compose:hover { background:rgba(201,168,76,0.20); color:#fff; }
+    .btn-compose:disabled { opacity:0.4; cursor:not-allowed; }
+    .btn-compose.visible { display:flex; align-items:center; justify-content:center; gap:6px; }
   </style>
 </head>
 <body>
@@ -383,11 +410,32 @@
             </div>
           </div>
 
+          <!-- Chart screenshot upload zone — appears after SEO package generates -->
+          <div id="chartUploadSection" style="display:none;border-top:1px solid rgba(255,255,255,0.07);">
+            <div class="chart-upload-zone" id="chartUploadZone"
+              ondragover="handleChartDragOver(event)"
+              ondragleave="handleChartDragLeave(event)"
+              ondrop="handleChartDrop(event)">
+              <input type="file" class="chart-upload-input" id="chartFileInput" accept="image/*" onchange="handleChartFile(event)">
+              <div id="chartUploadContent">
+                <div class="chart-upload-label">&#128247; Drop TradingView Screenshot Here</div>
+                <div class="chart-upload-sub">PNG, JPG — your actual chart from the video</div>
+              </div>
+              <img class="chart-preview-img" id="chartPreviewImg" src="" alt="Chart preview">
+              <button class="btn-clear-chart" id="clearChartBtn" onclick="clearChart(event)">&#10005; Remove</button>
+            </div>
+          </div>
+
           <!-- Controls -->
           <div class="yt-thumb-controls">
             <div class="yt-thumb-actions">
+              <!-- Step 1: Generate Leonardo atmospheric background -->
               <button class="btn-thumb-generate" id="thumbGenerateBtn" onclick="generateThumbnail()" style="display:none;">
-                &#9889; Generate Thumbnail
+                &#9889; Generate Background
+              </button>
+              <!-- Step 2: Compose — appears after background generated + chart uploaded -->
+              <button class="btn-compose" id="composeBtn" onclick="composeThumbnail()">
+                &#127912; Compose Thumbnail
               </button>
               <a class="btn-thumb-download hidden" id="thumbDownloadBtn" href="#" download="ffx-thumbnail.png">
                 &#11123; Download PNG
@@ -997,9 +1045,15 @@ function renderThumbnailSection(meta) {
 
   document.getElementById('thumbGenerateBtn').style.display = prompt ? '' : 'none';
   document.getElementById('regenPromptBtn').style.display = prompt ? '' : 'none';
+  // Show chart upload zone when prompt is available
+  document.getElementById('chartUploadSection').style.display = prompt ? '' : 'none';
   // Reset new prompt preview state
   document.getElementById('newPromptPreview').style.display = 'none';
   document.getElementById('newPromptText').textContent = '';
+  // Reset compose button state
+  document.getElementById('composeBtn').classList.remove('visible');
+  _chartImageDataUrl = null;
+  clearChartPreview();
 
   if (prompt) {
     document.getElementById('leonardoPromptText').textContent = prompt;
@@ -1012,19 +1066,85 @@ function renderThumbnailSection(meta) {
   }
 }
 
-// ── Generate thumbnail via Leonardo ──────────────────────────────────────
+// ── State for chart upload ────────────────────────────────────────────────
+var _chartImageDataUrl  = null;
+var _leonardoBgUrl      = null;
+
+// ── Chart upload handlers ─────────────────────────────────────────────────
+function handleChartDragOver(e) {
+  e.preventDefault();
+  document.getElementById('chartUploadZone').classList.add('drag-over');
+}
+function handleChartDragLeave(e) {
+  document.getElementById('chartUploadZone').classList.remove('drag-over');
+}
+function handleChartDrop(e) {
+  e.preventDefault();
+  document.getElementById('chartUploadZone').classList.remove('drag-over');
+  var file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadChartFile(file);
+}
+function handleChartFile(e) {
+  var file = e.target.files && e.target.files[0];
+  if (file) loadChartFile(file);
+}
+function loadChartFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _chartImageDataUrl = e.target.result;
+    var preview = document.getElementById('chartPreviewImg');
+    preview.src = _chartImageDataUrl;
+    preview.classList.add('visible');
+    document.getElementById('chartUploadContent').style.display = 'none';
+    document.getElementById('clearChartBtn').classList.add('visible');
+    document.getElementById('chartUploadZone').classList.add('has-image');
+    if (_leonardoBgUrl) showComposeBtn();
+  };
+  reader.readAsDataURL(file);
+}
+function clearChart(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  _chartImageDataUrl = null;
+  document.getElementById('chartPreviewImg').classList.remove('visible');
+  document.getElementById('chartPreviewImg').src = '';
+  document.getElementById('chartUploadContent').style.display = '';
+  document.getElementById('clearChartBtn').classList.remove('visible');
+  document.getElementById('chartUploadZone').classList.remove('has-image');
+  document.getElementById('chartFileInput').value = '';
+}
+function clearChartPreview() {
+  _leonardoBgUrl = null;
+  _chartImageDataUrl = null;
+  document.getElementById('chartPreviewImg').classList.remove('visible');
+  document.getElementById('chartPreviewImg').src = '';
+  document.getElementById('chartUploadContent').style.display = '';
+  document.getElementById('clearChartBtn').classList.remove('visible');
+  document.getElementById('chartUploadZone').classList.remove('has-image');
+  document.getElementById('chartFileInput').value = '';
+  document.getElementById('composeBtn').classList.remove('visible');
+}
+function showComposeBtn() {
+  var btn = document.getElementById('composeBtn');
+  btn.classList.add('visible');
+  btn.innerHTML = '&#127912; Compose Thumbnail';
+  btn.disabled = false;
+}
+
+// ── Step 1: Generate Leonardo atmospheric background ──────────────────────
 async function generateThumbnail() {
   if (!_currentMeta || !_currentVideoId) return;
   var btn = document.getElementById('thumbGenerateBtn');
   btn.disabled = true;
-  btn.textContent = 'Generating\u2026';
+  btn.textContent = 'Generating background\u2026';
   document.getElementById('thumbPlaceholder').style.display = 'none';
   document.getElementById('thumbImg').classList.remove('visible');
   document.getElementById('thumbGenerating').classList.add('visible');
   document.getElementById('thumbDownloadBtn').classList.add('hidden');
+  document.getElementById('composeBtn').classList.remove('visible');
 
   try {
-    var res  = await fetch('/api/youtube-thumbnail', {
+    var res = await fetch('/api/youtube-thumbnail', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1039,189 +1159,240 @@ async function generateThumbnail() {
     if (!res.ok || data.error) {
       document.getElementById('thumbPlaceholder').innerHTML = '<div class="yt-thumb-placeholder-icon" style="color:rgba(248,113,113,0.60);">\u2715</div><div class="yt-thumb-placeholder-text" style="color:rgba(248,113,113,0.60);">' + esc(data.error||'Generation failed') + '</div>';
       document.getElementById('thumbPlaceholder').style.display = '';
-      btn.disabled = false; btn.innerHTML = '&#9889; Retry';
+      btn.disabled = false;
+      btn.innerHTML = '&#9889; Retry Background';
       return;
     }
 
-    // Composite hook text onto Leonardo image via canvas
-    var hookText = (_currentMeta.thumbnailConcept || {}).textOverlay || '';
-    var composited = await compositeHookText(data.imageUrl, hookText);
+    _leonardoBgUrl = data.imageUrl;
+
+    // Show raw background as preview
+    var bgImg = document.getElementById('thumbImg');
+    bgImg.src = data.imageUrl;
+    bgImg.classList.add('visible');
+
+    btn.disabled = false;
+    btn.innerHTML = '&#8635; Regenerate Background';
+
+    // Show compose button
+    showComposeBtn();
+
+  } catch(err) {
+    document.getElementById('thumbGenerating').classList.remove('visible');
+    document.getElementById('thumbPlaceholder').style.display = '';
+    btn.disabled = false;
+    btn.innerHTML = '&#9889; Retry';
+  }
+}
+
+// ── Step 2: Compose — background + chart + brand frame + hook text ────────
+async function composeThumbnail() {
+  if (!_leonardoBgUrl) { alert('Generate the background first.'); return; }
+
+  var btn = document.getElementById('composeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '&#127912; Composing\u2026';
+
+  var hookText = (_currentMeta && _currentMeta.thumbnailConcept && _currentMeta.thumbnailConcept.textOverlay) || '';
+
+  try {
+    var composited = await compositeAll(_leonardoBgUrl, _chartImageDataUrl, hookText);
 
     var img = document.getElementById('thumbImg');
     img.src = composited.dataUrl;
     img.classList.add('visible');
 
-    // Download button uses composited PNG — not raw Leonardo URL
     var dlBtn = document.getElementById('thumbDownloadBtn');
     dlBtn.href = composited.dataUrl;
     dlBtn.download = 'ffx-thumbnail-' + (_currentVideoId || 'video') + '.png';
     dlBtn.classList.remove('hidden');
+
     btn.disabled = false;
-    btn.innerHTML = '&#8635; Regenerate';
+    btn.innerHTML = '&#8635; Recompose';
 
   } catch(err) {
-    document.getElementById('thumbGenerating').classList.remove('visible');
-    document.getElementById('thumbPlaceholder').style.display = '';
-    btn.disabled = false; btn.innerHTML = '&#9889; Retry';
+    btn.disabled = false;
+    btn.innerHTML = '&#127912; Compose Thumbnail';
+    alert('Compose failed: ' + err.message);
   }
 }
 
-// ── Canvas compositing — FFX branded thumbnail overlay ───────────────────
-// Renders at 1280x720 (YouTube spec)
-// Layer 1: Leonardo image scaled to full canvas
-// Layer 2: Hook text — bold white, left zone, with gold underline (FFX brand mark)
-// Layer 3: FFX favicon — bottom left, small, semi-transparent
-// Layer 4: Thin gold bottom bar — 4px full width — brand consistency mark
-// Layer 5: "FortitudeFX" wordmark — bottom left next to favicon
-// Returns: { dataUrl: 'data:image/png;base64,...' }
-async function compositeHookText(imageUrl, hookText) {
-  return new Promise(function(resolve) {
 
-    var canvas  = document.createElement('canvas');
+// ── Canvas compositing — full 3-layer pipeline ───────────────────────────
+// compositeAll(bgUrl, chartDataUrl, hookText)
+//   bgUrl:        Leonardo atmospheric background URL (fetched via proxy)
+//   chartDataUrl: base64 data URL from uploaded TradingView screenshot (or null)
+//   hookText:     3-word hook from thumbnailConcept.textOverlay
+//
+// Layers:
+//   1. Leonardo atmospheric background (full canvas)
+//   2. Chart screenshot blended at 70% opacity (if provided)
+//   3. Dark gradient on left 40% — text zone
+//   4. Hook text — bold white, left zone, auto-sizing
+//   5. Gold underline under first line — FFX brand mark
+//   6. 4px gold bar full width bottom
+//   7. FFX favicon + FortitudeFX wordmark bottom left
+//
+// Uses /api/thumbnail-proxy to bypass Leonardo CDN CORS restriction
+// Without proxy: canvas.toDataURL() throws SecurityError (tainted canvas)
+
+async function compositeAll(bgUrl, chartDataUrl, hookText) {
+  return new Promise(function(resolve, reject) {
+
+    var canvas = document.createElement('canvas');
     canvas.width  = 1280;
     canvas.height = 720;
     var ctx = canvas.getContext('2d');
 
-    var img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Load background via proxy (same-origin = no canvas taint)
+    var bgImg = new Image();
+    var proxyUrl = '/api/thumbnail-proxy?url=' + encodeURIComponent(bgUrl);
 
-    img.onload = function() {
-      // ── Layer 1: Leonardo image ────────────────────────────────────────
-      ctx.drawImage(img, 0, 0, 1280, 720);
+    bgImg.onload = function() {
+      // ── Layer 1: Leonardo atmospheric background ───────────────────────
+      ctx.drawImage(bgImg, 0, 0, 1280, 720);
 
-      // ── Layer 4: Thin gold bottom bar (draw before text for layering) ──
-      ctx.fillStyle = '#c9a84c';
-      ctx.fillRect(0, 716, 1280, 4);
+      // ── Layer 2: Chart screenshot blended on top (if uploaded) ────────
+      if (chartDataUrl) {
+        var chartImg = new Image();
+        chartImg.onload = function() {
+          // Blend chart at 68% opacity — background shows through for atmosphere
+          ctx.globalAlpha = 0.68;
+          // Scale chart to cover right 65% of frame, centred vertically
+          var cw = Math.round(1280 * 0.70);
+          var ch = Math.round(720);
+          var cx = Math.round(1280 * 0.30);
+          ctx.drawImage(chartImg, cx, 0, cw, ch);
+          ctx.globalAlpha = 1.0;
+          // Apply dark gradient over left zone for text readability
+          finishComposite(ctx, canvas, hookText, resolve, reject);
+        };
+        chartImg.onerror = function() {
+          // Chart load failed — compose without it
+          finishComposite(ctx, canvas, hookText, resolve, reject);
+        };
+        chartImg.src = chartDataUrl; // data: URL — always same origin, no CORS
+      } else {
+        // No chart uploaded — compose background only
+        finishComposite(ctx, canvas, hookText, resolve, reject);
+      }
+    };
 
-      // ── Layer 2: Hook text (only if text provided) ────────────────────
-      if (hookText && hookText.trim()) {
-        var text       = hookText.toUpperCase().trim();
-        var textZone   = 500;  // left 500px reserved for text
-        var maxW       = textZone - 48; // 24px padding each side
-        var fontSize   = 92;
-        var minFont    = 44;
+    bgImg.onerror = function() {
+      reject(new Error('Failed to load background image via proxy. Check /api/thumbnail-proxy.'));
+    };
 
-        // Load Satoshi font (already on FFX site) — fallback to Impact for guaranteed bold
+    bgImg.src = proxyUrl;
+  });
+}
+
+function finishComposite(ctx, canvas, hookText, resolve, reject) {
+  // ── Layer 3: Dark gradient left zone for text readability ──────────────
+  var grad = ctx.createLinearGradient(0, 0, 560, 0);
+  grad.addColorStop(0,   'rgba(10,10,18,0.92)');
+  grad.addColorStop(0.6, 'rgba(10,10,18,0.60)');
+  grad.addColorStop(1,   'rgba(10,10,18,0.00)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 560, 720);
+
+  // ── Layer 6: 4px gold bar full width bottom ────────────────────────────
+  ctx.fillStyle = '#c9a84c';
+  ctx.fillRect(0, 716, 1280, 4);
+
+  // ── Layer 4 + 5: Hook text with gold underline ─────────────────────────
+  if (hookText && hookText.trim()) {
+    var text     = hookText.toUpperCase().trim();
+    var maxW     = 480;
+    var fontSize = 90;
+    var minFont  = 42;
+
+    ctx.font = 'bold ' + fontSize + 'px "DM Sans", Impact, "Arial Black", Arial, sans-serif';
+
+    var words = text.split(' ');
+    var lines = [];
+    if (words.length <= 2) {
+      while (fontSize > minFont && ctx.measureText(text).width > maxW) {
+        fontSize -= 4;
         ctx.font = 'bold ' + fontSize + 'px "DM Sans", Impact, "Arial Black", Arial, sans-serif';
+      }
+      lines = [text];
+    } else {
+      var mid = Math.ceil(words.length / 2);
+      var l1  = words.slice(0, mid).join(' ');
+      var l2  = words.slice(mid).join(' ');
+      while (fontSize > minFont && (ctx.measureText(l1).width > maxW || ctx.measureText(l2).width > maxW)) {
+        fontSize -= 4;
+        ctx.font = 'bold ' + fontSize + 'px "DM Sans", Impact, "Arial Black", Arial, sans-serif';
+      }
+      lines = [l1, l2];
+    }
 
-        // Split words into lines
-        var words = text.split(' ');
-        var lines = [];
-        if (words.length <= 2) {
-          while (fontSize > minFont && ctx.measureText(text).width > maxW) {
-            fontSize -= 4;
-            ctx.font = 'bold ' + fontSize + 'px "DM Sans", Impact, "Arial Black", Arial, sans-serif';
-          }
-          lines = [text];
-        } else {
-          var mid   = Math.ceil(words.length / 2);
-          var l1    = words.slice(0, mid).join(' ');
-          var l2    = words.slice(mid).join(' ');
-          while (fontSize > minFont && (ctx.measureText(l1).width > maxW || ctx.measureText(l2).width > maxW)) {
-            fontSize -= 4;
-            ctx.font = 'bold ' + fontSize + 'px "DM Sans", Impact, "Arial Black", Arial, sans-serif';
-          }
-          lines = [l1, l2];
-        }
+    var lineH  = Math.round(fontSize * 1.18);
+    var totalH = lines.length * lineH;
+    var startY = Math.round((720 / 2) - (totalH / 2) + fontSize * 0.85);
+    var textX  = 32;
 
-        var lineH       = Math.round(fontSize * 1.18);
-        var totalH      = lines.length * lineH;
-        var startY      = Math.round((720 / 2) - (totalH / 2) + fontSize * 0.85);
-        var textX       = 28;
+    lines.forEach(function(line, i) {
+      var y = startY + (i * lineH);
 
-        lines.forEach(function(line, i) {
-          var y = startY + (i * lineH);
+      // Dark stroke
+      ctx.shadowColor   = 'rgba(0,0,0,0.98)';
+      ctx.shadowBlur    = 18;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 3;
+      ctx.strokeStyle   = 'rgba(0,0,0,0.99)';
+      ctx.lineWidth     = 12;
+      ctx.lineJoin      = 'round';
+      ctx.strokeText(line, textX, y);
 
-          // Dark stroke for readability
-          ctx.shadowColor   = 'rgba(0,0,0,0.95)';
-          ctx.shadowBlur    = 16;
-          ctx.shadowOffsetX = 2;
-          ctx.shadowOffsetY = 3;
-          ctx.strokeStyle   = 'rgba(0,0,0,0.98)';
-          ctx.lineWidth     = 10;
-          ctx.lineJoin      = 'round';
-          ctx.strokeText(line, textX, y);
-
-          // Gold underline on first line — FFX brand mark
-          if (i === 0) {
-            var lw = Math.min(ctx.measureText(line).width, maxW);
-            ctx.shadowColor   = 'transparent';
-            ctx.shadowBlur    = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-            ctx.fillStyle     = '#c9a84c';
-            ctx.fillRect(textX, y + 7, lw, 5);
-          }
-
-          // White fill
-          ctx.shadowColor   = 'rgba(0,0,0,0.85)';
-          ctx.shadowBlur    = 10;
-          ctx.shadowOffsetX = 1;
-          ctx.shadowOffsetY = 2;
-          ctx.fillStyle     = '#ffffff';
-          ctx.fillText(line, textX, y);
-        });
-
-        // Reset shadow
-        ctx.shadowColor   = 'transparent';
-        ctx.shadowBlur    = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
+      // Gold underline first line only
+      if (i === 0) {
+        var lw = Math.min(ctx.measureText(line).width, maxW);
+        ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+        ctx.fillStyle   = '#c9a84c';
+        ctx.fillRect(textX, y + 8, lw, 5);
       }
 
-      // ── Layer 3 + 5: FFX favicon + wordmark (bottom left) ─────────────
-      var favicon = new Image();
-      favicon.crossOrigin = 'anonymous';
+      // White fill
+      ctx.shadowColor   = 'rgba(0,0,0,0.85)';
+      ctx.shadowBlur    = 10;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 2;
+      ctx.fillStyle     = '#ffffff';
+      ctx.fillText(line, textX, y);
+    });
 
-      favicon.onload = function() {
-        // Favicon — 32x32 at bottom left with some padding
-        var faviconSize = 32;
-        var faviconX    = 20;
-        var faviconY    = 720 - faviconSize - 14;
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  }
 
-        ctx.globalAlpha = 0.85;
-        ctx.drawImage(favicon, faviconX, faviconY, faviconSize, faviconSize);
-        ctx.globalAlpha = 1.0;
+  // ── Layer 7: FFX favicon + FortitudeFX wordmark ───────────────────────
+  var favicon = new Image();
+  favicon.onload = function() {
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(favicon, 20, 720 - 46, 32, 32);
+    ctx.globalAlpha = 1.0;
+    ctx.font        = 'bold 13px "DM Sans", Arial, sans-serif';
+    ctx.fillStyle   = 'rgba(255,255,255,0.75)';
+    ctx.shadowColor = 'rgba(0,0,0,0.90)'; ctx.shadowBlur = 6;
+    ctx.fillText('FortitudeFX™', 58, 720 - 20);
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+    resolve({ dataUrl: canvas.toDataURL('image/png', 1.0) });
+  };
+  favicon.onerror = function() {
+    // No favicon — still export
+    ctx.font      = 'bold 13px "DM Sans", Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.70)';
+    ctx.shadowColor = 'rgba(0,0,0,0.90)'; ctx.shadowBlur = 6;
+    ctx.fillText('FortitudeFX™', 20, 720 - 18);
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+    resolve({ dataUrl: canvas.toDataURL('image/png', 1.0) });
+  };
+  favicon.src = 'https://fortitudefx.com/favicon-192x192.png';
+}
 
-        // "FortitudeFX" wordmark next to favicon
-        ctx.font        = 'bold 13px "DM Sans", Arial, sans-serif';
-        ctx.fillStyle   = 'rgba(255,255,255,0.75)';
-        ctx.shadowColor = 'rgba(0,0,0,0.90)';
-        ctx.shadowBlur  = 6;
-        ctx.fillText('FortitudeFX™', faviconX + faviconSize + 6, faviconY + faviconSize - 10);
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur  = 0;
-
-        var dataUrl = canvas.toDataURL('image/png', 1.0);
-        resolve({ dataUrl: dataUrl });
-      };
-
-      favicon.onerror = function() {
-        // Favicon failed to load — still export with text overlay
-        // Add just the wordmark text
-        ctx.font      = 'bold 13px "DM Sans", Arial, sans-serif';
-        ctx.fillStyle = 'rgba(255,255,255,0.70)';
-        ctx.shadowColor = 'rgba(0,0,0,0.90)';
-        ctx.shadowBlur  = 6;
-        ctx.fillText('FortitudeFX™', 20, 720 - 14);
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur  = 0;
-
-        var dataUrl = canvas.toDataURL('image/png', 1.0);
-        resolve({ dataUrl: dataUrl });
-      };
-
-      favicon.src = 'https://fortitudefx.com/favicon-192x192.png';
-    };
-
-    img.onerror = function() {
-      // Cross-origin failed — return raw URL without compositing
-      console.warn('[compositeHookText] Cross-origin failed — returning raw Leonardo URL');
-      resolve({ dataUrl: imageUrl });
-    };
-
-    img.src = imageUrl;
-  });
+// Keep compositeHookText as alias for backward compatibility (Regenerate Prompt flow)
+async function compositeHookText(imageUrl, hookText) {
+  return compositeAll(imageUrl, null, hookText);
 }
 
 // ── Copy helpers ──────────────────────────────────────────────────────────
