@@ -496,24 +496,50 @@ async function fetchTranscriptTimestamped(youtubeUrl, apiKey) {
     return null;
   }
   try {
-    // Without &text=true, Supadata returns timestamped chunks
-    const tsUrl = 'https://api.supadata.ai/v1/youtube/transcript?url=' + encodeURIComponent(youtubeUrl);
+    // Correct endpoint: /v1/transcript (not /v1/youtube/transcript)
+    // Response field is 'offset' in milliseconds — NOT 'start'
+    const tsUrl = 'https://api.supadata.ai/v1/transcript?url=' + encodeURIComponent(youtubeUrl);
     const tsRes = await fetch(tsUrl, { headers: { 'x-api-key': apiKey } });
     console.log('[FFX] Supadata timestamped status:', tsRes.status);
-    if (!tsRes.ok) {
+
+    let tsData = null;
+
+    if (tsRes.status === 200) {
+      tsData = await tsRes.json();
+    } else if (tsRes.status === 202) {
+      // Async job for long videos — poll until complete (max 60s)
+      const jobData = await tsRes.json();
+      const jobId   = jobData.jobId;
+      if (jobId) {
+        for (let i = 0; i < 60; i++) {
+          await new Promise(function(r) { setTimeout(r, 1000); });
+          const pollRes = await fetch('https://api.supadata.ai/v1/transcript/' + jobId, {
+            headers: { 'x-api-key': apiKey },
+          });
+          if (pollRes.ok) {
+            const pollData = await pollRes.json();
+            if (pollData.status === 'completed') { tsData = pollData; break; }
+            if (pollData.status === 'failed') { console.error('[FFX] Supadata async job failed'); break; }
+          }
+        }
+      }
+    } else {
       console.error('[FFX] Supadata timestamped fetch failed:', tsRes.status);
       return null;
     }
-    const tsData = await tsRes.json();
-    if (Array.isArray(tsData.content) && tsData.content.length > 0 && typeof tsData.content[0] === 'object') {
-      // Validate structure: each item should have text and start
-      const valid = tsData.content.filter(function(s) {
-        return s && typeof s.text === 'string' && typeof s.start === 'number';
-      });
+
+    if (tsData && Array.isArray(tsData.content) && tsData.content.length > 0
+        && typeof tsData.content[0] === 'object'
+        && typeof tsData.content[0].offset === 'number') {
+      // Convert offset(ms) → start(seconds) for consistent internal format
+      const valid = tsData.content
+        .filter(function(s) { return s && typeof s.text === 'string' && typeof s.offset === 'number'; })
+        .map(function(s) { return { text: s.text, start: s.offset / 1000, duration: (s.duration || 0) / 1000 }; });
       console.log('[FFX] Timestamped chunks fetched:', valid.length);
       return valid;
     }
-    console.error('[FFX] Supadata timestamped: unexpected structure');
+
+    console.error('[FFX] Supadata timestamped: unexpected structure. Keys:', tsData && tsData.content && tsData.content[0] ? Object.keys(tsData.content[0]).join(',') : 'none');
     return null;
   } catch(e) {
     console.error('[FFX] fetchTranscriptTimestamped failed (non-fatal):', e.message);
