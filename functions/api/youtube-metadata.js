@@ -492,31 +492,50 @@ TAGS RULES:
 
 THUMBNAIL RULES:
 
-CRITICAL ARCHITECTURE — READ CAREFULLY:
-The thumbnail uses a LOCKED BRAND TEMPLATE with ONE variable you fill from the transcript.
-Do NOT write a free-form description. Fill ONLY the [VISUAL_SUBJECT] slot.
+CRITICAL: THREE INPUTS INFORM THE THUMBNAIL — use all three.
 
-THE LOCKED FFX TEMPLATE (never changes — this is the brand):
-"[VISUAL_SUBJECT], single subject extreme close-up, perfectly isolated against pure black background #0a0a12, subject positioned in right 55% of frame, left 45% of frame is pure black emptiness with zero detail, single warm gold rim light source from upper right edge only #c9a84c creating a thin glowing outline on the subject, deep black shadows everywhere else, anamorphic cinematic lens compression, f/1.2 ultra shallow depth of field, ultra sharp on subject surface, the rest falls to pure black, desaturated color grade except warm amber and gold tones on subject edges, no text, no labels, no arrows, no grid lines, no annotations, no watermarks, no people, no chart overlays, pure black left half of frame, film grain, 1472x832"
+INPUT 1 — TRANSCRIPT: What specific price action concept is shown in this video?
+INPUT 2 — YOUTUBE SEARCH QUERIES (from Weight 2 signals above): What do people search to find videos like this?
+INPUT 3 — COMPETITOR TITLES (from Weight 3 signals above): What visual concepts rank for this topic?
 
-YOUR ONLY JOB — fill [VISUAL_SUBJECT] with 6-10 words describing the specific visual from THIS video:
-- Momentum candle video: "single large bullish candlestick with long dominant body"
-- Wick video: "single candlestick with extreme long upper wick rejection"
-- Structure break: "two candlesticks side by side momentum then reversal"
-- Stop hunt: "sharp candlestick wick piercing through a horizontal price level"
-- Entry setup: "clean two-candle formation on dark chart surface"
-- Risk management: "single red bearish candle in isolation"
+STEP 1 — PICK THE FOREX VISUAL ELEMENT:
+Choose EXACTLY ONE from this list. Use these EXACT phrases — no substitutions, no synonyms.
+"Candlestick" as a word is BANNED. Use "price bar" or "OHLC bar" instead.
 
-The [VISUAL_SUBJECT] must be:
-- Specific to what THIS video is actually about (read the transcript)
-- A physical forex chart element — candlestick, wick, level, formation
-- Simple — one or two elements maximum. Not a full chart scene.
-- NOT generic ("forex chart", "trading screen", "candlestick pattern")
+FOREX ELEMENT OPTIONS (pick the one that best matches the transcript):
+A — "a single large green OHLC price bar with tall body and tiny upper wick, three-dimensional macro"
+B — "a single OHLC price bar with an extreme long upper wick spike three times the body height"
+C — "two OHLC price bars side by side, first tall green body then smaller reversal bar, macro close-up"
+D — "a horizontal gold price level line with a single OHLC price bar wick touching and rejecting it"
+E — "three consecutive green OHLC price bars forming a staircase momentum sequence, macro"
+F — "a single large red OHLC price bar with long lower shadow, three-dimensional"
+G — "two OHLC price bars — one momentum bar followed by one smaller wick rejection bar"
+H — "a clean horizontal support level line glowing gold on pure black, minimal and dramatic"
 
-textOverlay: 3 words MAXIMUM. ALL CAPS. Single aggressive statement that creates a question or tension.
-Strong examples: "THIS TELLS ALL", "PRICE NEVER LIES", "THEY SWEPT IT", "STRUCTURE SHIFTS HERE", "THE WICK REVEALS"
-Weak (never use): "FOREX TRADING TIPS", "LEARN THIS NOW", "CATCH THE WICK" (brand name, not a hook)
-The hook must make a viewer think "what does it tell? I need to know" — it is incomplete without clicking.
+The choice must be directly informed by the transcript topic:
+- Momentum candle concept → A or E
+- Wick methodology → B or D or G
+- 2-candle entry setup → C or G
+- Stop hunt / swept liquidity → B or D
+- Structure / levels → D or H
+- Bearish reversal → F
+
+STEP 2 — BUILD THE COMPLETE PROMPT:
+Replace [FOREX_ELEMENT] in the template below with your chosen option verbatim.
+
+LOCKED FFX TEMPLATE (copy exactly, only replace [FOREX_ELEMENT]):
+"[FOREX_ELEMENT], extreme macro close-up photograph, subject isolated on pure black background #0a0a12 with no other elements, subject fills right 60% of frame, left 40% pure black void with zero detail or gradient, single amber rim light from upper right at 45 degrees casting warm gold outline #c9a84c on subject edges only, all other areas pure black, Hasselblad medium format macro photography, f/2.8 shallow depth of field, razor sharp focus on subject surface texture, cinematic film grain, warm amber desaturated color grade, no grid lines, no text, no labels, no annotations, no chart background, no screen, no computer, no overlays, pure black background, 1472x832 aspect ratio"
+
+STEP 3 — HOOK TEXT (textOverlay):
+Maximum 3 words. ALL CAPS. Must create a specific curiosity gap tied to the video's core insight.
+Must make the target viewer (retail forex trader) think "I need to know what this means."
+
+Hook informed by YouTube search queries — if people search "momentum candle forex" the hook should reference what they don't know about it:
+Strong: "THIS BAR LIES", "PRICE ALREADY TOLD YOU", "STRUCTURE ALREADY BROKE", "THE WICK SWEPT IT", "BEFORE THE ENTRY"
+Weak (banned): "FOREX TIPS", "TRADE THIS NOW", "CATCH THE WICK", "WATCH THIS VIDEO", anything generic
+
+The hook and the visual element together must function as a single complete curiosity gap:
+Visual shows the element → Hook implies there is something hidden about it → viewer clicks to find out.
 
 Return ONLY a valid JSON object:
 {
@@ -532,10 +551,11 @@ Return ONLY a valid JSON object:
   "chapters": ["0:00 Introduction", "1:24 Chapter Name", "etc — OR empty array if no timestamp data"],
   "tags": ["FortitudeFX", "Catch the Wick", "forex trading", "price action", "forex strategy", "Salman Khan forex", "tag7", "tag8"],
   "thumbnailConcept": {
-    "visualSubject": "6-10 words describing the specific forex visual from this video transcript",
-    "textOverlay": "3 WORD ALL CAPS HOOK — specific tension, NOT generic",
-    "leonardoPrompt": "LOCKED TEMPLATE with [VISUAL_SUBJECT] replaced by your visualSubject — copy the full template and substitute the slot",
-    "reasoning": "one sentence — why this specific visual subject and hook will make the target viewer stop scrolling"
+    "forexElement": "the letter you chose (A-H) and the exact phrase from the options list",
+    "textOverlay": "3 WORD ALL CAPS HOOK — specific tension from transcript, informed by YouTube search queries",
+    "leonardoPrompt": "the complete filled template — [FOREX_ELEMENT] replaced with your chosen phrase, full template copied verbatim",
+    "searchQueryInformed": "which YouTube search query from the signals informed the hook text",
+    "reasoning": "one sentence — why this element + hook creates a specific curiosity gap for a retail forex trader searching this topic"
   },
   "signalsApplied": {
     "primaryTitleSignal": "which signal drove the title choice",
