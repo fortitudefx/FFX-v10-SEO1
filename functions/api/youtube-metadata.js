@@ -610,7 +610,7 @@ ${ytSearchGlobalSignals && ytSearchGlobalSignals.competitorTitles
       if (!thumbParsed.thumbnailConcept) throw new Error('thumbnailConcept missing from thumbOnly response');
 
       // Merge into existing metadata
-      const existingMeta = await env.FFX_KV.get(\`youtube:metadata:\${videoId}\`, { type: 'json' }).catch(function() { return null; });
+      const existingMeta = await env.FFX_KV.get('youtube:metadata:' + videoId, { type: 'json' }).catch(function() { return null; });
       const mergedMeta   = Object.assign({}, existingMeta || {}, {
         thumbnailConcept: thumbParsed.thumbnailConcept,
         videoId:          videoId,
@@ -619,7 +619,7 @@ ${ytSearchGlobalSignals && ytSearchGlobalSignals.competitorTitles
         hasTimestamps:    Array.isArray(resolvedTimestamps) && resolvedTimestamps.length > 0,
         apiKeyConfigured: false,
       });
-      await env.FFX_KV.put(\`youtube:metadata:\${videoId}\`, JSON.stringify(mergedMeta));
+      await env.FFX_KV.put('youtube:metadata:' + videoId, JSON.stringify(mergedMeta));
       console.log('[youtube-metadata] thumbOnly complete for:', videoId);
       return new Response(JSON.stringify({ success: true, metadata: mergedMeta }), { status: 200, headers });
     }
