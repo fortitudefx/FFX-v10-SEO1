@@ -1,25 +1,37 @@
 // functions/api/youtube-thumbnail.js
-// POST /api/youtube-thumbnail — generate thumbnail via Leonardo Phoenix 1.0 API
+// POST /api/youtube-thumbnail — generate thumbnail via Leonardo Lucid Origin API
 //
 // Body: { videoId, leonardoPrompt, hookText }
 // Returns: { success, imageUrl, generationId, videoId }
 //
-// Flow:
-//   1. POST to Leonardo /generations with Phoenix 1.0 model
-//   2. Poll GET /generations/{id} every 2s until status === COMPLETE
-//   3. Return image URL to dashboard for preview and download
-//   4. Write imageUrl back to youtube:metadata:{videoId} thumbnail section
-//
-// Requires: LEONARDO_API_KEY in Cloudflare Pages environment variables
-//
-// Model: Phoenix 1.0 — de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3
-// Dimensions: 1472x832 (16:9, closest to 1280x720 YouTube spec)
-// Alchemy: true (Quality mode — higher detail, worth the extra credits for thumbnails)
-// Contrast: 4 (High — cinematic dark thumbnails need strong contrast)
+// Model: Lucid Origin — 7b592283-e8a7-4c5a-9ba6-d18c31f258b9
+// Officially recommended by Leonardo for cinematic dark moody imagery
+// Note: alchemy is NOT supported for Lucid Origin (only Phoenix)
+// Style: Cinematic Close-Up — cc53f935-884c-40a0-b7eb-1f5c42821fb5
+// Dimensions: 1472x832 (16:9 closest to YouTube 1280x720 spec)
+// Contrast: 4 (High — essential for pure black backgrounds)
 
-const LEONARDO_BASE   = 'https://cloud.leonardo.ai/api/rest/v1';
-const PHOENIX_1_MODEL = 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3';
-const HEADERS_JSON    = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+const LEONARDO_BASE        = 'https://cloud.leonardo.ai/api/rest/v1';
+const LUCID_ORIGIN_MODEL   = '7b592283-e8a7-4c5a-9ba6-d18c31f258b9';
+const STYLE_CINEMATIC_CU   = 'cc53f935-884c-40a0-b7eb-1f5c42821fb5'; // Cinematic Close-Up
+
+// Permanent negative prompt — eliminates ALL generic finance/trading stock photo traits
+// and the wax candle ambiguity
+const FFX_NEGATIVE_PROMPT = [
+  'candle', 'wax candle', 'flame', 'fire', 'candleholder', 'candlestick holder',
+  'teal', 'cyan', 'blue color grading', 'neon glow', 'neon lines', 'glowing lines',
+  'grid lines', 'chart grid', 'chart background', 'trading platform', 'computer screen',
+  'monitor', 'screen', 'annotations', 'text overlay', 'watermark', 'price labels',
+  'axis labels', 'chart annotations', 'indicators', 'arrows', 'multiple charts',
+  'busy scene', 'stock photo style', 'generic finance', 'bright background',
+  'white background', 'colorful', 'saturated colors', 'futuristic', 'holographic',
+  'digital overlay', 'UI elements', 'interface', 'HUD', 'lens flare', 'bokeh circles',
+  'person', 'human', 'face', 'hand', 'body', 'people',
+  'multiple candles filling entire frame', 'full chart view', 'entire chart',
+  'low quality', 'blurry', 'overexposed', 'flat lighting', 'amateur',
+].join(', ');
+
+const HEADERS_JSON = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
 function json(data, status) {
   return new Response(JSON.stringify(data), { status: status || 200, headers: HEADERS_JSON });
@@ -29,9 +41,7 @@ export async function onRequestPost(context) {
   const { request, env } = context;
 
   if (!env.LEONARDO_API_KEY) {
-    return json({
-      error: 'LEONARDO_API_KEY not set. Add it to Cloudflare Pages environment variables.',
-    }, 500);
+    return json({ error: 'LEONARDO_API_KEY not set in Cloudflare Pages environment variables.' }, 500);
   }
 
   let body;
@@ -40,7 +50,6 @@ export async function onRequestPost(context) {
   }
 
   const { videoId, leonardoPrompt, hookText } = body;
-
   if (!videoId)        return json({ error: 'videoId required' }, 400);
   if (!leonardoPrompt) return json({ error: 'leonardoPrompt required' }, 400);
 
@@ -53,22 +62,24 @@ export async function onRequestPost(context) {
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json', 'Accept': 'application/json' }, authHeader),
       body: JSON.stringify({
-        modelId:        PHOENIX_1_MODEL,
-        prompt:         leonardoPrompt,
-        negative_prompt: 'teal, cyan, blue color grading, neon glow, neon lines, glowing lines, grid lines, chart grid, chart annotations, text overlay, watermark, labels, arrows, indicators, price labels, axis labels, white background, bright background, colorful, busy background, multiple elements, stock photo style, generic finance photo, amateurish, low contrast, flat lighting, overexposed, cluttered, complex scene, multiple charts, trading platform UI, computer screen, person, human, face, hand, multiple candles filling entire frame, full chart view',
-        num_images:     1,
-        width:          1472,
-        height:         832,
-        contrast:       4,     // High — essential for dark cinematic thumbnails
-        alchemy:        true,  // Quality mode — better shadow detail and lighting
-        enhancePrompt:  false, // Never modify our locked template prompt
+        modelId:         LUCID_ORIGIN_MODEL,
+        prompt:          leonardoPrompt,
+        negative_prompt: FFX_NEGATIVE_PROMPT,
+        styleUUID:       STYLE_CINEMATIC_CU,
+        num_images:      1,
+        width:           1472,
+        height:          832,
+        contrast:        4,          // High — pure black background requires max contrast
+        alchemy:         false,      // NOT supported for Lucid Origin — Phoenix only
+        enhancePrompt:   false,      // Never modify our precision-engineered prompt
+        ultra:           false,
       }),
     });
 
     if (!createRes.ok) {
       const errText = await createRes.text();
       return json({
-        error: 'Leonardo API create failed: ' + createRes.status + ' — ' + errText.slice(0, 200),
+        error: 'Leonardo API error: ' + createRes.status + ' — ' + errText.slice(0, 300),
       }, 500);
     }
 
@@ -81,18 +92,18 @@ export async function onRequestPost(context) {
       }, 500);
     }
 
-    console.log('[youtube-thumbnail] Generation started:', generationId, 'videoId:', videoId);
+    console.log('[youtube-thumbnail] Lucid Origin generation started:', generationId, 'videoId:', videoId);
 
   } catch(err) {
     return json({ error: 'Leonardo API create error: ' + err.message }, 500);
   }
 
-  // ── Step 2: Poll until complete ───────────────────────────────────────
-  // Leonardo generates asynchronously — poll every 2 seconds, max 60 seconds
+  // ── Step 2: Poll until COMPLETE ───────────────────────────────────────
+  // Lucid Origin is typically faster than Phoenix for this type of image
+  // Poll every 2s, max 60 attempts (120 seconds)
   let imageUrl = null;
-  const MAX_POLLS = 30; // 30 × 2s = 60 seconds max
 
-  for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
+  for (let attempt = 0; attempt < 60; attempt++) {
     await new Promise(function(r) { setTimeout(r, 2000); });
 
     try {
@@ -101,17 +112,14 @@ export async function onRequestPost(context) {
       });
 
       if (!pollRes.ok) {
-        console.error('[youtube-thumbnail] Poll failed:', pollRes.status);
-        continue; // Keep trying
+        console.error('[youtube-thumbnail] Poll', attempt + 1, 'HTTP error:', pollRes.status);
+        continue;
       }
 
       const pollData = await pollRes.json();
       const gen      = pollData.generations_by_pk;
 
-      if (!gen) {
-        console.error('[youtube-thumbnail] No generations_by_pk in poll response');
-        continue;
-      }
+      if (!gen) { continue; }
 
       console.log('[youtube-thumbnail] Poll', attempt + 1, '— status:', gen.status);
 
@@ -121,14 +129,12 @@ export async function onRequestPost(context) {
           imageUrl = images[0].url;
           break;
         }
-        return json({ error: 'Generation completed but no image URL returned' }, 500);
+        return json({ error: 'Generation completed but no image URL in response.' }, 500);
       }
 
       if (gen.status === 'FAILED') {
-        return json({ error: 'Leonardo generation failed. Try regenerating.' }, 500);
+        return json({ error: 'Leonardo generation failed. Try regenerating the thumbnail prompt and try again.' }, 500);
       }
-
-      // PENDING or IN_PROGRESS — keep polling
 
     } catch(pollErr) {
       console.error('[youtube-thumbnail] Poll error (non-fatal, retrying):', pollErr.message);
@@ -137,13 +143,12 @@ export async function onRequestPost(context) {
 
   if (!imageUrl) {
     return json({
-      error: 'Thumbnail generation timed out after 60 seconds. Leonardo may be under load — try again.',
+      error: 'Thumbnail generation timed out after 120 seconds. Leonardo may be under load — try again in a few minutes.',
       generationId: generationId,
     }, 500);
   }
 
-  // ── Step 3: Write imageUrl back to youtube:metadata:{videoId} ─────────
-  // Non-fatal — dashboard already has the URL, this is just for persistence
+  // ── Step 3: Persist imageUrl to KV ───────────────────────────────────
   try {
     const meta = await env.FFX_KV.get('youtube:metadata:' + videoId, { type: 'json' }).catch(function() { return null; });
     if (meta) {
@@ -151,20 +156,16 @@ export async function onRequestPost(context) {
       meta.thumbnailConcept.generatedImageUrl  = imageUrl;
       meta.thumbnailConcept.generationId       = generationId;
       meta.thumbnailConcept.generatedAt        = new Date().toISOString();
+      meta.thumbnailConcept.leonardoModel      = 'Lucid Origin';
       meta.thumbnailConcept.leonardoPromptUsed = leonardoPrompt;
       await env.FFX_KV.put('youtube:metadata:' + videoId, JSON.stringify(meta));
-      console.log('[youtube-thumbnail] imageUrl written to youtube:metadata:', videoId);
+      console.log('[youtube-thumbnail] imageUrl written to KV:', videoId);
     }
   } catch(kvErr) {
     console.error('[youtube-thumbnail] KV write failed (non-fatal):', kvErr.message);
   }
 
-  return json({
-    success:      true,
-    imageUrl:     imageUrl,
-    generationId: generationId,
-    videoId:      videoId,
-  });
+  return json({ success: true, imageUrl: imageUrl, generationId: generationId, videoId: videoId });
 }
 
 export async function onRequestOptions() {
