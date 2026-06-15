@@ -105,6 +105,64 @@ async function runCron(env) {
       console.error('[ffx-cron] Target actuals error:', e.message);
     }
 
+    // ── Step 5b: YouTube search signals ─────────────────────────────────────
+    // Fetches what people search on YouTube in the forex/trading niche
+    // 3 API calls × 100 quota units = 300 units (daily limit 10,000)
+    try {
+      const YT_PILLARS = [
+        'catch the wick forex',
+        'forex price action strategy',
+        'candlestick trading system',
+      ];
+      const ytSearchResults = [];
+      for (var pi = 0; pi < YT_PILLARS.length; pi++) {
+        try {
+          const q = YT_PILLARS[pi];
+          const sRes = await fetch(
+            'https://www.googleapis.com/youtube/v3/search?part=snippet&q='
+            + encodeURIComponent(q)
+            + '&type=video&relevanceLanguage=en&maxResults=10&key='
+            + env.YOUTUBE_API_KEY
+          );
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            const items = (sData.items || []).map(function(item) {
+              return {
+                title:       item.snippet.title,
+                channelName: item.snippet.channelTitle,
+                videoId:     item.id && item.id.videoId,
+              };
+            });
+            ytSearchResults.push({ query: q, results: items });
+          }
+        } catch(sqErr) {
+          console.error('[ffx-cron] YT search pillar ' + pi + ' failed (non-fatal):', sqErr.message);
+        }
+      }
+
+      if (ytSearchResults.length > 0) {
+        const competitorTitles = [];
+        ytSearchResults.forEach(function(sr) {
+          sr.results.forEach(function(r) {
+            if (r.channelName && !r.channelName.toLowerCase().includes('fortitudefx')) {
+              competitorTitles.push({ title: r.title, query: sr.query, channel: r.channelName });
+            }
+          });
+        });
+        const ytSignals = {
+          fetchedAt: new Date().toISOString(),
+          pillarsSearched: YT_PILLARS,
+          searchResults: ytSearchResults,
+          competitorTitles: competitorTitles.slice(0, 20),
+          titlePatterns: extractTitlePatterns(competitorTitles),
+        };
+        await env.FFX_KV.put('youtube:search:global:signals', JSON.stringify(ytSignals));
+        console.log('[ffx-cron] YouTube search signals written:', competitorTitles.length, 'competitor titles');
+      }
+    } catch(ytSigErr) {
+      console.error('[ffx-cron] YouTube search signals failed (non-fatal):', ytSigErr.message);
+    }
+
     // ── Step 6: Trigger intelligence engine ───────────────────────────────
     console.log('[ffx-cron] Triggering intelligence engine...');
     try {
@@ -327,6 +385,24 @@ async function addToQueueBottom(env, video) {
 // ─────────────────────────────────────────────────────────────────────────────
 // FIND NEW VIDEO (last 25hrs) — FIX: 180s threshold (was 60s)
 // ─────────────────────────────────────────────────────────────────────────────
+
+function extractTitlePatterns(competitorTitles) {
+  if (!competitorTitles || !competitorTitles.length) return [];
+  // Count opening words to find dominant title patterns on YouTube for this niche
+  var openingWords = {};
+  competitorTitles.forEach(function(ct) {
+    if (!ct.title) return;
+    var words = ct.title.split(' ');
+    var first = words[0] ? words[0].toUpperCase().replace(/[^A-Z]/g,'') : '';
+    if (first && first.length > 1) {
+      openingWords[first] = (openingWords[first] || 0) + 1;
+    }
+  });
+  return Object.entries(openingWords)
+    .sort(function(a,b) { return b[1] - a[1]; })
+    .slice(0, 8)
+    .map(function(e) { return { word: e[0], count: e[1] }; });
+}
 
 async function isLongFormVideo(videoId, apiKey) {
   const url = `${YOUTUBE_API_BASE}/videos?part=contentDetails&id=${videoId}&key=${apiKey}`;
