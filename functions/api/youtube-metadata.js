@@ -98,28 +98,71 @@ export async function onRequestPost(context) {
     } catch(e) {}
 
     // ── Fetch timestamps directly if not already in KV ─────────────────
-    // Handles case where video was processed before timestamped fetch was built,
-    // or where Phase 1 was skipped (phase1Complete) so consumer never ran fetchTranscriptTimestamped
+    // Supadata response: { content: [{text, offset(ms), duration(ms), lang}], lang, availableLangs }
+    // For videos >20min: returns HTTP 202 with { jobId } — must poll /v1/transcript/{jobId}
     let resolvedTimestamps = transcriptTimestamps;
     if (!Array.isArray(resolvedTimestamps) || resolvedTimestamps.length === 0) {
       const ytUrlForTs = youtubeUrl || `https://www.youtube.com/watch?v=${videoId}`;
       if (ytUrlForTs && env.SUPADATA_API_KEY) {
         try {
-          const tsApiUrl = 'https://api.supadata.ai/v1/youtube/transcript?url=' + encodeURIComponent(ytUrlForTs);
+          const tsApiUrl = 'https://api.supadata.ai/v1/transcript?url=' + encodeURIComponent(ytUrlForTs);
           const tsRes = await fetch(tsApiUrl, { headers: { 'x-api-key': env.SUPADATA_API_KEY } });
-          if (tsRes.ok) {
-            const tsData = await tsRes.json();
-            if (Array.isArray(tsData.content) && tsData.content.length > 0 && typeof tsData.content[0] === 'object' && typeof tsData.content[0].start === 'number') {
-              resolvedTimestamps = tsData.content.filter(function(s) {
-                return s && typeof s.text === 'string' && typeof s.start === 'number';
-              });
-              // Write to KV permanently so future regenerations are instant
-              if (resolvedTimestamps.length > 0) {
-                await env.FFX_KV.put(`transcript:timestamps:${videoId}`, JSON.stringify(resolvedTimestamps)).catch(function() {});
-                console.log('[youtube-metadata] Timestamped transcript fetched and stored:', resolvedTimestamps.length, 'chunks');
+
+          let tsData = null;
+
+          if (tsRes.status === 200) {
+            // Immediate response
+            tsData = await tsRes.json();
+
+          } else if (tsRes.status === 202) {
+            // Async job — poll until complete (max 60s, 1s intervals)
+            const jobData = await tsRes.json();
+            const jobId   = jobData.jobId;
+            if (jobId) {
+              for (let attempt = 0; attempt < 60; attempt++) {
+                await new Promise(function(r) { setTimeout(r, 1000); });
+                const pollRes = await fetch('https://api.supadata.ai/v1/transcript/' + jobId, {
+                  headers: { 'x-api-key': env.SUPADATA_API_KEY },
+                });
+                if (pollRes.ok) {
+                  const pollData = await pollRes.json();
+                  if (pollData.status === 'completed') {
+                    // Completed job returns content directly in pollData
+                    tsData = pollData;
+                    break;
+                  } else if (pollData.status === 'failed') {
+                    console.error('[youtube-metadata] Supadata async job failed:', pollData.error);
+                    break;
+                  }
+                  // Still queued/active — keep polling
+                }
               }
             }
+          } else {
+            console.error('[youtube-metadata] Supadata timestamps status:', tsRes.status);
           }
+
+          // Parse chunks — field is 'offset' (milliseconds), not 'start'
+          if (tsData && Array.isArray(tsData.content) && tsData.content.length > 0
+              && typeof tsData.content[0] === 'object'
+              && typeof tsData.content[0].offset === 'number') {
+            resolvedTimestamps = tsData.content
+              .filter(function(s) { return s && typeof s.text === 'string' && typeof s.offset === 'number'; })
+              .map(function(s) {
+                return {
+                  text:     s.text,
+                  start:    s.offset / 1000,    // convert ms → seconds for formatSeconds()
+                  duration: (s.duration || 0) / 1000,
+                };
+              });
+            if (resolvedTimestamps.length > 0) {
+              await env.FFX_KV.put(`transcript:timestamps:${videoId}`, JSON.stringify(resolvedTimestamps)).catch(function() {});
+              console.log('[youtube-metadata] Timestamps fetched and stored:', resolvedTimestamps.length, 'chunks');
+            }
+          } else {
+            console.error('[youtube-metadata] Unexpected Supadata structure or no offset field. Keys:', tsData && tsData.content && tsData.content[0] ? Object.keys(tsData.content[0]).join(',') : 'no content');
+          }
+
         } catch(tsErr) {
           console.error('[youtube-metadata] Direct timestamp fetch failed (non-fatal):', tsErr.message);
         }
