@@ -232,6 +232,7 @@
     <button class="yt-tab active" id="tabGenerate" onclick="switchYtTab('generate')">&#9889; Generate</button>
     <button class="yt-tab" id="tabContent" onclick="switchYtTab('content')">&#9997; Platform Content</button>
     <button class="yt-tab" id="tabPerformance" onclick="switchYtTab('performance')">&#128202; Performance</button>
+    <button class="yt-tab" id="tabAnalytics" onclick="switchYtTab('analytics')">&#128200; Analytics</button>
   </div>
 
   <!-- Tab: Generate -->
@@ -445,6 +446,95 @@
     </div>
 
   </div><!-- /#panel-performance -->
+
+  <!-- Tab: Analytics -->
+  <div class="yt-panel" id="panel-analytics">
+
+    <!-- Header row -->
+    <div class="yt-perf-header">
+      <span class="yt-perf-title">Channel Intelligence &mdash; Manual Refresh</span>
+      <button class="btn-refresh-kpis" id="refreshAnalyticsBtn" onclick="refreshAnalytics()">&#8635; Refresh All</button>
+    </div>
+
+    <!-- Stale warning -->
+    <div id="analyticsStaleWarning" style="display:none;margin-bottom:16px;padding:10px 16px;background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.20);border-radius:8px;font-size:12px;color:rgba(255,165,0,0.80);line-height:1.5;">
+      &#9888; Some data sources are stale (&gt;24 hours old). Hit Refresh All to update.
+    </div>
+
+    <!-- Auth warning for YouTube Analytics -->
+    <div id="ytAnalyticsAuthWarning" style="display:none;margin-bottom:16px;padding:14px 18px;background:rgba(122,92,255,0.08);border:1px solid rgba(122,92,255,0.20);border-radius:8px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:rgba(122,92,255,0.80);margin-bottom:6px;">YouTube Analytics &mdash; OAuth Required</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.55);line-height:1.7;" id="ytAuthInstructions"></div>
+    </div>
+
+    <!-- Data source timestamps -->
+    <div class="yt-channel-stats" id="analyticsSourcesRow" style="display:none;grid-template-columns:repeat(4,1fr);margin-bottom:24px;"></div>
+
+    <!-- Discovery breakdown -->
+    <div class="yt-panel-card" id="discoveryCard" style="display:none;margin-bottom:20px;">
+      <div class="yt-panel-header">
+        <span class="yt-panel-title">How People Find Your Videos</span>
+        <span id="discoveryPriorityChip" style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border-radius:4px;"></span>
+      </div>
+      <div style="padding:20px 24px;">
+        <div style="display:flex;gap:0;margin-bottom:20px;" id="discoveryBars"></div>
+        <div id="discoveryInsight" style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.6;margin-top:12px;padding:12px 14px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid #c9a84c;"></div>
+      </div>
+    </div>
+
+    <!-- Two column: YT search queries + top videos -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+
+      <!-- YouTube search queries -->
+      <div class="yt-panel-card" id="ytSearchCard" style="display:none;">
+        <div class="yt-panel-header">
+          <span class="yt-panel-title">What People Search to Find You</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.28);">YouTube Search</span>
+        </div>
+        <div id="ytSearchList" style="padding:0 24px 16px;"></div>
+      </div>
+
+      <!-- Top videos by watch time -->
+      <div class="yt-panel-card" id="topVideosCard" style="display:none;">
+        <div class="yt-panel-header">
+          <span class="yt-panel-title">Top Videos by Watch Time</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.28);">Last 90 days</span>
+        </div>
+        <div id="topVideosList" style="padding:0 24px 16px;"></div>
+      </div>
+
+    </div>
+
+    <!-- GA4 YouTube referral + competitor titles -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+
+      <!-- GA4 YouTube referral conversions -->
+      <div class="yt-panel-card" id="ytReferralCard" style="display:none;">
+        <div class="yt-panel-header">
+          <span class="yt-panel-title">YouTube Visitors Converting</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.28);">GA4 &mdash; Last 28 days</span>
+        </div>
+        <div id="ytReferralList" style="padding:0 24px 16px;"></div>
+      </div>
+
+      <!-- Competitor title patterns -->
+      <div class="yt-panel-card" id="competitorCard" style="display:none;">
+        <div class="yt-panel-header">
+          <span class="yt-panel-title">Competitor Title Patterns</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.28);">Daily cron &mdash; Your niche</span>
+        </div>
+        <div id="competitorList" style="padding:0 24px 16px;"></div>
+      </div>
+
+    </div>
+
+    <!-- Empty state -->
+    <div id="analyticsEmpty" class="yt-perf-empty">
+      No analytics data yet.<br>
+      <span style="font-size:11px;color:rgba(255,255,255,0.18);">Hit Refresh All to fetch fresh data from all sources.</span>
+    </div>
+
+  </div><!-- /#panel-analytics -->
 
 </div><!-- /.yt-wrap -->
 
@@ -990,11 +1080,14 @@ function switchYtTab(tab) {
   document.getElementById('tabGenerate').classList.toggle('active', tab === 'generate');
   document.getElementById('tabContent').classList.toggle('active', tab === 'content');
   document.getElementById('tabPerformance').classList.toggle('active', tab === 'performance');
+  document.getElementById('tabAnalytics').classList.toggle('active', tab === 'analytics');
   document.getElementById('panel-generate').classList.toggle('active', tab === 'generate');
   document.getElementById('panel-content').classList.toggle('active', tab === 'content');
   document.getElementById('panel-performance').classList.toggle('active', tab === 'performance');
+  document.getElementById('panel-analytics').classList.toggle('active', tab === 'analytics');
   if (tab === 'performance') loadPerformanceTab();
   if (tab === 'content') loadContentTab();
+  if (tab === 'analytics') loadAnalyticsTab();
 }
 
 // ── Mark as Published ─────────────────────────────────────────────────────
@@ -1640,6 +1733,290 @@ function escHtml(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Tab 4: Analytics ─────────────────────────────────────────────────────
+
+var _analyticsLoaded = false;
+
+async function loadAnalyticsTab() {
+  // Show empty state initially if never loaded
+  if (!_analyticsLoaded) {
+    document.getElementById('analyticsEmpty').style.display = 'block';
+  }
+}
+
+async function refreshAnalytics() {
+  var btn = document.getElementById('refreshAnalyticsBtn');
+  btn.disabled = true;
+  btn.innerHTML = '&#8635; Refreshing…';
+  document.getElementById('analyticsEmpty').style.display = 'none';
+  document.getElementById('analyticsStaleWarning').style.display = 'none';
+
+  // Call all 3 sources in parallel
+  var results = await Promise.allSettled([
+    fetch('/api/youtube-analytics', { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+    fetch('/api/ga4-signals',       { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+    fetch('/api/youtube-signals',   { method: 'POST', headers: { 'Content-Type': 'application/json' } }),
+  ]);
+
+  var ytAnalyticsRes = results[0].status === 'fulfilled' ? await results[0].value.json().catch(function() { return null; }) : null;
+  var ga4Res         = results[1].status === 'fulfilled' ? await results[1].value.json().catch(function() { return null; }) : null;
+  var ytSignalsRes   = results[2].status === 'fulfilled' ? await results[2].value.json().catch(function() { return null; }) : null;
+
+  // Read niche search signals from KV via a GET (written by cron — cannot trigger manually)
+  var searchSignals = null;
+  try {
+    var ssRes = await fetch('/api/youtube-signals');
+    var ssData = await ssRes.json();
+    // youtube:search:global:signals is read by intelligence engine — read it via a direct endpoint
+    // For now show what we have from the channel signals
+    searchSignals = ssData.channelSignals || null;
+  } catch(e) {}
+
+  // Handle YouTube Analytics auth error
+  if (ytAnalyticsRes && ytAnalyticsRes.authRequired) {
+    var warn = document.getElementById('ytAnalyticsAuthWarning');
+    var inst = document.getElementById('ytAuthInstructions');
+    inst.innerHTML = '<strong>Add this OAuth scope then re-authorise:</strong><br>'
+      + '<code style="font-size:11px;background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px;display:inline-block;margin:6px 0;">'
+      + esc(ytAnalyticsRes.scopeNeeded || '')
+      + '</code><br>'
+      + (ytAnalyticsRes.howToFix || []).map(function(s) { return esc(s); }).join('<br>');
+    warn.style.display = 'block';
+  } else {
+    document.getElementById('ytAnalyticsAuthWarning').style.display = 'none';
+  }
+
+  // Render all sections
+  renderAnalyticsSources(ytAnalyticsRes, ga4Res, ytSignalsRes);
+  renderDiscovery(ytAnalyticsRes);
+  renderYtSearchQueries(ytAnalyticsRes);
+  renderTopVideos(ytAnalyticsRes);
+  renderYtReferral(ga4Res);
+  renderCompetitorTitles();
+
+  _analyticsLoaded = true;
+
+  btn.disabled = false;
+  btn.innerHTML = '&#10003; Updated';
+  setTimeout(function() { btn.innerHTML = '&#8635; Refresh All'; }, 3000);
+}
+
+// ── Source timestamp cards ────────────────────────────────────────────────
+function renderAnalyticsSources(ytAnalytics, ga4, ytSignals) {
+  var row = document.getElementById('analyticsSourcesRow');
+  var now = Date.now();
+  var stale = false;
+
+  var sources = [
+    {
+      label:     'YouTube Analytics',
+      value:     ytAnalytics && !ytAnalytics.authRequired && ytAnalytics.signals ? 'Connected' : (ytAnalytics && ytAnalytics.authRequired ? 'OAuth needed' : 'No data'),
+      sub:       ytAnalytics && ytAnalytics.signals ? fmtAge(ytAnalytics.signals.fetchedAt, now) : 'Never fetched',
+      ok:        !!(ytAnalytics && ytAnalytics.signals && !ytAnalytics.authRequired),
+    },
+    {
+      label:     'GA4 Referral',
+      value:     ga4 && ga4.signals ? 'Connected' : 'No data',
+      sub:       ga4 && ga4.signals ? fmtAge(ga4.signals.generatedAt, now) : 'Never fetched',
+      ok:        !!(ga4 && ga4.signals),
+    },
+    {
+      label:     'Channel KPIs',
+      value:     ytSignals && ytSignals.channelSignals ? 'Connected' : 'No data',
+      sub:       ytSignals && ytSignals.channelSignals ? fmtAge(ytSignals.channelSignals.fetchedAt, now) : 'Never fetched',
+      ok:        !!(ytSignals && ytSignals.channelSignals),
+    },
+    {
+      label:     'Niche Search',
+      value:     'Via daily cron',
+      sub:       'Runs 9am daily automatically',
+      ok:        true,
+    },
+  ];
+
+  // Check staleness (>24hrs)
+  sources.forEach(function(s) {
+    if (s.sub && s.sub.includes('ago') && (s.sub.includes('day') || parseInt(s.sub) > 24)) stale = true;
+  });
+
+  row.style.display = 'grid';
+  row.innerHTML = sources.map(function(s) {
+    var color = s.ok ? 'rgba(62,207,142,0.80)' : 'rgba(255,165,0,0.70)';
+    return '<div class="yt-channel-stat">'
+      + '<div class="yt-channel-stat-label">' + esc(s.label) + '</div>'
+      + '<div class="yt-channel-stat-value" style="font-size:14px;font-weight:700;color:' + color + ';">' + esc(s.value) + '</div>'
+      + '<div class="yt-channel-stat-sub">' + esc(s.sub) + '</div>'
+      + '</div>';
+  }).join('');
+
+  if (stale) document.getElementById('analyticsStaleWarning').style.display = 'block';
+}
+
+// ── Discovery breakdown ───────────────────────────────────────────────────
+function renderDiscovery(ytAnalytics) {
+  var card = document.getElementById('discoveryCard');
+  if (!ytAnalytics || !ytAnalytics.signals || ytAnalytics.authRequired) { card.style.display = 'none'; return; }
+  var s = ytAnalytics.signals;
+  if (!s.trafficSourceBreakdown || !s.trafficSourceBreakdown.length) { card.style.display = 'none'; return; }
+
+  card.style.display = 'block';
+
+  // Colour coded bars
+  var sourceColours = {
+    'YT_SEARCH':   '#c9a84c',
+    'SUGGESTED':   '#7a5cff',
+    'BROWSE':      '#3ecf8e',
+    'EXTERNAL':    'rgba(255,255,255,0.30)',
+    'NOTIFICATION':'rgba(255,255,255,0.25)',
+  };
+
+  var bars = document.getElementById('discoveryBars');
+  bars.innerHTML = s.trafficSourceBreakdown.map(function(t) {
+    var colour = sourceColours[t.source] || 'rgba(255,255,255,0.20)';
+    var label  = t.source.replace('YT_SEARCH','YT Search').replace('SUGGESTED','Suggested').replace('BROWSE','Browse').replace('EXTERNAL','External').replace('NOTIFICATION','Notifications');
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:' + Math.max(t.pct, 3) + ';">'
+      + '<div style="font-size:14px;font-weight:800;color:' + colour + ';">' + t.pct + '%</div>'
+      + '<div style="height:8px;width:100%;background:' + colour + ';border-radius:2px;opacity:0.80;"></div>'
+      + '<div style="font-size:9px;color:rgba(255,255,255,0.35);text-align:center;letter-spacing:0.06em;text-transform:uppercase;">' + esc(label) + '</div>'
+      + '</div>';
+  }).join('');
+
+  // Insight text
+  var insight = document.getElementById('discoveryInsight');
+  insight.textContent = s.titleVsThumbnailPriority || '';
+
+  // Priority chip
+  var chip = document.getElementById('discoveryPriorityChip');
+  if (s.dominantDiscovery === 'suggested') {
+    chip.textContent = 'Thumbnail Priority';
+    chip.style.cssText = 'background:rgba(122,92,255,0.12);color:rgba(122,92,255,0.90);border:1px solid rgba(122,92,255,0.25);font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border-radius:4px;';
+  } else {
+    chip.textContent = 'Title Priority';
+    chip.style.cssText = 'background:rgba(201,168,76,0.12);color:rgba(201,168,76,0.90);border:1px solid rgba(201,168,76,0.25);font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border-radius:4px;';
+  }
+}
+
+// ── YouTube search queries ────────────────────────────────────────────────
+function renderYtSearchQueries(ytAnalytics) {
+  var card = document.getElementById('ytSearchCard');
+  if (!ytAnalytics || !ytAnalytics.signals || ytAnalytics.authRequired) { card.style.display = 'none'; return; }
+  var queries = (ytAnalytics.signals.topYouTubeSearchQueries || []).slice(0, 10);
+  if (!queries.length) { card.style.display = 'none'; return; }
+
+  card.style.display = 'block';
+  var maxViews = queries[0].views || 1;
+  document.getElementById('ytSearchList').innerHTML = queries.map(function(q, i) {
+    var barW = Math.round((q.views / maxViews) * 100);
+    return '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
+      + '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+      + '<span style="font-size:12px;color:rgba(255,255,255,0.75);font-weight:' + (i < 3 ? '700' : '400') + ';">' + esc(q.query) + '</span>'
+      + '<span style="font-size:11px;color:rgba(255,255,255,0.30);">' + fmt(q.views) + ' views</span>'
+      + '</div>'
+      + '<div style="height:3px;background:rgba(201,168,76,0.15);border-radius:2px;">'
+      + '<div style="height:3px;width:' + barW + '%;background:#c9a84c;border-radius:2px;opacity:' + (i < 3 ? '0.90' : '0.50') + ';"></div>'
+      + '</div></div>';
+  }).join('');
+}
+
+// ── Top videos by watch time ──────────────────────────────────────────────
+function renderTopVideos(ytAnalytics) {
+  var card = document.getElementById('topVideosCard');
+  if (!ytAnalytics || !ytAnalytics.signals || ytAnalytics.authRequired) { card.style.display = 'none'; return; }
+  var videos = (ytAnalytics.signals.topVideosByWatchTime || []).slice(0, 8);
+  if (!videos.length) { card.style.display = 'none'; return; }
+
+  card.style.display = 'block';
+  var maxWatch = videos[0].watchTime || 1;
+  document.getElementById('topVideosList').innerHTML = videos.map(function(v, i) {
+    var barW = Math.round((v.watchTime / maxWatch) * 100);
+    var ytUrl = 'https://www.youtube.com/watch?v=' + esc(v.videoId);
+    return '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
+      + '<div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:8px;">'
+      + '<a href="' + ytUrl + '" target="_blank" style="font-size:11px;color:rgba(255,255,255,0.55);text-decoration:none;font-family:monospace;" title="' + esc(v.videoId) + '">' + esc(v.videoId) + '</a>'
+      + '<span style="font-size:11px;color:rgba(255,255,255,0.30);white-space:nowrap;">' + fmt(v.watchTime) + ' min</span>'
+      + '</div>'
+      + '<div style="display:flex;gap:12px;font-size:10px;color:rgba(255,255,255,0.28);margin-bottom:4px;">'
+      + '<span>' + fmt(v.views) + ' views</span>'
+      + '<span>' + Math.round(v.avgViewPct || 0) + '% retained</span>'
+      + '</div>'
+      + '<div style="height:3px;background:rgba(122,92,255,0.12);border-radius:2px;">'
+      + '<div style="height:3px;width:' + barW + '%;background:#7a5cff;border-radius:2px;opacity:0.70;"></div>'
+      + '</div></div>';
+  }).join('');
+}
+
+// ── GA4 YouTube referral conversions ─────────────────────────────────────
+function renderYtReferral(ga4) {
+  var card = document.getElementById('ytReferralCard');
+  if (!ga4 || !ga4.signals || !ga4.signals.youtubeReferralData) { card.style.display = 'none'; return; }
+  var ref = ga4.signals.youtubeReferralData;
+
+  card.style.display = 'block';
+  var html = '';
+
+  if (ref.totalYtSessions > 0) {
+    html += '<div style="padding:14px 0 6px;font-size:22px;font-weight:800;color:rgba(255,255,255,0.85);letter-spacing:-0.03em;">'
+      + fmt(ref.totalYtSessions)
+      + '<span style="font-size:12px;font-weight:400;color:rgba(255,255,255,0.35);margin-left:6px;">sessions from YouTube</span></div>';
+  }
+
+  if (ref.conversions && ref.conversions.length > 0) {
+    html += '<div style="margin-bottom:10px;font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.28);">Conversion events</div>';
+    html += ref.conversions.slice(0, 6).map(function(c) {
+      var isGood = c.event.includes('discord') || c.event.includes('bootcamp') || c.event.includes('click') || c.event.includes('join');
+      return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
+        + '<span style="font-size:12px;color:' + (isGood ? 'rgba(62,207,142,0.80)' : 'rgba(255,255,255,0.45)') + ';">' + esc(c.event) + '</span>'
+        + '<span style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.60);">' + fmt(c.eventCount) + '</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  if (ref.topPages && ref.topPages.length > 0) {
+    html += '<div style="margin:14px 0 8px;font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.28);">Top pages from YouTube</div>';
+    html += ref.topPages.slice(0, 4).map(function(p) {
+      return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+        + '<span style="font-size:11px;color:rgba(255,255,255,0.45);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;" title="' + esc(p.path) + '">' + esc(p.path) + '</span>'
+        + '<span style="font-size:11px;color:rgba(255,255,255,0.30);">' + p.sessions + ' sess</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  if (!html) { card.style.display = 'none'; return; }
+  document.getElementById('ytReferralList').innerHTML = html;
+}
+
+// ── Competitor title patterns ─────────────────────────────────────────────
+async function renderCompetitorTitles() {
+  var card = document.getElementById('competitorCard');
+  // Read from youtube-signals GET which includes channelSignals
+  // Competitor data is in youtube:search:global:signals — read via a separate call
+  try {
+    // We don't have a direct API endpoint for youtube:search:global:signals
+    // It is consumed by the intelligence engine. Show a note.
+    card.style.display = 'block';
+    document.getElementById('competitorList').innerHTML = '<div style="padding:16px 0;">'
+      + '<div style="font-size:12px;color:rgba(255,255,255,0.40);line-height:1.7;">'
+      + 'Competitor title patterns are collected daily by the cron at 9am and fed directly into the SEO package generator.<br><br>'
+      + 'They inform Claude which title formats rank on YouTube for your content pillars &mdash; you see their effect in the generated titles, not here directly.'
+      + '</div></div>';
+  } catch(e) {
+    card.style.display = 'none';
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function fmtAge(isoStr, now) {
+  if (!isoStr) return 'Never';
+  var diff = now - new Date(isoStr).getTime();
+  var mins  = Math.floor(diff / 60000);
+  var hours = Math.floor(diff / 3600000);
+  var days  = Math.floor(diff / 86400000);
+  if (mins < 2)   return 'Just now';
+  if (mins < 60)  return mins + ' min ago';
+  if (hours < 24) return hours + ' hr ago';
+  return days + ' day' + (days > 1 ? 's' : '') + ' ago';
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
