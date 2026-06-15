@@ -358,6 +358,31 @@
             The prompt is generated below — you can use it manually in Leonardo.ai.
           </div>
 
+          <!-- Leonardo prompt — always shown after SEO package generates -->
+          <div id="leonardoPromptSection" style="display:none; border-top:1px solid rgba(255,255,255,0.07);">
+            <div class="yt-section-body">
+              <div class="yt-prompt-label">Leonardo Prompt</div>
+              <div class="yt-prompt-text" id="leonardoPromptText"></div>
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                <button class="btn-copy" onclick="copyLeonardoPrompt(this)">Copy Prompt</button>
+                <button class="btn-thumb-generate" id="regenPromptBtn" onclick="regenerateThumbnailPrompt()" style="display:none;font-size:9px;padding:5px 12px;">
+                  &#8635; Regenerate Prompt
+                </button>
+              </div>
+              <!-- Updated prompt preview — shown after Regenerate Prompt ──────── -->
+              <div id="newPromptPreview" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.20);border-radius:6px;">
+                <div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(201,168,76,0.70);margin-bottom:6px;">Updated Prompt — Review Before Executing</div>
+                <div class="yt-prompt-text" id="newPromptText" style="color:rgba(255,255,255,0.65);"></div>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                  <button class="btn-thumb-generate" id="executeNewPromptBtn" onclick="executeNewPrompt()" style="font-size:9px;padding:5px 14px;">
+                    &#9889; Execute This Prompt
+                  </button>
+                  <button class="btn-copy" onclick="discardNewPrompt(this)">Discard</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Controls -->
           <div class="yt-thumb-controls">
             <div class="yt-thumb-actions">
@@ -367,15 +392,6 @@
               <a class="btn-thumb-download hidden" id="thumbDownloadBtn" href="#" download="ffx-thumbnail.png">
                 &#11123; Download PNG
               </a>
-            </div>
-          </div>
-
-          <!-- Leonardo prompt (always shown when metadata generated) -->
-          <div id="leonardoPromptSection" style="display:none; border-top:1px solid rgba(255,255,255,0.07);">
-            <div class="yt-section-body">
-              <div class="yt-prompt-label">Leonardo Prompt (use manually if no API key)</div>
-              <div class="yt-prompt-text" id="leonardoPromptText"></div>
-              <button class="btn-copy" style="margin-top:8px;" onclick="copyLeonardoPrompt(this)">Copy Prompt</button>
             </div>
           </div>
 
@@ -694,30 +710,24 @@ async function handleGenerate() {
   btn.disabled = true;
   btn.textContent = 'Generating\u2026';
 
-  // ── Check cache first — if both video: and youtube:metadata: exist, render immediately ──
+  // ── Check if Phase 1 already done (video: exists in KV) ────────────────
+  // If yes: skip Phase 1 entirely, go straight to Phase 2 (SEO always regenerates fresh)
+  // Phase 2 ALWAYS runs — never served from cache on a Generate/Regenerate press
   renderSteps('transcript', null, null);
 
   try {
-    var cacheRes  = await fetch('/api/youtube-generate?videoId=' + encodeURIComponent(videoId));
-    var cacheData = await cacheRes.json();
+    var phase1Res  = await fetch('/api/youtube-generate?videoId=' + encodeURIComponent(videoId));
+    var phase1Data = await phase1Res.json();
 
-    if (cacheData.phase === 'complete') {
-      // Both phases already done — load SEO package directly
-      var seoRes  = await fetch('/api/youtube-metadata?videoId=' + encodeURIComponent(videoId));
-      var seoData = await seoRes.json();
-      if (seoData.metadata && seoData.metadata.primaryTitle) {
-        renderAllDone();
-        document.getElementById('videoTitle').textContent = seoData.metadata.primaryTitle;
-        document.getElementById('cachedBadge').style.display = '';
-        renderOutput(seoData.metadata);
-        btn.disabled = false;
-        btn.textContent = 'Regenerate';
-        setTimeout(hideProgress, 800);
-        return;
-      }
+    if (phase1Data.phase1Complete === true) {
+      // Phase 1 done — skip straight to Phase 2 (SEO package regenerates fresh)
+      renderSteps('reading_signals', 5, null); // steps 1-6 marked done instantly
+      _phase2Triggered = true;
+      triggerPhase2(videoId);
+      return;
     }
   } catch(e) {
-    // Cache check failed — proceed to fresh generation
+    // Phase 1 check failed — proceed to full generation
   }
 
   // ── POST to youtube-generate — triggers Phase 1 queue job ────────────────
@@ -802,10 +812,12 @@ async function poll(videoId) {
     // ── Phase 2 running — step updated by triggerPhase2 directly ──────────
     // Status polling handles phase2 display inline — nothing to do here
 
-    // ── Complete ───────────────────────────────────────────────────────────
-    if (phase === 'complete' && status === 'complete') {
-      stopPolling();
-      await loadSEOPackage(videoId);
+    // ── Phase 1 complete — trigger Phase 2 (SEO always regenerates) ─────────
+    if ((phase === 'phase2' || phase === 'complete') && !_phase2Triggered) {
+      _phase2Triggered = true;
+      renderSteps('reading_signals', null, null);
+      triggerPhase2(videoId);
+      return;
     }
 
   } catch(err) {
@@ -984,6 +996,10 @@ function renderThumbnailSection(meta) {
   }
 
   document.getElementById('thumbGenerateBtn').style.display = prompt ? '' : 'none';
+  document.getElementById('regenPromptBtn').style.display = prompt ? '' : 'none';
+  // Reset new prompt preview state
+  document.getElementById('newPromptPreview').style.display = 'none';
+  document.getElementById('newPromptText').textContent = '';
 
   if (prompt) {
     document.getElementById('leonardoPromptText').textContent = prompt;
@@ -1071,6 +1087,88 @@ function copyText(text, btn) {
 
 function copyLeonardoPrompt(btn) {
   copyText(document.getElementById('leonardoPromptText').textContent, btn);
+}
+
+// ── Regenerate thumbnail prompt (Step 1 of 2) ────────────────────────────
+// Calls Claude to generate a fresh Leonardo prompt based on current SEO package
+// Shows new prompt for review — does NOT execute it yet
+async function regenerateThumbnailPrompt() {
+  if (!_currentMeta || !_currentVideoId) return;
+  var btn = document.getElementById('regenPromptBtn');
+  btn.disabled = true;
+  btn.innerHTML = '&#8635; Regenerating…';
+  document.getElementById('newPromptPreview').style.display = 'none';
+
+  try {
+    var url = document.getElementById('ytUrlInput').value.trim();
+    var res = await fetch('/api/youtube-metadata', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        videoId:    _currentVideoId,
+        youtubeUrl: url,
+        thumbOnly:  true, // Signal to generate only thumbnail concept
+      }),
+    });
+    var data = await res.json();
+
+    if (!res.ok || data.error) {
+      btn.disabled = false;
+      btn.innerHTML = '&#8635; Regenerate Prompt';
+      alert('Error: ' + (data.error || 'Failed to regenerate prompt'));
+      return;
+    }
+
+    var newPrompt = data.metadata && data.metadata.thumbnailConcept && data.metadata.thumbnailConcept.leonardoPrompt;
+    if (!newPrompt) {
+      btn.disabled = false;
+      btn.innerHTML = '&#8635; Regenerate Prompt';
+      alert('No prompt returned. Try again.');
+      return;
+    }
+
+    // Show the new prompt for review — do NOT execute yet
+    document.getElementById('newPromptText').textContent = newPrompt;
+    document.getElementById('newPromptPreview').style.display = 'block';
+
+    // Store new prompt for execution
+    _pendingNewPrompt = newPrompt;
+
+    btn.disabled = false;
+    btn.innerHTML = '&#8635; Regenerate Prompt';
+
+  } catch(err) {
+    btn.disabled = false;
+    btn.innerHTML = '&#8635; Regenerate Prompt';
+    alert('Network error: ' + err.message);
+  }
+}
+
+var _pendingNewPrompt = null;
+
+// ── Execute new prompt (Step 2 of 2) ────────────────────────────────────
+// User reviewed the new prompt and confirmed — now generate the thumbnail
+async function executeNewPrompt() {
+  if (!_pendingNewPrompt || !_currentVideoId) return;
+
+  // Apply new prompt to current meta so generateThumbnail uses it
+  if (_currentMeta && _currentMeta.thumbnailConcept) {
+    _currentMeta.thumbnailConcept.leonardoPrompt = _pendingNewPrompt;
+  }
+
+  // Update visible prompt text
+  document.getElementById('leonardoPromptText').textContent = _pendingNewPrompt;
+  document.getElementById('newPromptPreview').style.display = 'none';
+  _pendingNewPrompt = null;
+
+  // Execute thumbnail generation with new prompt
+  await generateThumbnail();
+}
+
+// ── Discard new prompt ────────────────────────────────────────────────────
+function discardNewPrompt(btn) {
+  _pendingNewPrompt = null;
+  document.getElementById('newPromptPreview').style.display = 'none';
 }
 
 // ── Tab switching ─────────────────────────────────────────────────────────
