@@ -1,847 +1,1382 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y056J2K2WK"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-Y056J2K2WK');
-</script>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FortitudeFX | Catch The Wick — Forex Trading System</title>
-  <meta name="description" content="FortitudeFX — 5 mechanical entry models built around the Catch The Wick philosophy. Two candles. One story. Zero guesswork." />
-  <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "FortitudeFX",
-  "url": "https://fortitudefx.com",
-  "description": "FortitudeFX — 5 mechanical entry models built around the Catch The Wick philosophy. Two candles. One story. Zero guesswork.",
-  "publisher": {
-    "@type": "Organization",
-    "name": "FortitudeFX",
-    "url": "https://fortitudefx.com"
-  }
-}
-  </script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FortitudeFX | Catch The Wick™ — Mechanical Forex Trading</title>
+<meta name="description" content="FortitudeFX — Catch The Wick™. Two candles. One story. Five mechanical entry models. Zero guesswork. Join 7,500+ traders." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://fortitudefx.com/" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://fortitudefx.com/" />
+<meta property="og:title" content="FortitudeFX | Catch The Wick™" />
+<meta property="og:description" content="Two candles. One story. The mechanical forex entry system that removes hesitation completely." />
+<meta property="og:image" content="https://fortitudefx.com/og-fortitudefx.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-  <meta name="theme-color" content="#06060a" />
-  <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://fortitudefx.com/" />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://fortitudefx.com/" />
-  <meta property="og:title" content="FortitudeFX | Catch The Wick" />
-  <meta property="og:description" content="FortitudeFX — 5 mechanical entry models built around the Catch The Wick philosophy. Two candles. One story. Zero guesswork." />
-  <meta property="og:image" content="https://fortitudefx.com/og-fortitudefx.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:site_name" content="FortitudeFX" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="FortitudeFX | Catch The Wick" />
-  <meta name="twitter:description" content="FortitudeFX — 5 mechanical entry models built around the Catch The Wick philosophy. Two candles. One story. Zero guesswork." />
-  <meta name="twitter:image" content="https://fortitudefx.com/og-fortitudefx.png" />
-  <link rel="stylesheet" href="styles-base.css" />
-  <link rel="stylesheet" href="styles-components.css" />
-  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+<style>
+  /* ── Reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #FAF8F5;
+    color: #1A1510;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Scroll reveal ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.85s cubic-bezier(0.22,1,0.36,1), transform 0.85s cubic-bezier(0.22,1,0.36,1);
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.22s; }
+  .reveal-delay-3 { transition-delay: 0.34s; }
+  .reveal-delay-4 { transition-delay: 0.46s; }
+  .reveal-delay-5 { transition-delay: 0.58s; }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 48px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(250,248,245,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(26,21,16,0.07);
+    transition: background 0.3s;
+  }
+  .nav-brand {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #1A1510;
+    text-decoration: none;
+  }
+  .nav-links {
+    display: flex;
+    gap: 36px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(26,21,16,0.6);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: #1A1510; }
+  .nav-actions { display: flex; gap: 12px; align-items: center; }
+  .nav-btn-ghost {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1A1510;
+    text-decoration: none;
+    padding: 8px 18px;
+    border: 1px solid rgba(26,21,16,0.2);
+    border-radius: 100px;
+    transition: all 0.2s;
+  }
+  .nav-btn-ghost:hover { border-color: #1A1510; }
+  .nav-btn-primary {
+    font-size: 13px;
+    font-weight: 600;
+    color: #FAF8F5;
+    text-decoration: none;
+    padding: 9px 22px;
+    background: #1A1510;
+    border-radius: 100px;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .nav-btn-primary:hover { background: #C9A84C; color: #1A1510; }
+
+  /* ── SCENE 1 — ARRIVAL ── */
+  #scene-arrival {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    text-align: center;
+    background: #FAF8F5;
+  }
+  .arrival-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    margin-bottom: 32px;
+  }
+  .arrival-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(42px, 6vw, 82px);
+    font-weight: 700;
+    line-height: 1.08;
+    color: #1A1510;
+    letter-spacing: -0.02em;
+    max-width: 820px;
+  }
+  .arrival-headline .line-2 {
+    color: #C9A84C;
+    font-style: italic;
+    display: block;
+  }
+  .arrival-sub {
+    margin-top: 24px;
+    font-size: 16px;
+    font-weight: 300;
+    color: rgba(26,21,16,0.5);
+    letter-spacing: 0.01em;
+    max-width: 420px;
+    line-height: 1.7;
+  }
+
+  /* ── 2-Candle Animation ── */
+  .candle-diagram {
+    margin: 56px auto 0;
+    position: relative;
+    width: 320px;
+    height: 220px;
+  }
+  .candle-diagram svg { overflow: visible; }
+  .wick-line {
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+    animation: drawWick 1.2s ease forwards 0.4s;
+  }
+  .body-rect {
+    opacity: 0;
+    animation: fadeInBody 0.5s ease forwards 1.6s;
+  }
+  .sweep-arrow {
+    opacity: 0;
+    animation: fadeInBody 0.6s ease forwards 2.2s;
+  }
+  .entry-arrow {
+    opacity: 0;
+    animation: fadeInBody 0.6s ease forwards 2.8s;
+  }
+  .candle2-body {
+    opacity: 0;
+    animation: fadeInBody 0.6s ease forwards 3.2s;
+  }
+  @keyframes drawWick {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes fadeInBody {
+    from { opacity: 0; transform: scaleY(0.6); }
+    to   { opacity: 1; transform: scaleY(1); }
+  }
+
+  .arrival-cta-wrap {
+    margin-top: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .btn-join-free {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #FAF8F5;
+    background: #1A1510;
+    text-decoration: none;
+    padding: 16px 40px;
+    border-radius: 100px;
+    letter-spacing: 0.02em;
+    transition: all 0.25s;
+  }
+  .btn-join-free:hover { background: #C9A84C; color: #1A1510; transform: translateY(-1px); }
+  .btn-join-free-sub {
+    font-size: 12px;
+    color: rgba(26,21,16,0.38);
+    letter-spacing: 0.03em;
+  }
+  .scroll-indicator {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.35;
+    animation: scrollBounce 2s ease infinite 4s;
+  }
+  .scroll-indicator span {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #1A1510;
+  }
+  @keyframes scrollBounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%       { transform: translateX(-50%) translateY(6px); }
+  }
+
+  /* ── SCENE 2 — PAIN ── */
+  #scene-pain {
+    padding: 140px 24px;
+    background: #FAF8F5;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .pain-line {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(26px, 3.5vw, 42px);
+    font-weight: 400;
+    line-height: 1.3;
+    color: #1A1510;
+    margin-bottom: 32px;
+    letter-spacing: -0.01em;
+  }
+  .pain-line.faded { color: rgba(26,21,16,0.32); }
+  .pain-divider {
+    width: 56px;
+    height: 1px;
+    background: #C9A84C;
+    margin: 56px 0;
+  }
+  .pain-truth {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(20px, 2.5vw, 28px);
+    font-style: italic;
+    font-weight: 400;
+    color: #C9A84C;
+    line-height: 1.4;
+  }
+
+  /* ── SCENE 3 — THE LIFE ── */
+  #scene-life {
+    padding: 140px 0;
+    background: #F5F0E8;
+  }
+  .life-kicker {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    margin-bottom: 64px;
+    padding: 0 24px;
+  }
+  .life-hero-image {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    padding: 0 24px;
+  }
+  .life-hero-image img {
+    width: 100%;
+    height: 580px;
+    object-fit: cover;
+    border-radius: 4px;
+    display: block;
+  }
+  .life-overlay-card {
+    position: absolute;
+    bottom: 40px;
+    left: 64px;
+    background: rgba(250,248,245,0.93);
+    backdrop-filter: blur(8px);
+    padding: 24px 32px;
+    border-radius: 4px;
+    border-left: 3px solid #C9A84C;
+  }
+  .life-overlay-card p {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(26,21,16,0.55);
+    line-height: 1.9;
+    letter-spacing: 0.01em;
+  }
+  .life-overlay-card p strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1A1510;
+    margin-bottom: 4px;
+  }
+  .life-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    max-width: 1200px;
+    margin: 40px auto 0;
+    padding: 0 24px;
+  }
+  .life-strip-img {
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+  .life-strip-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.22,1,0.36,1);
+  }
+  .life-strip-img:hover img { transform: scale(1.04); }
+  .life-tagline {
+    text-align: center;
+    margin-top: 56px;
+    padding: 0 24px;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(18px, 2.2vw, 26px);
+    font-style: italic;
+    color: rgba(26,21,16,0.55);
+    letter-spacing: -0.01em;
+  }
+
+  /* ── SCENE 4 — MECHANISM ── */
+  #scene-mechanism {
+    padding: 160px 24px;
+    background: #FAF8F5;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .mechanism-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+  .mechanism-kicker {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    margin-bottom: 20px;
+  }
+  .mechanism-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(30px, 3.5vw, 48px);
+    font-weight: 700;
+    line-height: 1.12;
+    color: #1A1510;
+    letter-spacing: -0.02em;
+    margin-bottom: 32px;
+  }
+  .mechanism-points {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+  .mechanism-points li {
+    font-size: 15px;
+    font-weight: 300;
+    color: rgba(26,21,16,0.65);
+    line-height: 1.6;
+    padding-left: 20px;
+    position: relative;
+  }
+  .mechanism-points li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: #C9A84C;
+    font-weight: 400;
+  }
+  .mechanism-truth {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-style: italic;
+    color: #1A1510;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  /* CTW Diagram */
+  .ctw-diagram {
+    background: #1A1510;
+    border-radius: 8px;
+    padding: 40px 32px;
+    position: relative;
+  }
+  .ctw-diagram-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.7);
+    margin-bottom: 32px;
+  }
+  .ctw-candles {
+    display: flex;
+    align-items: flex-end;
+    gap: 40px;
+    justify-content: center;
+    height: 200px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .ctw-candle-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .ctw-candle-label {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  /* Candle 1 — bearish with long bottom wick */
+  .c1-wick-top {
+    width: 1.5px;
+    height: 24px;
+    background: rgba(255,255,255,0.4);
+  }
+  .c1-body {
+    width: 32px;
+    height: 80px;
+    background: linear-gradient(180deg, #e05555 0%, #c03030 100%);
+    border-radius: 2px;
+    position: relative;
+  }
+  .c1-wick-bottom {
+    width: 1.5px;
+    background: #C9A84C;
+    height: 0;
+    animation: growWick 0.8s ease forwards 1s;
+    transform-origin: top;
+  }
+  @keyframes growWick {
+    to { height: 56px; }
+  }
+  .sweep-zone {
+    position: absolute;
+    bottom: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 20px;
+    border: 1px dashed rgba(201,168,76,0.5);
+    border-radius: 2px;
+    opacity: 0;
+    animation: fadeInBody 0.5s ease forwards 1.8s;
+  }
+  .sweep-label {
+    position: absolute;
+    bottom: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    white-space: nowrap;
+    opacity: 0;
+    animation: fadeInBody 0.5s ease forwards 2s;
+  }
+
+  /* Candle 2 — bullish continuation */
+  .c2-wick-top {
+    width: 1.5px;
+    height: 16px;
+    background: rgba(255,255,255,0.4);
+    opacity: 0;
+    animation: fadeInBody 0.4s ease forwards 2.4s;
+  }
+  .c2-body {
+    width: 32px;
+    height: 0;
+    background: linear-gradient(180deg, #4ecb71 0%, #2d9e50 100%);
+    border-radius: 2px;
+    opacity: 0;
+    animation: growBody 0.7s ease forwards 2.6s;
+  }
+  @keyframes growBody {
+    from { height: 0; opacity: 0; }
+    to   { height: 90px; opacity: 1; }
+  }
+  .c2-wick-bottom {
+    width: 1.5px;
+    height: 12px;
+    background: rgba(255,255,255,0.4);
+    opacity: 0;
+    animation: fadeInBody 0.4s ease forwards 3.2s;
+  }
+
+  /* Entry arrow between candles */
+  .entry-marker {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    opacity: 0;
+    animation: fadeInBody 0.6s ease forwards 3s;
+  }
+  .entry-dot {
+    width: 8px;
+    height: 8px;
+    background: #C9A84C;
+    border-radius: 50%;
+    box-shadow: 0 0 12px rgba(201,168,76,0.6);
+  }
+  .entry-line {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(180deg, #C9A84C, transparent);
+  }
+  .entry-text {
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    white-space: nowrap;
+  }
+
+  .ctw-diagram-footer {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.25);
+    text-transform: uppercase;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding-top: 20px;
+    margin-top: 8px;
+  }
+
+  /* EM Cards */
+  .em-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 1200px;
+    margin: 80px auto 0;
+    padding: 0 24px;
+  }
+  .em-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 32px 28px;
+    border: 1px solid rgba(26,21,16,0.07);
+    border-top: 3px solid #C9A84C;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .em-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 48px rgba(26,21,16,0.08);
+  }
+  .em-card:nth-child(2) { border-top-color: #7a5cff; }
+  .em-card:nth-child(3) { border-top-color: #E06B1A; }
+  .em-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    margin-bottom: 12px;
+  }
+  .em-card:nth-child(2) .em-label { color: #7a5cff; }
+  .em-card:nth-child(3) .em-label { color: #E06B1A; }
+  .em-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1A1510;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  .em-desc {
+    font-size: 13px;
+    font-weight: 300;
+    color: rgba(26,21,16,0.55);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+  .em-truth {
+    font-size: 12px;
+    font-weight: 500;
+    font-style: italic;
+    color: rgba(26,21,16,0.4);
+    padding-top: 16px;
+    border-top: 1px solid rgba(26,21,16,0.06);
+  }
+
+  /* ── SCENE 5 — DISTINCTION ── */
+  #scene-distinction {
+    background: #1A1510;
+    padding: 140px 24px;
+  }
+  .distinction-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .distinction-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 3.5vw, 48px);
+    font-weight: 700;
+    color: #FAF8F5;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+  .distinction-sub {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(18px, 2vw, 26px);
+    font-style: italic;
+    color: #C9A84C;
+    margin-bottom: 80px;
+  }
+  .distinction-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    text-align: left;
+  }
+  .distinction-col {
+    padding: 48px 40px;
+    background: rgba(255,255,255,0.03);
+  }
+  .distinction-col.is-them { opacity: 0.45; }
+  .distinction-col.is-us {
+    background: rgba(201,168,76,0.06);
+    border-top: 1px solid rgba(201,168,76,0.3);
+  }
+  .distinction-col-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 20px;
+  }
+  .distinction-col.is-us .distinction-col-label { color: #C9A84C; }
+  .distinction-col-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #FAF8F5;
+    margin-bottom: 24px;
+    line-height: 1.2;
+  }
+  .distinction-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .distinction-list li {
+    font-size: 14px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.5;
+    padding-left: 16px;
+    position: relative;
+  }
+  .distinction-list li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: rgba(255,255,255,0.2);
+  }
+  .distinction-col.is-us .distinction-list li {
+    color: rgba(255,255,255,0.75);
+  }
+  .distinction-col.is-us .distinction-list li::before { color: #C9A84C; }
+  .distinction-bottom {
+    margin-top: 64px;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(16px, 1.8vw, 21px);
+    font-style: italic;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.5;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ── SCENE 6 — PROOF ── */
+  #scene-proof {
+    padding: 140px 24px;
+    background: #FAF8F5;
+  }
+  .proof-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .proof-kicker {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    margin-bottom: 20px;
+  }
+  .proof-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 3vw, 44px);
+    font-weight: 700;
+    color: #1A1510;
+    margin-bottom: 64px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    max-width: 560px;
+  }
+  .proof-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-bottom: 64px;
+  }
+  .proof-stat {
+    padding: 40px 36px;
+    background: #fff;
+    border: 1px solid rgba(26,21,16,0.06);
+  }
+  .proof-stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 4vw, 54px);
+    font-weight: 700;
+    color: #1A1510;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .proof-stat-num span { color: #C9A84C; }
+  .proof-stat-label {
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(26,21,16,0.45);
+    letter-spacing: 0.05em;
+    line-height: 1.5;
+  }
+  .proof-community-img {
+    width: 100%;
+    height: 320px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 40px;
+    display: block;
+  }
+  .proof-tagline {
+    font-size: 15px;
+    font-weight: 300;
+    color: rgba(26,21,16,0.5);
+    line-height: 1.7;
+    max-width: 560px;
+  }
+  .proof-tagline strong {
+    color: #1A1510;
+    font-weight: 600;
+  }
+
+  /* ── SCENE 7 — CLOSE ── */
+  #scene-close {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 24px;
+    background: #F5F0E8;
+    text-align: center;
+    position: relative;
+  }
+  .close-line {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(22px, 3vw, 38px);
+    font-weight: 400;
+    color: rgba(26,21,16,0.45);
+    line-height: 1.4;
+    margin-bottom: 20px;
+    letter-spacing: -0.01em;
+  }
+  .close-line.is-main {
+    font-size: clamp(26px, 3.5vw, 44px);
+    font-weight: 700;
+    color: #1A1510;
+  }
+  .close-divider {
+    width: 40px;
+    height: 1px;
+    background: #C9A84C;
+    margin: 48px auto;
+  }
+  .close-hook {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(24px, 3vw, 40px);
+    font-style: italic;
+    font-weight: 400;
+    color: #1A1510;
+    margin-bottom: 64px;
+    line-height: 1.3;
+  }
+  .btn-close-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #FAF8F5;
+    background: #1A1510;
+    text-decoration: none;
+    padding: 20px 52px;
+    border-radius: 100px;
+    letter-spacing: 0.02em;
+    transition: all 0.25s;
+    margin-bottom: 16px;
+  }
+  .btn-close-cta:hover { background: #C9A84C; color: #1A1510; transform: translateY(-2px); box-shadow: 0 16px 40px rgba(201,168,76,0.25); }
+  .btn-close-sub {
+    font-size: 12px;
+    color: rgba(26,21,16,0.35);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: #1A1510;
+    padding: 56px 48px 40px;
+  }
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 40px;
+    flex-wrap: wrap;
+    padding-bottom: 40px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    margin-bottom: 32px;
+  }
+  .footer-brand {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  .footer-brand strong {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #FAF8F5;
+    margin-bottom: 6px;
+    text-transform: none;
+  }
+  .footer-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.4);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: #C9A84C; }
+  .footer-socials {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .footer-socials a {
+    color: rgba(255,255,255,0.3);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s;
+  }
+  .footer-socials a:hover { color: #C9A84C; }
+  .footer-bottom {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-copy {
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+  }
+  .footer-tm {
+    font-size: 11px;
+    color: rgba(201,168,76,0.4);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    nav { padding: 0 24px; }
+    .nav-links { display: none; }
+    .mechanism-grid { grid-template-columns: 1fr; gap: 48px; }
+    .distinction-grid { grid-template-columns: 1fr; }
+    .life-strip { grid-template-columns: repeat(3, 1fr); }
+    .proof-stats { grid-template-columns: 1fr; }
+    .em-cards { grid-template-columns: 1fr; }
+    .footer-inner { flex-direction: column; gap: 32px; }
+    .footer-bottom { flex-direction: column; text-align: center; }
+  }
+  @media (max-width: 600px) {
+    .life-strip { grid-template-columns: repeat(2, 1fr); }
+    .life-hero-image img { height: 340px; }
+    .life-overlay-card { left: 20px; right: 20px; bottom: 20px; }
+    .em-cards { padding: 0; }
+    .distinction-col { padding: 32px 24px; }
+  }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .wick-line, .body-rect, .sweep-arrow, .entry-arrow, .candle2-body,
+    .c1-wick-bottom, .c2-body, .c2-wick-top, .c2-wick-bottom,
+    .sweep-zone, .sweep-label, .entry-marker { animation: none; opacity: 1; height: auto; }
+    .c1-wick-bottom { height: 56px; }
+    .c2-body { height: 90px; }
+  }
+</style>
 </head>
-<body class="page-home">
+<body>
 
-
-  <!-- Glows -->
-  <div class="ffx-bg" aria-hidden="true">
-    <div class="ffx-glow ffx-glow-violet" style="width:900px;height:900px;top:-200px;right:-300px;opacity:0.75;"></div>
-    <div class="ffx-glow ffx-glow-deep"   style="width:800px;height:800px;top:-100px;left:-350px;opacity:0.65;"></div>
-    <div class="ffx-glow ffx-glow-violet" style="width:700px;height:700px;top:900px;left:-200px;opacity:0.55;"></div>
-    <div class="ffx-glow ffx-glow-deep"   style="width:750px;height:750px;top:1100px;right:-280px;opacity:0.60;"></div>
-    <div class="ffx-glow ffx-glow-mid"    style="width:1000px;height:600px;top:1900px;left:50%;transform:translateX(-50%);opacity:0.50;"></div>
-    <div class="ffx-glow ffx-glow-violet" style="width:700px;height:700px;top:2700px;right:-220px;opacity:0.52;"></div>
-    <div class="ffx-glow ffx-glow-deep"   style="width:750px;height:750px;top:2900px;left:-280px;opacity:0.58;"></div>
-    <div class="ffx-glow ffx-glow-mid"    style="width:900px;height:700px;top:3700px;left:50%;transform:translateX(-50%);opacity:0.48;"></div>
+<!-- ═══ NAV ═══ -->
+<nav>
+  <a href="/" class="nav-brand">FortitudeFX™</a>
+  <ul class="nav-links">
+    <li><a href="vipdiscord.html">VIP Discord</a></li>
+    <li><a href="bootcamp.html">Bootcamp</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="contact.html">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="joinfree.html" class="nav-btn-ghost">Join Free</a>
+    <a href="waitlist.html" class="nav-btn-primary">Join Waitlist</a>
   </div>
-
-  <nav class="nav">
-    <div class="nav-wrap">
-      <div class="nav-brand"><a href="#top">FORTITUDEFX</a></div>
-            <div class="nav-center">
-        <a href="#about">About</a>
-        <a href="vipdiscord.html">VIP Discord</a>
-        <a href="bootcamp.html">Bootcamp</a>
-        <a href="blog.html">Blog</a>
-        <a href="#faq">FAQ</a>
-        <a href="pricing.html">Pricing</a>
-        <a href="contact.html">Contact</a>
-      </div>
-      <button class="nav-toggle" id="navToggle" aria-label="Open menu"><span></span><span></span><span></span></button>
-      <div class="nav-cta">
-        <a class="nav-btn nav-btn-joinfree" href="joinfree.html">Join Free</a>
-        <a class="nav-btn nav-btn-primary" href="waitlist.html#form">Join Waitlist</a>
-      </div>
-    </div>
-        <div class="nav-mobile" id="navMobile">
-      <a href="#about">About</a>
-      <a href="vipdiscord.html">VIP Discord</a>
-      <a href="bootcamp.html">Bootcamp</a>
-      <a href="blog.html">Blog</a>
-      <a href="#faq">FAQ</a>
-      <a href="pricing.html">Pricing</a>
-      <a href="contact.html">Contact</a>
-      <div class="nav-mobile-cta">
-        <a class="nav-btn nav-btn-joinfree" href="joinfree.html">Join Free</a>
-        <a class="nav-btn nav-btn-primary" href="waitlist.html#form">Join Waitlist</a>
-      </div>
-    </div>
-  </nav>
-
-  <div class="page-container">
-
-  <!-- ═══ HERO ═══ -->
-  <section class="section hero ffx-reveal" id="top">
-    <div class="hero-glow"></div>
-
-    <div class="section-wrap hero-grid">
-      <div style="position:relative;z-index:1;">
-        <div class="ffx-tagline-pill">
-          <div class="ffx-tagline-pill-dot"></div>
-          <span>2 Candle. 1 Story.™</span>
-        </div>
-
-        <h1>Mechanical Forex Trading System — 2 Candles, 5 Entry Models.</h1>
-
-        <p class="hero-copy">
-          Most traders see the move after it happens. Catch The Wick™ puts you in the trade at the exact moment before continuation — mechanically, every time. Two candles tell you everything. Five entry models tell you exactly when.
-        </p>
-
-        <div class="hero-actions">
-          <a href="vipdiscord.html" class="btn btn-primary">Explore VIP Discord</a>
-          <a href="bootcamp.html" class="btn btn-secondary">Explore the Bootcamp</a>
-        </div>
-
-        <div class="hero-tags">
-          <span>5 Mechanical Entry Models</span>
-          <span>Any Timeframe Pair</span>
-          <span>Zero Guesswork</span>
-        </div>
-      </div>
-
-      <div class="hero-panel" style="position:relative;z-index:1;">
-        <div class="panel-top">
-          <div class="panel-brand">
-            <small>FortitudeFX™</small>
-            <strong>Catch The Wick™</strong>
-          </div>
-          <div class="panel-badge panel-badge-gold">2 Candle. 1 Story.™</div>
-        </div>
-
-        <div class="benefit-list">
-          <div class="benefit-item">Candle 1 establishes direction — a strong HTF move that breaks lower timeframe structure and confirms the trend.</div>
-          <div class="benefit-item">Candle 2 follows. Before it continues, the wick grabs liquidity and mitigates a zone. <span class="gold-line">That wick is your entry.</span></div>
-          <div class="benefit-item">5 mechanical models tell you exactly when price is doing this — across any HTF/LTF pair you choose.</div>
-          <div class="benefit-item">Trade when you're available. 1H/5M, 4H/30M, 15M/1M — the framework adapts to your schedule, not the other way around.</div>
-          <div class="benefit-item">Every HTF candle is a setup. 8 candles in a 2-hour London session — multiply by pairs, multiply by sessions. The opportunity is not scarce. Most traders just don't know exactly when to act.</div>
-          <div class="benefit-item ffx-benefit-gold"><span style="color:rgba(232,210,140,0.95);font-weight:700;display:block;margin-bottom:4px;">A skill for life. Not a strategy for the month.</span><span style="color:rgba(255,255,255,0.68);font-size:0.92rem;">No strategy hopping. No shiny ball syndrome. One framework — compounding for the next 20 to 30 years.</span></div>
-        </div>
-
-        <div class="mini-grid">
-          <div class="mini-card">Direction</div>
-          <div class="mini-card">The Wick</div>
-          <div class="mini-card">The Trigger</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <div class="section-break"></div>
-
-  <!-- ═══ THE PHILOSOPHY ═══ -->
-  <section class="section ffx-reveal" id="about">
-    <div class="section-wrap">
-      <div class="section-head">
-        <div>
-          <span class="kicker">THE FFX EDGE</span>
-          <h2>You understand the market.<br>You just don't know <span class="gold">exactly when.</span></h2>
-        </div>
-        <p>
-          Most traders who've studied SMC, ICT, or supply and demand can read a chart. They see structure. They understand liquidity. But they still hesitate at the entry — because their system gives them conditions, not a trigger. FortitudeFX™ is built around the moment before the continuation, not the concept that leads to it.
-        </p>
-      </div>
-
-      <!-- Two candle story — same card structure as distinction section -->
-      <div class="ffx-diff-grid" style="margin-top:36px;">
-        <div class="feature-card ffx-diff-card" style="padding:26px 24px;border-radius:18px;">
-          <div class="ffx-diff-card-label">HTF Candle 1</div>
-          <h3 style="font-size:1.18rem;font-weight:700;color:white;margin:0 0 12px;letter-spacing:-0.03em;line-height:1.24;">The Story Begins</h3>
-          <ul class="bootcamp-card-points" style="font-size:0.97rem;color:rgba(255,255,255,0.68);">
-            <li>A strong directional HTF candle establishes the trend</li>
-            <li>Structure breaks on the lower timeframe — momentum confirmed</li>
-            <li>Market has told you where it wants to go</li>
-          </ul>
-        </div>
-        <div class="ffx-diff-card is-us ffx-gold">
-          <div class="ffx-diff-card-label">HTF Candle 2 — The Wick</div>
-          <h3>Your Entry Point</h3>
-          <ul>
-            <li>Before continuation, the wick grabs liquidity and mitigates a zone</li>
-            <li>On the 1-minute, that entire sequence is one full trend cycle</li>
-            <li>This is the trigger — mechanical, repeatable, no interpretation</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- 5 Models -->
-      <div style="margin-top:48px;">
-        <span class="kicker">5 MECHANICAL ENTRY MODELS</span>
-        <p style="color:rgba(255,255,255,0.55);font-size:0.92rem;margin:10px 0 0;max-width:480px;">Every model removes discretion from the entry. Either the model is printing or it isn't. No interpretation required.</p>
-        <div class="ffx-models-strip">
-          <div class="ffx-model-pill"><div class="ffx-model-num">01</div><div class="ffx-model-name">LC&#8209;E</div></div>
-          <div class="ffx-model-pill"><div class="ffx-model-num">02</div><div class="ffx-model-name">LE&#8209;I</div></div>
-          <div class="ffx-model-pill"><div class="ffx-model-num">03</div><div class="ffx-model-name">LC&#8209;ZIE</div></div>
-          <div class="ffx-model-pill"><div class="ffx-model-num">04</div><div class="ffx-model-name">LC&#8209;ZR</div></div>
-          <div class="ffx-model-pill"><div class="ffx-model-num">05</div><div class="ffx-model-name">LC&#8209;FR</div></div>
-        </div>
-        <p style="color:rgba(255,255,255,0.28);font-size:0.78rem;margin-top:12px;">Model names are illustrative — exact models taught inside the Bootcamp.</p>
-      </div>
-    </div>
-  </section>
-
-  <div class="section-break"></div>
-
-  <!-- ═══ WHY FFX IS DIFFERENT ═══ -->
-  <section class="section ffx-reveal" id="difference">
-    <div class="section-wrap">
-      <div class="section-head">
-        <div>
-          <span class="kicker">THE DISTINCTION</span>
-          <h2>Most systems teach you to think.<br>FFX gives you <span class="gold">the exact moment.</span></h2>
-        </div>
-        <p>
-          The trading education space is full of frameworks built around concepts. SMC. ICT. Supply and demand. Order flow. These are all valid reads of the market — but none of them tell you precisely when to pull the trigger. That gap is where traders blow accounts, miss trades, and lose confidence.
-        </p>
-      </div>
-
-      <div class="ffx-diff-grid">
-        <div class="feature-card ffx-diff-card" style="padding:26px 24px;border-radius:18px;">
-          <div class="ffx-diff-card-label">Everyone else</div>
-          <h3 style="font-size:1.18rem;font-weight:700;color:white;margin:0 0 12px;letter-spacing:-0.03em;line-height:1.24;">Concepts without a trigger</h3>
-          <ul class="bootcamp-card-points" style="font-size:0.97rem;color:rgba(255,255,255,0.68);">
-            <li>Teaches zones, structure, and order flow</li>
-            <li>Leaves execution to your discretion</li>
-            <li>Arbitrary decisions dressed up as a system</li>
-            <li>Results depend on how you feel in the moment</li>
-            <li>Works until pressure hits — then it breaks down</li>
-          </ul>
-        </div>
-        <div class="ffx-diff-card is-us ffx-gold">
-          <div class="ffx-diff-card-label">FortitudeFX™</div>
-          <h3>Mechanical entries. Zero interpretation.</h3>
-          <ul>
-            <li>5 models built around one specific market behaviour</li>
-            <li>Either the model is printing or it isn't</li>
-            <li>Process rewarded — not individual trade outcomes</li>
-            <li>Works on any timeframe pair you choose</li>
-            <li>The trigger removes FOMO, hesitation, and doubt</li>
-            <li>A skill built for the next 20–30 years — not next week's trade</li>
-          </ul>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <div class="section-break"></div>
-
-  <!-- ═══ TIMEFRAME ADAPTIVE ═══ -->
-  <section class="section ffx-reveal" id="adaptive">
-    <div class="section-wrap">
-      <div class="section-head">
-        <div>
-          <span class="kicker">BUILT FOR YOUR LIFE</span>
-          <h2>Trade when you're available.<br><span class="gold">The framework adapts.</span></h2>
-        </div>
-        <p>
-          Most educators build their system around one specific setup — one session, one timeframe, one schedule. If it doesn't match your life, you're on your own. Catch The Wick™ is timeframe-agnostic by design. The logic is the same whether you have two hours in the morning or can only trade the New York close.
-        </p>
-      </div>
-
-      <div class="ffx-tf-grid">
-        <div class="ffx-tf-card">
-          <div class="ffx-tf-pair">1H / 5M</div>
-          <div class="ffx-tf-desc">Active trader. Multiple sessions. Frequent setups.</div>
-        </div>
-        <div class="ffx-tf-card">
-          <div class="ffx-tf-pair">4H / 30M</div>
-          <div class="ffx-tf-desc">Part-time trader. Morning or evening check-in. Fewer, higher quality setups.</div>
-        </div>
-        <div class="ffx-tf-card">
-          <div class="ffx-tf-pair">15M / 1M</div>
-          <div class="ffx-tf-desc">Precision entry. Tighter execution. Maximum reward-to-risk.</div>
-        </div>
-      </div>
-
-      <p class="ffx-tf-note">One framework. Any combination. Zero compromise on process.</p>
-    </div>
-  </section>
-
-  <div class="section-break"></div>
-
-  <!-- ═══ VIP ═══ -->
-  <section class="section soft-strip ffx-reveal" id="vip">
-    <div class="section-wrap">
-      <div class="section-head">
-        <div>
-          <span class="kicker">VIP DISCORD</span>
-          <h2>The live environment where the framework is applied daily.</h2>
-        </div>
-        <p>
-          The VIP Discord is not a signal group or a chat room. It is a structured live environment where you see Catch The Wick™ applied to real markets, in real time, every session. Direct access to Salman — not a moderation team.
-        </p>
-      </div>
-
-      <div class="vip-grid">
-        <article class="vip-card">
-          <div class="vip-number">01</div>
-          <h3>Daily Recap Videos</h3>
-          <p>Session breakdowns showing how price moved, which candle story played out, and how the FFX framework read the move — no hindsight, no noise.</p>
-        </article>
-        <article class="vip-card">
-          <div class="vip-number">02</div>
-          <h3>Every Question Answered</h3>
-          <p>Submit your charts, your analysis, your execution — and get direct feedback from Salman. Not a moderator, not a coach. The person who built the framework reviewing your specific trades and thought process.</p>
-        </article>
-        <article class="vip-card">
-          <div class="vip-number">03</div>
-          <h3>Chart Markups</h3>
-          <p>Pre-market preparation shared before every session — HTF directional bias, liquidity levels mapped, and potential entry zones highlighted with the WHY behind each one. You arrive at the chart knowing exactly what to look for and why it matters.</p>
-        </article>
-        <article class="vip-card">
-          <div class="vip-number">04</div>
-          <h3>FFX Community</h3>
-          <p>A healthy trading community of like-minded traders — respectful, serious, and growing together the FFX way. Shared analysis, mutual accountability, and a culture built around the process rather than the outcome.</p>
-        </article>
-        <article class="vip-card">
-          <div class="vip-number">05</div>
-          <h3>Monthly Virtual Coffee Chat</h3>
-          <p>Open group sessions with Salman — trading mindset, progress reviews, honest discussion about what's working and what isn't.</p>
-        </article>
-        <article class="vip-card">
-          <div class="vip-number">06</div>
-          <h3>1:1 Private Session</h3>
-          <p>Direct one-on-one time with Salman — your charts, your specific questions, your execution reviewed against the framework.</p>
-        </article>
-        <article class="vip-card">
-          <div class="vip-number">07</div>
-          <h3>FortitudeFX™ Mindset</h3>
-          <p>The mental and emotional framework that makes the system work — discipline, resilience, and the process-over-outcome approach that separates consistent traders from the rest.</p>
-        </article>
-        <article class="vip-card">
-          <div class="vip-number">08</div>
-          <h3>Rules-Based Strategy Entries</h3>
-          <p>All 5 mechanical entry models — LC-E, LE-I, LC-ZIE, LC-ZR, LC-FR — applied live every session. Either the model is printing or it isn't. No interpretation required.</p>
-        </article>
-      </div>
-
-      <div class="section-actions" style="margin-top:32px;">
-        <a href="vipdiscord.html" class="btn btn-primary">Explore VIP Discord</a>
-        <a href="waitlist.html?path=VIP#form" class="btn btn-secondary">Join the Waitlist</a>
-        <a href="joinfree.html" class="btn btn-joinfree">Join Free</a>
-      </div>
-    </div>
-  </section>
-
-  <div class="section-break"></div>
-
-  <!-- ═══ BOOTCAMP ═══ -->
-  <section class="section section-feature ffx-reveal" id="bootcamp">
-    <div class="section-wrap section-split">
-      <div class="section-feature-left">
-        <span class="kicker">CATCH THE WICK BOOTCAMP</span>
-        <h2>Learn the framework properly.<br>Not surface level. <span class="gold">All the way in.</span></h2>
-        <p class="section-lead">
-          The Bootcamp exists because concepts without execution are worthless. Most traders have spent years consuming information — SMC, ICT, supply and demand — and still can't trade consistently. This 5-week structured program takes you from scattered knowledge into a complete mechanical system you can apply the same day.
-        </p>
-        <p class="section-copy">
-          You learn Catch The Wick™ from the ground up. The two-candle philosophy. The HTF/LTF relationship. All 5 entry models. Timeframe selection for your schedule. And the process mindset that turns the system into consistency.
-        </p>
-      </div>
-
-      <div class="section-feature-right">
-        <div class="feature-card">
-          <span class="bootcamp-card-label">WHAT THIS BUILDS</span>
-          <ul class="bootcamp-card-points">
-            <li>The two-candle read — structure, liquidity, and the wick</li>
-            <li>All 5 mechanical entry models — no discretion, no guesswork</li>
-            <li>HTF/LTF timeframe pairing for your availability</li>
-            <li>Process discipline — rewarding execution, not outcomes</li>
-          </ul>
-
-          <div class="bootcamp-card-divider"></div>
-
-          <span class="bootcamp-card-label">WHY THIS IS DIFFERENT</span>
-          <p class="bootcamp-card-note">
-            No arbitrary decisions loosely labelled as a system. No concepts without a trigger. Every lesson builds toward one thing — knowing exactly when price is doing what you've been waiting for, and having a mechanical model ready for it.
-          </p>
-        </div>
-      </div>
-
-      <!-- No candle is random — gold statement card, full width below -->
-      <div class="section-wrap">
-        <div class="ffx-statement-card ffx-gold">
-          <p class="ffx-statement-card-title">No candle is random &nbsp;&middot;&nbsp; No timeframe is noise.</p>
-          <p class="ffx-statement-card-body">Every candle printed on any chart has a purpose and tells a story. Understanding that is the foundation of everything taught inside the Bootcamp.</p>
-        </div>
-      </div>
-
-      <!-- No candle is random gold card sits above — CTAs follow as the action close -->
-      <div class="section-wrap ffx-cta-wrap">
-        <div class="section-actions">
-          <a href="bootcamp.html" class="btn btn-primary">Explore the Bootcamp</a>
-          <a href="waitlist.html?path=Bootcamp#form" class="btn btn-secondary">Join the Waitlist</a>
-        </div>
-        <div class="section-actions" style="justify-content:flex-end;margin-top:12px;">
-          <a href="joinfree.html" class="btn btn-joinfree">Join Free</a>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <div class="section-break"></div>
-
-  <!-- ═══ FAQ ═══ -->
-  <section class="section ffx-reveal" id="faq">
-    <div class="section-wrap split-section">
-      <div class="sticky-left">
-        <span class="kicker">COMMON QUESTIONS</span>
-        <h2>Before you step in, know what matters.</h2>
-        <p>If you've come from SMC, ICT, or another trading educator and you're still not consistent — this section is for you.</p>
-      </div>
-      <div class="faq-cards">
-        <article class="faq-card">
-          <div class="faq-num">01</div>
-          <div>
-            <h3>I already know SMC and ICT — is this for me?</h3>
-            <p>Yes. Most FFX members come from SMC or ICT backgrounds. The issue is never the concepts — it's the missing mechanical trigger. Catch The Wick™ fills exactly that gap.</p>
-          </div>
-        </article>
-        <article class="faq-card">
-          <div class="faq-num">02</div>
-          <div>
-            <h3>What timeframes does this work on?</h3>
-            <p>Any HTF/LTF combination. 1H/5M, 4H/30M, 15M/1M — the framework adapts to when you're available at the charts. You don't need to change your schedule to fit the system.</p>
-          </div>
-        </article>
-        <article class="faq-card">
-          <div class="faq-num">03</div>
-          <div>
-            <h3>What makes the entry models mechanical?</h3>
-            <p>Either the model is printing or it isn't. There is no "this kind of looks like it" or "I think this qualifies." Each model has a specific set of conditions. When they're met, you execute. When they're not, you wait.</p>
-          </div>
-        </article>
-        <article class="faq-card">
-          <div class="faq-num">04</div>
-          <div>
-            <h3>Where do I start — VIP or Bootcamp?</h3>
-            <p>Bootcamp if you want to learn the complete framework from scratch with full structure. VIP if you're already trading and want live daily application of Catch The Wick™ alongside your existing process.</p>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <div class="section-break"></div>
-
-  <!-- ═══ TESTIMONIALS ═══ -->
-  <section class="section ffx-reveal" id="testimonials">
-    <div class="section-wrap">
-      <div class="section-head">
-        <div>
-          <span class="kicker">FROM THE COMMUNITY</span>
-          <h2>Traders who found <span class="gold">the trigger.</span></h2>
-        </div>
-        <p>Real traders from inside the FortitudeFX™ community. The framework either clicks or it doesn't — for these members, it clicked.</p>
-      </div>
-      <div class="ffx-testimonial-grid">
-        <div class="ffx-quote-card">
-          <p class="ffx-quote-card-text">&ldquo;I followed Fortitude way of trading of doing trade for 2 hours each session — it gives me right energy at the right time. Otherwise I was all in for the trades, trying to trade every market.&rdquo;</p>
-          <div class="ffx-quote-card-attr">FortitudeFX™ Member</div>
-        </div>
-        <div class="ffx-quote-card">
-          <p class="ffx-quote-card-text">&ldquo;I've purchased about 80 mentorship courses — you name the mentor, I was there. Your words have given me so much hope to stick to this one strategy and this one only.&rdquo;</p>
-          <div class="ffx-quote-card-attr">FortitudeFX™ Member</div>
-        </div>
-        <div class="ffx-quote-card">
-          <p class="ffx-quote-card-text">&ldquo;If it's a loss then a rule followed loss — and if it's a WIN, a rule followed win. This challenge is teaching me to follow the rules no matter what.&rdquo;</p>
-          <div class="ffx-quote-card-attr">FortitudeFX™ Member</div>
-        </div>
-        <div class="ffx-quote-card">
-          <p class="ffx-quote-card-text">&ldquo;I didn't see any of my previous mentors coming live and helping their students. They just give videos and don't bother to respond. You are helping people to get success.&rdquo;</p>
-          <div class="ffx-quote-card-attr">FortitudeFX™ Member</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-    <div class="section-break"></div>
-
-  <!-- ═══ CTA ═══ -->
-  <section class="section section-last ffx-reveal" id="cta">
-    <div class="section-wrap">
-      <div class="cta-shell">
-        <div class="cta-grid">
-          <div>
-            <span class="kicker">JOIN FORTITUDEFX</span>
-            <h2>Stop learning. <span class="gold">Start knowing exactly when.</span></h2>
-            <p>
-              The market has been telling you where it's going. You've just been missing the trigger. Join the waitlist and be first to access Catch The Wick™ — the 5-model mechanical entry system built around the one moment that matters.
-            </p>
-          </div>
-          <div class="cta-actions">
-            <a class="btn btn-primary" href="waitlist.html#form">Join the Waitlist</a>
-            <a class="btn btn-secondary" href="vipdiscord.html">Explore VIP Discord</a>
-            <a class="btn btn-joinfree" href="joinfree.html">Join Free</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  </div><!-- /.page-container -->
-
-  <footer>
-    <div class="footer-wrap">
-      <div class="footer-left">
-        <div class="footer-brand">FORTITUDEFX</div>
-        <div class="footer-tagline">Catch The Wick</div>
-        <div class="footer-socials">
-          <a href="https://www.youtube.com/@FortitudeFX" class="footer-social" aria-label="YouTube" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
-          </a>
-          <a href="vipdiscord.html" class="footer-social" aria-label="Discord" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-          </a>
-          <a href="https://t.me/FFX_Official" class="footer-social" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-          </a>
-          <a href="https://instagram.com/fortitudefx_official" class="footer-social" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
-          </a>
-          <a href="https://tiktok.com/@fortitudefx_official" class="footer-social" aria-label="TikTok" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg>
-          </a>
-          <a href="https://x.com/_fortitudefx" class="footer-social" aria-label="X" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          </a>
-          <a href="https://facebook.com/FortitudefxOfficial" class="footer-social" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-          </a>
-          <a href="https://whop.com/joined/fortitude-fx/" class="footer-social" aria-label="Whop" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-          </a>
-        </div>
-      </div>
-            <div class="footer-right">
-        <nav class="footer-nav" aria-label="Footer navigation">
-          <a href="#about">About</a>
-          <a href="vipdiscord.html">VIP Discord</a>
-          <a href="bootcamp.html">Bootcamp</a>
-          <a href="blog.html">Blog</a>
-          <a href="waitlist.html#form">Waitlist</a>
-          <a href="joinfree.html" style="color:var(--accent-orange-text);">Join Free</a>
-          <a href="pricing.html">Pricing</a>
-          <a href="contact.html">Contact</a>
-          <a href="privacy.html">Privacy</a>
-        </nav>
-      </div>
-</div>
-    <div class="footer-bottom">
-      &copy; 2026 FortitudeFX™. All rights reserved. &nbsp;&middot;&nbsp;
-      <a href="privacy.html" class="footer-privacy-link">Privacy Policy</a>
-    </div>
-  </footer>
-
-  <button class="back-to-top" id="backToTop" aria-label="Back to top">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg>
-  </button>
-
-  <script>
-    (() => {
-      const toggle = document.getElementById('navToggle');
-      const mobile = document.getElementById('navMobile');
-      if (toggle && mobile) {
-        toggle.addEventListener('click', () => {
-          const open = mobile.classList.toggle('is-open');
-          toggle.setAttribute('aria-expanded', open);
-        });
-        mobile.querySelectorAll('a').forEach(a => {
-          a.addEventListener('click', () => {
-            mobile.classList.remove('is-open');
-            toggle.setAttribute('aria-expanded', false);
-          });
-        });
-      }
-      const btt = document.getElementById('backToTop');
-      if (btt) {
-        window.addEventListener('scroll', () => {
-          btt.classList.toggle('is-visible', window.scrollY > 400);
-        }, { passive: true });
-        btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-      }
-      const reveals = document.querySelectorAll('.ffx-reveal');
-      if (reveals.length) {
-        const io = new IntersectionObserver((entries) => {
-          entries.forEach(e => {
-            if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
-          });
-        }, { threshold: 0.10 });
-        reveals.forEach(el => io.observe(el));
-      }
-    })();
-  </script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     FFX JOIN FREE POPUP — INLINE SNIPPET
-     ═══════════════════════════════════════════════════════════════
-     Paste this entire block just before </body> on these pages:
-       index.html, vipdiscord.html, bootcamp.html, blog.html, article.html
-
-     BEHAVIOUR:
-     - Fires ONCE per session (sessionStorage flag: ffx_popup_shown)
-     - Trigger 1: 30-35 sec timer (random in range, feels natural)
-     - Trigger 2: Exit intent — mouse leaves top of viewport (desktop only)
-     - Whichever fires first shows the popup, the other is cancelled
-     - Two message variants: timer = "still here" message, exit = "before you go"
-     - One popup per session regardless of how many pages they visit
-     ═══════════════════════════════════════════════════════════════ -->
-
-<!-- Popup HTML -->
-<div id="ffx-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="ffx-popup-headline">
-  <div id="ffx-popup">
-    <button id="ffx-popup-close" aria-label="Close">&times;</button>
-    <div class="ffx-popup-sig">FortitudeFX™</div>
-    <h2 class="ffx-popup-headline" id="ffx-popup-headline"></h2>
-    <p class="ffx-popup-body" id="ffx-popup-body"></p>
-    <p class="ffx-popup-sign">— Salman Khan</p>
-    <div class="ffx-popup-divider"></div>
-    <div class="ffx-popup-actions">
-      <a href="joinfree.html" class="ffx-popup-btn-primary">Join Free →</a>
-      <a href="waitlist.html#form" class="ffx-popup-btn-secondary">Join the Waitlist →</a>
-    </div>
-  </div>
-</div>
-
-<script>
-(function() {
-  'use strict';
-
-  // Already shown this session — do nothing
-  if (sessionStorage.getItem('ffx_popup_shown')) return;
-
-  var MESSAGES = {
-    timer: {
-      headline: 'Most traders spend years jumping between strategies, indicators, and opinions without ever building a real framework.',
-      body: 'FortitudeFX was built to simplify trading into something mechanical, repeatable, and mentally sustainable. If you\'re serious about learning how we approach the market through the Catch The Wick framework — join the free community below.'
-    },
-    exit: {
-      headline: 'Before you go —',
-      body: 'The goal here was never to create another signal group or "trade all day" community. FortitudeFX is built around structure, patience, and freeing traders from emotional decision-making and screen addiction. If that resonates with you, join the free Discord or the waitlist and stay connected.'
-    }
-  };
-
-  var overlay   = document.getElementById('ffx-popup-overlay');
-  var headline  = document.getElementById('ffx-popup-headline');
-  var body      = document.getElementById('ffx-popup-body');
-  var closeBtn  = document.getElementById('ffx-popup-close');
-  var shown     = false;
-  var timerRef  = null;
-  var exitBound = false;
-
-  function showPopup(variant) {
-    if (shown) return;
-    shown = true;
-    sessionStorage.setItem('ffx_popup_shown', '1');
-
-    // Clear the other trigger
-    if (timerRef) clearTimeout(timerRef);
-    if (exitBound) document.removeEventListener('mouseleave', onMouseLeave);
-
-    headline.textContent = MESSAGES[variant].headline;
-    body.textContent     = MESSAGES[variant].body;
-    overlay.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closePopup() {
-    overlay.classList.remove('is-open');
-    document.body.style.overflow = '';
-  }
-
-  // Close on button
-  closeBtn.addEventListener('click', closePopup);
-
-  // Close on overlay click (outside popup)
-  overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) closePopup();
-  });
-
-  // Close on Escape
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closePopup();
-  });
-
-  // Trigger 1 — timer (30–35 sec random, feels natural not robotic)
-  var delay = 30000 + Math.random() * 5000;
-  timerRef = setTimeout(function() {
-    showPopup('timer');
-  }, delay);
-
-  // Trigger 2 — exit intent (desktop only, mouse leaves top of viewport)
-  function onMouseLeave(e) {
-    if (e.clientY <= 0) {
-      showPopup('exit');
-    }
-  }
-
-  if (window.innerWidth >= 768) {
-    exitBound = true;
-    document.addEventListener('mouseleave', onMouseLeave);
-  }
-
-})();
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     FFX FLOATING SOCIAL ICONS — INLINE SNIPPET
-     ═══════════════════════════════════════════════════════════════
-     Paste this entire block just before </body> on all public pages:
-       index.html, vipdiscord.html, bootcamp.html, blog.html,
-       article.html, pricing.html, contact.html, privacy.html
-
-     Desktop only — hidden on mobile (< 1024px)
-     Icons: YouTube · X · Instagram · TikTok · Discord
-     Discord links to joinfree.html
-     ═══════════════════════════════════════════════════════════════ -->
-  
-<nav id="ffx-social-float" aria-label="Social media links">
-
-  <!-- YouTube -->
-  <a href="https://www.youtube.com/@FortitudeFX"
-     class="ffx-social-icon ffx-si-yt"
-     target="_blank" rel="noopener noreferrer"
-     aria-label="YouTube">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/>
-    </svg>
-
-  </a>
-
-  <!-- X -->
-  <a href="https://x.com/_fortitudefx"
-     class="ffx-social-icon ffx-si-x"
-     target="_blank" rel="noopener noreferrer"
-     aria-label="X">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-    </svg>
-
-  </a>
-
-  <!-- Instagram -->
-  <a href="https://instagram.com/fortitudefx_official"
-     class="ffx-social-icon ffx-si-ig"
-     target="_blank" rel="noopener noreferrer"
-     aria-label="Instagram">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
-    </svg>
-
-  </a>
-
-  <!-- TikTok -->
-  <a href="https://tiktok.com/@fortitudefx_official"
-     class="ffx-social-icon ffx-si-tt"
-     target="_blank" rel="noopener noreferrer"
-     aria-label="TikTok">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
-    </svg>
-
-  </a>
-
-  <!-- Discord → Join Free -->
-  <a href="joinfree.html"
-     class="ffx-social-icon ffx-si-dc"
-     aria-label="Join Free Discord">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-    </svg>
-
-  </a>
-
 </nav>
 
+<!-- ═══ SCENE 1 — ARRIVAL ═══ -->
+<section id="scene-arrival">
+  <p class="arrival-eyebrow reveal">Catch The Wick™ &nbsp;·&nbsp; 2 Candles. 1 Story.™</p>
+
+  <h1 class="arrival-headline reveal reveal-delay-1">
+    Some people trade<br>
+    <span class="line-2">for a living.</span>
+  </h1>
+
+  <p class="arrival-sub reveal reveal-delay-2">Most people just trade. There's a difference — and it comes down to one moment, two candles.</p>
+
+  <!-- 2-Candle Animation -->
+  <div class="candle-diagram reveal reveal-delay-3">
+    <svg width="320" height="220" viewBox="0 0 320 220">
+      <!-- Candle 1 — bearish with wick -->
+      <!-- Top wick -->
+      <line x1="100" y1="30" x2="100" y2="60" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+      <!-- Body -->
+      <rect x="84" y="60" width="32" height="80" rx="2" fill="#c03030" opacity="0.9"/>
+      <!-- Bottom wick — animated gold -->
+      <line class="wick-line" x1="100" y1="140" x2="100" y2="185" stroke="#C9A84C" stroke-width="2"/>
+      <!-- Sweep zone -->
+      <rect x="70" y="178" width="60" height="14" rx="2" stroke="#C9A84C" stroke-width="1" stroke-dasharray="4,3" fill="none" opacity="0.6"/>
+      <text x="100" y="205" text-anchor="middle" font-size="8" fill="#C9A84C" font-family="Inter,sans-serif" letter-spacing="1" opacity="0.8">SWEEP ZONE</text>
+
+      <!-- Entry marker -->
+      <g class="sweep-arrow" opacity="0">
+        <line x1="160" y1="140" x2="160" y2="165" stroke="#C9A84C" stroke-width="1" stroke-dasharray="3,2"/>
+        <circle cx="160" cy="135" r="5" fill="#C9A84C"/>
+        <text x="160" y="120" text-anchor="middle" font-size="8" fill="#C9A84C" font-family="Inter,sans-serif" letter-spacing="1">ENTRY</text>
+      </g>
+
+      <!-- Candle 2 — bullish -->
+      <g class="entry-arrow" opacity="0">
+        <!-- Top wick -->
+        <line x1="220" y1="55" x2="220" y2="75" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+        <!-- Body -->
+        <rect x="204" y="75" width="32" height="90" rx="2" fill="#2d9e50"/>
+        <!-- Bottom wick -->
+        <line x1="220" y1="165" x2="220" y2="180" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+        <!-- Label -->
+        <text x="220" y="200" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.3)" font-family="Inter,sans-serif" letter-spacing="1">CANDLE 2</text>
+      </g>
+
+      <!-- Candle 1 label -->
+      <text x="100" y="22" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.25)" font-family="Inter,sans-serif" letter-spacing="1">CANDLE 1</text>
+
+      <!-- OFC arrow -->
+      <g class="candle2-body" opacity="0">
+        <path d="M 148 130 Q 184 130 184 110" stroke="#C9A84C" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
+        <polygon points="180,106 184,115 188,106" fill="#C9A84C"/>
+        <text x="168" y="148" text-anchor="middle" font-size="7" fill="rgba(201,168,76,0.7)" font-family="Inter,sans-serif" letter-spacing="1">OFC</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="arrival-cta-wrap reveal reveal-delay-4">
+    <a href="joinfree.html" class="btn-join-free">
+      Join Free &nbsp;→
+    </a>
+    <span class="btn-join-free-sub">No credit card &nbsp;·&nbsp; No pitch &nbsp;·&nbsp; Just the framework</span>
+  </div>
+
+  <div class="scroll-indicator">
+    <span>Scroll</span>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M8 3v10M3 9l5 5 5-5" stroke="#1A1510" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══ SCENE 2 — PAIN ═══ -->
+<section id="scene-pain">
+  <p class="pain-line faded reveal">You saw the setup.</p>
+  <p class="pain-line faded reveal reveal-delay-1">You knew the direction.</p>
+  <p class="pain-line faded reveal reveal-delay-2">You waited for confirmation that never came.</p>
+  <p class="pain-line reveal reveal-delay-3">The candle closed.<br>The move was gone.</p>
+  <p class="pain-line reveal reveal-delay-4" style="color:rgba(26,21,16,0.22);">You've been here before.</p>
+
+  <div class="pain-divider reveal reveal-delay-5"></div>
+
+  <p class="pain-truth reveal">That's not a knowledge problem.<br>That's a trigger problem.</p>
+</section>
+
+<!-- ═══ SCENE 3 — THE LIFE ═══ -->
+<section id="scene-life">
+  <p class="life-kicker reveal">The Life You're Building</p>
+
+  <div class="life-hero-image reveal reveal-delay-1">
+    <!-- Terrace overlooking water — editorial, man with nowhere to be -->
+    <img
+      src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1400&q=85&auto=format&fit=crop"
+      alt="Terrace overlooking mountain lake — freedom"
+      loading="lazy"
+    />
+    <div class="life-overlay-card">
+      <p>
+        <strong>Tuesday. 9:47am.</strong>
+        London session closed.<br>
+        Two trades. Done.
+      </p>
+    </div>
+  </div>
+
+  <div class="life-strip reveal reveal-delay-2">
+    <!-- 1. Luxury watch on wrist -->
+    <div class="life-strip-img">
+      <img
+        src="https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=600&q=80&auto=format&fit=crop"
+        alt="Luxury watch"
+        loading="lazy"
+      />
+    </div>
+    <!-- 2. First class / premium travel -->
+    <div class="life-strip-img">
+      <img
+        src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=80&auto=format&fit=crop"
+        alt="First class travel"
+        loading="lazy"
+      />
+    </div>
+    <!-- 3. Clean minimal trading setup -->
+    <div class="life-strip-img">
+      <img
+        src="https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=600&q=80&auto=format&fit=crop"
+        alt="Clean trading desk setup"
+        loading="lazy"
+      />
+    </div>
+    <!-- 4. Editorial woman — resort pool -->
+    <div class="life-strip-img">
+      <img
+        src="https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600&q=80&auto=format&fit=crop"
+        alt="Luxury resort pool"
+        loading="lazy"
+      />
+    </div>
+    <!-- 5. City skyline at night from height -->
+    <div class="life-strip-img">
+      <img
+        src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&q=80&auto=format&fit=crop"
+        alt="Dubai skyline at night"
+        loading="lazy"
+      />
+    </div>
+  </div>
+
+  <p class="life-tagline reveal reveal-delay-3">
+    "Trading isn't the destination. It's the key."
+  </p>
+</section>
+
+<!-- ═══ SCENE 4 — MECHANISM ═══ -->
+<section id="scene-mechanism">
+  <div class="mechanism-grid">
+    <!-- Left — copy -->
+    <div>
+      <p class="mechanism-kicker reveal">Catch The Wick™</p>
+      <h2 class="mechanism-headline reveal reveal-delay-1">
+        The market runs<br>the same script.<br>Every session.
+      </h2>
+      <ul class="mechanism-points reveal reveal-delay-2">
+        <li>Institutions sweep liquidity before reversing.</li>
+        <li>The wick IS the institutional fill.</li>
+        <li>Two candles tell you everything.</li>
+        <li>Five models tell you exactly when.</li>
+      </ul>
+      <p class="mechanism-truth reveal reveal-delay-3">
+        "Either the model is printing.<br>Or it isn't."
+      </p>
+    </div>
+
+    <!-- Right — diagram -->
+    <div class="ctw-diagram reveal reveal-delay-2">
+      <p class="ctw-diagram-label">CTW™ Entry Mechanism</p>
+      <div class="ctw-candles">
+        <!-- Candle 1 -->
+        <div class="ctw-candle-wrap">
+          <p class="ctw-candle-label">HTF Candle 1<br>Direction</p>
+          <div class="c1-wick-top"></div>
+          <div class="c1-body">
+            <div class="sweep-zone"></div>
+            <span class="sweep-label">Liquidity Swept</span>
+          </div>
+          <div class="c1-wick-bottom"></div>
+        </div>
+
+        <!-- Entry marker -->
+        <div class="entry-marker">
+          <span class="entry-text">Entry</span>
+          <div class="entry-line"></div>
+          <div class="entry-dot"></div>
+        </div>
+
+        <!-- Candle 2 -->
+        <div class="ctw-candle-wrap">
+          <p class="ctw-candle-label">HTF Candle 2<br>Your Move</p>
+          <div class="c2-wick-top"></div>
+          <div class="c2-body"></div>
+          <div class="c2-wick-bottom"></div>
+        </div>
+      </div>
+      <p class="ctw-diagram-footer">Catch The Wick™ &nbsp;·&nbsp; 2 Candles. 1 Story.™</p>
+    </div>
+  </div>
+
+  <!-- EM Cards -->
+  <div class="em-cards">
+    <div class="em-card reveal">
+      <p class="em-label">EM1</p>
+      <h3 class="em-title">Liquidation Entry</h3>
+      <p class="em-desc">A strong level is swept. Immediate orderflow change. You enter on the wick of the liquidation candle — before the continuation move begins.</p>
+      <p class="em-truth">"You're in before the move."</p>
+    </div>
+    <div class="em-card reveal reveal-delay-1">
+      <p class="em-label">EM2</p>
+      <h3 class="em-title">Zone Reaction Entry</h3>
+      <p class="em-desc">No liquidation. Price mitigates a valid supply or demand zone. The reaction candle forms with OFC. The zone holds. You follow the institutional hand.</p>
+      <p class="em-truth">"Zone confirms. You follow."</p>
+    </div>
+    <div class="em-card reveal reveal-delay-2">
+      <p class="em-label">EM3</p>
+      <h3 class="em-title">Breakout Entry</h3>
+      <p class="em-desc">Shallow pullback into a valid zone. Momentum locked in. Breakout entry on the continuation. You ride the session with the trend confirmed.</p>
+      <p class="em-truth">"Momentum locked. You ride it."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SCENE 5 — DISTINCTION ═══ -->
+<section id="scene-distinction">
+  <div class="distinction-inner">
+    <h2 class="distinction-headline reveal">
+      Every educator teaches you<br>what to look for.
+    </h2>
+    <p class="distinction-sub reveal reveal-delay-1">None of them tell you exactly when.</p>
+
+    <div class="distinction-grid reveal reveal-delay-2">
+      <div class="distinction-col is-them">
+        <p class="distinction-col-label">Everyone else</p>
+        <h3 class="distinction-col-title">Concepts without a trigger</h3>
+        <ul class="distinction-list">
+          <li>Teaches zones, structure, order flow</li>
+          <li>Leaves execution to your discretion</li>
+          <li>Works until pressure hits — then it breaks</li>
+          <li>You hesitate. You miss it. You watch it move.</li>
+          <li>Repeat until the account is gone.</li>
+        </ul>
+      </div>
+      <div class="distinction-col is-us">
+        <p class="distinction-col-label">FortitudeFX™</p>
+        <h3 class="distinction-col-title">The exact trigger. Every time.</h3>
+        <ul class="distinction-list">
+          <li>5 models built around one market behaviour</li>
+          <li>Either it's printing or it isn't — no grey area</li>
+          <li>In within 15 minutes. Out within 30.</li>
+          <li>Any pair. Any session. Any timeframe.</li>
+          <li>A skill you compound for the next 20 years.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="distinction-bottom reveal reveal-delay-3">
+      "The gap between knowing and executing<br>is where accounts go to die.<br>CTW closes that gap."
+    </p>
+  </div>
+</section>
+
+<!-- ═══ SCENE 6 — PROOF ═══ -->
+<section id="scene-proof">
+  <div class="proof-inner">
+    <p class="proof-kicker reveal">Who's Already Inside</p>
+    <h2 class="proof-headline reveal reveal-delay-1">
+      7,500+ traders watch.<br>A focused few execute.
+    </h2>
+
+    <div class="proof-stats">
+      <div class="proof-stat reveal">
+        <div class="proof-stat-num">7<span>,500</span><span style="font-size:0.5em;color:#C9A84C;">+</span></div>
+        <p class="proof-stat-label">YouTube subscribers<br>watching the framework in action</p>
+      </div>
+      <div class="proof-stat reveal reveal-delay-1">
+        <div class="proof-stat-num">3<span>–4</span></div>
+        <p class="proof-stat-label">Videos per week<br>London & New York session breakdowns</p>
+      </div>
+      <div class="proof-stat reveal reveal-delay-2">
+        <div class="proof-stat-num"><span style="font-size:0.7em;">$</span>0</div>
+        <p class="proof-stat-label">To start<br>Free Discord. No pitch. No pressure.</p>
+      </div>
+    </div>
+
+    <!-- Community image — laptop showing Discord activity -->
+    <img
+      class="proof-community-img reveal reveal-delay-1"
+      src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1400&q=80&auto=format&fit=crop"
+      alt="Active trading community"
+      loading="lazy"
+    />
+
+    <p class="proof-tagline reveal reveal-delay-2">
+      The free Discord is where it starts. <strong>See the framework applied daily</strong> — real sessions, real setups, real execution — before you spend a penny.
+    </p>
+  </div>
+</section>
+
+<!-- ═══ SCENE 7 — THE CLOSE ═══ -->
+<section id="scene-close">
+  <p class="close-line reveal">The market opened this morning.</p>
+  <p class="close-line reveal reveal-delay-1">It ran the same script it always runs.</p>
+  <p class="close-line reveal reveal-delay-2" style="margin-bottom:0;">The question is whether</p>
+  <p class="close-line is-main reveal reveal-delay-3">you were reading it.</p>
+
+  <div class="close-divider reveal reveal-delay-4"></div>
+
+  <p class="close-hook reveal reveal-delay-4">Tomorrow it runs again.</p>
+
+  <a href="joinfree.html" class="btn-close-cta reveal reveal-delay-5">
+    Join Free — Start Reading It &nbsp;→
+  </a>
+  <span class="btn-close-sub reveal reveal-delay-5">No credit card &nbsp;·&nbsp; No pitch &nbsp;·&nbsp; Just the framework</span>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <strong>FortitudeFX™</strong>
+      Catch The Wick™ · Dubai, UAE
+    </div>
+    <ul class="footer-links">
+      <li><a href="vipdiscord.html">VIP Discord</a></li>
+      <li><a href="bootcamp.html">Bootcamp</a></li>
+      <li><a href="blog.html">Blog</a></li>
+      <li><a href="pricing.html">Pricing</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="privacy.html">Privacy</a></li>
+    </ul>
+    <div class="footer-socials">
+      <a href="https://youtube.com/@FortitudeFX" target="_blank" rel="noopener">YouTube</a>
+      <a href="https://instagram.com/fortitudefx_official" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://x.com/_fortitudefx" target="_blank" rel="noopener">X</a>
+      <a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" rel="noopener">Discord</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p class="footer-copy">© 2026 FortitudeFX™ · All rights reserved · Dubai, UAE</p>
+    <p class="footer-tm">Catch The Wick™ · 2 Candles. 1 Story.™</p>
+  </div>
+</footer>
+
 <script>
-(function() {
-  var float = document.getElementById('ffx-social-float');
-  if (!float) return;
+  // ── Scroll reveal — Intersection Observer ──
+  (function() {
+    var els = document.querySelectorAll('.reveal');
+    if (!els.length) return;
 
-  var current  = 0;
-  var target   = 0;
-  var maxShift = 70;
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.12,
+      rootMargin: '0px 0px -40px 0px'
+    });
 
-  function getScrollRatio() {
-    var doc   = document.documentElement;
-    var total = doc.scrollHeight - doc.clientHeight;
-    if (total <= 0) return 0.5;
-    return window.scrollY / total;
-  }
+    els.forEach(function(el) { observer.observe(el); });
+  })();
 
-  function getClampedTop() {
-    var container = document.querySelector('.page-container');
-    if (!container) return window.innerHeight / 2 - float.offsetHeight / 2;
-
-    var rect    = container.getBoundingClientRect();
-    var floatH  = float.offsetHeight;
-    var padding = 16;
-
-    // Centre of visible container portion
-    var visTop    = Math.max(rect.top, 0);
-    var visBottom = Math.min(rect.bottom, window.innerHeight);
-    var centre    = (visTop + visBottom) / 2 - floatH / 2;
-
-    // Clamp within container borders
-    var minTop = rect.top + padding;
-    var maxTop = rect.bottom - floatH - padding;
-
-    return Math.max(minTop, Math.min(maxTop, centre));
-  }
-
-  window.addEventListener('scroll', function() {
-    target = (getScrollRatio() - 0.5) * maxShift;
-  }, { passive: true });
-
-  var start = performance.now();
-
-  function tick(now) {
-    var elapsed = (now - start) / 1000;
-    current    += (target - current) * 0.06;
-    var breath  = Math.sin(elapsed * 0.4) * 3.5;
-    var top     = getClampedTop();
-
-    float.style.top       = top + 'px';
-    float.style.transform = 'translateY(' + (current + breath).toFixed(2) + 'px)';
-
-    requestAnimationFrame(tick);
-  }
-
-  requestAnimationFrame(tick);
-})();
+  // ── Nav scroll effect ──
+  (function() {
+    var nav = document.querySelector('nav');
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 60) {
+        nav.style.boxShadow = '0 1px 24px rgba(26,21,16,0.08)';
+      } else {
+        nav.style.boxShadow = 'none';
+      }
+    }, { passive: true });
+  })();
 </script>
-  
+
 </body>
 </html>
