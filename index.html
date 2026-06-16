@@ -1345,7 +1345,7 @@
 </footer>
 
 <script>
-  // ── Scroll reveal — Intersection Observer ──
+  // ── Scroll reveal — always animates in AND out ──
   (function() {
     var els = document.querySelectorAll('.reveal');
     if (!els.length) return;
@@ -1354,7 +1354,8 @@
       entries.forEach(function(entry) {
         if (entry.isIntersecting) {
           entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
+        } else {
+          entry.target.classList.remove('visible');
         }
       });
     }, {
