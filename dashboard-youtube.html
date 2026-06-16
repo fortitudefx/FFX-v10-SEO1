@@ -1217,7 +1217,7 @@ async function generateThumbnail() {
 
 // ── Step 2: Compose — background + chart + brand frame + hook text ────────
 async function composeThumbnail() {
-  if (!_leonardoBgUrl) { alert('Generate the background first.'); return; }
+  // V4 template — no background needed, chart is the base
 
   var btn = document.getElementById('composeBtn');
   btn.disabled = true;
@@ -1226,7 +1226,7 @@ async function composeThumbnail() {
   var hookText = (_currentMeta && _currentMeta.thumbnailConcept && _currentMeta.thumbnailConcept.textOverlay) || '';
 
   try {
-    var composited = await compositeAll(_leonardoBgUrl, _chartImageDataUrl, hookText);
+    var composited = await compositeAll(null, _chartImageDataUrl, hookText);
 
     var img = document.getElementById('thumbImg');
     img.src = composited.dataUrl;
