@@ -383,37 +383,9 @@
           </div>
           <div class="yt-thumb-concept yt-section-body" id="thumbConceptText" style="display:none;padding-top:0;"></div>
 
-          <!-- No API key notice -->
-          <div class="yt-thumb-no-api" id="thumbNoApiNotice">
-            <strong>LEONARDO_API_KEY not set.</strong><br>
-            Add it to ffx-consumer Worker secrets to enable automatic thumbnail generation.
-            The prompt is generated below — you can use it manually in Leonardo.ai.
-          </div>
 
-          <!-- Leonardo prompt — always shown after SEO package generates -->
-          <div id="leonardoPromptSection" style="display:none; border-top:1px solid rgba(255,255,255,0.07);">
-            <div class="yt-section-body">
-              <div class="yt-prompt-label">Leonardo Prompt</div>
-              <div class="yt-prompt-text" id="leonardoPromptText"></div>
-              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-                <button class="btn-copy" onclick="copyLeonardoPrompt(this)">Copy Prompt</button>
-                <button class="btn-thumb-generate" id="regenPromptBtn" onclick="regenerateThumbnailPrompt()" style="display:none;font-size:9px;padding:5px 12px;">
-                  &#8635; Regenerate Prompt
-                </button>
-              </div>
-              <!-- Updated prompt preview — shown after Regenerate Prompt ──────── -->
-              <div id="newPromptPreview" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.20);border-radius:6px;">
-                <div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(201,168,76,0.70);margin-bottom:6px;">Updated Prompt — Review Before Executing</div>
-                <div class="yt-prompt-text" id="newPromptText" style="color:rgba(255,255,255,0.65);"></div>
-                <div style="display:flex;gap:8px;margin-top:10px;">
-                  <button class="btn-thumb-generate" id="executeNewPromptBtn" onclick="executeNewPrompt()" style="font-size:9px;padding:5px 14px;">
-                    &#9889; Execute This Prompt
-                  </button>
-                  <button class="btn-copy" onclick="discardNewPrompt(this)">Discard</button>
-                </div>
-              </div>
-            </div>
-          </div>
+
+
 
           <!-- Chart screenshot upload zone — appears after SEO package generates -->
           <div id="chartUploadSection" style="display:none;border-top:1px solid rgba(255,255,255,0.07);">
@@ -423,8 +395,8 @@
               ondrop="handleChartDrop(event)">
               <input type="file" class="chart-upload-input" id="chartFileInput" accept="image/*" onchange="handleChartFile(event)">
               <div id="chartUploadContent">
-                <div class="chart-upload-label">&#128247; Drop TradingView Screenshot Here</div>
-                <div class="chart-upload-sub">PNG, JPG — your actual chart from the video</div>
+                <div class="chart-upload-label">&#128247; Drop, Click, or Paste Screenshot</div>
+                <div class="chart-upload-sub">Drag &amp; drop &nbsp;&bull;&nbsp; Click to browse &nbsp;&bull;&nbsp; <strong>Cmd+V / Ctrl+V</strong> to paste from clipboard</div>
               </div>
               <img class="chart-preview-img" id="chartPreviewImg" src="" alt="Chart preview">
               <button class="btn-clear-chart" id="clearChartBtn" onclick="clearChart(event)">&#10005; Remove</button>
@@ -1093,27 +1065,21 @@ function renderThumbnailSection(meta) {
     document.getElementById('thumbConceptText').style.display = '';
   }
 
-  document.getElementById('regenPromptBtn').style.display = prompt ? '' : 'none';
-  // Show chart upload zone and style controls when prompt is available
+  // Show chart upload zone and style controls when SEO package is ready
   document.getElementById('chartUploadSection').style.display = prompt ? '' : 'none';
   document.getElementById('thumbStyleControls').style.display = prompt ? '' : 'none';
   document.getElementById('composeBtn').classList.add('visible');
-  // Reset new prompt preview state
-  document.getElementById('newPromptPreview').style.display = 'none';
-  document.getElementById('newPromptText').textContent = '';
-  // Reset compose button state
-  document.getElementById('composeBtn').classList.remove('visible');
   _chartImageDataUrl = null;
   clearChartPreview();
 
   if (prompt) {
     document.getElementById('leonardoPromptText').textContent = prompt;
-    document.getElementById('leonardoPromptSection').style.display = '';
+
   }
 
   if (tc.apiKeyConfigured === false) {
-    document.getElementById('thumbNoApiNotice').classList.add('visible');
-    document.getElementById('thumbGenerateBtn').style.display = 'none';
+    // Leonardo removed
+
   }
 }
 
@@ -1141,18 +1107,39 @@ function handleChartFile(e) {
 }
 function loadChartFile(file) {
   var reader = new FileReader();
-  reader.onload = function(e) {
-    _chartImageDataUrl = e.target.result;
-    var preview = document.getElementById('chartPreviewImg');
-    preview.src = _chartImageDataUrl;
-    preview.classList.add('visible');
-    document.getElementById('chartUploadContent').style.display = 'none';
-    document.getElementById('clearChartBtn').classList.add('visible');
-    document.getElementById('chartUploadZone').classList.add('has-image');
-    if (_leonardoBgUrl) showComposeBtn();
-  };
+  reader.onload = function(e) { setChartImage(e.target.result); };
   reader.readAsDataURL(file);
 }
+
+function setChartImage(dataUrl) {
+  _chartImageDataUrl = dataUrl;
+  var preview = document.getElementById('chartPreviewImg');
+  preview.src = dataUrl;
+  preview.classList.add('visible');
+  document.getElementById('chartUploadContent').style.display = 'none';
+  document.getElementById('clearChartBtn').classList.add('visible');
+  document.getElementById('chartUploadZone').classList.add('has-image');
+  showComposeBtn();
+}
+
+// ── Clipboard paste — Cmd+V / Ctrl+V anywhere when upload zone visible ────
+document.addEventListener('paste', function(e) {
+  if (document.getElementById('chartUploadSection').style.display === 'none') return;
+  var items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      var blob = items[i].getAsFile();
+      if (blob) {
+        e.preventDefault();
+        var r = new FileReader();
+        r.onload = function(ev) { setChartImage(ev.target.result); };
+        r.readAsDataURL(blob);
+        return;
+      }
+    }
+  }
+});
 function clearChart(e) {
   e.preventDefault();
   e.stopPropagation();
