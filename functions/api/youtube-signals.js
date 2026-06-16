@@ -25,7 +25,22 @@ const HEADERS = {
 
 // ── GET — return all performance records ──────────────────────────────────
 export async function onRequestGet(context) {
-  const { env } = context;
+  const { env, request } = context;
+  const url = new URL(request.url);
+
+  // ── Single video published record lookup ─────────────────────────────────
+  // GET /api/youtube-signals?action=get&videoId=xxx
+  // Returns the published record for a single video — actualTitle, thumbnailHook etc.
+  if (url.searchParams.get('action') === 'get') {
+    const videoId = url.searchParams.get('videoId');
+    if (!videoId) return json({ error: 'videoId required' }, 400, HEADERS);
+    try {
+      const pub = await env.FFX_KV.get('youtube:published:' + videoId, { type: 'json' }).catch(() => null);
+      return json(pub || {}, 200, HEADERS);
+    } catch(err) {
+      return json({ error: err.message }, 500, HEADERS);
+    }
+  }
 
   try {
     // Read published index
@@ -81,7 +96,7 @@ async function handleMarkPublished(request, env) {
     return json({ error: 'Invalid JSON' }, 400, HEADERS);
   }
 
-  const { videoId, titleUsed, ownTitle } = body;
+  const { videoId, titleUsed, ownTitle, hookUsed } = body;
   if (!videoId) return json({ error: 'videoId required' }, 400, HEADERS);
   if (!titleUsed) return json({ error: 'titleUsed required: primary|alt1|alt2|own' }, 400, HEADERS);
 
@@ -113,7 +128,7 @@ async function handleMarkPublished(request, env) {
       titleUsed,    // which option: primary|alt1|alt2|own
       actualTitle,  // the exact text that went into YouTube
       claudeTitle:  meta.primaryTitle || '',
-      thumbnailHook: (meta.thumbnailConcept && meta.thumbnailConcept.textOverlay) || null,
+      thumbnailHook: hookUsed || (meta.thumbnailConcept && meta.thumbnailConcept.textOverlay) || null,
       visualScene:   (meta.thumbnailConcept && meta.thumbnailConcept.visualScene) || null,
       emotionalRegister: (meta.thumbnailConcept && meta.thumbnailConcept.emotionalRegister) || null,
       colourTemperature: (meta.thumbnailConcept && meta.thumbnailConcept.colourTemperature) || null,
