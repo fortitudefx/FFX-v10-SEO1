@@ -31,6 +31,9 @@
     .btn-yt-generate { font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; background:rgba(201,168,76,0.12); color:rgba(201,168,76,0.90); border:1px solid rgba(201,168,76,0.30); border-radius:6px; padding:10px 20px; cursor:pointer; transition:all 0.15s; white-space:nowrap; font-family:inherit; }
     .btn-yt-generate:hover { background:rgba(201,168,76,0.20); color:#fff; }
     .btn-yt-generate:disabled { opacity:0.4; cursor:not-allowed; }
+    .btn-yt-regen { font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; background:rgba(122,92,255,0.10); color:rgba(122,92,255,0.80); border:1px solid rgba(122,92,255,0.25); border-radius:6px; padding:8px 16px; cursor:pointer; transition:all 0.15s; white-space:nowrap; font-family:inherit; margin-left:6px; }
+    .btn-yt-regen:hover { background:rgba(122,92,255,0.20); color:#fff; }
+    .btn-yt-regen:disabled { opacity:0.4; cursor:not-allowed; }
 
     /* ── Video preview ── */
     .yt-video-preview { display:none; align-items:center; gap:16px; padding:0 24px 20px; }
@@ -285,6 +288,8 @@
       <button class="btn-yt-generate" id="generateBtn" onclick="handleGenerate()">
         Generate Package
       </button>
+      <button class="btn-yt-regen" id="regenPhase1Btn" onclick="regenPhase1()" style="display:none;">&#8635; Regen Phase 1</button>
+      <button class="btn-yt-regen" id="regenPhase2Btn" onclick="regenPhase2()" style="display:none;">&#8635; Regen SEO</button>
     </div>
 
     <!-- Video preview once URL parsed -->
@@ -378,7 +383,10 @@
 
           <!-- Hook text overlay concept -->
           <div class="yt-section-body" id="thumbHookBlock" style="display:none;">
-            <div class="yt-thumb-hook-label">Hook Text Overlay</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <div class="yt-thumb-hook-label">Hook Text Overlay</div>
+              <button class="btn-yt-regen" id="regenHookBtn" onclick="regenHookOnly()" style="font-size:9px;padding:3px 10px;">&#8635; Regen Hook</button>
+            </div>
             <div class="yt-thumb-hook-text" id="thumbHookText">—</div>
           </div>
           <div class="yt-thumb-concept yt-section-body" id="thumbConceptText" style="display:none;padding-top:0;"></div>
@@ -481,6 +489,15 @@
     <div class="yt-own-title-wrap" id="ownTitleWrap">
       <input class="yt-own-title-input" id="ownTitleInput" type="text" placeholder="Paste the exact title you used on YouTube…">
     </div>
+
+    <!-- Hook text used on thumbnail -->
+    <div id="publishHookSection" style="display:none;margin-top:16px;padding:14px;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:6px;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(201,168,76,0.60);margin-bottom:8px;">Hook Text Used On Thumbnail</div>
+      <div id="hookSuggestedText" style="font-size:14px;font-weight:700;color:#c9a84c;margin-bottom:10px;"></div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.30);margin-bottom:6px;">Used a different hook? Type it here (leave blank to use above)</div>
+      <input type="text" id="ownHookInput" placeholder="My own hook text…" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#fff;padding:8px 12px;border-radius:6px;font-size:13px;font-family:inherit;">
+    </div>
+
     <div class="yt-publish-footer">
       <button class="btn-mark-published" id="markPublishedBtn" onclick="markAsPublished()">Mark as Published &rarr;</button>
       <div class="yt-publish-success" id="publishSuccess"></div>
@@ -780,9 +797,7 @@ async function handleGenerate() {
   btn.disabled = true;
   btn.textContent = 'Generating\u2026';
 
-  // ── Check if Phase 1 already done (video: exists in KV) ────────────────
-  // If yes: skip Phase 1 entirely, go straight to Phase 2 (SEO always regenerates fresh)
-  // Phase 2 ALWAYS runs — never served from cache on a Generate/Regenerate press
+  // ── Check KV state — load everything instantly if both phases exist ────
   renderSteps('transcript', null, null);
 
   try {
@@ -790,14 +805,31 @@ async function handleGenerate() {
     var phase1Data = await phase1Res.json();
 
     if (phase1Data.phase1Complete === true) {
-      // Phase 1 done — skip straight to Phase 2 (SEO package regenerates fresh)
-      renderSteps('reading_signals', 5, null); // steps 1-6 marked done instantly
+      // Phase 1 exists — check if Phase 2 (SEO package) also exists
+      var seoRes  = await fetch('/api/youtube-metadata?videoId=' + encodeURIComponent(videoId));
+      var seoData = await seoRes.json();
+
+      if (seoData.metadata && seoData.metadata.primaryTitle) {
+        // BOTH phases in KV — load everything instantly, no regeneration
+        renderAllDone();
+        document.getElementById('videoTitle').textContent = seoData.metadata.primaryTitle;
+        document.getElementById('cachedBadge').style.display = '';
+        renderOutput(seoData.metadata);
+        showRegenButtons();
+        btn.disabled = false;
+        btn.textContent = 'Loaded from KV';
+        setTimeout(hideProgress, 600);
+        return;
+      }
+
+      // Phase 1 done but no SEO package — run Phase 2 only
+      renderSteps('reading_signals', 5, null);
       _phase2Triggered = true;
       triggerPhase2(videoId);
       return;
     }
   } catch(e) {
-    // Phase 1 check failed — proceed to full generation
+    // KV check failed — proceed to full generation
   }
 
   // ── POST to youtube-generate — triggers Phase 1 queue job ────────────────
@@ -925,12 +957,25 @@ async function triggerPhase2(videoId) {
       return;
     }
 
-    // Phase 2 complete
+    // Phase 2 complete — use metadata from POST response directly
+    // Avoids KV propagation delay (Cloudflare KV is eventually consistent)
     stopPolling();
     renderSteps('writing_kv', null, null);
     await new Promise(function(r) { setTimeout(r, 400); });
     renderAllDone();
-    await loadSEOPackage(videoId);
+
+    if (data.metadata && data.metadata.primaryTitle) {
+      // Use metadata returned directly from POST — no KV read needed
+      document.getElementById('videoTitle').textContent = data.metadata.primaryTitle;
+      renderOutput(data.metadata);
+      var btn = document.getElementById('generateBtn');
+      btn.disabled = false;
+      btn.textContent = 'Regenerate';
+      setTimeout(hideProgress, 1200);
+    } else {
+      // Fallback to KV read if POST didn't return metadata
+      await loadSEOPackage(videoId);
+    }
 
   } catch(err) {
     stopPolling();
@@ -970,6 +1015,106 @@ function resetBtn() {
   var btn = document.getElementById('generateBtn');
   btn.disabled = false;
   btn.textContent = 'Try Again';
+}
+
+// ── Show/hide regen buttons ───────────────────────────────────────────────
+function showRegenButtons() {
+  document.getElementById('regenPhase1Btn').style.display = '';
+  document.getElementById('regenPhase2Btn').style.display = '';
+}
+function hideRegenButtons() {
+  document.getElementById('regenPhase1Btn').style.display = 'none';
+  document.getElementById('regenPhase2Btn').style.display = 'none';
+}
+
+// ── Regenerate Phase 1 only ───────────────────────────────────────────────
+// Re-runs transcript + article + platforms + library
+// After completion — Tab 2 updates automatically via populateContentTab
+async function regenPhase1() {
+  if (!_currentVideoId) return;
+  var btn = document.getElementById('regenPhase1Btn');
+  btn.disabled = true;
+  btn.textContent = 'Regenerating…';
+  hideRegenButtons();
+
+  document.getElementById('progressArea').classList.add('visible');
+  renderSteps('transcript', null, null);
+  _phase2Triggered = false;
+
+  try {
+    var url = document.getElementById('ytUrlInput').value.trim();
+    var res  = await fetch('/api/youtube-generate', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ youtubeUrl: url, forceRegen: true }),
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) {
+      renderSteps('transcript', 'transcript', '✕ ' + (data.error || 'Failed to start regeneration'));
+      btn.disabled = false; btn.textContent = '蘵 Regen Phase 1';
+      showRegenButtons();
+      return;
+    }
+    _currentJobId = data.jobId;
+    startPolling(_currentVideoId);
+  } catch(err) {
+    renderSteps('transcript', 'transcript', '✕ Network error: ' + err.message);
+    btn.disabled = false; btn.textContent = '蘵 Regen Phase 1';
+    showRegenButtons();
+  }
+}
+
+// ── Regenerate Phase 2 (SEO package) only ────────────────────────────────
+// Re-runs Claude SEO generation only — Phase 1 untouched
+async function regenPhase2() {
+  if (!_currentVideoId) return;
+  var btn = document.getElementById('regenPhase2Btn');
+  btn.disabled = true;
+  btn.textContent = 'Regenerating…';
+  document.getElementById('progressArea').classList.add('visible');
+  renderSteps('reading_signals', 5, null);
+  await triggerPhase2(_currentVideoId);
+  btn.disabled = false;
+  btn.textContent = '蘵 Regen SEO';
+  showRegenButtons();
+}
+
+// ── Regenerate hook text only ─────────────────────────────────────────────
+// Single Claude call — updates textOverlay in KV and in current meta
+async function regenHookOnly() {
+  if (!_currentVideoId) return;
+  var btn = document.getElementById('regenHookBtn');
+  btn.disabled = true;
+  btn.innerHTML = '&#8635; Regenerating…';
+
+  try {
+    var url = document.getElementById('ytUrlInput').value.trim();
+    var res  = await fetch('/api/youtube-metadata', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ videoId: _currentVideoId, youtubeUrl: url, thumbOnly: true }),
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) {
+      btn.disabled = false; btn.innerHTML = '&#8635; Regen Hook';
+      alert('Hook regeneration failed: ' + (data.error || 'Unknown error'));
+      return;
+    }
+    // Update hook text display and current meta
+    var newHook = data.metadata && data.metadata.thumbnailConcept && data.metadata.thumbnailConcept.textOverlay;
+    if (newHook) {
+      document.getElementById('thumbHookText').textContent = newHook;
+      if (_currentMeta && _currentMeta.thumbnailConcept) {
+        _currentMeta.thumbnailConcept.textOverlay = newHook;
+      }
+    }
+    btn.disabled = false;
+    btn.innerHTML = '&#8635; Regen Hook';
+  } catch(err) {
+    btn.disabled = false;
+    btn.innerHTML = '&#8635; Regen Hook';
+    alert('Network error: ' + err.message);
+  }
 }
 
 // ── Render full SEO output ────────────────────────────────────────────────
@@ -1039,9 +1184,10 @@ function renderOutput(meta) {
   // Thumbnail
   renderThumbnailSection(meta);
 
-  // Show output + publish block
+  // Show output + publish block + regen buttons
   document.getElementById('outputArea').classList.add('visible');
   renderPublishBlock(meta);
+  showRegenButtons();
 
   // Populate Tab 2 with generated content
   if (_currentVideoId) {
@@ -1570,6 +1716,14 @@ function renderPublishBlock(meta) {
     options.push({ key: 'alt2', badge: 'Claude Alt 2', title: meta.titleAlternatives[1].title || '' });
   options.push({ key: 'own', badge: 'My Own Title', title: 'I wrote my own title' });
 
+  // ── Hook text section ─────────────────────────────────────────────────
+  var hookSuggested = (meta.thumbnailConcept && meta.thumbnailConcept.textOverlay) || '';
+  var hookSection = document.getElementById('publishHookSection');
+  if (hookSection) {
+    document.getElementById('hookSuggestedText').textContent = hookSuggested || 'Not generated yet';
+    hookSection.style.display = hookSuggested ? '' : 'none';
+  }
+
   choices.innerHTML = '';
   options.forEach(function(opt) {
     var div = document.createElement('div');
@@ -1619,7 +1773,13 @@ async function markAsPublished() {
     var res  = await fetch('/api/youtube-signals?action=publish', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ videoId: _currentVideoId, titleUsed: titleUsed, ownTitle: ownTitle }),
+      body:    JSON.stringify({
+        videoId:   _currentVideoId,
+        titleUsed: titleUsed,
+        ownTitle:  ownTitle,
+        hookUsed:  document.getElementById('ownHookInput').value.trim() ||
+                   ((_currentMeta && _currentMeta.thumbnailConcept && _currentMeta.thumbnailConcept.textOverlay) || ''),
+      }),
     });
     var data = await res.json();
 
@@ -1645,6 +1805,18 @@ async function markAsPublished() {
     sEl.innerHTML = '\u2713 Marked as published using <strong>' + esc(labelMap[titleUsed]||titleUsed) + '</strong>: \u201c' + esc(data.actualTitle) + '\u201d<br>'
       + '<span style="font-size:11px;color:rgba(62,207,142,0.65);">Video now in Press dashboard. Return in 48-72hrs and hit Refresh All KPIs in the Performance tab.</span>';
     sEl.classList.add('visible');
+
+    // Hide Generate tab after successful publish — video moves to Performance
+    setTimeout(function() {
+      document.getElementById('outputArea').classList.remove('visible');
+      document.getElementById('publishBlock').classList.remove('visible');
+      document.getElementById('videoPreview').classList.remove('visible');
+      hideRegenButtons();
+      document.getElementById('ytUrlInput').value = '';
+      document.getElementById('generateBtn').textContent = 'Generate Package';
+      document.getElementById('generateBtn').disabled = false;
+      hideProgress();
+    }, 2500);
 
   } catch(err) {
     btn.disabled = false;
