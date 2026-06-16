@@ -211,6 +211,42 @@ async function handleRefreshKPIs(env) {
       }
     }
 
+    // ── Fetch subscribersGained per video via YouTube Analytics API ─────────
+    // Requires yt-analytics.readonly OAuth scope — gracefully skips if 403
+    const subsGainedMap = {};
+    try {
+      const accessToken = await getAccessToken(env);
+      if (accessToken) {
+        for (const videoId of videoIds) {
+          try {
+            const pub = await env.FFX_KV.get('youtube:published:' + videoId, { type: 'json' }).catch(() => null);
+            const startDate = pub && pub.publishedAt
+              ? pub.publishedAt.split('T')[0]
+              : '2020-01-01';
+            const analyticsUrl = 'https://youtubeanalytics.googleapis.com/v2/reports'
+              + '?ids=channel==MINE'
+              + '&startDate=' + startDate
+              + '&endDate=' + new Date().toISOString().split('T')[0]
+              + '&metrics=subscribersGained'
+              + '&filters=video==' + videoId
+              + '&dimensions=video';
+            const aRes = await fetch(analyticsUrl, {
+              headers: { 'Authorization': 'Bearer ' + accessToken },
+            });
+            if (aRes.ok) {
+              const aData = await aRes.json();
+              if (aData.rows && aData.rows[0]) {
+                subsGainedMap[videoId] = parseInt(aData.rows[0][1] || 0);
+              }
+            }
+            // 403 = scope not yet authorised — skip silently
+          } catch(e) {}
+        }
+      }
+    } catch(e) {
+      console.error('[youtube-signals] subscribersGained fetch failed (non-fatal):', e.message);
+    }
+
     // ── Fetch channel-level stats ─────────────────────────────────────────
     let channelStats = null;
     try {
@@ -280,6 +316,7 @@ async function handleRefreshKPIs(env) {
         viewCount:         stats.viewCount,
         likeCount:         stats.likeCount,
         commentCount:      stats.commentCount,
+        subscribersGained: subsGainedMap[videoId] !== undefined ? subsGainedMap[videoId] : null,
         channelAvgViews,
         beatAverage,
         viewsVsAvgPct,
@@ -427,6 +464,33 @@ function computeVisualSceneStats(records) {
     };
   }
   return result;
+}
+
+// ── Google OAuth access token (cached in KV) ─────────────────────────────
+async function getAccessToken(env) {
+  try {
+    var cached = await env.FFX_KV.get('google:access_token', { type: 'text' }).catch(function() { return null; });
+    var expiry = await env.FFX_KV.get('google:access_token_expiry', { type: 'text' }).catch(function() { return null; });
+    if (cached && expiry && Date.now() < parseInt(expiry) - 60000) return cached;
+  } catch(e) {}
+  var res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id:     env.GOOGLE_CLIENT_ID || '805135063067-mb9ap5knagr29280dmg1s63gcbd2f01t.apps.googleusercontent.com',
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      refresh_token: env.GOOGLE_REFRESH_TOKEN,
+      grant_type:    'refresh_token',
+    }).toString(),
+  });
+  if (!res.ok) return null; // Non-fatal — analytics scope may not be authorised yet
+  var data = await res.json();
+  var expiresAt = Date.now() + (data.expires_in || 3600) * 1000;
+  try {
+    await env.FFX_KV.put('google:access_token',        data.access_token, { expirationTtl: 3300 });
+    await env.FFX_KV.put('google:access_token_expiry', String(expiresAt), { expirationTtl: 3300 });
+  } catch(e) {}
+  return data.access_token;
 }
 
 export async function onRequestOptions() {
