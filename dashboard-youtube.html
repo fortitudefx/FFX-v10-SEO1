@@ -811,11 +811,26 @@ async function handleGenerate() {
 
       if (seoData.metadata && seoData.metadata.primaryTitle) {
         // BOTH phases in KV — load everything instantly, no regeneration
+        // Also check for published record to get actualTitle and hookUsed
+        var pubData = null;
+        try {
+          var pubRes = await fetch('/api/youtube-signals?action=get&videoId=' + encodeURIComponent(videoId));
+          if (pubRes.ok) pubData = await pubRes.json();
+        } catch(e) {}
+
         renderAllDone();
-        document.getElementById('videoTitle').textContent = seoData.metadata.primaryTitle;
+        document.getElementById('videoTitle').textContent =
+          (pubData && pubData.actualTitle) || seoData.metadata.primaryTitle;
         document.getElementById('cachedBadge').style.display = '';
-        renderOutput(seoData.metadata);
+        renderOutput(seoData.metadata, pubData);
         showRegenButtons();
+
+        // Detect stale timestamp placeholder in description
+        var fullDesc = (seoData.metadata.description && seoData.metadata.description.full) || '';
+        if (fullDesc.indexOf('[TIMESTAMPS]') !== -1) {
+          showTimestampWarning();
+        }
+
         btn.disabled = false;
         btn.textContent = 'Loaded from KV';
         setTimeout(hideProgress, 600);
@@ -1011,6 +1026,16 @@ async function loadSEOPackage(videoId) {
   }
 }
 
+// ── Timestamp placeholder warning ────────────────────────────────────────
+function showTimestampWarning() {
+  var descEl = document.getElementById('descFullText');
+  if (!descEl) return;
+  var warn = document.createElement('div');
+  warn.style.cssText = 'margin-top:8px;padding:8px 12px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.25);border-radius:6px;font-size:11px;color:rgba(249,115,22,0.90);';
+  warn.innerHTML = '&#9888; Description has [TIMESTAMPS] placeholder — real chapters are in KV. Hit <strong>Regen SEO</strong> to generate with actual timestamps.';
+  descEl.parentNode.insertBefore(warn, descEl.nextSibling);
+}
+
 function resetBtn() {
   var btn = document.getElementById('generateBtn');
   btn.disabled = false;
@@ -1118,7 +1143,7 @@ async function regenHookOnly() {
 }
 
 // ── Render full SEO output ────────────────────────────────────────────────
-function renderOutput(meta) {
+function renderOutput(meta, pubData) {
   _currentMeta = meta;
 
   // Title
@@ -1186,7 +1211,7 @@ function renderOutput(meta) {
 
   // Show output + publish block + regen buttons
   document.getElementById('outputArea').classList.add('visible');
-  renderPublishBlock(meta);
+  renderPublishBlock(meta, pubData);
   showRegenButtons();
 
   // Populate Tab 2 with generated content
@@ -1211,10 +1236,16 @@ function renderThumbnailSection(meta) {
   }
 
   // Show upload zone and style controls whenever SEO package has generated
-  // No longer depends on leonardoPrompt — V4 canvas template is always available
   document.getElementById('chartUploadSection').style.display = '';
   document.getElementById('thumbStyleControls').style.display = '';
   document.getElementById('composeBtn').classList.add('visible');
+
+  // Update chart upload label to remind user to re-upload their chart
+  var uploadContent = document.getElementById('chartUploadContent');
+  if (uploadContent && !_chartImageDataUrl) {
+    uploadContent.innerHTML = '<div class="chart-upload-label">&#128247; Drop, Click, or Paste Your Chart Screenshot</div>'
+      + '<div class="chart-upload-sub">Re-upload your TradingView screenshot to compose the thumbnail &nbsp;&bull;&nbsp; <strong>Cmd+V</strong> to paste</div>';
+  }
   document.getElementById('composeBtn').classList.add('visible');
   _chartImageDataUrl = null;
   clearChartPreview();
@@ -1704,7 +1735,7 @@ function switchYtTab(tab) {
 }
 
 // ── Mark as Published ─────────────────────────────────────────────────────
-function renderPublishBlock(meta) {
+function renderPublishBlock(meta, pubData) {
   if (!meta || !_currentVideoId) return;
   var choices = document.getElementById('titleChoices');
   var options = [
@@ -1716,12 +1747,18 @@ function renderPublishBlock(meta) {
     options.push({ key: 'alt2', badge: 'Claude Alt 2', title: meta.titleAlternatives[1].title || '' });
   options.push({ key: 'own', badge: 'My Own Title', title: 'I wrote my own title' });
 
-  // ── Hook text section ─────────────────────────────────────────────────
-  var hookSuggested = (meta.thumbnailConcept && meta.thumbnailConcept.textOverlay) || '';
+  // ── Hook text section — use saved hook from published record if available ──
+  var hookSuggested = (pubData && pubData.thumbnailHook) ||
+                      (meta.thumbnailConcept && meta.thumbnailConcept.textOverlay) || '';
   var hookSection = document.getElementById('publishHookSection');
   if (hookSection) {
     document.getElementById('hookSuggestedText').textContent = hookSuggested || 'Not generated yet';
     hookSection.style.display = hookSuggested ? '' : 'none';
+    // Pre-fill ownHookInput if a custom hook was used
+    if (pubData && pubData.thumbnailHook) {
+      document.getElementById('ownHookInput').value = '';
+      document.getElementById('ownHookInput').placeholder = pubData.thumbnailHook + ' (saved)';
+    }
   }
 
   choices.innerHTML = '';
