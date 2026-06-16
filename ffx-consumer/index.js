@@ -205,10 +205,20 @@ async function processJob(job, env) {
   await updateJob(env, jobId, videoId, 'processing', 'library');
   let libraryItems = [];
   try {
-    libraryItems = await extractLibrary(transcript, youtubeUrl, globalArticle.title, videoId, env.ANTHROPIC_API_KEY);
+    // Timeout wrapper — library extraction must complete within 45s or skip
+    // Prevents job from getting stuck at nuggets step indefinitely
+    const libraryTimeout = new Promise(function(_, reject) {
+      setTimeout(function() { reject(new Error('Library extraction timed out after 45s')); }, 45000);
+    });
+    libraryItems = await Promise.race([
+      extractLibrary(transcript.slice(0, 6000), youtubeUrl, globalArticle.title, videoId, env.ANTHROPIC_API_KEY),
+      libraryTimeout,
+    ]);
     console.log('[FFX] Library extracted, items:', libraryItems.length);
   } catch (err) {
-    console.error('[FFX] Library extraction failed (non-fatal):', err.message);
+    // Non-fatal — job continues without nuggets, step moves forward
+    console.error('[FFX] Library extraction failed (non-fatal, continuing):', err.message);
+    libraryItems = [];
   }
 
   if (libraryItems.length > 0) {
@@ -255,7 +265,7 @@ async function processJob(job, env) {
   };
 
   try {
-    await kvPut(env, 'video:' + videoId, JSON.stringify(videoRecord), { expirationTtl: 86400 });
+    await kvPut(env, 'video:' + videoId, JSON.stringify(videoRecord)); // PERMANENT — no TTL
     console.log('[FFX] Video record written to KV');
   } catch (err) {
     await failJob(env, jobId, videoId, 'kv_write', 'Storage write failed: ' + err.message + '. Please retry.', true);
