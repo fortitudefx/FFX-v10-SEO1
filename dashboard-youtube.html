@@ -1051,10 +1051,9 @@ function renderOutput(meta) {
 
 // ── Render thumbnail section ──────────────────────────────────────────────
 function renderThumbnailSection(meta) {
-  var tc        = meta.thumbnailConcept || {};
-  var hookText  = tc.textOverlay || '';
-  var reasoning = tc.reasoning  || '';
-  var prompt    = tc.leonardoPrompt || '';
+  var tc       = meta.thumbnailConcept || {};
+  var hookText = tc.textOverlay || '';
+  var reasoning= tc.reasoning  || '';
 
   if (hookText) {
     document.getElementById('thumbHookText').textContent = hookText;
@@ -1065,22 +1064,15 @@ function renderThumbnailSection(meta) {
     document.getElementById('thumbConceptText').style.display = '';
   }
 
-  // Show chart upload zone and style controls when SEO package is ready
-  document.getElementById('chartUploadSection').style.display = prompt ? '' : 'none';
-  document.getElementById('thumbStyleControls').style.display = prompt ? '' : 'none';
+  // Show upload zone and style controls whenever SEO package has generated
+  // No longer depends on leonardoPrompt — V4 canvas template is always available
+  document.getElementById('chartUploadSection').style.display = '';
+  document.getElementById('thumbStyleControls').style.display = '';
+  document.getElementById('composeBtn').classList.add('visible');
   document.getElementById('composeBtn').classList.add('visible');
   _chartImageDataUrl = null;
   clearChartPreview();
 
-  if (prompt) {
-    document.getElementById('leonardoPromptText').textContent = prompt;
-
-  }
-
-  if (tc.apiKeyConfigured === false) {
-    // Leonardo removed
-
-  }
 }
 
 // ── State for chart upload ────────────────────────────────────────────────
@@ -1547,92 +1539,7 @@ function copyText(text, btn) {
   });
 }
 
-function copyLeonardoPrompt(btn) {
-  copyText(document.getElementById('leonardoPromptText').textContent, btn);
-}
-
-// ── Regenerate thumbnail prompt (Step 1 of 2) ────────────────────────────
-// Calls Claude to generate a fresh Leonardo prompt based on current SEO package
-// Shows new prompt for review — does NOT execute it yet
-async function regenerateThumbnailPrompt() {
-  if (!_currentMeta || !_currentVideoId) return;
-  var btn = document.getElementById('regenPromptBtn');
-  btn.disabled = true;
-  btn.innerHTML = '&#8635; Regenerating…';
-  document.getElementById('newPromptPreview').style.display = 'none';
-
-  try {
-    var url = document.getElementById('ytUrlInput').value.trim();
-    var res = await fetch('/api/youtube-metadata', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        videoId:    _currentVideoId,
-        youtubeUrl: url,
-        thumbOnly:  true, // Signal to generate only thumbnail concept
-      }),
-    });
-    var data = await res.json();
-
-    if (!res.ok || data.error) {
-      btn.disabled = false;
-      btn.innerHTML = '&#8635; Regenerate Prompt';
-      alert('Error: ' + (data.error || 'Failed to regenerate prompt'));
-      return;
-    }
-
-    var newPrompt = data.metadata && data.metadata.thumbnailConcept && data.metadata.thumbnailConcept.leonardoPrompt;
-    if (!newPrompt) {
-      btn.disabled = false;
-      btn.innerHTML = '&#8635; Regenerate Prompt';
-      alert('No prompt returned. Try again.');
-      return;
-    }
-
-    // Show the new prompt for review — do NOT execute yet
-    document.getElementById('newPromptText').textContent = newPrompt;
-    document.getElementById('newPromptPreview').style.display = 'block';
-
-    // Store new prompt for execution
-    _pendingNewPrompt = newPrompt;
-
-    btn.disabled = false;
-    btn.innerHTML = '&#8635; Regenerate Prompt';
-
-  } catch(err) {
-    btn.disabled = false;
-    btn.innerHTML = '&#8635; Regenerate Prompt';
-    alert('Network error: ' + err.message);
-  }
-}
-
-var _pendingNewPrompt = null;
-
-// ── Execute new prompt (Step 2 of 2) ────────────────────────────────────
-// User reviewed the new prompt and confirmed — now generate the thumbnail
-async function executeNewPrompt() {
-  if (!_pendingNewPrompt || !_currentVideoId) return;
-
-  // Apply new prompt to current meta so generateThumbnail uses it
-  if (_currentMeta && _currentMeta.thumbnailConcept) {
-    _currentMeta.thumbnailConcept.leonardoPrompt = _pendingNewPrompt;
-  }
-
-  // Update visible prompt text
-  document.getElementById('leonardoPromptText').textContent = _pendingNewPrompt;
-  document.getElementById('newPromptPreview').style.display = 'none';
-  _pendingNewPrompt = null;
-
-  // Execute thumbnail generation with new prompt
-  await generateThumbnail();
-}
-
-// ── Discard new prompt ────────────────────────────────────────────────────
-function discardNewPrompt(btn) {
-  _pendingNewPrompt = null;
-  document.getElementById('newPromptPreview').style.display = 'none';
-}
-
+// Leonardo prompt functions removed
 // ── Tab switching ─────────────────────────────────────────────────────────
 function switchYtTab(tab) {
   document.querySelectorAll('.yt-tab').forEach(function(t) { t.classList.remove('active'); });
