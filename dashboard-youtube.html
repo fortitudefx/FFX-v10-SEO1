@@ -1958,7 +1958,7 @@ function renderPerfTable(records) {
       + '<div class="yt-perf-stat ' + viewClass + '">' + (views !== null ? fmt(views) : '\u2014') + '</div>'
       + '<div class="yt-perf-stat ' + (likes !== null ? 'ok' : 'none') + '">' + (likes !== null ? fmt(likes) : '\u2014') + '</div>'
       + '<div class="yt-perf-stat ' + (comments !== null ? 'ok' : 'none') + '">' + (comments !== null ? fmt(comments) : '\u2014') + '</div>'
-      + '<div class="yt-perf-stat ' + (_channelSubCount ? 'ok' : 'none') + '">' + (_channelSubCount ? fmt(_channelSubCount) : '\u2014') + '</div>'
+      + '<div class="yt-perf-stat ' + (perf && perf.subscribersGained !== null && perf.subscribersGained !== undefined ? 'ok' : 'none') + '">' + (perf && perf.subscribersGained !== null && perf.subscribersGained !== undefined ? fmt(perf.subscribersGained) : '\u2014') + '</div>'
       + '<div><span class="yt-choice-chip ' + chipClass + '">' + chipLabel + '</span></div>'
       + '<div class="yt-perf-age ' + staleClass + '">' + esc(statsAge) + '</div>'
       + '<div><button class="btn-row-refresh" onclick="refreshSingleVideo(\'' + esc(videoId) + '\', this)">Refresh</button></div>';
