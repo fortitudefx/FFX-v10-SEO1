@@ -194,6 +194,11 @@
     /* ── Loading ── */
     .yt-loading { padding:40px; text-align:center; color:rgba(255,255,255,0.28); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; }
 
+    /* ── Template style buttons ── */
+    .thumb-style-btn { font-size:9px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:4px 10px; border-radius:4px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.40); cursor:pointer; font-family:inherit; transition:all 0.12s; }
+    .thumb-style-btn:hover { border-color:rgba(255,255,255,0.30); color:rgba(255,255,255,0.70); }
+    .thumb-style-btn.active { border-color:rgba(201,168,76,0.50); background:rgba(201,168,76,0.10); color:rgba(201,168,76,0.90); }
+
     /* ── Chart upload zone ── */
     .chart-upload-zone {
       margin:0 20px 16px;
@@ -426,14 +431,59 @@
             </div>
           </div>
 
+          <!-- V4 Template Style Controls -->
+          <div id="thumbStyleControls" style="display:none;border-top:1px solid rgba(255,255,255,0.07);padding:14px 20px;">
+            <div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:12px;">Template Style</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+              <!-- Hook colour -->
+              <div>
+                <div style="font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.28);margin-bottom:6px;">Hook Colour</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button class="thumb-style-btn active" data-group="hookColor" data-value="white" onclick="setThumbStyle('hookColor','white',this)">White</button>
+                  <button class="thumb-style-btn" data-group="hookColor" data-value="gold" onclick="setThumbStyle('hookColor','gold',this)">Gold</button>
+                  <button class="thumb-style-btn" data-group="hookColor" data-value="orange" onclick="setThumbStyle('hookColor','orange',this)">Orange</button>
+                  <button class="thumb-style-btn" data-group="hookColor" data-value="red" onclick="setThumbStyle('hookColor','red',this)">Red</button>
+                </div>
+              </div>
+
+              <!-- Hook emphasis -->
+              <div>
+                <div style="font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.28);margin-bottom:6px;">Hook Style</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button class="thumb-style-btn active" data-group="hookStyle" data-value="plain" onclick="setThumbStyle('hookStyle','plain',this)">Plain</button>
+                  <button class="thumb-style-btn" data-group="hookStyle" data-value="box" onclick="setThumbStyle('hookStyle','box',this)">Box</button>
+                  <button class="thumb-style-btn" data-group="hookStyle" data-value="underline" onclick="setThumbStyle('hookStyle','underline',this)">Underline</button>
+                </div>
+              </div>
+
+              <!-- Panel colour -->
+              <div>
+                <div style="font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.28);margin-bottom:6px;">Panel Colour</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button class="thumb-style-btn active" data-group="panelColor" data-value="purple" onclick="setThumbStyle('panelColor','purple',this)">Purple</button>
+                  <button class="thumb-style-btn" data-group="panelColor" data-value="navy" onclick="setThumbStyle('panelColor','navy',this)">Navy</button>
+                  <button class="thumb-style-btn" data-group="panelColor" data-value="black" onclick="setThumbStyle('panelColor','black',this)">Black</button>
+                  <button class="thumb-style-btn" data-group="panelColor" data-value="dark-red" onclick="setThumbStyle('panelColor','dark-red',this)">Dark Red</button>
+                </div>
+              </div>
+
+              <!-- Panel edge -->
+              <div>
+                <div style="font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,255,255,0.28);margin-bottom:6px;">Panel Edge</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button class="thumb-style-btn active" data-group="panelEdge" data-value="diagonal" onclick="setThumbStyle('panelEdge','diagonal',this)">/&frasl; Diagonal</button>
+                  <button class="thumb-style-btn" data-group="panelEdge" data-value="diagonal-reverse" onclick="setThumbStyle('panelEdge','diagonal-reverse',this)">&bsol; Reverse</button>
+                  <button class="thumb-style-btn" data-group="panelEdge" data-value="straight" onclick="setThumbStyle('panelEdge','straight',this)">Straight</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
           <!-- Controls -->
           <div class="yt-thumb-controls">
             <div class="yt-thumb-actions">
-              <!-- Step 1: Generate Leonardo atmospheric background -->
-              <button class="btn-thumb-generate" id="thumbGenerateBtn" onclick="generateThumbnail()" style="display:none;">
-                &#9889; Generate Background
-              </button>
-              <!-- Step 2: Compose — appears after background generated + chart uploaded -->
               <button class="btn-compose" id="composeBtn" onclick="composeThumbnail()">
                 &#127912; Compose Thumbnail
               </button>
@@ -1043,10 +1093,11 @@ function renderThumbnailSection(meta) {
     document.getElementById('thumbConceptText').style.display = '';
   }
 
-  document.getElementById('thumbGenerateBtn').style.display = prompt ? '' : 'none';
   document.getElementById('regenPromptBtn').style.display = prompt ? '' : 'none';
-  // Show chart upload zone when prompt is available
+  // Show chart upload zone and style controls when prompt is available
   document.getElementById('chartUploadSection').style.display = prompt ? '' : 'none';
+  document.getElementById('thumbStyleControls').style.display = prompt ? '' : 'none';
+  document.getElementById('composeBtn').classList.add('visible');
   // Reset new prompt preview state
   document.getElementById('newPromptPreview').style.display = 'none';
   document.getElementById('newPromptText').textContent = '';
@@ -1218,185 +1269,269 @@ async function composeThumbnail() {
 }
 
 
-// ── Canvas compositing — full 3-layer pipeline ───────────────────────────
-// compositeAll(bgUrl, chartDataUrl, hookText)
-//   bgUrl:        Leonardo atmospheric background URL (fetched via proxy)
-//   chartDataUrl: base64 data URL from uploaded TradingView screenshot (or null)
-//   hookText:     3-word hook from thumbnailConcept.textOverlay
-//
-// Layers:
-//   1. Leonardo atmospheric background (full canvas)
-//   2. Chart screenshot blended at 70% opacity (if provided)
-//   3. Dark gradient on left 40% — text zone
-//   4. Hook text — bold white, left zone, auto-sizing
-//   5. Gold underline under first line — FFX brand mark
-//   6. 4px gold bar full width bottom
-//   7. FFX favicon + FortitudeFX wordmark bottom left
-//
-// Uses /api/thumbnail-proxy to bypass Leonardo CDN CORS restriction
-// Without proxy: canvas.toDataURL() throws SecurityError (tainted canvas)
+// ── V4 Template Engine — FFX Thumbnail System ───────────────────────────
+// Template variables controlled by dashboard style buttons:
+//   _thumbStyle.hookColor:  'white' | 'gold' | 'orange' | 'red'
+//   _thumbStyle.hookStyle:  'plain' | 'box' | 'underline'
+//   _thumbStyle.panelColor: 'purple' | 'navy' | 'black' | 'dark-red'
+//   _thumbStyle.panelEdge:  'diagonal' | 'diagonal-reverse' | 'straight'
+
+var _thumbStyle = {
+  hookColor:  'white',
+  panelColor: 'purple',
+  hookStyle:  'plain',
+  panelEdge:  'diagonal',
+};
+
+var HOOK_COLORS = {
+  white:  '#ffffff',
+  gold:   '#c9a84c',
+  orange: '#e06b1a',
+  red:    '#ef4444',
+};
+
+var PANEL_COLORS = {
+  purple:   '#120d2e',
+  navy:     '#0a1628',
+  black:    '#08080f',
+  'dark-red': '#1a0808',
+};
+
+function setThumbStyle(group, value, btn) {
+  _thumbStyle[group] = value;
+  // Update active button in group
+  document.querySelectorAll('[data-group="' + group + '"]').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.value === value);
+  });
+}
 
 async function compositeAll(bgUrl, chartDataUrl, hookText) {
   return new Promise(function(resolve, reject) {
-
     var canvas = document.createElement('canvas');
     canvas.width  = 1280;
     canvas.height = 720;
     var ctx = canvas.getContext('2d');
 
-    // Load background via proxy (same-origin = no canvas taint)
-    var bgImg = new Image();
-    var proxyUrl = '/api/thumbnail-proxy?url=' + encodeURIComponent(bgUrl);
+    var panelColor = PANEL_COLORS[_thumbStyle.panelColor] || '#120d2e';
+    var hookColor  = HOOK_COLORS[_thumbStyle.hookColor]   || '#ffffff';
+    var panelEdge  = _thumbStyle.panelEdge  || 'diagonal';
+    var hookStyle  = _thumbStyle.hookStyle  || 'plain';
 
-    bgImg.onload = function() {
-      // ── Layer 1: Leonardo atmospheric background ───────────────────────
-      ctx.drawImage(bgImg, 0, 0, 1280, 720);
+    // Layout constants — golden ratio
+    var PANEL_W = 489;
+    var TX      = 28;
 
-      // ── Layer 2: Chart screenshot — screen blend over dark background ────
-      // TradingView screenshots have WHITE/LIGHT backgrounds
-      // Screen blend mode: white pixels become transparent, dark chart elements show
-      // This makes the white background disappear and preserves candles/levels/zones
-      if (chartDataUrl) {
-        var chartImg = new Image();
-        chartImg.onload = function() {
-          // Use 'screen' composite operation — white disappears, darks stay
-          // Screen formula: 1 - (1-a)(1-b) — white(1) * anything = 1 (transparent on dark bg)
-          ctx.globalCompositeOperation = 'screen';
-          ctx.globalAlpha = 0.45; // Low opacity so dark Leonardo bg dominates
-          // Draw chart covering right 70% of frame
-          var cw = Math.round(1280 * 0.72);
-          var ch = 720;
-          var cx = Math.round(1280 * 0.28);
-          ctx.drawImage(chartImg, cx, 0, cw, ch);
-          ctx.globalAlpha = 1.0;
-          ctx.globalCompositeOperation = 'source-over'; // reset blend mode
-          finishComposite(ctx, canvas, hookText, resolve, reject);
-        };
-        chartImg.onerror = function() {
-          finishComposite(ctx, canvas, hookText, resolve, reject);
-        };
-        chartImg.src = chartDataUrl;
-      } else {
-        finishComposite(ctx, canvas, hookText, resolve, reject);
+    var doRender = function(chartImg) {
+      // 1. Dark base
+      ctx.fillStyle = '#0d1117';
+      ctx.fillRect(0, 0, 1280, 720);
+
+      // 2. Chart — right 61.8%
+      if (chartImg) {
+        var iw = chartImg.naturalWidth || chartImg.width;
+        var ih = chartImg.naturalHeight || chartImg.height;
+        var scale = Math.max((1280 - PANEL_W) / iw, 720 / ih);
+        var dw = Math.round(iw * scale);
+        var dh = Math.round(ih * scale);
+        var cy = Math.round((720 - dh) / 2);
+        ctx.drawImage(chartImg, PANEL_W, cy, dw, dh);
       }
+
+      // 3. Panel shape — based on panelEdge style
+      ctx.fillStyle = panelColor;
+      ctx.beginPath();
+      if (panelEdge === 'diagonal') {
+        ctx.moveTo(0, 0);
+        ctx.lineTo(PANEL_W, 0);
+        ctx.lineTo(PANEL_W + 80, 720);
+        ctx.lineTo(0, 720);
+      } else if (panelEdge === 'diagonal-reverse') {
+        ctx.moveTo(0, 0);
+        ctx.lineTo(PANEL_W + 80, 0);
+        ctx.lineTo(PANEL_W, 720);
+        ctx.lineTo(0, 720);
+      } else {
+        // straight
+        ctx.moveTo(0, 0);
+        ctx.lineTo(PANEL_W, 0);
+        ctx.lineTo(PANEL_W, 720);
+        ctx.lineTo(0, 720);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // 4. Grain texture on panel
+      for (var i = 0; i < 5000; i++) {
+        ctx.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.028) + ')';
+        ctx.fillRect(Math.random() * PANEL_W, Math.random() * 720, 1, 1);
+      }
+
+      // 5. Purple ambient glow
+      var pg = ctx.createLinearGradient(0, 0, 200, 0);
+      pg.addColorStop(0,   'rgba(122,92,255,0.12)');
+      pg.addColorStop(0.8, 'rgba(122,92,255,0.03)');
+      pg.addColorStop(1,   'rgba(122,92,255,0)');
+      ctx.fillStyle = pg;
+      ctx.fillRect(0, 6, PANEL_W, 708);
+
+      // 6. Top accent bar
+      ctx.fillStyle = '#7a5cff';
+      ctx.fillRect(0, 0, 640, 6);
+      ctx.fillStyle = '#e06b1a';
+      ctx.fillRect(640, 0, 640, 6);
+
+      // 7. Gold bottom bar
+      ctx.fillStyle = '#c9a84c';
+      ctx.fillRect(0, 714, 1280, 6);
+
+      // 8. Branding
+      drawBrandingV4(ctx, TX);
+
+      // 9. Hook text with chosen colour and style
+      drawHookV4(ctx, hookText, hookColor, hookStyle, TX, PANEL_W);
+
+      // 10. Tagline
+      drawTaglineV4(ctx, TX);
+
+      // 11. FFX favicon
+      var fav = new Image();
+      fav.crossOrigin = 'anonymous';
+      fav.onload = function() {
+        ctx.globalAlpha = 0.85;
+        ctx.drawImage(fav, 0, 18, 16, 16);
+        ctx.globalAlpha = 1.0;
+        resolve({ dataUrl: canvas.toDataURL('image/png', 1.0) });
+      };
+      fav.onerror = function() {
+        resolve({ dataUrl: canvas.toDataURL('image/png', 1.0) });
+      };
+      fav.src = 'https://fortitudefx.com/favicon-192x192.png';
     };
 
-    bgImg.onerror = function() {
-      reject(new Error('Failed to load background image via proxy. Check /api/thumbnail-proxy.'));
-    };
-
-    bgImg.src = proxyUrl;
+    if (chartDataUrl) {
+      var chartImg = new Image();
+      chartImg.onload = function() { doRender(chartImg); };
+      chartImg.onerror = function() { doRender(null); };
+      chartImg.src = chartDataUrl;
+    } else if (bgUrl) {
+      var bgImg = new Image();
+      bgImg.crossOrigin = 'anonymous';
+      bgImg.onload = function() { doRender(bgImg); };
+      bgImg.onerror = function() { doRender(null); };
+      bgImg.src = '/api/thumbnail-proxy?url=' + encodeURIComponent(bgUrl);
+    } else {
+      doRender(null);
+    }
   });
 }
 
-function finishComposite(ctx, canvas, hookText, resolve, reject) {
-  // ── Layer 3: Dark gradient left zone for text readability ──────────────
-  var grad = ctx.createLinearGradient(0, 0, 560, 0);
-  grad.addColorStop(0,   'rgba(10,10,18,0.92)');
-  grad.addColorStop(0.6, 'rgba(10,10,18,0.60)');
-  grad.addColorStop(1,   'rgba(10,10,18,0.00)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 560, 720);
+function drawBrandingV4(ctx, tx) {
+  // FortitudeFX — pure white, Satoshi heavy
+  var ffxText = 'FortitudeFX';
+  ctx.font = '900 28px "Satoshi","Arial Black",Arial,sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0,0,0,0.50)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+  ctx.fillText(ffxText, tx, 50);
+  var ffxW = ctx.measureText(ffxText).width;
+  ctx.font = '700 12px "Satoshi",Arial,sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.90)';
+  ctx.fillText('™', tx + ffxW + 3, 36);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
-  // ── Layer 6: 4px gold bar full width bottom ────────────────────────────
+  // Gold separator
+  ctx.fillStyle = 'rgba(201,168,76,0.60)';
+  ctx.fillRect(tx, 57, 210, 1);
+
+  // Catch The Wick — gold
+  var ctwText = 'Catch The Wick';
+  ctx.font = '900 21px "Satoshi","Arial Black",Arial,sans-serif';
   ctx.fillStyle = '#c9a84c';
-  ctx.fillRect(0, 716, 1280, 4);
-
-  // ── Layer 4 + 5: Hook text with gold underline ─────────────────────────
-  if (hookText && hookText.trim()) {
-    var text     = hookText.toUpperCase().trim();
-    var maxW     = 480;
-    var fontSize = 90;
-    var minFont  = 42;
-
-    ctx.font = 'bold ' + fontSize + 'px "DM Sans", Impact, "Arial Black", Arial, sans-serif';
-
-    var words = text.split(' ');
-    var lines = [];
-    if (words.length <= 2) {
-      while (fontSize > minFont && ctx.measureText(text).width > maxW) {
-        fontSize -= 4;
-        ctx.font = 'bold ' + fontSize + 'px "DM Sans", Impact, "Arial Black", Arial, sans-serif';
-      }
-      lines = [text];
-    } else {
-      var mid = Math.ceil(words.length / 2);
-      var l1  = words.slice(0, mid).join(' ');
-      var l2  = words.slice(mid).join(' ');
-      while (fontSize > minFont && (ctx.measureText(l1).width > maxW || ctx.measureText(l2).width > maxW)) {
-        fontSize -= 4;
-        ctx.font = 'bold ' + fontSize + 'px "DM Sans", Impact, "Arial Black", Arial, sans-serif';
-      }
-      lines = [l1, l2];
-    }
-
-    var lineH  = Math.round(fontSize * 1.18);
-    var totalH = lines.length * lineH;
-    var startY = Math.round((720 / 2) - (totalH / 2) + fontSize * 0.85);
-    var textX  = 32;
-
-    lines.forEach(function(line, i) {
-      var y = startY + (i * lineH);
-
-      // Dark stroke
-      ctx.shadowColor   = 'rgba(0,0,0,0.98)';
-      ctx.shadowBlur    = 18;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 3;
-      ctx.strokeStyle   = 'rgba(0,0,0,0.99)';
-      ctx.lineWidth     = 12;
-      ctx.lineJoin      = 'round';
-      ctx.strokeText(line, textX, y);
-
-      // Gold underline first line only
-      if (i === 0) {
-        var lw = Math.min(ctx.measureText(line).width, maxW);
-        ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-        ctx.fillStyle   = '#c9a84c';
-        ctx.fillRect(textX, y + 8, lw, 5);
-      }
-
-      // White fill
-      ctx.shadowColor   = 'rgba(0,0,0,0.85)';
-      ctx.shadowBlur    = 10;
-      ctx.shadowOffsetX = 1;
-      ctx.shadowOffsetY = 2;
-      ctx.fillStyle     = '#ffffff';
-      ctx.fillText(line, textX, y);
-    });
-
-    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-  }
-
-  // ── Layer 7: FFX favicon + FortitudeFX wordmark ───────────────────────
-  var favicon = new Image();
-  favicon.onload = function() {
-    ctx.globalAlpha = 0.85;
-    ctx.drawImage(favicon, 20, 720 - 46, 32, 32);
-    ctx.globalAlpha = 1.0;
-    ctx.font        = 'bold 13px "DM Sans", Arial, sans-serif';
-    ctx.fillStyle   = 'rgba(255,255,255,0.75)';
-    ctx.shadowColor = 'rgba(0,0,0,0.90)'; ctx.shadowBlur = 6;
-    ctx.fillText('FortitudeFX™', 58, 720 - 20);
-    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
-    resolve({ dataUrl: canvas.toDataURL('image/png', 1.0) });
-  };
-  favicon.onerror = function() {
-    // No favicon — still export
-    ctx.font      = 'bold 13px "DM Sans", Arial, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.70)';
-    ctx.shadowColor = 'rgba(0,0,0,0.90)'; ctx.shadowBlur = 6;
-    ctx.fillText('FortitudeFX™', 20, 720 - 18);
-    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
-    resolve({ dataUrl: canvas.toDataURL('image/png', 1.0) });
-  };
-  favicon.src = 'https://fortitudefx.com/favicon-192x192.png';
+  ctx.shadowColor = 'rgba(0,0,0,0.50)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+  ctx.fillText(ctwText, tx, 80);
+  var ctwW = ctx.measureText(ctwText).width;
+  ctx.font = '700 11px "Satoshi",Arial,sans-serif';
+  ctx.fillStyle = '#c9a84c';
+  ctx.fillText('™', tx + ctwW + 3, 68);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 }
 
-// Keep compositeHookText as alias for backward compatibility (Regenerate Prompt flow)
+function drawHookV4(ctx, hookText, hookColor, hookStyle, tx, panelW) {
+  if (!hookText) return;
+  var words  = hookText.toUpperCase().trim().split(' ');
+  var maxW   = panelW - tx - 20;
+  var fs     = 130;
+  var minFs  = 52;
+
+  ctx.font = fs + 'px Impact,"Arial Black",Arial,sans-serif';
+  var widest = words.reduce(function(m, w) { return Math.max(m, ctx.measureText(w).width); }, 0);
+  while (fs > minFs && widest > maxW) {
+    fs -= 4;
+    ctx.font = fs + 'px Impact,"Arial Black",Arial,sans-serif';
+    widest = words.reduce(function(m, w) { return Math.max(m, ctx.measureText(w).width); }, 0);
+  }
+
+  var lh     = Math.round(fs * 1.28);
+  var totalH = words.length * lh;
+  var startY = Math.round(((720 - 90) / 2) - (totalH / 2) + 100 + fs * 0.82);
+
+  // Box style — draw background box first
+  if (hookStyle === 'box') {
+    var boxColor = hookColor === 'red' ? 'rgba(239,68,68,0.15)' :
+                   hookColor === 'orange' ? 'rgba(249,115,22,0.15)' :
+                   hookColor === 'gold' ? 'rgba(201,168,76,0.15)' :
+                   'rgba(255,255,255,0.08)';
+    var boxBorder = hookColor === 'red' ? 'rgba(239,68,68,0.60)' :
+                    hookColor === 'orange' ? 'rgba(249,115,22,0.60)' :
+                    hookColor === 'gold' ? 'rgba(201,168,76,0.60)' :
+                    'rgba(255,255,255,0.30)';
+    var boxPad = 14;
+    ctx.fillStyle = boxColor;
+    ctx.strokeStyle = boxBorder;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(tx - boxPad, startY - fs - boxPad, widest + boxPad * 2, totalH + boxPad * 2, 4);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  words.forEach(function(word, i) {
+    var y = startY + i * lh;
+
+    // Underline style — gold line under first word
+    if (hookStyle === 'underline' && i === 0) {
+      var ww = Math.min(ctx.measureText(word).width, maxW);
+      ctx.fillStyle = '#c9a84c';
+      ctx.fillRect(tx, y + 8, ww, 5);
+    }
+
+    ctx.shadowColor   = 'rgba(0,0,0,0.70)';
+    ctx.shadowBlur    = 10;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 3;
+    ctx.fillStyle     = hookColor;
+    ctx.fillText(word, tx, y);
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  });
+}
+
+function drawTaglineV4(ctx, tx) {
+  var text = '2 Candles. 1 Story.';
+  ctx.font = '900 32px "Satoshi","Arial Black",Arial,sans-serif';
+  ctx.fillStyle = '#e06b1a';
+  ctx.shadowColor = 'rgba(0,0,0,0.50)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+  ctx.fillText(text, tx, 682);
+  var tw = ctx.measureText(text).width;
+  ctx.font = '700 13px "Satoshi",Arial,sans-serif';
+  ctx.fillStyle = '#e06b1a';
+  ctx.fillText('™', tx + tw + 2, 669);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+}
+
+// Alias for regenerate prompt flow
 async function compositeHookText(imageUrl, hookText) {
   return compositeAll(imageUrl, null, hookText);
 }
+
 
 // ── Copy helpers ──────────────────────────────────────────────────────────
 // ── Copy helpers ──────────────────────────────────────────────────────────
