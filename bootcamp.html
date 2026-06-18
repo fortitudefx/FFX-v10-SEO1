@@ -20,6 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles-nav-footer.css" />
 
 <style>
 /* ── Reset ── */
@@ -89,114 +90,7 @@ body {
   margin-bottom: 18px;
 }
 
-/* ── Nav ── */
-nav#mainNav {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 100;
-  padding: 0 48px;
-  height: 68px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(13,13,20,0.94);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(201,168,76,0.1);
-  transition: box-shadow 0.3s;
-}
-nav#mainNav.scrolled { box-shadow: 0 1px 32px rgba(0,0,0,0.4); }
-.nav-brand {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--cream);
-  text-decoration: none;
-}
-.nav-links {
-  display: flex;
-  gap: 36px;
-  list-style: none;
-}
-.nav-links a {
-  font-size: 13px;
-  font-weight: 400;
-  color: rgba(232,228,222,0.45);
-  text-decoration: none;
-  letter-spacing: 0.02em;
-  transition: color 0.2s;
-}
-.nav-links a:hover,
-.nav-links a.active { color: var(--cream); }
-.nav-actions { display: flex; gap: 12px; align-items: center; }
-.nav-btn-ghost {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--cream);
-  text-decoration: none;
-  padding: 8px 18px;
-  border: 1px solid rgba(232,228,222,0.18);
-  border-radius: 100px;
-  transition: all 0.2s;
-}
-.nav-btn-ghost:hover { border-color: rgba(232,228,222,0.45); }
-.nav-btn-primary {
-  font-size: 13px;
-  font-weight: 600;
-  color: #0d0d14;
-  text-decoration: none;
-  padding: 9px 22px;
-  background: var(--gold);
-  border-radius: 100px;
-  transition: all 0.2s;
-  letter-spacing: 0.02em;
-}
-.nav-btn-primary:hover { background: var(--orange); }
-
-/* Mobile nav */
-.nav-hamburger {
-  display: none;
-  flex-direction: column;
-  gap: 5px;
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 4px;
-}
-.nav-hamburger span {
-  display: block;
-  width: 22px;
-  height: 2px;
-  background: var(--cream);
-  border-radius: 2px;
-  transition: all 0.3s;
-}
-.nav-mobile {
-  display: none;
-  position: fixed;
-  top: 68px; left: 0; right: 0;
-  background: #0d0d14;
-  border-bottom: 1px solid rgba(201,168,76,0.1);
-  padding: 24px 24px 28px;
-  flex-direction: column;
-  gap: 18px;
-  z-index: 99;
-}
-.nav-mobile.open { display: flex; }
-.nav-mobile a {
-  font-size: 15px;
-  color: rgba(232,228,222,0.6);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-.nav-mobile a:hover { color: var(--cream); }
-.nav-mobile-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
-}
+/* nav CSS moved to styles-nav-footer.css */
 
 /* ══════════════════════════════════════
    SCENE 1 — HERO
@@ -875,95 +769,9 @@ nav#mainNav.scrolled { box-shadow: 0 1px 32px rgba(0,0,0,0.4); }
   letter-spacing: 0.02em;
 }
 
-/* ── Footer ── */
-footer {
-  background: #1A1510;
-  padding: 56px 48px 32px;
-}
-.footer-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 48px;
-  align-items: start;
-  padding-bottom: 40px;
-  border-bottom: 1px solid rgba(232,228,222,0.08);
-  margin-bottom: 28px;
-}
-.footer-brand-name {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--cream);
-  margin-bottom: 6px;
-}
-.footer-tagline {
-  font-size: 12px;
-  color: rgba(232,228,222,0.3);
-  letter-spacing: 0.06em;
-}
-.footer-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.footer-nav a {
-  font-size: 13px;
-  color: rgba(232,228,222,0.4);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-.footer-nav a:hover { color: var(--cream); }
-.footer-socials {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.footer-social {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: rgba(232,228,222,0.06);
-  border: 1px solid rgba(232,228,222,0.08);
-  color: rgba(232,228,222,0.4);
-  text-decoration: none;
-  transition: all 0.2s;
-}
-.footer-social:hover {
-  background: rgba(201,168,76,0.1);
-  border-color: rgba(201,168,76,0.3);
-  color: var(--gold);
-}
-.footer-social svg { width: 14px; height: 14px; fill: currentColor; }
-.footer-bottom {
-  max-width: 1100px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.footer-copy {
-  font-size: 12px;
-  color: rgba(232,228,222,0.25);
-  letter-spacing: 0.02em;
-}
-.footer-copy a {
-  color: rgba(232,228,222,0.35);
-  text-decoration: none;
-}
-.footer-copy a:hover { color: var(--cream); }
-
-/* ── Responsive ── */
+/* footer CSS moved to styles-nav-footer.css */
 @media (max-width: 900px) {
-  nav#mainNav { padding: 0 24px; }
-  .nav-links, .nav-actions { display: none; }
-  .nav-hamburger { display: flex; }
+  /* nav responsive in styles-nav-footer.css */
   .hero-stats { flex-direction: column; width: 100%; border-radius: 12px; }
   .hero-stat { border-right: none; border-bottom: 1px solid var(--gold-border); }
   .hero-stat:last-child { border-bottom: none; }
@@ -992,7 +800,7 @@ footer {
 <body>
 
 <!-- ── Nav ── -->
-<nav id="mainNav">
+<nav id="mainNav" class="nav-dark">
   <a class="nav-brand" href="index.html">FortitudeFX™</a>
   <ul class="nav-links">
     <li><a href="index.html">Home</a></li>
@@ -1009,7 +817,7 @@ footer {
     <span></span><span></span><span></span>
   </button>
 </nav>
-<div class="nav-mobile" id="navMobile">
+<div class="nav-mobile nav-dark-mobile" id="navMobile">
   <a href="index.html">Home</a>
   <a href="vipdiscord.html">VIP Discord</a>
   <a href="bootcamp.html">Bootcamp</a>
@@ -1341,37 +1149,29 @@ footer {
 <!-- ── Footer ── -->
 <footer>
   <div class="footer-inner">
-    <div>
-      <span class="footer-brand-name">FortitudeFX™</span>
-      <span class="footer-tagline">Catch The Wick™ · 2 Candles. 1 Story.™</span>
+    <div class="footer-brand">
+      <strong>FortitudeFX™</strong>
+      Catch The Wick™ · Dubai, UAE
     </div>
-    <nav class="footer-nav">
-      <a href="index.html">Home</a>
-      <a href="vipdiscord.html">VIP Discord</a>
-      <a href="bootcamp.html">Bootcamp</a>
-      <a href="blog.html">Blog</a>
-      <a href="joinfree.html">Join Free</a>
-      <a href="contact.html">Contact</a>
-      <a href="privacy.html">Privacy</a>
-    </nav>
+    <ul class="footer-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="vipdiscord.html">VIP Discord</a></li>
+      <li><a href="bootcamp.html">Bootcamp</a></li>
+      <li><a href="blog.html">Blog</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="privacy.html">Privacy</a></li>
+    </ul>
     <div class="footer-socials">
-      <a href="https://www.youtube.com/@FortitudeFX" class="footer-social" aria-label="YouTube" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
-      </a>
-      <a href="https://instagram.com/fortitudefx_official" class="footer-social" aria-label="Instagram" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
-      </a>
-      <a href="https://x.com/_fortitudefx" class="footer-social" aria-label="X" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-      </a>
-      <a href="https://t.me/FFX_Official" class="footer-social" aria-label="Telegram" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-      </a>
+      <a href="https://www.youtube.com/@FortitudeFX" class="footer-social-icon" aria-label="YouTube" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>
+      <a href="https://instagram.com/fortitudefx_official" class="footer-social-icon" aria-label="Instagram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg></a>
+      <a href="https://tiktok.com/@fortitudefx_official" class="footer-social-icon" aria-label="TikTok" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg></a>
+      <a href="https://x.com/_fortitudefx" class="footer-social-icon" aria-label="X" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+      <a href="https://t.me/FFX_Official" class="footer-social-icon" aria-label="Telegram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></a>
     </div>
   </div>
   <div class="footer-bottom">
-    <span class="footer-copy">&copy; 2026 FortitudeFX™. All rights reserved. &nbsp;&middot;&nbsp; <a href="privacy.html">Privacy Policy</a></span>
-    <span class="footer-copy">Dubai, UAE &nbsp;·&nbsp; Catch The Wick™ &nbsp;·&nbsp; 2 Candles. 1 Story.™</span>
+    <p class="footer-copy">© 2026 FortitudeFX™ · All rights reserved · Dubai, UAE</p>
+    <p class="footer-tm">Catch The Wick™ · 2 Candles. 1 Story.™</p>
   </div>
 </footer>
 
