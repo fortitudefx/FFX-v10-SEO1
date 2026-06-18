@@ -1,10 +1,23 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FFX Articles Worker
+// FFX Articles Worker — v2
 // GET /articles → returns all articles from KV for blog listing
 // GET /articles?region=Global → filter by region
 // GET /articles?category=Strategy → filter by category
 // GET /articles?region=Global&category=Strategy → combined filter
-// Used by blog.html (new version)
+//
+// CHANGE FROM v1:
+// v1 listed individual article:{slug} keys and fetched each one.
+// Problem: older article:{slug} entries were written before title/excerpt/
+// category/readTime fields were added to publish.js — causing undefined
+// in the blog list even though clicking through to the article works fine.
+//
+// v2 reads articles:index as primary source. articles:index is always
+// complete because:
+//   - publish.js writes it on every publish
+//   - title-test.js updates it on every title change
+//
+// Missing fields (date, readTime, region) are merged from article:{slug}
+// in a single parallel batch — no sequential loop of 46+ individual reads.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function onRequestGet(context) {
@@ -24,53 +37,62 @@ export async function onRequestGet(context) {
   const categoryFilter = url.searchParams.get('category') || null;
 
   try {
-    // List all article: keys with pagination
-    const allKeys = [];
-    let cursor = undefined;
-    let done = false;
+    // ── Step 1: Read articles:index — single KV read, always complete ────
+    const index = await env.FFX_KV.get('articles:index', { type: 'json' }).catch(function() { return null; });
 
-    while (!done) {
-      const result = await env.FFX_KV.list({ prefix: 'article:', cursor, limit: 1000 });
-      allKeys.push(...result.keys);
-      if (result.list_complete) {
-        done = true;
-      } else {
-        cursor = result.cursor;
-      }
+    if (!index || !Array.isArray(index) || index.length === 0) {
+      console.log('[FFX Articles] articles:index empty or missing');
+      return new Response(JSON.stringify({ success: true, count: 0, articles: [] }), { status: 200, headers });
     }
 
-    console.log('[FFX Articles] Found', allKeys.length, 'article keys');
+    console.log('[FFX Articles] articles:index has', index.length, 'entries');
 
-    // Fetch each article entry
-    const articles = [];
-    for (const key of allKeys) {
-      try {
-        const entry = await env.FFX_KV.get(key.name, { type: 'json' });
-        if (!entry) continue;
+    // ── Step 2: Batch-fetch article:{slug} for date/readTime/region ──────
+    // These fields are not in articles:index but are needed for the blog list.
+    // Fetch all in parallel — not sequential — so 46 articles = 1 round trip.
+    const metaEntries = await Promise.all(
+      index.map(function(item) {
+        return env.FFX_KV.get('article:' + item.slug, { type: 'json' }).catch(function() { return null; });
+      })
+    );
 
-        // Apply filters
-        if (regionFilter && entry.region !== regionFilter) continue;
-        if (categoryFilter && entry.category !== categoryFilter) continue;
+    // ── Step 3: Merge index (authoritative for title/excerpt/category)
+    //            with meta entry (for date/readTime/region) ────────────────
+    const merged = index.map(function(item, i) {
+      const meta = metaEntries[i] || {};
+      return {
+        slug:     item.slug     || '',
+        title:    item.title    || meta.title    || '',
+        excerpt:  item.excerpt  || meta.excerpt  || '',
+        category: item.category || meta.category || 'Strategy',
+        tags:     item.tags     || meta.tags     || [],
+        date:     meta.date     || meta.createdAt || item.publishedAt || '',
+        readTime: meta.readTime || '7 min read',
+        region:   meta.region   || 'Global',
+      };
+    });
 
-        articles.push(entry);
-      } catch (err) {
-        console.log('[FFX Articles] Failed to fetch key:', key.name, err.message);
-      }
-    }
+    // ── Step 4: Filter ───────────────────────────────────────────────────
+    const filtered = merged.filter(function(a) {
+      if (!a.slug || !a.title) return false; // skip any still-incomplete entries
+      if (regionFilter   && a.region   !== regionFilter)   return false;
+      if (categoryFilter && a.category !== categoryFilter) return false;
+      return true;
+    });
 
-    // Sort newest first by date
-    articles.sort((a, b) => {
-      const dateA = new Date(a.date || a.createdAt || 0).getTime();
-      const dateB = new Date(b.date || b.createdAt || 0).getTime();
+    // ── Step 5: Sort newest first ────────────────────────────────────────
+    filtered.sort(function(a, b) {
+      const dateA = new Date(a.date || 0).getTime();
+      const dateB = new Date(b.date || 0).getTime();
       return dateB - dateA;
     });
 
-    console.log('[FFX Articles] Returning', articles.length, 'articles');
+    console.log('[FFX Articles] Returning', filtered.length, 'articles');
 
     return new Response(JSON.stringify({
       success: true,
-      count: articles.length,
-      articles,
+      count:   filtered.length,
+      articles: filtered,
     }), { status: 200, headers });
 
   } catch (err) {
