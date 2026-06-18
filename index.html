@@ -13,6 +13,9 @@
 <meta property="og:description" content="Two candles. One story. The mechanical forex entry system that removes hesitation completely." />
 <meta property="og:image" content="https://fortitudefx.com/og-fortitudefx.png" />
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="FortitudeFX | Catch The Wick™" />
+<meta name="twitter:description" content="Two candles. One story. The mechanical forex entry system that removes hesitation completely." />
+<meta name="twitter:image" content="https://fortitudefx.com/og-fortitudefx.png" />
 <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -107,7 +110,52 @@
   }
   .nav-btn-primary:hover { background: #C9A84C; color: #1A1510; }
 
-  /* ── SCENE 1 — ARRIVAL ── */
+  .nav-hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 4px;
+  }
+  .nav-hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: #1A1510;
+    border-radius: 2px;
+    transition: all 0.3s;
+  }
+  .nav-mobile {
+    display: none;
+    position: fixed;
+    top: 68px; left: 0; right: 0;
+    background: #FAF8F5;
+    border-bottom: 1px solid rgba(26,21,16,0.1);
+    padding: 24px 24px 28px;
+    flex-direction: column;
+    gap: 18px;
+    z-index: 99;
+  }
+  .nav-mobile.open { display: flex; }
+  .nav-mobile a {
+    font-size: 15px;
+    color: rgba(26,21,16,0.6);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-mobile a:hover { color: #1A1510; }
+  .nav-mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  @media (max-width: 900px) {
+    .nav-links, .nav-actions { display: none; }
+    .nav-hamburger { display: flex; }
+  }
   #scene-arrival {
     min-height: 100vh;
     display: flex;
@@ -914,16 +962,27 @@
   .footer-links a:hover { color: #C9A84C; }
   .footer-socials {
     display: flex;
-    gap: 20px;
+    gap: 8px;
     align-items: center;
   }
-  .footer-socials a {
-    color: rgba(255,255,255,0.3);
+  .footer-social-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(26,21,16,0.06);
+    border: 1px solid rgba(26,21,16,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(26,21,16,0.4);
     text-decoration: none;
-    font-size: 13px;
-    transition: color 0.2s;
+    transition: all 0.2s;
   }
-  .footer-socials a:hover { color: #C9A84C; }
+  .footer-social-icon:hover {
+    background: rgba(201,168,76,0.1);
+    border-color: rgba(201,168,76,0.4);
+    color: #C9A84C;
+  }
   .footer-bottom {
     max-width: 1200px;
     margin: 0 auto;
@@ -979,20 +1038,34 @@
 <body>
 
 <!-- ═══ NAV ═══ -->
-<nav>
+<nav id="mainNav">
   <a href="/" class="nav-brand">FortitudeFX™</a>
   <ul class="nav-links">
+    <li><a href="index.html" class="active">Home</a></li>
     <li><a href="vipdiscord.html">VIP Discord</a></li>
     <li><a href="bootcamp.html">Bootcamp</a></li>
     <li><a href="blog.html">Blog</a></li>
-    <li><a href="pricing.html">Pricing</a></li>
     <li><a href="contact.html">Contact</a></li>
   </ul>
   <div class="nav-actions">
     <a href="joinfree.html" class="nav-btn-ghost">Join Free</a>
-    <a href="waitlist.html" class="nav-btn-primary">Join Waitlist</a>
+    <a href="waitlist.html?path=VIP#form" class="nav-btn-primary">Request Your Spot</a>
   </div>
+  <button class="nav-hamburger" id="navToggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+<div class="nav-mobile" id="navMobile">
+  <a href="index.html">Home</a>
+  <a href="vipdiscord.html">VIP Discord</a>
+  <a href="bootcamp.html">Bootcamp</a>
+  <a href="blog.html">Blog</a>
+  <a href="contact.html">Contact</a>
+  <div class="nav-mobile-actions">
+    <a class="nav-btn-ghost" href="joinfree.html">Join Free</a>
+    <a class="nav-btn-primary" href="waitlist.html?path=VIP#form">Request Your Spot</a>
+  </div>
+</div>
 
 <!-- ═══ SCENE 1 — ARRIVAL ═══ -->
 <section id="scene-arrival">
@@ -1327,15 +1400,15 @@
       <li><a href="vipdiscord.html">VIP Discord</a></li>
       <li><a href="bootcamp.html">Bootcamp</a></li>
       <li><a href="blog.html">Blog</a></li>
-      <li><a href="pricing.html">Pricing</a></li>
       <li><a href="contact.html">Contact</a></li>
       <li><a href="privacy.html">Privacy</a></li>
     </ul>
     <div class="footer-socials">
-      <a href="https://youtube.com/@FortitudeFX" target="_blank" rel="noopener">YouTube</a>
-      <a href="https://instagram.com/fortitudefx_official" target="_blank" rel="noopener">Instagram</a>
-      <a href="https://x.com/_fortitudefx" target="_blank" rel="noopener">X</a>
-      <a href="https://discord.com/invite/fWAPJdR8TR" target="_blank" rel="noopener">Discord</a>
+      <a href="https://www.youtube.com/@FortitudeFX" class="footer-social-icon" aria-label="YouTube" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>
+      <a href="https://instagram.com/fortitudefx_official" class="footer-social-icon" aria-label="Instagram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg></a>
+      <a href="https://tiktok.com/@fortitudefx_official" class="footer-social-icon" aria-label="TikTok" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg></a>
+      <a href="https://x.com/_fortitudefx" class="footer-social-icon" aria-label="X" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+      <a href="https://t.me/FFX_Official" class="footer-social-icon" aria-label="Telegram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></a>
     </div>
   </div>
   <div class="footer-bottom">
@@ -1368,7 +1441,7 @@
 
   // ── Nav scroll effect ──
   (function() {
-    var nav = document.querySelector('nav');
+    var nav = document.getElementById('mainNav');
     window.addEventListener('scroll', function() {
       if (window.scrollY > 60) {
         nav.style.boxShadow = '0 1px 24px rgba(26,21,16,0.08)';
@@ -1377,6 +1450,24 @@
       }
     }, { passive: true });
   })();
+
+  // ── Mobile nav ──
+  (function() {
+    var toggle = document.getElementById('navToggle');
+    var mobile = document.getElementById('navMobile');
+    if (toggle && mobile) {
+      toggle.addEventListener('click', function() {
+        mobile.classList.toggle('open');
+      });
+      mobile.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function() { mobile.classList.remove('open'); });
+      });
+    }
+  })();
+</script>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Organization","name":"FortitudeFX™","url":"https://fortitudefx.com","logo":"https://fortitudefx.com/favicon-192x192.png","description":"Forex trading education brand built around the Catch The Wick™ methodology. 5 mechanical entry models. Zero guesswork.","sameAs":["https://www.youtube.com/@FortitudeFX","https://instagram.com/fortitudefx_official","https://x.com/_fortitudefx","https://tiktok.com/@fortitudefx_official"]}
 </script>
 
 </body>
