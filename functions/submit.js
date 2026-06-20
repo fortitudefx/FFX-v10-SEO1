@@ -13,7 +13,7 @@ export async function onRequestPost(context) {
 
   const {
     firstName, lastName, email, path, turnstileToken,
-    VIP_PLAN, VIP_PRICE, TRADING_STAGE, PROMO_CODE, NOTE, CONTACT_CATEGORY
+    VIP_PLAN, VIP_PRICE, TRADING_STAGE, PROMO_CODE, NOTE, CONTACT_CATEGORY, FFX_BILLING
   } = payload;
 
   if (!firstName || !email || !path) {
@@ -41,13 +41,21 @@ export async function onRequestPost(context) {
   const BREVO_API_KEY = context.env.BREVO_API_KEY;
   if (!BREVO_API_KEY) return json({ error: 'Server configuration error.' }, 500);
 
+  // Base attributes
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const attributes = { FIRSTNAME: firstName, LASTNAME: lastName || '', FFX_PATH: path };
-  if (VIP_PLAN)         attributes.VIP_PLAN         = VIP_PLAN;
-  if (VIP_PRICE)        attributes.VIP_PRICE        = VIP_PRICE;
   if (TRADING_STAGE)    attributes.TRADING_STAGE    = TRADING_STAGE;
   if (NOTE)             attributes.NOTE             = NOTE;
   if (PROMO_CODE)       attributes.PROMO_CODE       = PROMO_CODE;
   if (CONTACT_CATEGORY) attributes.CONTACT_CATEGORY = CONTACT_CATEGORY;
+
+  // Founding member attributes — set for VIP and Bootcamp paths
+  if (path === 'VIP' || path === 'Bootcamp') {
+    attributes.FFX_PRICE       = 75;           // Number — founding price locked
+    attributes.FFX_FOUNDING    = 'Yes';        // Text — founding member flag
+    attributes.FFX_JOINED_DATE = today;        // Text — date joined waitlist
+    attributes.FFX_BILLING     = FFX_BILLING || 'monthly'; // Text — billing frequency
+  }
 
   try {
     const brevoRes = await fetch('https://api.brevo.com/v3/contacts', {
@@ -62,18 +70,6 @@ export async function onRequestPost(context) {
   } catch {
     return json({ error: 'Network error. Please try again.' }, 500);
   }
-
-  // Whop URLs
-  const WHOP_URLS = {
-    VIP: {
-      monthly:   'https://whop.com/checkout/plan_QjGMc5VthTaf9',
-      quarterly: 'https://whop.com/checkout/plan_FJlofouQD240L',
-      '6months': 'https://whop.com/checkout/plan_ciFDSJveeSkXm',
-      annual:    'https://whop.com/checkout/plan_NixvSWyjh8gPW',
-      lifetime:  'https://whop.com/checkout/plan_HIZIt11IwHI7y'
-    },
-    Bootcamp: 'https://whop.com/checkout/plan_DMYuQrlQc2IdT'
-  };
 
   // Email sender helper
   async function sendEmail(to, toName, subject, htmlContent, replyToEmail, replyToName) {
@@ -317,11 +313,6 @@ export async function onRequestPost(context) {
   if (path === 'VIP' || path === 'Bootcamp') {
     const isVIP = path === 'VIP';
 
-    // Resolve Whop URL from plan
-    const whopUrl = isVIP
-      ? (WHOP_URLS.VIP[VIP_PLAN] || WHOP_URLS.VIP.monthly)
-      : WHOP_URLS.Bootcamp;
-
     const bodyHtml = `
       <p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">Hi ${firstName},</p>
       <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">Glad to have you here.</p>
@@ -358,10 +349,10 @@ export async function onRequestPost(context) {
         heroSubtitle:    isVIP ? 'VIP Discord \u00b7 FortitudeFX\u2122' : 'Catch The Wick\u2122 Bootcamp',
         bodyHtml,
         footerNote:      'You are receiving this because you joined the FortitudeFX\u2122 waitlist at <a href="https://fortitudefx.com/waitlist" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/waitlist</a>. Reply to this email anytime.',
-        ctaUrl:          whopUrl,
-        ctaLabel:        'Complete Registration',
-        secondaryCtaUrl:   'https://discord.com/invite/fWAPJdR8TR',
-        secondaryCtaLabel: 'Join Free Discord'
+        ctaUrl:          'https://discord.com/invite/fWAPJdR8TR',
+        ctaLabel:        'Join Free Discord Now',
+        secondaryCtaUrl:   'https://fortitudefx.com/waitlist?path=' + path + '#form',
+        secondaryCtaLabel: 'Back to Waitlist'
       }),
       'support@fortitudefx.com', 'Salman | FortitudeFX'
     );
