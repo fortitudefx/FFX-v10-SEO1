@@ -125,16 +125,16 @@ export async function onRequestPost(context) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0f0f4;">
   <tr>
     <td align="center" style="padding:40px 16px;">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;border:1px solid rgba(122,92,255,0.30);">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:14px;overflow:hidden;border:1px solid rgba(201,168,76,0.30);">
 
         <!-- Gradient strip -->
         <tr>
-          <td style="height:7px;background:linear-gradient(90deg,#7a5cff 0%,#e06b1a 100%);font-size:0;line-height:0;">&nbsp;</td>
+          <td style="height:7px;background:linear-gradient(90deg,#C9A84C 0%,#e06b1a 100%);font-size:0;line-height:0;">&nbsp;</td>
         </tr>
 
         <!-- Dark hero header -->
         <tr>
-          <td style="background-color:#0a0a12;padding:28px 40px 24px;border-bottom:1px solid rgba(122,92,255,0.25);">
+          <td style="background-color:#0a0a12;padding:28px 40px 24px;border-bottom:1px solid rgba(201,168,76,0.20);">
 
             <!-- Logo row -->
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
@@ -143,7 +143,7 @@ export async function onRequestPost(context) {
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
                       <td style="vertical-align:middle;padding-right:10px;">
-                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;display:block;"><img src="https://fortitudefx.com/favicon-192x192.png" alt="FFX" width="48" height="48" style="display:block;border-radius:9px;border:1px solid rgba(122,92,255,0.55);" /></a>
+                        <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;display:block;"><img src="https://fortitudefx.com/favicon-192x192.png" alt="FFX" width="48" height="48" style="display:block;border-radius:9px;border:1px solid rgba(201,168,76,0.50);" /></a>
                       </td>
                       <td style="vertical-align:middle;">
                         <a href="https://fortitudefx.com" target="_blank" style="text-decoration:none;"><p style="margin:0;font-family:Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.14em;color:#ffffff;">FORTITUDEFX&#8482;</p></a>
@@ -161,11 +161,11 @@ export async function onRequestPost(context) {
                 <td style="vertical-align:middle;padding-right:20px;">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
                     <tr>
-                      <td style="background:rgba(122,92,255,0.14);border:1px solid rgba(122,92,255,0.32);border-radius:999px;padding:4px 14px;">
+                      <td style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.32);border-radius:999px;padding:4px 14px;">
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                           <tr>
                             <td style="vertical-align:middle;padding-right:7px;">
-                              <div style="width:6px;height:6px;border-radius:50%;background:#7a5cff;"></div>
+                              <div style="width:6px;height:6px;border-radius:50%;background:#C9A84C;"></div>
                             </td>
                             <td style="vertical-align:middle;">
                               <p style="margin:0;font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.10em;color:rgba(255,255,255,0.70);">${kickerText}</p>
@@ -239,7 +239,7 @@ export async function onRequestPost(context) {
         <tr>
           <td style="background-color:#f8f8fb;padding:18px 40px;border-top:1px solid #f0f0f4;">
             <p style="margin:0 0 5px;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;line-height:1.6;">${footerNote}</p>
-            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">&copy; 2026 FortitudeFX&#8482;. Dubai, UAE. &nbsp;&middot;&nbsp; <a href="https://fortitudefx.com/privacy" style="color:#7a5cff;text-decoration:none;">Privacy Policy</a></p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#aaaabc;">&copy; 2026 FortitudeFX&#8482;. Dubai, UAE. &nbsp;&middot;&nbsp; <a href="https://fortitudefx.com/privacy" style="color:#C9A84C;text-decoration:none;">Privacy Policy</a></p>
           </td>
         </tr>
 
@@ -263,18 +263,18 @@ export async function onRequestPost(context) {
         <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
       </table>
       <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">START HERE</p>
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340366861099073677" style="color:#7a5cff;text-decoration:none;">Road Map</a></p>
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340307009018527747" style="color:#7a5cff;text-decoration:none;">FFX Trade Plan</a></p>
-      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1365422976757010482" style="color:#7a5cff;text-decoration:none;">Acronyms</a></p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340366861099073677" style="color:#C9A84C;text-decoration:none;">Road Map</a></p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340307009018527747" style="color:#C9A84C;text-decoration:none;">FFX Trade Plan</a></p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1365422976757010482" style="color:#C9A84C;text-decoration:none;">Acronyms</a></p>
       <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">DAILY CHANNELS</p>
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1364581791637307453" style="color:#7a5cff;text-decoration:none;">FortitudeFX&#8482; Markups</a></p>
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1502065935639646459" style="color:#7a5cff;text-decoration:none;">Blog Updates</a></p>
-      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340383941516988559" style="color:#7a5cff;text-decoration:none;">General Chat</a></p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1364581791637307453" style="color:#C9A84C;text-decoration:none;">FortitudeFX&#8482; Markups</a></p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1502065935639646459" style="color:#C9A84C;text-decoration:none;">Blog Updates</a></p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340383941516988559" style="color:#C9A84C;text-decoration:none;">General Chat</a></p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
         <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
       </table>
       <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">MUST WATCH</p>
-      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">&#8594; <a href="https://youtu.be/wDM__Q1aSNY?si=RbM2sfNnLJpom75I" style="color:#7a5cff;text-decoration:none;">Video</a></p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">&#8594; <a href="https://youtu.be/wDM__Q1aSNY?si=RbM2sfNnLJpom75I" style="color:#C9A84C;text-decoration:none;">Video</a></p>
       <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">Take your time, explore the channels, and make yourself at home. If you need help getting started, feel free to reach out anytime.</p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
         <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
@@ -295,7 +295,7 @@ export async function onRequestPost(context) {
         heroSubtitle: 'Welcome to FortitudeFX\u2122.',
         bodyHtml,
         afterCtaHtml,
-        footerNote:   'You are receiving this because you joined the FortitudeFX\u2122 free community at <a href="https://fortitudefx.com/joinfree" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/joinfree</a>. Reply to this email anytime.',
+        footerNote:   'You are receiving this because you joined the FortitudeFX\u2122 free community at <a href="https://fortitudefx.com/joinfree" style="color:#C9A84C;text-decoration:none;">fortitudefx.com/joinfree</a>. Reply to this email anytime.',
         ctaUrl:       'https://discord.com/invite/fWAPJdR8TR',
         ctaLabel:     'Join Discord'
       }),
@@ -328,13 +328,13 @@ export async function onRequestPost(context) {
         <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
       </table>
       <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">START HERE</p>
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340366861099073677" style="color:#7a5cff;text-decoration:none;">Road Map</a></p>
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340307009018527747" style="color:#7a5cff;text-decoration:none;">FFX Trade Plan</a></p>
-      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1365422976757010482" style="color:#7a5cff;text-decoration:none;">Acronyms</a></p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340366861099073677" style="color:#C9A84C;text-decoration:none;">Road Map</a></p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340307009018527747" style="color:#C9A84C;text-decoration:none;">FFX Trade Plan</a></p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1365422976757010482" style="color:#C9A84C;text-decoration:none;">Acronyms</a></p>
       <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:0.04em;">DAILY CHANNELS</p>
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1364581791637307453" style="color:#7a5cff;text-decoration:none;">FortitudeFX&#8482; Markups</a></p>
-      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1502065935639646459" style="color:#7a5cff;text-decoration:none;">Blog Updates</a></p>
-      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340383941516988559" style="color:#7a5cff;text-decoration:none;">General Chat</a></p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1364581791637307453" style="color:#C9A84C;text-decoration:none;">FortitudeFX&#8482; Markups</a></p>
+      <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1502065935639646459" style="color:#C9A84C;text-decoration:none;">Blog Updates</a></p>
+      <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#444455;line-height:1.75;">&#8594; <a href="https://discord.com/channels/1340307007730745366/1340383941516988559" style="color:#C9A84C;text-decoration:none;">General Chat</a></p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
         <tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr>
       </table>
@@ -348,7 +348,7 @@ export async function onRequestPost(context) {
         heroTitle:       'Spot secured.',
         heroSubtitle:    isVIP ? 'VIP Discord \u00b7 FortitudeFX\u2122' : 'Catch The Wick\u2122 Bootcamp',
         bodyHtml,
-        footerNote:      'You are receiving this because you joined the FortitudeFX\u2122 waitlist at <a href="https://fortitudefx.com/waitlist" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/waitlist</a>. Reply to this email anytime.',
+        footerNote:      'You are receiving this because you joined the FortitudeFX\u2122 waitlist at <a href="https://fortitudefx.com/waitlist" style="color:#C9A84C;text-decoration:none;">fortitudefx.com/waitlist</a>. Reply to this email anytime.',
         ctaUrl:          'https://discord.com/invite/fWAPJdR8TR',
         ctaLabel:        'Join Free Discord Now',
         secondaryCtaUrl:   'https://fortitudefx.com/waitlist?path=' + path + '#form',
@@ -383,7 +383,7 @@ export async function onRequestPost(context) {
         heroTitle:    'Got your message.',
         heroSubtitle: 'We read everything.',
         bodyHtml,
-        footerNote:   'You are receiving this because you contacted FortitudeFX\u2122 at <a href="https://fortitudefx.com/contact" style="color:#7a5cff;text-decoration:none;">fortitudefx.com/contact</a>. Reply to this email anytime.',
+        footerNote:   'You are receiving this because you contacted FortitudeFX\u2122 at <a href="https://fortitudefx.com/contact" style="color:#C9A84C;text-decoration:none;">fortitudefx.com/contact</a>. Reply to this email anytime.',
         ctaUrl:       null,
         ctaLabel:     null
       }),
@@ -396,7 +396,7 @@ export async function onRequestPost(context) {
       `<div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.7;padding:20px;">
         <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#1a1a2e;">New Contact Form Submission</p>
         <p style="margin:0 0 8px;"><strong>Name:</strong> ${firstName} ${lastName || ''}</p>
-        <p style="margin:0 0 8px;"><strong>Email:</strong> <a href="mailto:${email}" style="color:#7a5cff;">${email}</a></p>
+        <p style="margin:0 0 8px;"><strong>Email:</strong> <a href="mailto:${email}" style="color:#C9A84C;">${email}</a></p>
         <p style="margin:0 0 8px;"><strong>Category:</strong> ${CONTACT_CATEGORY || 'Not specified'}</p>
         <p style="margin:0 0 8px;"><strong>Message:</strong></p>
         <p style="margin:0;background:#f5f5f8;padding:16px;border-radius:8px;border-left:3px solid #e06b1a;">${(NOTE || 'No message provided').replace(/\n/g, '<br>')}</p>
