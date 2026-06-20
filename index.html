@@ -20,7 +20,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles-nav-footer.css" />
 
 <style>
   /* ── Reset ── */
@@ -47,7 +46,116 @@
   .reveal-delay-4 { transition-delay: 0.46s; }
   .reveal-delay-5 { transition-delay: 0.58s; }
 
-  /* nav CSS moved to styles-nav-footer.css */
+  /* ── Nav ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 48px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(250,248,245,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(26,21,16,0.07);
+    transition: background 0.3s;
+  }
+  .nav-brand {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #1A1510;
+    text-decoration: none;
+  }
+  .nav-links {
+    display: flex;
+    gap: 36px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(26,21,16,0.6);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: #1A1510; }
+  .nav-actions { display: flex; gap: 12px; align-items: center; }
+  .nav-btn-ghost {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1A1510;
+    text-decoration: none;
+    padding: 8px 18px;
+    border: 1px solid rgba(26,21,16,0.2);
+    border-radius: 100px;
+    transition: all 0.2s;
+  }
+  .nav-btn-ghost:hover { border-color: #1A1510; }
+  .nav-btn-primary {
+    font-size: 13px;
+    font-weight: 600;
+    color: #FAF8F5;
+    text-decoration: none;
+    padding: 9px 22px;
+    background: #1A1510;
+    border-radius: 100px;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .nav-btn-primary:hover { background: #C9A84C; color: #1A1510; }
+
+  .nav-hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 4px;
+  }
+  .nav-hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: #1A1510;
+    border-radius: 2px;
+    transition: all 0.3s;
+  }
+  .nav-mobile {
+    display: none;
+    position: fixed;
+    top: 68px; left: 0; right: 0;
+    background: #FAF8F5;
+    border-bottom: 1px solid rgba(26,21,16,0.1);
+    padding: 24px 24px 28px;
+    flex-direction: column;
+    gap: 18px;
+    z-index: 99;
+  }
+  .nav-mobile.open { display: flex; }
+  .nav-mobile a {
+    font-size: 15px;
+    color: rgba(26,21,16,0.6);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-mobile a:hover { color: #1A1510; }
+  .nav-mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  @media (max-width: 900px) {
+    .nav-links, .nav-actions { display: none; }
+    .nav-hamburger { display: flex; }
+  }
   #scene-arrival {
     min-height: 100vh;
     display: flex;
@@ -212,8 +320,8 @@
 
   /* ── SCENE 3 — THE LIFE ── */
   #scene-life {
-    padding: 140px 0;
-    background: #F5F0E8;
+    padding: 96px 0;
+    background: #1A1510;
   }
   .life-kicker {
     text-align: center;
@@ -222,77 +330,54 @@
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: #C9A84C;
-    margin-bottom: 64px;
+    margin-bottom: 72px;
     padding: 0 24px;
   }
-  .life-hero-image {
-    width: 100%;
-    max-width: 1200px;
+  .life-vignettes {
+    max-width: 640px;
     margin: 0 auto;
-    position: relative;
     padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 64px;
   }
-  .life-hero-image img {
-    width: 100%;
-    height: 580px;
-    object-fit: cover;
-    border-radius: 4px;
-    display: block;
-  }
-  .life-overlay-card {
-    position: absolute;
-    bottom: 40px;
-    left: 64px;
-    background: rgba(250,248,245,0.93);
-    backdrop-filter: blur(8px);
-    padding: 24px 32px;
-    border-radius: 4px;
-    border-left: 3px solid #C9A84C;
-  }
-  .life-overlay-card p {
+  .life-vignette { display: flex; flex-direction: column; gap: 16px; }
+  .life-timestamp {
     font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 400;
-    color: rgba(26,21,16,0.55);
-    line-height: 1.9;
-    letter-spacing: 0.01em;
-  }
-  .life-overlay-card p strong {
-    display: block;
-    font-size: 15px;
+    font-size: 11px;
     font-weight: 600;
-    color: #1A1510;
-    margin-bottom: 4px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    margin: 0;
   }
-  .life-strip {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 12px;
-    max-width: 1200px;
-    margin: 40px auto 0;
-    padding: 0 24px;
-  }
-  .life-strip-img {
-    aspect-ratio: 3/4;
-    overflow: hidden;
-    border-radius: 4px;
-  }
-  .life-strip-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.6s cubic-bezier(0.22,1,0.36,1);
-  }
-  .life-strip-img:hover img { transform: scale(1.04); }
-  .life-tagline {
-    text-align: center;
-    margin-top: 56px;
-    padding: 0 24px;
+  .life-moment {
     font-family: 'Playfair Display', serif;
-    font-size: clamp(18px, 2.2vw, 26px);
+    font-size: clamp(20px, 2.5vw, 28px);
     font-style: italic;
-    color: rgba(26,21,16,0.55);
-    letter-spacing: -0.01em;
+    font-weight: 400;
+    color: rgba(250,248,245,0.85);
+    line-height: 1.55;
+    margin: 0;
+  }
+  .life-rule {
+    width: 40px;
+    height: 1px;
+    background: rgba(201,168,76,0.25);
+  }
+  .life-full-rule {
+    width: 100%;
+    height: 1px;
+    background: rgba(201,168,76,0.15);
+  }
+  .life-tagline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(16px, 2vw, 22px);
+    font-style: italic;
+    font-weight: 400;
+    color: rgba(250,248,245,0.35);
+    line-height: 1.6;
+    margin: 0;
   }
 
   /* ── SCENE 4 — MECHANISM ── */
@@ -805,21 +890,109 @@
   }
 
   /* ── FOOTER ── */
-  /* footer CSS moved to styles-nav-footer.css */
+  footer {
+    background: #1A1510;
+    padding: 56px 48px 40px;
+  }
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 40px;
+    flex-wrap: wrap;
+    padding-bottom: 40px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    margin-bottom: 32px;
+  }
+  .footer-brand {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  .footer-brand strong {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #FAF8F5;
+    margin-bottom: 6px;
+    text-transform: none;
+  }
+  .footer-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.4);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: #C9A84C; }
+  .footer-socials {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .footer-social-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(26,21,16,0.06);
+    border: 1px solid rgba(26,21,16,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(26,21,16,0.4);
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .footer-social-icon:hover {
+    background: rgba(201,168,76,0.1);
+    border-color: rgba(201,168,76,0.4);
+    color: #C9A84C;
+  }
+  .footer-bottom {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-copy {
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+  }
+  .footer-tm {
+    font-size: 11px;
+    color: rgba(201,168,76,0.4);
+    letter-spacing: 0.08em;
+  }
 
-    @media (max-width: 900px) {
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    nav { padding: 0 24px; }
+    .nav-links { display: none; }
     .mechanism-grid { grid-template-columns: 1fr; gap: 48px; }
     .distinction-grid { grid-template-columns: 1fr; }
-    .life-strip { grid-template-columns: repeat(3, 1fr); }
     .proof-stats { grid-template-columns: 1fr; }
     .em-cards { grid-template-columns: 1fr; }
     .footer-inner { flex-direction: column; gap: 32px; }
     .footer-bottom { flex-direction: column; text-align: center; }
   }
   @media (max-width: 600px) {
-    .life-strip { grid-template-columns: repeat(2, 1fr); }
-    .life-hero-image img { height: 340px; }
-    .life-overlay-card { left: 20px; right: 20px; bottom: 20px; }
     .em-cards { padding: 0; }
     .distinction-col { padding: 32px 24px; }
   }
@@ -838,7 +1011,7 @@
 <body>
 
 <!-- ═══ NAV ═══ -->
-<nav id="mainNav" class="nav-light">
+<nav id="mainNav">
   <a href="/" class="nav-brand">FortitudeFX™</a>
   <ul class="nav-links">
     <li><a href="index.html" class="active">Home</a></li>
@@ -855,7 +1028,7 @@
     <span></span><span></span><span></span>
   </button>
 </nav>
-<div class="nav-mobile nav-light-mobile" id="navMobile">
+<div class="nav-mobile" id="navMobile">
   <a href="index.html">Home</a>
   <a href="vipdiscord.html">VIP Discord</a>
   <a href="bootcamp.html">Bootcamp</a>
@@ -955,68 +1128,32 @@
 <section id="scene-life">
   <p class="life-kicker reveal">The Life You're Building</p>
 
-  <div class="life-hero-image reveal reveal-delay-1">
-    <!-- Terrace overlooking water — editorial, man with nowhere to be -->
-    <img
-      src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1400&q=85&auto=format&fit=crop"
-      alt="Terrace overlooking mountain lake — freedom"
-      loading="lazy"
-    />
-    <div class="life-overlay-card">
-      <p>
-        <strong>Tuesday. 9:47am.</strong>
-        London session closed.<br>
-        Two trades. Done.
-      </p>
-    </div>
-  </div>
+  <div class="life-vignettes">
 
-  <div class="life-strip reveal reveal-delay-2">
-    <!-- 1. Luxury watch on wrist -->
-    <div class="life-strip-img">
-      <img
-        src="https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=600&q=80&auto=format&fit=crop"
-        alt="Luxury watch"
-        loading="lazy"
-      />
+    <div class="life-vignette reveal">
+      <p class="life-timestamp">Tuesday &middot; 6:52am</p>
+      <p class="life-moment">London open in 8 minutes.<br>Coffee&rsquo;s done. Chart&rsquo;s up.<br>You know exactly what you&rsquo;re waiting for.</p>
     </div>
-    <!-- 2. First class / premium travel -->
-    <div class="life-strip-img">
-      <img
-        src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=80&auto=format&fit=crop"
-        alt="First class travel"
-        loading="lazy"
-      />
-    </div>
-    <!-- 3. Clean minimal trading setup -->
-    <div class="life-strip-img">
-      <img
-        src="https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=600&q=80&auto=format&fit=crop"
-        alt="Clean trading desk setup"
-        loading="lazy"
-      />
-    </div>
-    <!-- 4. Editorial woman — resort pool -->
-    <div class="life-strip-img">
-      <img
-        src="https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600&q=80&auto=format&fit=crop"
-        alt="Luxury resort pool"
-        loading="lazy"
-      />
-    </div>
-    <!-- 5. City skyline at night from height -->
-    <div class="life-strip-img">
-      <img
-        src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&q=80&auto=format&fit=crop"
-        alt="Dubai skyline at night"
-        loading="lazy"
-      />
-    </div>
-  </div>
 
-  <p class="life-tagline reveal reveal-delay-3">
-    "Trading isn't the destination. It's the key."
-  </p>
+    <div class="life-rule reveal"></div>
+
+    <div class="life-vignette reveal reveal-delay-1">
+      <p class="life-timestamp">9:14am</p>
+      <p class="life-moment">Two trades. Both closed.<br>Done for the day.<br>The rest of the session is noise.</p>
+    </div>
+
+    <div class="life-rule reveal reveal-delay-1"></div>
+
+    <div class="life-vignette reveal reveal-delay-2">
+      <p class="life-timestamp">Thursday &middot; Dubai</p>
+      <p class="life-moment">Anywhere with wifi works.<br>That&rsquo;s the point.</p>
+    </div>
+
+    <div class="life-full-rule reveal reveal-delay-2"></div>
+
+    <p class="life-tagline reveal reveal-delay-3">&ldquo;Trading should fit into your life.<br>Not consume it.&rdquo;</p>
+
+  </div>
 </section>
 
 <!-- ═══ SCENE 4 — MECHANISM ═══ -->
