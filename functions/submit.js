@@ -349,10 +349,10 @@ export async function onRequestPost(context) {
         heroSubtitle:    isVIP ? 'VIP Discord \u00b7 FortitudeFX\u2122' : 'Catch The Wick\u2122 Bootcamp',
         bodyHtml,
         footerNote:      'You are receiving this because you joined the FortitudeFX\u2122 waitlist at <a href="https://fortitudefx.com/waitlist" style="color:#C9A84C;text-decoration:none;">fortitudefx.com/waitlist</a>. Reply to this email anytime.',
-        ctaUrl:          'https://discord.com/invite/fWAPJdR8TR',
-        ctaLabel:        'Join Free Discord Now',
-        secondaryCtaUrl:   'https://fortitudefx.com/waitlist?path=' + path + '#form',
-        secondaryCtaLabel: 'Back to Waitlist'
+        ctaUrl:          null,
+        ctaLabel:        null,
+        secondaryCtaUrl:   null,
+        secondaryCtaLabel: null
       }),
       'support@fortitudefx.com', 'Salman | FortitudeFX'
     );
