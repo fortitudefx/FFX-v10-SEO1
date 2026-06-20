@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>FortitudeFX | Catch The Wick™ — Mechanical Forex Trading</title>
-<meta name="description" content="FortitudeFX — Catch The Wick™. Two candles. One story. Five mechanical entry models. Zero guesswork. Join 7,500+ traders." />
+<meta name="description" content="FortitudeFX — Catch The Wick™. Two candles. One story. Five mechanical entry models. Zero guesswork. Join the free community." />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="https://fortitudefx.com/" />
 <meta property="og:type" content="website" />
@@ -757,7 +757,7 @@
     background: #FAF8F5;
   }
   .proof-inner {
-    max-width: 1200px;
+    max-width: 840px;
     margin: 0 auto;
   }
   .proof-kicker {
@@ -773,57 +773,47 @@
     font-size: clamp(28px, 3vw, 44px);
     font-weight: 700;
     color: #1A1510;
-    margin-bottom: 64px;
+    margin-bottom: 72px;
     line-height: 1.15;
     letter-spacing: -0.02em;
-    max-width: 560px;
   }
-  .proof-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+  .proof-headline em { font-style: italic; color: #C9A84C; }
+  .proof-quotes {
+    display: flex;
+    flex-direction: column;
     gap: 2px;
-    margin-bottom: 64px;
   }
-  .proof-stat {
-    padding: 40px 36px;
+  .proof-quote {
+    padding: 40px 40px 36px;
     background: #fff;
     border: 1px solid rgba(26,21,16,0.06);
+    border-left: 3px solid #C9A84C;
+    position: relative;
   }
-  .proof-stat-num {
+  .proof-quote-mark {
     font-family: 'Playfair Display', serif;
-    font-size: clamp(36px, 4vw, 54px);
+    font-size: 48px;
     font-weight: 700;
-    color: #1A1510;
-    letter-spacing: -0.03em;
+    color: rgba(201,168,76,0.25);
     line-height: 1;
-    margin-bottom: 8px;
-  }
-  .proof-stat-num span { color: #C9A84C; }
-  .proof-stat-label {
-    font-size: 12px;
-    font-weight: 400;
-    color: rgba(26,21,16,0.45);
-    letter-spacing: 0.05em;
-    line-height: 1.5;
-  }
-  .proof-community-img {
-    width: 100%;
-    height: 320px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-bottom: 40px;
     display: block;
+    margin-bottom: 12px;
   }
-  .proof-tagline {
-    font-size: 15px;
-    font-weight: 300;
-    color: rgba(26,21,16,0.5);
-    line-height: 1.7;
-    max-width: 560px;
-  }
-  .proof-tagline strong {
+  .proof-quote-text {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(16px, 1.8vw, 20px);
+    font-weight: 400;
+    font-style: italic;
     color: #1A1510;
+    line-height: 1.65;
+    margin-bottom: 20px;
+  }
+  .proof-quote-attr {
+    font-size: 11px;
     font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(26,21,16,0.35);
   }
 
   /* ── SCENE 7 — CLOSE ── */
@@ -987,7 +977,6 @@
     .nav-links { display: none; }
     .mechanism-grid { grid-template-columns: 1fr; gap: 48px; }
     .distinction-grid { grid-template-columns: 1fr; }
-    .proof-stats { grid-template-columns: 1fr; }
     .em-cards { grid-template-columns: 1fr; }
     .footer-inner { flex-direction: column; gap: 32px; }
     .footer-bottom { flex-direction: column; text-align: center; }
@@ -1275,37 +1264,32 @@
 <!-- ═══ SCENE 6 — PROOF ═══ -->
 <section id="scene-proof">
   <div class="proof-inner">
-    <p class="proof-kicker reveal">Who's Already Inside</p>
+    <p class="proof-kicker reveal">Who&rsquo;s Already Inside</p>
     <h2 class="proof-headline reveal reveal-delay-1">
-      7,500+ traders watch.<br>A focused few execute.
+      Real traders.<br><em>Real words.</em>
     </h2>
 
-    <div class="proof-stats">
-      <div class="proof-stat reveal">
-        <div class="proof-stat-num">7<span>,500</span><span style="font-size:0.5em;color:#C9A84C;">+</span></div>
-        <p class="proof-stat-label">YouTube subscribers<br>watching the framework in action</p>
+    <div class="proof-quotes">
+
+      <div class="proof-quote reveal">
+        <span class="proof-quote-mark">&ldquo;</span>
+        <p class="proof-quote-text">I&rsquo;ve purchased about 80 mentorship courses &mdash; you name the mentor, I was there. Your words have given me so much hope to stick to this one strategy and this one only.</p>
+        <p class="proof-quote-attr">FortitudeFX&trade; Member</p>
       </div>
-      <div class="proof-stat reveal reveal-delay-1">
-        <div class="proof-stat-num">3<span>–4</span></div>
-        <p class="proof-stat-label">Videos per week<br>London & New York session breakdowns</p>
+
+      <div class="proof-quote reveal reveal-delay-1">
+        <span class="proof-quote-mark">&ldquo;</span>
+        <p class="proof-quote-text">I followed Fortitude way of trading &mdash; 2 hours each session. It gives me right energy at the right time. Otherwise I was all in for the trades, trying to trade every market.</p>
+        <p class="proof-quote-attr">FortitudeFX&trade; Member</p>
       </div>
-      <div class="proof-stat reveal reveal-delay-2">
-        <div class="proof-stat-num"><span style="font-size:0.7em;">$</span>0</div>
-        <p class="proof-stat-label">To start<br>Free Discord. No pitch. No pressure.</p>
+
+      <div class="proof-quote reveal reveal-delay-2">
+        <span class="proof-quote-mark">&ldquo;</span>
+        <p class="proof-quote-text">I didn&rsquo;t see any of my previous mentors coming live and helping their students. They just give videos and don&rsquo;t bother to respond. You are helping people to get success &mdash; a pure soul.</p>
+        <p class="proof-quote-attr">FortitudeFX&trade; Member</p>
       </div>
+
     </div>
-
-    <!-- Community image — laptop showing Discord activity -->
-    <img
-      class="proof-community-img reveal reveal-delay-1"
-      src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1400&q=80&auto=format&fit=crop"
-      alt="Active trading community"
-      loading="lazy"
-    />
-
-    <p class="proof-tagline reveal reveal-delay-2">
-      The free Discord is where it starts. <strong>See the framework applied daily</strong> — real sessions, real setups, real execution — before you spend a penny.
-    </p>
   </div>
 </section>
 
