@@ -43,7 +43,7 @@ export async function onRequestPost(context) {
 
   // Base attributes
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const attributes = { FIRSTNAME: firstName, LASTNAME: lastName || '', FFX_PATH: path };
+  const attributes = { FIRSTNAME: firstName, LASTNAME: lastName || '', FFX_PATH: path, FFX_JOINED_DATE: today };
   if (TRADING_STAGE)    attributes.TRADING_STAGE    = TRADING_STAGE;
   if (NOTE)             attributes.NOTE             = NOTE;
   if (PROMO_CODE)       attributes.PROMO_CODE       = PROMO_CODE;
