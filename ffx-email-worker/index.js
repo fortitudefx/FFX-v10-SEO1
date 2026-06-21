@@ -961,11 +961,12 @@ async function handleRequest(request, env) {
   }
 
   // Serve test dashboard
-  if (path === '/test' || path === '/test/') {
+  if (path === '/test' || path === '/test/' || path.startsWith('/test')) {
     return serveTestDashboard(request);
   }
 
-  return new Response(JSON.stringify({ error: 'Unknown route' }), { status: 404 });
+  // Debug — show exact path received
+  return new Response(JSON.stringify({ error: 'Unknown route', path: path, url: request.url }), { status: 404 });
 }
 
 
