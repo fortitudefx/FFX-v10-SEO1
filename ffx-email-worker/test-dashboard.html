@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FFX Email Worker — Test Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #0d0d14; color: #e8e4de; padding: 40px 24px; }
+  h1 { font-size: 22px; font-weight: 700; color: #C9A84C; margin-bottom: 6px; }
+  p.sub { font-size: 13px; color: rgba(232,228,222,0.45); margin-bottom: 32px; }
+  .card { background: #111118; border: 1px solid rgba(201,168,76,0.15); border-radius: 14px; padding: 28px; margin-bottom: 20px; }
+  label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(232,228,222,0.45); margin-bottom: 8px; }
+  input, select { width: 100%; padding: 12px 16px; background: #0d0d14; border: 1px solid rgba(232,228,222,0.12); border-radius: 8px; color: #e8e4de; font-size: 14px; margin-bottom: 16px; outline: none; }
+  input:focus, select:focus { border-color: rgba(201,168,76,0.4); }
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  button { padding: 12px 24px; border-radius: 100px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-start { background: #C9A84C; color: #0d0d14; }
+  .btn-start:hover { background: #d4b05a; }
+  .btn-next { background: rgba(201,168,76,0.12); color: #C9A84C; border: 1px solid rgba(201,168,76,0.3); }
+  .btn-next:hover { background: rgba(201,168,76,0.2); }
+  .btn-reset { background: rgba(232,228,222,0.05); color: rgba(232,228,222,0.5); border: 1px solid rgba(232,228,222,0.1); }
+  .btn-reset:hover { background: rgba(232,228,222,0.1); color: #e8e4de; }
+  .btn-stop { background: rgba(224,107,26,0.1); color: #E06B1A; border: 1px solid rgba(224,107,26,0.25); }
+  .btn-stop:hover { background: rgba(224,107,26,0.2); }
+  .status-bar { background: #0d0d14; border: 1px solid rgba(232,228,222,0.08); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .badge { display: inline-block; padding: 3px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; }
+  .badge-running { background: rgba(46,203,113,0.12); color: #2ecb71; border: 1px solid rgba(46,203,113,0.25); }
+  .badge-stopped { background: rgba(232,228,222,0.06); color: rgba(232,228,222,0.4); border: 1px solid rgba(232,228,222,0.1); }
+  .badge-done { background: rgba(201,168,76,0.12); color: #C9A84C; border: 1px solid rgba(201,168,76,0.25); }
+  .progress-wrap { background: rgba(232,228,222,0.06); border-radius: 100px; height: 6px; margin-bottom: 16px; overflow: hidden; }
+  .progress-bar { height: 6px; background: #C9A84C; border-radius: 100px; transition: width 1s linear; }
+  .countdown { font-size: 28px; font-weight: 700; color: #C9A84C; letter-spacing: -0.02em; }
+  .log { background: #0d0d14; border: 1px solid rgba(232,228,222,0.08); border-radius: 10px; padding: 20px; max-height: 360px; overflow-y: auto; }
+  .log-entry { padding: 12px 0; border-bottom: 1px solid rgba(232,228,222,0.06); font-size: 13px; line-height: 1.6; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-day { font-weight: 700; color: #C9A84C; margin-right: 8px; }
+  .log-subject { color: #e8e4de; }
+  .log-meta { font-size: 11px; color: rgba(232,228,222,0.35); margin-top: 2px; }
+  .log-ok { color: #2ecb71; }
+  .log-err { color: #f87171; }
+  .empty { font-size: 13px; color: rgba(232,228,222,0.3); text-align: center; padding: 24px 0; }
+  .worker-url { font-size: 12px; color: rgba(232,228,222,0.3); margin-top: 16px; word-break: break-all; }
+  .worker-url span { color: rgba(201,168,76,0.6); }
+</style>
+</head>
+<body>
+
+<h1>FFX Email Worker — Test Dashboard</h1>
+<p class="sub">Sends test emails to salmankhanfx@fortitudefx.com every 30 seconds. Simulates 7-day onboarding + 3 framework emails.</p>
+
+<div class="card">
+  <label>Worker URL</label>
+  <input type="text" id="workerUrl" placeholder="https://ffx-email-worker.salmankhanfx.workers.dev" value="https://ffx-email-worker.salmankhanfx.workers.dev"/>
+
+  <label>Contact Email to Simulate</label>
+  <input type="email" id="contactEmail" placeholder="salmankhanfx@fortitudefx.com" value="salmankhanfx@fortitudefx.com"/>
+
+  <label>Path</label>
+  <select id="pathSelect">
+    <option value="Free">Free</option>
+    <option value="VIP">VIP</option>
+    <option value="Bootcamp">Bootcamp</option>
+  </select>
+
+  <div class="btn-row">
+    <button class="btn-start" onclick="startTest()">▶ Start Auto (30s)</button>
+    <button class="btn-next" onclick="sendNext()">→ Send Next Now</button>
+    <button class="btn-stop" onclick="stopTest()">■ Stop</button>
+    <button class="btn-reset" onclick="resetTest()">↺ Reset Sequence</button>
+  </div>
+
+  <p class="worker-url">Endpoint: <span id="endpointDisplay">—</span></p>
+</div>
+
+<div class="status-bar">
+  <div class="status-row">
+    <div>
+      <span id="statusBadge" class="badge badge-stopped">STOPPED</span>
+      &nbsp;&nbsp;
+      <span id="stepLabel" style="font-size:14px;color:rgba(232,228,222,0.6);">Ready to start</span>
+    </div>
+    <div class="countdown" id="countdown">—</div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progressBar" style="width:0%"></div>
+  </div>
+  <div style="display:flex;gap:32px;">
+    <div><span style="font-size:11px;color:rgba(232,228,222,0.35);letter-spacing:0.1em;text-transform:uppercase;">Sent</span><br><span id="sentCount" style="font-size:22px;font-weight:700;color:#C9A84C;">0</span><span style="font-size:12px;color:rgba(232,228,222,0.3);"> / 10</span></div>
+    <div><span style="font-size:11px;color:rgba(232,228,222,0.35);letter-spacing:0.1em;text-transform:uppercase;">Current Day</span><br><span id="currentDay" style="font-size:22px;font-weight:700;color:#e8e4de;">—</span></div>
+    <div><span style="font-size:11px;color:rgba(232,228,222,0.35);letter-spacing:0.1em;text-transform:uppercase;">Path</span><br><span id="currentPath" style="font-size:22px;font-weight:700;color:#e8e4de;">—</span></div>
+  </div>
+</div>
+
+<div class="log" id="log">
+  <div class="empty">Emails will appear here as they are sent.</div>
+</div>
+
+<script>
+var timer       = null;
+var countdown   = null;
+var sentCount   = 0;
+var currentDay  = 0;
+var running     = false;
+var INTERVAL    = 30;
+var remaining   = INTERVAL;
+
+function getEndpoint(next) {
+  var base    = document.getElementById('workerUrl').value.trim().replace(/\/$/, '');
+  var contact = encodeURIComponent(document.getElementById('contactEmail').value.trim());
+  var path    = document.getElementById('pathSelect').value;
+  document.getElementById('endpointDisplay').textContent = base + '/email-worker/test/next?contact=' + contact + '&path=' + path;
+  if (next === 'reset') return base + '/email-worker/test/next?contact=' + contact + '&path=' + path + '&reset=1';
+  return base + '/email-worker/test/next?contact=' + contact + '&path=' + path;
+}
+
+function setStatus(state) {
+  var badge = document.getElementById('statusBadge');
+  if (state === 'running')   { badge.className = 'badge badge-running'; badge.textContent = 'RUNNING'; }
+  if (state === 'stopped')   { badge.className = 'badge badge-stopped'; badge.textContent = 'STOPPED'; }
+  if (state === 'done')      { badge.className = 'badge badge-done';    badge.textContent = 'COMPLETE'; }
+}
+
+async function sendNext() {
+  var url = getEndpoint();
+  document.getElementById('stepLabel').textContent = 'Sending...';
+
+  try {
+    var res  = await fetch(url);
+    var data = await res.json();
+
+    if (data.done) {
+      stopTest();
+      setStatus('done');
+      document.getElementById('stepLabel').textContent = 'Sequence complete (10/10). Reset to run again.';
+      appendLog({ done: true });
+      return;
+    }
+
+    sentCount++;
+    currentDay = data.day;
+    document.getElementById('sentCount').textContent  = sentCount;
+    document.getElementById('currentDay').textContent = data.day;
+    document.getElementById('currentPath').textContent = data.path || document.getElementById('pathSelect').value;
+    document.getElementById('stepLabel').textContent  = data.label || 'Day ' + data.day;
+
+    appendLog({
+      day:     data.day,
+      label:   data.label,
+      subject: data.subject,
+      ok:      data.success,
+      sentTo:  data.sentTo
+    });
+
+  } catch(err) {
+    appendLog({ error: err.message });
+    document.getElementById('stepLabel').textContent = 'Error — ' + err.message;
+  }
+}
+
+function startCountdown() {
+  remaining = INTERVAL;
+  document.getElementById('countdown').textContent = remaining + 's';
+  document.getElementById('progressBar').style.width = '0%';
+
+  countdown = setInterval(function() {
+    remaining--;
+    document.getElementById('countdown').textContent = remaining + 's';
+    document.getElementById('progressBar').style.width = ((INTERVAL - remaining) / INTERVAL * 100) + '%';
+    if (remaining <= 0) {
+      remaining = INTERVAL;
+    }
+  }, 1000);
+}
+
+function startTest() {
+  if (running) return;
+  running = true;
+  setStatus('running');
+
+  sendNext();
+  startCountdown();
+
+  timer = setInterval(function() {
+    if (!running) return;
+    sendNext();
+    clearInterval(countdown);
+    startCountdown();
+  }, INTERVAL * 1000);
+}
+
+function stopTest() {
+  running = false;
+  clearInterval(timer);
+  clearInterval(countdown);
+  timer = null;
+  countdown = null;
+  document.getElementById('countdown').textContent = '—';
+  document.getElementById('progressBar').style.width = '0%';
+  setStatus('stopped');
+  document.getElementById('stepLabel').textContent = 'Stopped';
+}
+
+async function resetTest() {
+  stopTest();
+  sentCount  = 0;
+  currentDay = 0;
+  document.getElementById('sentCount').textContent  = '0';
+  document.getElementById('currentDay').textContent = '—';
+  document.getElementById('currentPath').textContent = '—';
+  document.getElementById('stepLabel').textContent  = 'Resetting...';
+  document.getElementById('log').innerHTML = '<div class="empty">Log cleared. Ready to start again.</div>';
+
+  var url = getEndpoint('reset');
+  try {
+    await fetch(url);
+    document.getElementById('stepLabel').textContent = 'Reset complete. Ready to start.';
+  } catch(e) {
+    document.getElementById('stepLabel').textContent = 'Reset failed: ' + e.message;
+  }
+}
+
+function appendLog(entry) {
+  var log = document.getElementById('log');
+  if (log.querySelector('.empty')) log.innerHTML = '';
+
+  var div = document.createElement('div');
+  div.className = 'log-entry';
+
+  if (entry.done) {
+    div.innerHTML = '<span class="log-day">✓ COMPLETE</span><span class="log-subject">All 10 emails sent successfully.</span>';
+  } else if (entry.error) {
+    div.innerHTML = '<span class="log-err">✗ ERROR</span> <span class="log-subject">' + entry.error + '</span>';
+  } else {
+    var status = entry.ok ? '<span class="log-ok">✓ Sent</span>' : '<span class="log-err">✗ Failed</span>';
+    div.innerHTML =
+      '<span class="log-day">Day ' + entry.day + '</span>' +
+      '<span class="log-subject">' + (entry.subject || '') + '</span>' +
+      '<div class="log-meta">' + status + ' → ' + (entry.sentTo || '') + ' · ' + new Date().toLocaleTimeString() + '</div>';
+  }
+
+  log.insertBefore(div, log.firstChild);
+}
+
+// Update endpoint display on input change
+document.getElementById('workerUrl').addEventListener('input', getEndpoint);
+document.getElementById('contactEmail').addEventListener('input', getEndpoint);
+document.getElementById('pathSelect').addEventListener('change', getEndpoint);
+getEndpoint();
+</script>
+
+</body>
+</html>

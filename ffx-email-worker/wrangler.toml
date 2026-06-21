@@ -1,0 +1,27 @@
+name = "ffx-email-worker"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+# Production: runs daily at 7am Dubai time (UTC+4 = 03:00 UTC)
+[triggers]
+crons = [
+  "0 3 * * *",
+  "*/30 * * * * *"
+]
+
+[[kv_namespaces]]
+binding = "FFX_KV"
+id = "6660064783ba4b2fbe4f8a0031818e99"
+
+[observability]
+enabled = true
+
+# Secrets (set via Cloudflare dashboard → Workers → Settings → Variables):
+# BREVO_API_KEY
+# TEST_MODE        → set to "true" to enable 30-second test mode
+# TEST_EMAIL       → email address to send test emails to
+# TEST_PATH        → Free, VIP, or Bootcamp
+
+# Test cron — runs every 30 seconds (comment out in production)
+# Uncomment the line below and comment out the daily cron for testing
+# crons = ["*/30 * * * * *"]
