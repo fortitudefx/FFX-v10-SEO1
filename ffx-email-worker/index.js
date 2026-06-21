@@ -905,8 +905,8 @@ async function handleRequest(request, env) {
   var url    = new URL(request.url);
   var path   = url.pathname;
 
-  // Only handle /email-worker routes
-  if (!path.startsWith('/email-worker')) {
+  // Only handle /email-worker routes and /test
+  if (!path.startsWith('/email-worker') && path !== '/test' && path !== '/test/') {
     return new Response('Not found', { status: 404 });
   }
 
