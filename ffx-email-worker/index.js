@@ -527,6 +527,10 @@ async function generateFrameworkEmail(env, firstName) {
       'CRITICAL: Return ONLY valid JSON. No preamble. No markdown. First character must be {.';
 
         // Step 5 — Call Claude
+    // Debug: log key info without exposing value
+    var keyInfo = env.ANTHROPIC_API_KEY ? 'present, length=' + env.ANTHROPIC_API_KEY.length + ', starts=' + env.ANTHROPIC_API_KEY.substring(0,7) : 'UNDEFINED';
+    console.log('[FFX Email] ANTHROPIC_API_KEY:', keyInfo);
+
     var claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -978,6 +982,16 @@ async function handleTestRun(request, env) {
 
   if (!content) {
     return new Response(JSON.stringify({ error: 'No content for day ' + state.day }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // If generation failed — return error without sending or advancing state
+  if (content._error) {
+    // Roll back state — don't advance the day
+    state.day = state.day - 1;
+    await env.FFX_KV.put(stateKey, JSON.stringify(state), { expirationTtl: 60 * 60 * 24 * 7 });
+    return new Response(JSON.stringify({ error: 'Framework generation failed: ' + content._error, day: state.day + 1 }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   // Build and send email
