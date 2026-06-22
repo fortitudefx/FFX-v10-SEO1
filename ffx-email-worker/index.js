@@ -887,6 +887,35 @@ async function handleRequest(request, env) {
     return new Response(JSON.stringify(result), { status: 200 });
   }
 
+  // Test Claude API key directly
+  if (path === '/email-worker/test-claude') {
+    var keyVal = env.ANTHROPIC_API_KEY;
+    var keyInfo = keyVal ? 'length=' + keyVal.length + ' starts=' + keyVal.substring(0,10) : 'UNDEFINED';
+    try {
+      var testRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': keyVal,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 10,
+          messages: [{ role: 'user', content: 'Say hi' }]
+        })
+      });
+      var testBody = await testRes.text();
+      return new Response(JSON.stringify({
+        status: testRes.status,
+        keyInfo: keyInfo,
+        body: testBody.substring(0, 300)
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    } catch(e) {
+      return new Response(JSON.stringify({ error: e.message, keyInfo: keyInfo }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    }
+  }
+
   // Approve & Send — sends last generated draft to all graduated members
   if (path === '/email-worker/approve') {
     return handleApprove(request, env);
