@@ -542,8 +542,8 @@ async function generateFrameworkEmail(env, firstName) {
     });
 
     if (!claudeRes.ok) {
-      console.error('[FFX Email] Claude API failed:', claudeRes.status);
-      return null;
+      var errText = await claudeRes.text().catch(function() { return 'unknown'; });
+      throw new Error('Claude API ' + claudeRes.status + ': ' + errText.substring(0, 200));
     }
 
     var claudeData = await claudeRes.json();
@@ -556,7 +556,7 @@ async function generateFrameworkEmail(env, firstName) {
 
     // Parse JSON response
     var jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) { console.error('[FFX Email] Claude returned no JSON'); return null; }
+    if (!jsonMatch) { throw new Error('Claude returned no JSON. Raw: ' + rawText.substring(0, 200)); }
     var generated = JSON.parse(jsonMatch[0]);
 
     var emailContent = {
@@ -593,7 +593,7 @@ async function generateFrameworkEmail(env, firstName) {
 
     } catch(err) {
     console.error('[FFX Email] Framework generation error:', err.message);
-    return null;
+    return { _error: err.message, subject: 'Generation failed', kickerText: 'ERROR', heroTitle: err.message.substring(0, 50), heroSubtitle: 'Check Worker logs', body: '<p style="color:red;">Framework email generation failed: ' + err.message + '</p>' };
   }
 }
 
