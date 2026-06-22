@@ -457,262 +457,144 @@ function getBootcampEmail(day, firstName) {
 }
 
 // =============================================================================
-// EMAIL CONTENT — FRAMEWORK SERIES (Days 8+ cycling 1-20)
+// FRAMEWORK EMAIL — DYNAMIC GENERATION
 // =============================================================================
+// Reads SEO signals, transcripts, and nuggets from KV.
+// Calls Claude to generate a fresh email in Salman's voice on the trending topic.
+// Returns null if generation fails — no fallback, no templated content.
 
-function getFrameworkEmail(emailNum, firstName) {
-  var emails = {
-    1: {
-      subject:     'Not all wicks are sweeps.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 01/20',
-      heroTitle:   'What a liquidity sweep actually looks like.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Most traders look at a wick and think: volatility. Noise. Someone got stopped out.') +
-        bodyP('That\u2019s partly right. Someone did get stopped out. That\u2019s the point.') +
-        bodyP('A liquidity sweep is a specific event. Price extends beyond a significant level \u2014 a previous high, a previous low, a round number \u2014 takes out the stops sitting there, and then comes back. The wick is the evidence. The return is the tell.') +
-        bodyP('Not every wick is a sweep. A wick into open space with no obvious stops is just price moving. A wick that precisely tags a significant level and reverses is institutional order filling.') +
-        bodyP('This week \u2014 pull up any chart. Mark the significant highs and lows from the previous session. Watch what happens when price approaches them. You\u2019ll start seeing it everywhere.') +
-        bodyQuote('The wick is not a mistake. It\u2019s the most intentional moment on the chart.', 'Salman, FortitudeFX\u2122')
-    },
-    2: {
-      subject:     'Candle 1 tells you what happened. Candle 2 tells you what to do.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 02/20',
-      heroTitle:   'Why Candle 2 is the only candle that matters.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Most traders try to enter on Candle 1 \u2014 they see the sweep happening and jump in during the wick itself. That\u2019s gambling. You don\u2019t know if the sweep is complete. You don\u2019t know if price will reverse or continue.') +
-        bodyP('Candle 2 gives you confirmation. It tells you the sweep is done, the reversal has started, and institutions are now pushing in the other direction. The body closes. Momentum is locked. You enter.') +
-        bodyP('Yes \u2014 you miss some of the move. That\u2019s the cost of certainty. A smaller move taken with confidence and a clear stop beats a larger move taken with fear every time.') +
-        bodyP('Wait for Candle 2. Always.') +
-        bodyQuote('Confirmation costs you pips. Hesitation costs you accounts. Pay the pips.', 'Salman, FortitudeFX\u2122')
-    },
-    3: {
-      subject:     'You\u2019re probably drawing levels wrong.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 03/20',
-      heroTitle:   'The difference between a zone and a level.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('A level is a line. A zone is an area.') +
-        bodyP('Most traders draw levels as precise lines \u2014 and then get frustrated when price misses by a few pips or overshoots slightly. They move the line. They redraw. They conclude \u201clevels don\u2019t work.\u201d') +
-        bodyP('The problem is the expectation, not the level. Institutional orders don\u2019t fill at one precise price. They fill across a range. That range is the zone.') +
-        bodyP('When you mark a zone instead of a line, you stop getting frustrated when price doesn\u2019t hit your exact number. And you start seeing how often price reacts within the zone even when it doesn\u2019t touch the line.') +
-        bodyQuote('The market is not precise. Your framework should be. Your levels should be honest.', 'Salman, FortitudeFX\u2122')
-    },
-    4: {
-      subject:     'Higher timeframe is the boss.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 04/20',
-      heroTitle:   'Why timeframe alignment changes everything.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('You can have a perfect Catch The Wick\u2122 setup on the 15-minute chart and still lose the trade.') +
-        bodyP('If the higher timeframe is pushing in the opposite direction, you\u2019re fighting a current. You might win occasionally, but the probability is against you.') +
-        bodyP('Timeframe alignment means your entry direction matches the bias of the higher timeframe. The daily says up. The 4-hour confirms up. Your 15-minute CTW setup triggers long. Now you have alignment \u2014 and alignment multiplies the probability of the setup working.') +
-        bodyP('Before you enter any trade, answer one question: what is the higher timeframe telling me about direction? If the answer contradicts your entry \u2014 skip it. There will be another candle.') +
-        bodyQuote('Never fight the higher timeframe. It has more information than you do.', 'Salman, FortitudeFX\u2122')
-    },
-    5: {
-      subject:     'Uncertainty is not a reason to skip the trade.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 05/20',
-      heroTitle:   'How to size a position when you\u2019re uncertain.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Every trader has setups they\u2019re more confident in than others. That\u2019s normal.') +
-        bodyP('Here\u2019s how to handle it: when the setup is clear, trade your standard size. When the setup is present but something feels slightly off \u2014 maybe the zone is less defined, maybe the sweep was shallower \u2014 trade half size.') +
-        bodyP('Half size keeps you in the game. It keeps you practising execution. Full size when everything aligns. Half size when most things align. No size when the setup isn\u2019t there.') +
-        bodyP('Simple. Mechanical. No emotion.') +
-        bodyQuote('Position sizing is risk management in practice. Not in theory \u2014 in every single trade.', 'Salman, FortitudeFX\u2122')
-    },
-    6: {
-      subject:     'Less screen time. Better results.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 06/20',
-      heroTitle:   'The two-hour rule. Why it works.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('The London session opens. The most significant institutional activity of the day happens in the first two hours after the open.') +
-        bodyP('That\u2019s your window. You apply the CTW framework during that window. Either the setup appears and you execute, or it doesn\u2019t and you close the platform.') +
-        bodyP('Two hours. Then you\u2019re done.') +
-        bodyP('More screen time equals more emotional decisions. You get bored and enter setups that aren\u2019t there. Two focused hours beats eight distracted hours. The setup doesn\u2019t care how long you\u2019ve been watching. It either appears or it doesn\u2019t.') +
-        bodyP('Watch the session. Apply the framework. Close the platform. Live your day.') +
-        bodyQuote('The market rewards focus, not presence. Two hours of the right attention beats eight hours of the wrong kind.', 'Salman, FortitudeFX\u2122')
-    },
-    7: {
-      subject:     'OFC is not an opinion. It\u2019s a rule.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 07/20',
-      heroTitle:   'What orderflow confirmation actually means.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Orderflow confirmation \u2014 OFC \u2014 is the moment Candle 2 closes in the direction you want to trade with a body that clearly shows directional momentum.') +
-        bodyP('Not a doji. Not a spinning top. A candle with a clear body that closes away from the sweep zone.') +
-        bodyP('OFC means the buyers \u2014 or sellers \u2014 have taken control of that candle. A candle that wicks hard in both directions and closes in the middle has no OFC. A candle that opens, moves cleanly in one direction, and closes near the high or low has clear OFC.') +
-        bodyP('You\u2019re looking for commitment in the close. When you\u2019re asking yourself \u201cdoes this count?\u201d \u2014 it doesn\u2019t.') +
-        bodyQuote('OFC is the market showing its hand. Wait for it to show clearly.', 'Salman, FortitudeFX\u2122')
-    },
-    8: {
-      subject:     'The stop is part of the trade, not an afterthought.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 08/20',
-      heroTitle:   'Why your stop placement is probably wrong.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Most traders place their stop where they don\u2019t want to lose. That\u2019s emotional stop placement.') +
-        bodyP('Your stop should be placed at the point where the trade is proven wrong \u2014 where the setup that gave you the entry no longer exists.') +
-        bodyP('In the CTW framework: if you entered on a sweep of a low with Candle 2 confirming bullish momentum, your stop goes below the wick that swept the low. If price goes back below that wick, the sweep failed. The trade is wrong. You exit.') +
-        bodyP('Not a fixed stop. Not \u201cwhat I can afford to lose.\u201d The level where the reason for the trade no longer exists. The stop comes first. The size follows.') +
-        bodyQuote('Place your stop where the trade is wrong, not where the loss feels acceptable.', 'Salman, FortitudeFX\u2122')
-    },
-    9: {
-      subject:     'The journal is the edge.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 09/20',
-      heroTitle:   'How to journal a trade properly.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Most traders either don\u2019t journal or journal the wrong things.') +
-        bodyP(bodyStrong('Wrong:') + ' \u201cEntered long. Hit target. Good trade.\u201d') +
-        bodyP(bodyStrong('Right:') + ' \u201cLondon session. Previous session low swept with a clear wick. Candle 2 closed bullish with clear OFC. Entered at the open of the next candle. Stop below the sweep wick. Target at previous session high. Trade ran to target. No emotional decisions during the trade.\u201d') +
-        bodyP('Over 50 trades, the second type of journal shows you your patterns \u2014 when you deviate from the rules, what conditions you struggle in, which sessions produce your best results. That data is your actual edge.') +
-        bodyP('Journal the process. The outcome follows.') +
-        bodyQuote('Your journal is proof that you either followed the rules or you didn\u2019t. It doesn\u2019t lie.', 'Salman, FortitudeFX\u2122')
-    },
-    10: {
-      subject:     'Setups are yours. Signals belong to someone else.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 10/20',
-      heroTitle:   'The difference between a setup and a signal.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('A signal is someone else telling you to buy or sell. A setup is a condition you\u2019ve identified yourself using your own framework.') +
-        bodyP('When you take a signal and it loses, you blame the signal provider. You didn\u2019t understand the trade. You weren\u2019t prepared for the drawdown. You exit early, or hold too long.') +
-        bodyP('When you take a setup \u2014 a condition you identified yourself using the CTW framework \u2014 you understand every element of it. You know why you entered. You know exactly where you\u2019re wrong. You can handle the drawdown because you know the logic behind the trade.') +
-        bodyP('FortitudeFX\u2122 has never been a signal service. It never will be.') +
-        bodyQuote('A signal makes you money once. A setup makes you money for life.', 'Salman, FortitudeFX\u2122')
-    },
-    11: {
-      subject:     'You\u2019re not impatient. You just don\u2019t have a rule.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 11/20',
-      heroTitle:   'Patience is a mechanical skill, not a personality trait.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Every trader who has ever blown an account has said: \u201cI just need to be more patient.\u201d') +
-        bodyP('Patience is not a mindset problem. It\u2019s a rules problem.') +
-        bodyP('When you have no clear rule for entry, there\u2019s nothing to wait for. You sit in front of the chart and stare at price moving and eventually you enter because you feel like you should be doing something.') +
-        bodyP('When you have the CTW framework, you\u2019re not waiting for something vague. You\u2019re waiting for three specific conditions. Either they\u2019re all present or they\u2019re not. Waiting becomes easy when you know exactly what you\u2019re waiting for.') +
-        bodyQuote('You don\u2019t need more patience. You need a clearer trigger.', 'Salman, FortitudeFX\u2122')
-    },
-    12: {
-      subject:     'Losing streaks are not a signal to change.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 12/20',
-      heroTitle:   'How to handle a losing streak without changing your strategy.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Every strategy has losing streaks. The CTW framework included. Three losses in a row is not evidence that the framework is broken \u2014 it\u2019s evidence that you\u2019ve had three losing trades.') +
-        bodyP('Here\u2019s the question to ask: did I follow the rules on all three trades?') +
-        bodyP('If yes \u2014 the framework lost three trades. That happens. Over 100 trades, a framework with a 60% win rate will produce runs of 4\u20135 consecutive losses by pure probability.') +
-        bodyP('If no \u2014 you deviated from the rules on at least one trade. That\u2019s where you focus. Not on changing the strategy.') +
-        bodyP('Changing your strategy during a losing streak is the most expensive mistake in trading.') +
-        bodyQuote('A losing streak tests your discipline, not your strategy. Don\u2019t confuse the two.', 'Salman, FortitudeFX\u2122')
-    },
-    13: {
-      subject:     'London sets the story. New York continues it.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 13/20',
-      heroTitle:   'What the London session tells you about New York.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('The London session and the New York session are not independent events. They\u2019re chapters in the same daily story.') +
-        bodyP('London typically establishes the day\u2019s range and often sweeps the Asia session highs or lows to grab liquidity before the real move begins. By the time London closes, you usually have a clear directional bias for the day.') +
-        bodyP('New York either continues that move or creates a secondary sweep before continuing. That pullback is a CTW opportunity for traders in the Americas timezone who missed London.') +
-        bodyP('The two sessions speak to each other. London tells you the daily narrative. New York gives you a second chance to trade it.') +
-        bodyQuote('The market tells one story per day. London opens the chapter. New York closes it.', 'Salman, FortitudeFX\u2122')
-    },
-    14: {
-      subject:     'Let the trade work.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 14/20',
-      heroTitle:   'Why most traders exit too early.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('You enter a trade. It moves in your direction. You\u2019re up. Your target is further out. You close it.') +
-        bodyP('Why? Usually: fear. Fear that price will come back. Fear that you\u2019ll give back the profit.') +
-        bodyP('That fear is costing you money every single session.') +
-        bodyP('When you enter a CTW trade with a defined stop and a defined target \u2014 both placed at mechanical levels \u2014 your job after entry is to manage the trade according to the plan, not according to how you feel.') +
-        bodyP('Early exits feel safe. Over 100 trades they destroy your risk/reward ratio. A strategy that targets 2:1 but consistently exits at 0.8:1 is not a 2:1 strategy. It\u2019s a losing one. Set the target. Let price reach it.') +
-        bodyQuote('The entry is your decision. After that, the market\u2019s job is to reach your target. Let it do its job.', 'Salman, FortitudeFX\u2122')
-    },
-    15: {
-      subject:     'Trade with the current, not against it.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 15/20',
-      heroTitle:   'Higher timeframe bias \u2014 what it is and why it matters.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Before you look at a 15-minute chart, look at the daily.') +
-        bodyP('What is the daily chart doing? Is it in an uptrend? A downtrend? Consolidating?') +
-        bodyP('That answer is your higher timeframe bias. It\u2019s the current the market is flowing in right now.') +
-        bodyP('On the 15-minute chart, you look for CTW setups that align with that current. If the daily is bullish \u2014 you look for sweeps of lows that create long entries. This is not complicated. It\u2019s one question answered on the daily chart before you open the 15-minute. It takes 30 seconds and filters out a significant percentage of losing trades.') +
-        bodyQuote('Bias is not a prediction. It\u2019s a filter. Use it before every session.', 'Salman, FortitudeFX\u2122')
-    },
-    16: {
-      subject:     'The script has been running since before you started trading.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 16/20',
-      heroTitle:   'What \u201cthe market runs a script\u201d actually means.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Institutions need liquidity to fill orders. Retail traders provide that liquidity by placing predictable stop losses at predictable levels. Institutions push price into those levels, trigger the stops, fill their orders, and reverse.') +
-        bodyP('That\u2019s the script. It doesn\u2019t change. It ran this morning. It will run tomorrow. It ran 20 years ago.') +
-        bodyP('The reason most traders lose is not that they don\u2019t understand this \u2014 many do. It\u2019s that they position themselves as the retail trader in the script.') +
-        bodyP('The CTW framework repositions you. You\u2019re not the trader getting swept. You\u2019re the trader watching the sweep happen and entering after it.') +
-        bodyQuote('The market runs the same script every session. Your only job is to know which page you\u2019re on.', 'Salman, FortitudeFX\u2122')
-    },
-    17: {
-      subject:     'The best trade is sometimes no trade.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 17/20',
-      heroTitle:   'How to know when NOT to trade.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('The CTW framework tells you when to trade. It also tells you when not to.') +
-        bodyP(bodyStrong('No trade when:')) +
-        bodyP('\u2014 There is no clear sweep. Price meandered through a level without a sharp wick.') +
-        bodyP('\u2014 Candle 2 has no clear OFC. The close is indecisive.') +
-        bodyP('\u2014 Higher timeframe bias contradicts the entry direction.') +
-        bodyP('\u2014 You are in a major news event window. Price during these events is reaction, not institutional flow.') +
-        bodyP('\u2014 You\u2019ve already had two losses today. The third trade after two losses is almost always emotional.') +
-        bodyP('No trade is a position. It protects your capital for the setup that actually qualifies.') +
-        bodyQuote('Sitting on your hands is a skill. Most traders never learn it because it feels like doing nothing. It\u2019s not. It\u2019s discipline in its purest form.', 'Salman, FortitudeFX\u2122')
-    },
-    18: {
-      subject:     'Consistency first. Profitability follows.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 18/20',
-      heroTitle:   'Why consistency beats profitability in the early stages.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Most new traders focus on profit. How much did I make this week?') +
-        bodyP('That\u2019s the wrong question in the first 6 months. The right question: did I follow the rules on every trade this week?') +
-        bodyP('Profitability without consistency is luck. You can make money trading randomly if the market goes your way. But you can\u2019t replicate luck. You can\u2019t scale luck.') +
-        bodyP('Consistency means: same entry criteria, same stop methodology, same position sizing, same exit rules \u2014 on every trade. When you\u2019re consistent for 50 trades, you have a sample size. When you have a sample size, you know if the framework works. Then you can increase size with confidence.') +
-        bodyQuote('Consistent execution of a good process produces consistent results. There is no shortcut to that sequence.', 'Salman, FortitudeFX\u2122')
-    },
-    19: {
-      subject:     'You can\u2019t have one without the other.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 19/20',
-      heroTitle:   'Risk management and strategy confidence are the same thing.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('When you risk 1% per trade, a losing streak of 5 trades costs you approximately 5% of your account. That\u2019s survivable. Your confidence in the strategy stays intact.') +
-        bodyP('When you risk 5% per trade, the same losing streak costs you 25% of your account. That kind of loss changes how you trade. You start second-guessing every entry. You reduce size at the wrong time. You miss the winning trades that follow.') +
-        bodyP('Risk management is not about protection. It\u2019s about keeping your psychology intact long enough for the strategy to prove itself over a large sample size.') +
-        bodyP('Risk 1%. Trust the process. Let the sample size build.') +
-        bodyQuote('Risk management is the foundation that lets your strategy breathe. Without it, even the best framework collapses.', 'Salman, FortitudeFX\u2122')
-    },
-    20: {
-      subject:     'The ones who stay win.',
-      kickerText:  'THE FRAMEWORK SERIES \u00b7 20/20',
-      heroTitle:   'What separates traders who last from traders who quit.',
-      heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
-      body: bodyHi(firstName) +
-        bodyP('Most traders quit within 12 months. Not because they couldn\u2019t learn the framework. Because they ran out of capital, or patience, or both \u2014 usually at exactly the wrong time.') +
-        bodyP('The traders who last share one characteristic: they treated the first year as education, not income generation. They kept risk small. They journaled everything. They stayed with one framework instead of jumping between strategies every time they had a losing week.') +
-        bodyP('That consistency is what eventually produces results. Not because the market rewards perseverance philosophically \u2014 but because 200 trades with a 60% win rate and 2:1 risk/reward is mathematically profitable, and you only accumulate 200 trades by staying long enough to take them.') +
-        bodyP('Stay in the game. That\u2019s the whole strategy.') +
-        bodyQuote('The market has unlimited capital and unlimited patience. Match its patience and you\u2019ve already won half the battle.', 'Salman, FortitudeFX\u2122')
+async function generateFrameworkEmail(env, firstName) {
+  try {
+    // Step 1 — Read SEO signals for trending topic
+    var seoSignals = await env.FFX_KV.get('seo:signals', { type: 'json' }).catch(function() { return null; });
+    var topic = 'mechanical entry discipline and the CTW framework';
+    var risingQueries = [];
+    if (seoSignals && seoSignals.risingQueries && seoSignals.risingQueries.length > 0) {
+      risingQueries = seoSignals.risingQueries.slice(0, 3);
+      topic = risingQueries.map(function(q) { return q.query; }).join(', ');
     }
-  };
-  return emails[emailNum] || null;
+
+    // Step 2 — Read transcripts for Salman voice
+    var transcriptKeys = await env.FFX_KV.list({ prefix: 'transcript:' }).catch(function() { return { keys: [] }; });
+    var transcriptExcerpts = '';
+    var keysToRead = transcriptKeys.keys
+      .filter(function(k) { return !k.name.includes('timestamps'); })
+      .slice(0, 3);
+
+    for (var i = 0; i < keysToRead.length; i++) {
+      var t = await env.FFX_KV.get(keysToRead[i].name).catch(function() { return null; });
+      if (t) transcriptExcerpts += t.substring(0, 800) + '\n\n';
+    }
+
+    // Step 3 — Find relevant nugget matching topic
+    var nuggetIndex = await env.FFX_KV.get('nuggets:index', { type: 'json' }).catch(function() { return null; });
+    var closingQuote = '';
+    if (Array.isArray(nuggetIndex) && nuggetIndex.length > 0) {
+      // Try to find a topic-relevant nugget
+      var topicWords = topic.toLowerCase().split(/[\s,]+/);
+      var bestNugget = null;
+      var bestScore  = -1;
+
+      for (var j = 0; j < Math.min(nuggetIndex.length, 30); j++) {
+        var nug = await env.FFX_KV.get('nugget:' + nuggetIndex[j], { type: 'json' }).catch(function() { return null; });
+        if (!nug || !nug.text) continue;
+        var score = 0;
+        var nugText = (nug.text + ' ' + (nug.category || '') + ' ' + (nug.tags || []).join(' ')).toLowerCase();
+        topicWords.forEach(function(w) { if (w.length > 3 && nugText.includes(w)) score++; });
+        if (score > bestScore) { bestScore = score; bestNugget = nug; }
+      }
+
+      if (bestNugget) closingQuote = bestNugget.text;
+    }
+
+    // Step 4 — Build Claude prompt
+    var voiceRules = 'VOICE RULES: Write directly to one person. First sentence is a direct statement, never a question. ' +
+      'Specific and mechanical, grounded in real CTW concepts. No motivational fluff. Maximum 250 words. ' +
+      'One idea only. End naturally, no call to action.';
+
+    var prompt = 'You are writing a weekly email for FortitudeFX members in Salman Khan voice. ' +
+      'Salman is a professional forex trader, founder of FortitudeFX, teaches the Catch The Wick (CTW) methodology. ' +
+      'Voice: direct, second person, calm authority, slightly contrarian, never motivational fluff, mechanical. ' +
+      'Never starts with Most traders. Speaks to one trader not a crowd. Present tense. Short sentences. ' +
+      voiceRules + ' ' +
+      'SALMAN VOICE from his actual transcripts: ' +
+      (transcriptExcerpts ? transcriptExcerpts.substring(0, 1200).replace(/\n/g, ' ') : 'Direct, mechanical, calm authority.') + ' ' +
+      'THIS WEEK TOPIC based on what traders are searching for right now: ' + topic + '. ' +
+      'Rising queries: ' + risingQueries.map(function(q) { return q.query; }).join(', ') + '. ' +
+      'Generate the email in JSON format: ' +
+      '{"subject":"standalone subject line max 8 words no numbering","heroTitle":"short headline max 6 words",' +
+      '"heroSubtitle":"one line subtitle","body":"full email body 150-250 words in Salman voice"} ' +
+      'CRITICAL: Return ONLY valid JSON. No preamble. No markdown. First character must be {.';
+
+        // Step 5 — Call Claude
+    var claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model:      'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages:   [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!claudeRes.ok) {
+      console.error('[FFX Email] Claude API failed:', claudeRes.status);
+      return null;
+    }
+
+    var claudeData = await claudeRes.json();
+    var rawText = '';
+    if (claudeData.content) {
+      for (var k = 0; k < claudeData.content.length; k++) {
+        if (claudeData.content[k].type === 'text') rawText += claudeData.content[k].text;
+      }
+    }
+
+    // Parse JSON response
+    var jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) { console.error('[FFX Email] Claude returned no JSON'); return null; }
+    var generated = JSON.parse(jsonMatch[0]);
+
+    var emailContent = {
+      subject:     generated.subject     || 'This week from FortitudeFX',
+      kickerText:  'CATCH THE WICK™ · THE FRAMEWORK',
+      heroTitle:   generated.heroTitle   || 'The framework in practice.',
+      heroSubtitle:'Catch The Wick™ · FortitudeFX™',
+      body:        bodyHi(firstName) + generated.body.split('\n\n').map(function(p) { return bodyP(p.trim()); }).join('') +
+                   (closingQuote ? bodyQuote(closingQuote, 'Salman, FortitudeFX™') : '')
+    };
+
+    // Store draft in KV for approve endpoint
+    await env.FFX_KV.put('framework:draft', JSON.stringify(emailContent), { expirationTtl: 60 * 60 * 24 * 7 });
+
+    // Add approve button to draft copy only
+    var approveButton =
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;">' +
+      '<tr><td style="background:#f0f0f4;padding:20px;border-radius:8px;text-align:center;">' +
+      '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;color:rgba(26,26,46,0.6);">DRAFT — Review before sending to members</p>' +
+      '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">' +
+      '<tr><td style="border-radius:999px;background-color:#C9A84C;">' +
+      '<a href="https://ffx-email-worker.salmankhanfx.workers.dev/email-worker/approve" style="display:inline-block;padding:14px 36px;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#0d0d14;text-decoration:none;letter-spacing:0.02em;">Approve &amp; Send to All Members &#8594;</a>' +
+      '</td></tr></table></td></tr></table>';
+
+    var draftContent = {
+      subject:     '[DRAFT] ' + emailContent.subject,
+      kickerText:  emailContent.kickerText,
+      heroTitle:   emailContent.heroTitle,
+      heroSubtitle:emailContent.heroSubtitle,
+      body:        emailContent.body + approveButton
+    };
+
+    return draftContent;
+
+    } catch(err) {
+    console.error('[FFX Email] Framework generation error:', err.message);
+    return null;
+  }
 }
 
 // =============================================================================
@@ -767,7 +649,7 @@ async function logError(env, email, dayNum, error) {
 // GET EMAIL CONTENT FOR A CONTACT
 // =============================================================================
 
-function getEmailForContact(contact) {
+async function getEmailForContact(contact, env) {
   var attrs      = contact.attributes || {};
   var path       = attrs.FFX_PATH       || 'Free';
   var joinedDate = attrs.FFX_JOINED_DATE || null;
@@ -784,20 +666,17 @@ function getEmailForContact(contact) {
 
   if (dayNum >= 1 && dayNum <= 7) {
     // Onboarding sequence — path specific
-    if (path === 'VIP')      content = getVIPEmail(dayNum, firstName);
+    if (path === 'VIP')           content = getVIPEmail(dayNum, firstName);
     else if (path === 'Bootcamp') content = getBootcampEmail(dayNum, firstName);
-    else                     content = getFreeEmail(dayNum, firstName);
+    else                          content = getFreeEmail(dayNum, firstName);
   } else if (dayNum > 7) {
-    // Framework series — same for all paths
+    // Framework series — dynamically generated
     // Weekly: only send on days 8, 15, 22, 29... (every 7 days after Day 7)
-    var daysSinceOnboarding = dayNum - 7; // 1 on Day 8, 2 on Day 9...
-    if (daysSinceOnboarding % 7 !== 1) return null; // only send on day 1 of each week
-    var weekNum    = Math.ceil(daysSinceOnboarding / 7); // week 1, 2, 3...
-    var emailNum   = ((weekNum - 1) % 20) + 1; // cycle 1-20
-    content = getFrameworkEmail(emailNum, firstName);
-    if (content) {
-      content._dayNum = 'fw:' + weekNum + ':' + emailNum; // unique log key per week
-    }
+    var daysSinceOnboarding = dayNum - 7;
+    if (daysSinceOnboarding % 7 !== 1) return null;
+    var weekNum = Math.ceil(daysSinceOnboarding / 7);
+    content = await generateFrameworkEmail(env, firstName);
+    if (content) content._dayNum = 'fw:' + weekNum;
   }
 
   if (!content) return null;
@@ -872,7 +751,7 @@ async function runDailyEmailSequence(env) {
     var contact = contacts[i];
     if (!contact.email) continue;
 
-    var emailData = getEmailForContact(contact);
+    var emailData = await getEmailForContact(contact, env);
     if (!emailData) { skipped++; continue; }
 
     // Idempotency check — never send the same email twice
@@ -895,6 +774,55 @@ async function runDailyEmailSequence(env) {
 
   console.log('[FFX Email] Done. Sent:', sent, 'Skipped:', skipped, 'Errors:', errors);
   return { sent, skipped, errors };
+}
+
+
+// =============================================================================
+// APPROVE & SEND — sends last generated draft to all graduated members
+// =============================================================================
+
+async function handleApprove(request, env) {
+  // Read the last generated draft from KV
+  var draft = await env.FFX_KV.get('framework:draft', { type: 'json' }).catch(function() { return null; });
+  if (!draft) {
+    return new Response(JSON.stringify({ error: 'No draft found. Generate a draft first.' }), {
+      status: 404, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Fetch all contacts who have completed onboarding (daysSince >= 7)
+  var allContacts = await getAllContacts(env);
+  var graduated = allContacts.filter(function(c) {
+    var joinedDate = (c.attributes || {}).FFX_JOINED_DATE;
+    if (!joinedDate) return false;
+    var joined    = new Date(joinedDate + 'T00:00:00Z');
+    var today     = new Date();
+    var daysSince = Math.floor((today - joined) / (1000 * 60 * 60 * 24));
+    return daysSince >= 7;
+  });
+
+  var sent = 0; var errors = 0;
+
+  for (var i = 0; i < graduated.length; i++) {
+    var contact   = graduated[i];
+    var firstName = (contact.attributes || {}).FIRSTNAME || 'there';
+    var html      = ffxEmail({
+      kickerText:   draft.kickerText,
+      heroTitle:    draft.heroTitle,
+      heroSubtitle: draft.heroSubtitle,
+      bodyHtml:     draft.body.replace(/Hi there,/, 'Hi ' + firstName + ','),
+      footerNote:   'You are receiving this as part of the FortitudeFX™ community. Reply to this email anytime.'
+    });
+    var ok = await sendEmail(env, contact.email, firstName, draft.subject, html);
+    if (ok) sent++; else errors++;
+  }
+
+  // Clear the draft after sending
+  await env.FFX_KV.delete('framework:draft').catch(function() {});
+
+  return new Response(JSON.stringify({
+    success: true, sent: sent, errors: errors, total: graduated.length
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }
 
 // =============================================================================
@@ -929,7 +857,7 @@ async function handleRequest(request, env) {
     }
 
     var contact  = await res.json();
-    var emailData = getEmailForContact(contact);
+    var emailData = await getEmailForContact(contact, env);
 
     if (!emailData) {
       return new Response(JSON.stringify({ error: 'No email due for this contact today', attributes: contact.attributes }), { status: 200 });
@@ -955,6 +883,11 @@ async function handleRequest(request, env) {
     return new Response(JSON.stringify(result), { status: 200 });
   }
 
+  // Approve & Send — sends last generated draft to all graduated members
+  if (path === '/email-worker/approve') {
+    return handleApprove(request, env);
+  }
+
   // Test mode — step through sequence one email at a time
   if (path === '/email-worker/test/next') {
     return handleTestRun(request, env);
@@ -976,11 +909,8 @@ async function handleRequest(request, env) {
 // =============================================================================
 
 function serveTestDashboard() {
-  var html = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8"/>\n<meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n<title>FFX Email Worker — Test Dashboard</title>\n<style>\n  * { box-sizing: border-box; margin: 0; padding: 0; }\n  body { font-family: \'Inter\', -apple-system, sans-serif; background: #0d0d14; color: #e8e4de; padding: 40px 24px; }\n  h1 { font-size: 22px; font-weight: 700; color: #C9A84C; margin-bottom: 6px; }\n  p.sub { font-size: 13px; color: rgba(232,228,222,0.45); margin-bottom: 32px; }\n  .card { background: #111118; border: 1px solid rgba(201,168,76,0.15); border-radius: 14px; padding: 28px; margin-bottom: 20px; }\n  label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(232,228,222,0.45); margin-bottom: 8px; }\n  input, select { width: 100%; padding: 12px 16px; background: #0d0d14; border: 1px solid rgba(232,228,222,0.12); border-radius: 8px; color: #e8e4de; font-size: 14px; margin-bottom: 16px; outline: none; }\n  input:focus, select:focus { border-color: rgba(201,168,76,0.4); }\n  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; }\n  button { padding: 12px 24px; border-radius: 100px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }\n  .btn-start { background: #C9A84C; color: #0d0d14; }\n  .btn-start:hover { background: #d4b05a; }\n  .btn-next { background: rgba(201,168,76,0.12); color: #C9A84C; border: 1px solid rgba(201,168,76,0.3); }\n  .btn-next:hover { background: rgba(201,168,76,0.2); }\n  .btn-reset { background: rgba(232,228,222,0.05); color: rgba(232,228,222,0.5); border: 1px solid rgba(232,228,222,0.1); }\n  .btn-reset:hover { background: rgba(232,228,222,0.1); color: #e8e4de; }\n  .btn-stop { background: rgba(224,107,26,0.1); color: #E06B1A; border: 1px solid rgba(224,107,26,0.25); }\n  .btn-stop:hover { background: rgba(224,107,26,0.2); }\n  .status-bar { background: #0d0d14; border: 1px solid rgba(232,228,222,0.08); border-radius: 10px; padding: 20px; margin-bottom: 20px; }\n  .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }\n  .badge { display: inline-block; padding: 3px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; }\n  .badge-running { background: rgba(46,203,113,0.12); color: #2ecb71; border: 1px solid rgba(46,203,113,0.25); }\n  .badge-stopped { background: rgba(232,228,222,0.06); color: rgba(232,228,222,0.4); border: 1px solid rgba(232,228,222,0.1); }\n  .badge-done { background: rgba(201,168,76,0.12); color: #C9A84C; border: 1px solid rgba(201,168,76,0.25); }\n  .progress-wrap { background: rgba(232,228,222,0.06); border-radius: 100px; height: 6px; margin-bottom: 16px; overflow: hidden; }\n  .progress-bar { height: 6px; background: #C9A84C; border-radius: 100px; transition: width 1s linear; }\n  .countdown { font-size: 28px; font-weight: 700; color: #C9A84C; letter-spacing: -0.02em; }\n  .log { background: #0d0d14; border: 1px solid rgba(232,228,222,0.08); border-radius: 10px; padding: 20px; max-height: 360px; overflow-y: auto; }\n  .log-entry { padding: 12px 0; border-bottom: 1px solid rgba(232,228,222,0.06); font-size: 13px; line-height: 1.6; }\n  .log-entry:last-child { border-bottom: none; }\n  .log-day { font-weight: 700; color: #C9A84C; margin-right: 8px; }\n  .log-subject { color: #e8e4de; }\n  .log-meta { font-size: 11px; color: rgba(232,228,222,0.35); margin-top: 2px; }\n  .log-ok { color: #2ecb71; }\n  .log-err { color: #f87171; }\n  .empty { font-size: 13px; color: rgba(232,228,222,0.3); text-align: center; padding: 24px 0; }\n  .worker-url { font-size: 12px; color: rgba(232,228,222,0.3); margin-top: 16px; word-break: break-all; }\n  .worker-url span { color: rgba(201,168,76,0.6); }\n</style>\n</head>\n<body>\n\n<h1>FFX Email Worker — Test Dashboard</h1>\n<p class="sub">Sends test emails to salmankhanfx@fortitudefx.com every 30 seconds. Simulates 7-day onboarding + 3 framework emails.</p>\n\n<div class="card">\n  <label>Worker URL</label>\n  <input type="text" id="workerUrl" placeholder="https://ffx-email-worker.salmankhanfx.workers.dev" value="https://ffx-email-worker.salmankhanfx.workers.dev"/>\n\n  <label>Contact Email to Simulate</label>\n  <input type="email" id="contactEmail" placeholder="salmankhanfx@fortitudefx.com" value="salmankhanfx@fortitudefx.com"/>\n\n  <label>Path</label>\n  <select id="pathSelect">\n    <option value="Free">Free</option>\n    <option value="VIP">VIP</option>\n    <option value="Bootcamp">Bootcamp</option>\n  </select>\n\n  <div class="btn-row">\n    <button class="btn-start" onclick="startTest()">▶ Start Auto (30s)</button>\n    <button class="btn-next" onclick="sendNext()">→ Send Next Now</button>\n    <button class="btn-stop" onclick="stopTest()">■ Stop</button>\n    <button class="btn-reset" onclick="resetTest()">↺ Reset Sequence</button>\n  </div>\n\n  <p class="worker-url">Endpoint: <span id="endpointDisplay">—</span></p>\n</div>\n\n<div class="status-bar">\n  <div class="status-row">\n    <div>\n      <span id="statusBadge" class="badge badge-stopped">STOPPED</span>\n      &nbsp;&nbsp;\n      <span id="stepLabel" style="font-size:14px;color:rgba(232,228,222,0.6);">Ready to start</span>\n    </div>\n    <div class="countdown" id="countdown">—</div>\n  </div>\n  <div class="progress-wrap">\n    <div class="progress-bar" id="progressBar" style="width:0%"></div>\n  </div>\n  <div style="display:flex;gap:32px;">\n    <div><span style="font-size:11px;color:rgba(232,228,222,0.35);letter-spacing:0.1em;text-transform:uppercase;">Sent</span><br><span id="sentCount" style="font-size:22px;font-weight:700;color:#C9A84C;">0</span><span style="font-size:12px;color:rgba(232,228,222,0.3);"> / 10</span></div>\n    <div><span style="font-size:11px;color:rgba(232,228,222,0.35);letter-spacing:0.1em;text-transform:uppercase;">Current Day</span><br><span id="currentDay" style="font-size:22px;font-weight:700;color:#e8e4de;">—</span></div>\n    <div><span style="font-size:11px;color:rgba(232,228,222,0.35);letter-spacing:0.1em;text-transform:uppercase;">Path</span><br><span id="currentPath" style="font-size:22px;font-weight:700;color:#e8e4de;">—</span></div>\n  </div>\n</div>\n\n<div class="log" id="log">\n  <div class="empty">Emails will appear here as they are sent.</div>\n</div>\n\n<script>\nvar timer       = null;\nvar countdown   = null;\nvar sentCount   = 0;\nvar currentDay  = 0;\nvar running     = false;\nvar INTERVAL    = 30;\nvar remaining   = INTERVAL;\n\nfunction getEndpoint(next) {\n  var base    = document.getElementById(\'workerUrl\').value.trim().replace(/\\/$/, \'\');\n  var contact = encodeURIComponent(document.getElementById(\'contactEmail\').value.trim());\n  var path    = document.getElementById(\'pathSelect\').value;\n  document.getElementById(\'endpointDisplay\').textContent = base + \'/email-worker/test/next?contact=\' + contact + \'&path=\' + path;\n  if (next === \'reset\') return base + \'/email-worker/test/next?contact=\' + contact + \'&path=\' + path + \'&reset=1\';\n  return base + \'/email-worker/test/next?contact=\' + contact + \'&path=\' + path;\n}\n\nfunction setStatus(state) {\n  var badge = document.getElementById(\'statusBadge\');\n  if (state === \'running\')   { badge.className = \'badge badge-running\'; badge.textContent = \'RUNNING\'; }\n  if (state === \'stopped\')   { badge.className = \'badge badge-stopped\'; badge.textContent = \'STOPPED\'; }\n  if (state === \'done\')      { badge.className = \'badge badge-done\';    badge.textContent = \'COMPLETE\'; }\n}\n\nasync function sendNext() {\n  var url = getEndpoint();\n  document.getElementById(\'stepLabel\').textContent = \'Sending...\';\n\n  try {\n    var res  = await fetch(url);\n    var data = await res.json();\n\n    if (data.done) {\n      stopTest();\n      setStatus(\'done\');\n      document.getElementById(\'stepLabel\').textContent = \'Sequence complete (10/10). Reset to run again.\';\n      appendLog({ done: true });\n      return;\n    }\n\n    sentCount++;\n    currentDay = data.day;\n    document.getElementById(\'sentCount\').textContent  = sentCount;\n    document.getElementById(\'currentDay\').textContent = data.day;\n    document.getElementById(\'currentPath\').textContent = data.path || document.getElementById(\'pathSelect\').value;\n    document.getElementById(\'stepLabel\').textContent  = data.label || \'Day \' + data.day;\n\n    appendLog({\n      day:     data.day,\n      label:   data.label,\n      subject: data.subject,\n      ok:      data.success,\n      sentTo:  data.sentTo\n    });\n\n  } catch(err) {\n    appendLog({ error: err.message });\n    document.getElementById(\'stepLabel\').textContent = \'Error — \' + err.message;\n  }\n}\n\nfunction startCountdown() {\n  remaining = INTERVAL;\n  document.getElementById(\'countdown\').textContent = remaining + \'s\';\n  document.getElementById(\'progressBar\').style.width = \'0%\';\n\n  countdown = setInterval(function() {\n    remaining--;\n    document.getElementById(\'countdown\').textContent = remaining + \'s\';\n    document.getElementById(\'progressBar\').style.width = ((INTERVAL - remaining) / INTERVAL * 100) + \'%\';\n    if (remaining <= 0) {\n      remaining = INTERVAL;\n    }\n  }, 1000);\n}\n\nfunction startTest() {\n  if (running) return;\n  running = true;\n  setStatus(\'running\');\n\n  sendNext();\n  startCountdown();\n\n  timer = setInterval(function() {\n    if (!running) return;\n    sendNext();\n    clearInterval(countdown);\n    startCountdown();\n  }, INTERVAL * 1000);\n}\n\nfunction stopTest() {\n  running = false;\n  clearInterval(timer);\n  clearInterval(countdown);\n  timer = null;\n  countdown = null;\n  document.getElementById(\'countdown\').textContent = \'—\';\n  document.getElementById(\'progressBar\').style.width = \'0%\';\n  setStatus(\'stopped\');\n  document.getElementById(\'stepLabel\').textContent = \'Stopped\';\n}\n\nasync function resetTest() {\n  stopTest();\n  sentCount  = 0;\n  currentDay = 0;\n  document.getElementById(\'sentCount\').textContent  = \'0\';\n  document.getElementById(\'currentDay\').textContent = \'—\';\n  document.getElementById(\'currentPath\').textContent = \'—\';\n  document.getElementById(\'stepLabel\').textContent  = \'Resetting...\';\n  document.getElementById(\'log\').innerHTML = \'<div class="empty">Log cleared. Ready to start again.</div>\';\n\n  var url = getEndpoint(\'reset\');\n  try {\n    await fetch(url);\n    document.getElementById(\'stepLabel\').textContent = \'Reset complete. Ready to start.\';\n  } catch(e) {\n    document.getElementById(\'stepLabel\').textContent = \'Reset failed: \' + e.message;\n  }\n}\n\nfunction appendLog(entry) {\n  var log = document.getElementById(\'log\');\n  if (log.querySelector(\'.empty\')) log.innerHTML = \'\';\n\n  var div = document.createElement(\'div\');\n  div.className = \'log-entry\';\n\n  if (entry.done) {\n    div.innerHTML = \'<span class="log-day">✓ COMPLETE</span><span class="log-subject">All 10 emails sent successfully.</span>\';\n  } else if (entry.error) {\n    div.innerHTML = \'<span class="log-err">✗ ERROR</span> <span class="log-subject">\' + entry.error + \'</span>\';\n  } else {\n    var status = entry.ok ? \'<span class="log-ok">✓ Sent</span>\' : \'<span class="log-err">✗ Failed</span>\';\n    div.innerHTML =\n      \'<span class="log-day">Day \' + entry.day + \'</span>\' +\n      \'<span class="log-subject">\' + (entry.subject || \'\') + \'</span>\' +\n      \'<div class="log-meta">\' + status + \' → \' + (entry.sentTo || \'\') + \' · \' + new Date().toLocaleTimeString() + \'</div>\';\n  }\n\n  log.insertBefore(div, log.firstChild);\n}\n\n// Update endpoint display on input change\ndocument.getElementById(\'workerUrl\').addEventListener(\'input\', getEndpoint);\ndocument.getElementById(\'contactEmail\').addEventListener(\'input\', getEndpoint);\ndocument.getElementById(\'pathSelect\').addEventListener(\'change\', getEndpoint);\ngetEndpoint();\n</script>\n\n</body>\n</html>\n';
-  return new Response(html, {
-    status: 200,
-    headers: { 'Content-Type': 'text/html; charset=utf-8' }
-  });
+  var html = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8"/>\n<meta name="viewport" content="width=device-width,initial-scale=1.0"/>\n<title>FFX Email Worker \u2014 Test Dashboard</title>\n<style>\n* { box-sizing:border-box;margin:0;padding:0; }\nbody { font-family:\'Inter\',-apple-system,sans-serif;background:#0d0d14;color:#e8e4de;padding:40px 24px; }\nh1 { font-size:22px;font-weight:700;color:#C9A84C;margin-bottom:6px; }\np.sub { font-size:13px;color:rgba(232,228,222,0.45);margin-bottom:32px; }\n.card { background:#111118;border:1px solid rgba(201,168,76,0.15);border-radius:14px;padding:28px;margin-bottom:20px; }\nlabel { display:block;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(232,228,222,0.45);margin-bottom:8px; }\ninput,select { width:100%;padding:12px 16px;background:#0d0d14;border:1px solid rgba(232,228,222,0.12);border-radius:8px;color:#e8e4de;font-size:14px;margin-bottom:16px;outline:none; }\n.btn-row { display:flex;gap:12px;flex-wrap:wrap;margin-top:4px; }\nbutton { padding:12px 24px;border-radius:100px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s; }\n.btn-start { background:#C9A84C;color:#0d0d14; }\n.btn-next { background:rgba(201,168,76,0.12);color:#C9A84C;border:1px solid rgba(201,168,76,0.3); }\n.btn-stop { background:rgba(224,107,26,0.1);color:#E06B1A;border:1px solid rgba(224,107,26,0.25); }\n.btn-reset { background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.25); }\n.status-bar { background:#0d0d14;border:1px solid rgba(232,228,222,0.08);border-radius:10px;padding:20px;margin-bottom:20px; }\n.status-row { display:flex;justify-content:space-between;align-items:center;margin-bottom:12px; }\n.badge { display:inline-block;padding:3px 12px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:0.1em; }\n.badge-running { background:rgba(46,203,113,0.12);color:#2ecb71;border:1px solid rgba(46,203,113,0.25); }\n.badge-stopped { background:rgba(232,228,222,0.06);color:rgba(232,228,222,0.4);border:1px solid rgba(232,228,222,0.1); }\n.progress-wrap { background:rgba(232,228,222,0.06);border-radius:100px;height:6px;margin-bottom:16px;overflow:hidden; }\n.progress-bar { height:6px;background:#C9A84C;border-radius:100px;transition:width 1s linear; }\n.countdown { font-size:28px;font-weight:700;color:#C9A84C;letter-spacing:-0.02em; }\n.log { background:#0d0d14;border:1px solid rgba(232,228,222,0.08);border-radius:10px;padding:20px;max-height:400px;overflow-y:auto; }\n.log-entry { padding:12px 0;border-bottom:1px solid rgba(232,228,222,0.06);font-size:13px;line-height:1.6; }\n.log-entry:last-child { border-bottom:none; }\n.log-day { font-weight:700;color:#C9A84C;margin-right:8px; }\n.log-subject { color:#e8e4de; }\n.log-meta { font-size:11px;color:rgba(232,228,222,0.35);margin-top:2px; }\n.log-ok { color:#2ecb71; }\n.log-err { color:#f87171; }\n.empty { font-size:13px;color:rgba(232,228,222,0.3);text-align:center;padding:24px 0; }\n.stats { display:flex;gap:32px; }\n.stat-label { font-size:11px;color:rgba(232,228,222,0.35);letter-spacing:0.1em;text-transform:uppercase; }\n.stat-value { font-size:22px;font-weight:700;color:#C9A84C; }\n</style>\n</head>\n<body>\n<h1>FFX Email Worker \u2014 Test Dashboard</h1>\n<p class="sub">Sends test emails to salmankhanfx@fortitudefx.com. State persists \u2014 hit Reset to start from Day 1.</p>\n\n<div class="card">\n  <label>Worker URL</label>\n  <input type="text" id="workerUrl" value="https://ffx-email-worker.salmankhanfx.workers.dev"/>\n  <label>Contact Email to Simulate</label>\n  <input type="email" id="contactEmail" value="salmankhanfx@fortitudefx.com"/>\n  <label>Path</label>\n  <select id="pathSelect">\n    <option value="Free">Free</option>\n    <option value="VIP">VIP</option>\n    <option value="Bootcamp">Bootcamp</option>\n  </select>\n  <div class="btn-row">\n    <button class="btn-start" onclick="startTest()">\u25b6 Start Auto (30s)</button>\n    <button class="btn-next" onclick="sendNext()">\u2192 Send Next Now</button>\n    <button class="btn-stop" onclick="stopTest()">\u25a0 Stop</button>\n    <button class="btn-reset" onclick="resetTest()">\u21ba Reset to Day 1</button>\n  </div>\n</div>\n\n<div class="status-bar">\n  <div class="status-row">\n    <div>\n      <span id="statusBadge" class="badge badge-stopped">STOPPED</span>\n      &nbsp;&nbsp;\n      <span id="stepLabel" style="font-size:14px;color:rgba(232,228,222,0.6);">Ready</span>\n    </div>\n    <div class="countdown" id="countdown">\u2014</div>\n  </div>\n  <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>\n  <div class="stats">\n    <div><div class="stat-label">Sent</div><div class="stat-value" id="sentCount">0</div></div>\n    <div><div class="stat-label">Current Day</div><div class="stat-value" id="currentDay">\u2014</div></div>\n    <div><div class="stat-label">Path</div><div class="stat-value" id="currentPath">\u2014</div></div>\n  </div>\n</div>\n\n<div class="log" id="log"><div class="empty">Emails will appear here as they are sent.</div></div>\n\n<script>\nvar timer=null,countdown=null,sentCount=0,running=false,INTERVAL=30,remaining=INTERVAL;\n\nfunction base(){return document.getElementById(\'workerUrl\').value.trim().replace(/\\/$/,\'\');}\nfunction contact(){return encodeURIComponent(document.getElementById(\'contactEmail\').value.trim());}\nfunction path(){return document.getElementById(\'pathSelect\').value;}\nfunction nextUrl(){return base()+\'/email-worker/test/next?contact=\'+contact()+\'&path=\'+path();}\nfunction resetUrl(){return base()+\'/email-worker/test/next?contact=\'+contact()+\'&path=\'+path()+\'&reset=1\';}\n\nfunction setBadge(s){\n  var b=document.getElementById(\'statusBadge\');\n  b.className=\'badge badge-\'+(s===\'running\'?\'running\':\'stopped\');\n  b.textContent=s.toUpperCase();\n}\n\nasync function sendNext(){\n  document.getElementById(\'stepLabel\').textContent=\'Sending...\';\n  try{\n    var res=await fetch(nextUrl());\n    var data=await res.json();\n    sentCount++;\n    document.getElementById(\'sentCount\').textContent=sentCount;\n    document.getElementById(\'currentDay\').textContent=data.day||\'\u2014\';\n    document.getElementById(\'currentPath\').textContent=data.path||path();\n    document.getElementById(\'stepLabel\').textContent=data.label||\'Day \'+data.day;\n    appendLog({day:data.day,label:data.label,subject:data.subject,ok:data.success,sentTo:data.sentTo});\n  }catch(e){\n    appendLog({error:e.message});\n    document.getElementById(\'stepLabel\').textContent=\'Error: \'+e.message;\n  }\n}\n\nfunction tick(){\n  remaining--;\n  document.getElementById(\'countdown\').textContent=remaining+\'s\';\n  document.getElementById(\'progressBar\').style.width=((INTERVAL-remaining)/INTERVAL*100)+\'%\';\n  if(remaining<=0){\n    remaining=INTERVAL;\n    sendNext();\n  }\n}\n\nfunction startTest(){\n  if(running)return;\n  running=true;\n  setBadge(\'running\');\n  sendNext();\n  remaining=INTERVAL;\n  countdown=setInterval(tick,1000);\n}\n\nfunction stopTest(){\n  running=false;\n  clearInterval(countdown);\n  countdown=null;\n  document.getElementById(\'countdown\').textContent=\'\u2014\';\n  document.getElementById(\'progressBar\').style.width=\'0%\';\n  setBadge(\'stopped\');\n  document.getElementById(\'stepLabel\').textContent=\'Stopped\';\n}\n\nasync function resetTest(){\n  stopTest();\n  sentCount=0;\n  document.getElementById(\'sentCount\').textContent=\'0\';\n  document.getElementById(\'currentDay\').textContent=\'\u2014\';\n  document.getElementById(\'currentPath\').textContent=\'\u2014\';\n  document.getElementById(\'stepLabel\').textContent=\'Resetting...\';\n  document.getElementById(\'log\').innerHTML=\'<div class="empty">Log cleared. Starting from Day 1.</div>\';\n  try{\n    await fetch(resetUrl());\n    document.getElementById(\'stepLabel\').textContent=\'Reset complete. Ready.\';\n  }catch(e){\n    document.getElementById(\'stepLabel\').textContent=\'Reset failed: \'+e.message;\n  }\n}\n\nfunction appendLog(e){\n  var log=document.getElementById(\'log\');\n  if(log.querySelector(\'.empty\'))log.innerHTML=\'\';\n  var d=document.createElement(\'div\');\n  d.className=\'log-entry\';\n  if(e.error){\n    d.innerHTML=\'<span class="log-err">\u2717 ERROR</span> \'+e.error;\n  } else {\n    var s=e.ok?\'<span class="log-ok">\u2713 Sent</span>\':\'<span class="log-err">\u2717 Failed</span>\';\n    d.innerHTML=\'<span class="log-day">Day \'+e.day+\'</span><span class="log-subject">\'+( e.subject||\'\')+\'</span><div class="log-meta">\'+s+\' \u2192 \'+(e.sentTo||\'\')+\' \xb7 \'+new Date().toLocaleTimeString()+\'</div>\';\n  }\n  log.insertBefore(d,log.firstChild);\n}\n</script>\n</body>\n</html>\n';
+  return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
 
 // =============================================================================
@@ -1028,19 +958,9 @@ async function handleTestRun(request, env) {
     else                                content = getFreeEmail(state.day, 'Test');
     label = 'ONBOARDING Day ' + state.day + '/7 (' + state.path + ')';
   } else {
-    // Framework series — day 8 = email 1, day 9 = email 2 etc
-    var fwNum = ((state.day - 8) % 20) + 1;
-    content   = getFrameworkEmail(fwNum, 'Test');
-    label     = 'FRAMEWORK ' + fwNum + '/20';
-  }
-
-  // Cap at day 10 (7 onboarding + 3 framework) then stop
-  if (state.day > 10) {
-    return new Response(JSON.stringify({
-      done:    true,
-      contact: email,
-      message: 'Test sequence complete (7 onboarding + 3 framework). Call ?reset=1 to restart.'
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    // Framework series — dynamically generated
+    content = await generateFrameworkEmail(env, 'Test');
+    label   = 'FRAMEWORK (generated)';
   }
 
   if (!content) {
