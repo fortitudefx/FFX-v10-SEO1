@@ -905,11 +905,6 @@ async function handleRequest(request, env) {
   var url    = new URL(request.url);
   var path   = url.pathname;
 
-  // Only handle /email-worker routes and /test
-  if (!path.startsWith('/email-worker') && path !== '/test' && path !== '/test/') {
-    return new Response('Not found', { status: 404 });
-  }
-
   // Preview mode — sends one test email to PREVIEW_EMAIL
   if (path === '/email-worker/preview') {
     var contactEmail = url.searchParams.get('contact');
