@@ -457,148 +457,518 @@ function getBootcampEmail(day, firstName) {
 }
 
 // =============================================================================
-// FRAMEWORK EMAIL — DYNAMIC GENERATION
+// FRAMEWORK EMAIL SERIES — 52 STATIC EMAILS
 // =============================================================================
-// Reads SEO signals, transcripts, and nuggets from KV.
-// Calls Claude to generate a fresh email in Salman's voice on the trending topic.
-// Returns null if generation fails — no fallback, no templated content.
+// Pre-written in Salman's voice. Cycles weekly — email 1 through 52 then repeats.
+// No Claude API call. No runtime generation. Zero dependency failures.
 
-async function generateFrameworkEmail(env, firstName) {
-  try {
-    // Step 1 — Read SEO signals for trending topic
-    var seoSignals = await env.FFX_KV.get('seo:signals', { type: 'json' }).catch(function() { return null; });
-    var topic = 'mechanical entry discipline and the CTW framework';
-    var risingQueries = [];
-    if (seoSignals && seoSignals.risingQueries && seoSignals.risingQueries.length > 0) {
-      risingQueries = seoSignals.risingQueries.slice(0, 3);
-      topic = risingQueries.map(function(q) { return q.query; }).join(', ');
-    }
-
-    // Step 2 — Read transcripts for Salman voice
-    var transcriptKeys = await env.FFX_KV.list({ prefix: 'transcript:' }).catch(function() { return { keys: [] }; });
-    var transcriptExcerpts = '';
-    var keysToRead = transcriptKeys.keys
-      .filter(function(k) { return !k.name.includes('timestamps'); })
-      .slice(0, 3);
-
-    for (var i = 0; i < keysToRead.length; i++) {
-      var t = await env.FFX_KV.get(keysToRead[i].name).catch(function() { return null; });
-      if (t) transcriptExcerpts += t.substring(0, 800) + '\n\n';
-    }
-
-    // Step 3 — Find relevant nugget matching topic
-    var nuggetIndex = await env.FFX_KV.get('nuggets:index', { type: 'json' }).catch(function() { return null; });
-    var closingQuote = '';
-    if (Array.isArray(nuggetIndex) && nuggetIndex.length > 0) {
-      // Try to find a topic-relevant nugget
-      var topicWords = topic.toLowerCase().split(/[\s,]+/);
-      var bestNugget = null;
-      var bestScore  = -1;
-
-      for (var j = 0; j < Math.min(nuggetIndex.length, 30); j++) {
-        var nug = await env.FFX_KV.get('nugget:' + nuggetIndex[j], { type: 'json' }).catch(function() { return null; });
-        if (!nug || !nug.text) continue;
-        var score = 0;
-        var nugText = (nug.text + ' ' + (nug.category || '') + ' ' + (nug.tags || []).join(' ')).toLowerCase();
-        topicWords.forEach(function(w) { if (w.length > 3 && nugText.includes(w)) score++; });
-        if (score > bestScore) { bestScore = score; bestNugget = nug; }
-      }
-
-      if (bestNugget) closingQuote = bestNugget.text;
-    }
-
-    // Step 4 — Build Claude prompt
-    var voiceRules = 'VOICE RULES: Write directly to one person. First sentence is a direct statement, never a question. ' +
-      'Specific and mechanical, grounded in real CTW concepts. No motivational fluff. Maximum 250 words. ' +
-      'One idea only. End naturally, no call to action.';
-
-    var prompt = 'You are writing a weekly email for FortitudeFX members in Salman Khan voice. ' +
-      'Salman is a professional forex trader, founder of FortitudeFX, teaches the Catch The Wick (CTW) methodology. ' +
-      'Voice: direct, second person, calm authority, slightly contrarian, never motivational fluff, mechanical. ' +
-      'Never starts with Most traders. Speaks to one trader not a crowd. Present tense. Short sentences. ' +
-      voiceRules + ' ' +
-      'SALMAN VOICE from his actual transcripts: ' +
-      (transcriptExcerpts ? transcriptExcerpts.substring(0, 1200).replace(/\n/g, ' ') : 'Direct, mechanical, calm authority.') + ' ' +
-      'THIS WEEK TOPIC based on what traders are searching for right now: ' + topic + '. ' +
-      'Rising queries: ' + risingQueries.map(function(q) { return q.query; }).join(', ') + '. ' +
-      'Generate the email in JSON format: ' +
-      '{"subject":"standalone subject line max 8 words no numbering","heroTitle":"short headline max 6 words",' +
-      '"heroSubtitle":"one line subtitle","body":"full email body 150-250 words in Salman voice"} ' +
-      'CRITICAL: Return ONLY valid JSON. No preamble. No markdown. First character must be {.';
-
-        // Step 5 — Call Claude
-    // Debug: log key info without exposing value
-    var keyInfo = env.ANTHROPIC_API_KEY ? 'present, length=' + env.ANTHROPIC_API_KEY.length + ', starts=' + env.ANTHROPIC_API_KEY.substring(0,7) : 'UNDEFINED';
-    console.log('[FFX Email] ANTHROPIC_API_KEY:', keyInfo);
-
-    var claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type':      'application/json',
-        'x-api-key':         env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model:      'claude-sonnet-4-6',
-        max_tokens: 1000,
-        messages:   [{ role: 'user', content: prompt }]
-      })
-    });
-
-    if (!claudeRes.ok) {
-      var errText = await claudeRes.text().catch(function() { return 'unknown'; });
-      throw new Error('Claude API ' + claudeRes.status + ': ' + errText.substring(0, 200));
-    }
-
-    var claudeData = await claudeRes.json();
-    var rawText = '';
-    if (claudeData.content) {
-      for (var k = 0; k < claudeData.content.length; k++) {
-        if (claudeData.content[k].type === 'text') rawText += claudeData.content[k].text;
-      }
-    }
-
-    // Parse JSON response
-    var jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) { throw new Error('Claude returned no JSON. Raw: ' + rawText.substring(0, 200)); }
-    var generated = JSON.parse(jsonMatch[0]);
-
-    var emailContent = {
-      subject:     generated.subject     || 'This week from FortitudeFX',
-      kickerText:  'CATCH THE WICK™ · THE FRAMEWORK',
-      heroTitle:   generated.heroTitle   || 'The framework in practice.',
-      heroSubtitle:'Catch The Wick™ · FortitudeFX™',
-      body:        bodyHi(firstName) + generated.body.split('\n\n').map(function(p) { return bodyP(p.trim()); }).join('') +
-                   (closingQuote ? bodyQuote(closingQuote, 'Salman, FortitudeFX™') : '')
-    };
-
-    // Store draft in KV for approve endpoint
-    await env.FFX_KV.put('framework:draft', JSON.stringify(emailContent), { expirationTtl: 60 * 60 * 24 * 7 });
-
-    // Add approve button to draft copy only
-    var approveButton =
-      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;">' +
-      '<tr><td style="background:#f0f0f4;padding:20px;border-radius:8px;text-align:center;">' +
-      '<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;color:rgba(26,26,46,0.6);">DRAFT — Review before sending to members</p>' +
-      '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">' +
-      '<tr><td style="border-radius:999px;background-color:#C9A84C;">' +
-      '<a href="https://ffx-email-worker.salmankhanfx.workers.dev/email-worker/approve" style="display:inline-block;padding:14px 36px;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#0d0d14;text-decoration:none;letter-spacing:0.02em;">Approve &amp; Send to All Members &#8594;</a>' +
-      '</td></tr></table></td></tr></table>';
-
-    var draftContent = {
-      subject:     '[DRAFT] ' + emailContent.subject,
-      kickerText:  emailContent.kickerText,
-      heroTitle:   emailContent.heroTitle,
-      heroSubtitle:emailContent.heroSubtitle,
-      body:        emailContent.body + approveButton
-    };
-
-    return draftContent;
-
-    } catch(err) {
-    console.error('[FFX Email] Framework generation error:', err.message);
-    return { _error: err.message, subject: 'Generation failed', kickerText: 'ERROR', heroTitle: err.message.substring(0, 50), heroSubtitle: 'Check Worker logs', body: '<p style="color:red;">Framework email generation failed: ' + err.message + '</p>' };
+function getFrameworkEmail(emailNum, firstName) {
+  var hi = '<p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">Hi ' + firstName + ',</p>';
+  function p(t) { return '<p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">' + t + '</p>'; }
+  function b(t) { return '<strong style="color:#1a1a2e;">' + t + '</strong>'; }
+  function q(quote) {
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr></table>' +
+      '<p style="margin:0 0 4px;font-family:Georgia,serif;font-size:15px;font-style:italic;color:#1a1a2e;line-height:1.65;">&ldquo;' + quote + '&rdquo;</p>' +
+      '<p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:12px;color:#9999aa;letter-spacing:0.04em;">&mdash; Salman, FortitudeFX&trade;</p>' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;"><tr><td style="height:1px;background:#f0f0f4;font-size:0;line-height:0;">&nbsp;</td></tr></table>';
   }
+
+  var emails = {
+    1: { subject: 'The color of the candle is not decoration.',
+      heroTitle: 'The candle is telling you something.',
+      body: hi + p('The color of a candle is not aesthetic. It is directional information.') +
+        p('A green candle closed higher than it opened. A red candle closed lower. That\u2019s it. That\u2019s the entire story the color is telling you.') +
+        p('Where traders get this wrong is they stop reading at the color. They see green and assume bullish. They see red and assume bearish. But a green candle with a long upper wick is not bullish momentum \u2014 it\u2019s rejection. A red candle with a long lower wick is not bearish momentum \u2014 it\u2019s a sweep.') +
+        p('In the CTW framework, I don\u2019t care about the color in isolation. I care about what the candle did, where it did it, and what the wick is telling me about where price went and where it came back from.') +
+        p('The wick is where price was rejected. The body is where price committed. Read both together and the candle stops being a colored bar. It becomes a sentence.') +
+        p('Your job before you place any trade is to read the sentence. The color just tells you which direction the sentence ended.') +
+        q('Every candle is a decision. Read what the market decided before you make your own.') },
+
+    2: { subject: 'The wick is more important than the body.',
+      heroTitle: 'The body closes. The wick reveals.',
+      body: hi + p('The body of a candle tells you where price ended up. The wick tells you where price went and got rejected.') +
+        p('For the CTW framework, the wick is the signal. It shows me where liquidity was sitting \u2014 where stops were placed \u2014 and where price went to take those stops before reversing. That\u2019s institutional activity. That\u2019s the footprint of a large order being filled.') +
+        p('When you see a wick extend beyond a significant level and then pull back, that\u2019s not random noise. Price went there, did something specific, and came back. The question I ask is: what did it do there?') +
+        p('Answer: it filled orders. It swept liquidity. It set up the next move.') +
+        p('The body of Candle 2 then tells me if the move is confirmed. If the body closes in the opposite direction of the wick \u2014 with momentum behind it \u2014 that\u2019s my setup. That\u2019s the entry.') +
+        p('Stop looking at bodies and asking if price is going up or down. Start looking at wicks and asking where price was and where it came from.') +
+        q('The wick is the most honest thing on the chart. It shows you exactly where price went and exactly what happened there.') },
+
+    3: { subject: 'Price went there for a reason.',
+      heroTitle: 'The sweep is not random.',
+      body: hi + p('When price pushes beyond a significant level \u2014 a previous high, a previous low \u2014 and then pulls back sharply, that\u2019s a sweep.') +
+        p('It\u2019s not random. Price went there to fill orders. Stops were sitting at that level. Price went and took them, and in doing so, provided the liquidity needed for a large position to be established in the opposite direction.') +
+        p('That\u2019s the entire setup.') +
+        p('In the CTW framework, I\u2019m not trying to predict where price is going. I\u2019m identifying where liquidity exists, watching price move toward it, and then positioning after the sweep happens \u2014 in the direction of the new move.') +
+        p('The key is the word \u201cafter.\u201d I don\u2019t enter during the sweep. The wick is still forming. I don\u2019t know if the sweep is complete. I wait for Candle 2 to close. If it closes with momentum confirming the reversal, I enter.') +
+        p('I\u2019m always one candle behind the sweep. That one candle costs me some of the move. But it gives me certainty. And certainty is worth more than catching the exact bottom.') +
+        q('You don\u2019t need to be first. You need to be right. Wait for the candle to close.') },
+
+    4: { subject: 'A zone is not a line.',
+      heroTitle: 'Give price room to work.',
+      body: hi + p('A level is a line. A zone is an area.') +
+        p('If you\u2019re drawing a single horizontal line and expecting price to touch it exactly before reversing, you\u2019re setting yourself up for frustration. Institutional orders don\u2019t fill at one precise price. They fill across a range \u2014 because at the size they\u2019re trading, they need multiple price points to complete the fill.') +
+        p('That range is the zone.') +
+        p('When I mark a demand zone, I\u2019m marking an area where I expect institutional interest. The zone is valid as long as price hasn\u2019t aggressively broken through it and continued.') +
+        p('When price enters the zone and I see a wick forming \u2014 a liquidity sweep within or below the zone \u2014 I start watching for Candle 2. If Candle 2 closes with clear momentum, I\u2019m entering.') +
+        p('I\u2019m not waiting for price to touch my line. I\u2019m watching for the setup to appear within my area.') +
+        q('The market is not precise. Your levels should reflect that. Zones, not lines.') },
+
+    5: { subject: 'When momentum shows up, the next candle matters.',
+      heroTitle: 'Momentum is the signal.',
+      body: hi + p('A momentum candle is a candle with a clear, strong body in one direction. No long wicks. No indecision. Price moved and committed.') +
+        p('When I see a momentum candle form after a liquidity sweep, I know something has shifted. The institutional order that was being filled has now pushed price with conviction. That\u2019s the story I\u2019m waiting to see.') +
+        p('My entry comes on the next candle \u2014 the candle that confirms the momentum is continuing. If it opens, pushes in the same direction, and closes near its high or low with similar conviction, I\u2019m in.') +
+        p('This is the two-candle story. Candle 1 shows me the sweep and the shift. Candle 2 confirms the direction. I enter after Candle 2 closes.') +
+        p('The mistake is entering during the momentum candle while it\u2019s still forming. That\u2019s chasing. The candle hasn\u2019t finished its sentence yet. Wait for the close. Read the complete sentence before you act on it.') +
+        q('Momentum without confirmation is just movement. Wait for the candle to confirm the story before you join it.') },
+
+    6: { subject: 'The higher timeframe is always the boss.',
+      heroTitle: 'Context before entry.',
+      body: hi + p('Before I look at a 15-minute candle, I look at the daily.') +
+        p('The daily chart tells me the overall structure. Is price in an uptrend, making higher highs and higher lows? Is it in a downtrend? Is it ranging between two obvious levels?') +
+        p('That answer is my bias for the session. I take it into every trade I evaluate.') +
+        p('If the daily is bullish, I\u2019m looking for CTW long entries on the 15-minute. A sweep of a low, a momentum candle closing upward, an OFC \u2014 I\u2019m in. If the daily is bearish, I\u2019m looking for short setups. Same framework, opposite direction.') +
+        p('This is timeframe alignment. My entry timeframe and my context timeframe are pointing in the same direction. When that\u2019s the case, the probability of the trade working increases significantly.') +
+        p('When they conflict, I skip it. There will be another setup. The move might work. But I don\u2019t want to trade against the current.') +
+        q('Your 15-minute setup is a sentence in a paragraph. Read the paragraph first.') },
+
+    7: { subject: 'It works on the 5-minute. It works on the daily.',
+      heroTitle: 'The pattern doesn\u2019t care about the timeframe.',
+      body: hi + p('The CTW framework is not a 15-minute strategy. It\u2019s a pattern of institutional behavior that repeats on every timeframe.') +
+        p('Liquidity sweeps happen on the 1-minute. They happen on the daily. They happen everywhere in between. The candle closes at different speeds, but the story is the same \u2014 price swept a level, liquidity was taken, the next candle confirmed direction.') +
+        p('I use the 15-minute as my primary entry timeframe because it filters noise better than the 1-minute and gives faster signals than the 4-hour. But the framework itself is timeframe agnostic.') +
+        p('If you\u2019re a swing trader and you want to apply CTW on the 4-hour or daily, the setup is identical. Candle 1 sweeps a significant level. Candle 2 closes with OFC. You enter.') +
+        p('Pick the timeframe that fits your lifestyle. The framework works on all of them.') +
+        q('Price action is fractal. The same patterns appear at every scale. The framework just has to be applied consistently.') },
+
+    8: { subject: 'Every 15-minute candle is a sentence.',
+      heroTitle: 'Learn to read before you act.',
+      body: hi + p('I want you to think about the 15-minute candle differently.') +
+        p('It\u2019s not a data point. It\u2019s a sentence. It\u2019s telling you exactly what happened in 15 minutes of trading \u2014 where price opened, where it went, where it got rejected, and where it closed.') +
+        p('The open is the starting word. The close is the ending word. The wick is a parenthetical \u2014 it tells you where price visited but didn\u2019t commit to.') +
+        p('When you read several candles in sequence, you get a paragraph. A narrative. Higher highs and higher lows \u2014 bullish paragraph. Lower highs and lower lows \u2014 bearish paragraph. A sweep followed by a strong close in the opposite direction \u2014 that\u2019s the setup paragraph. That\u2019s the one I\u2019m waiting for.') +
+        p('Slow down. Read one candle completely before moving to the next. Where did it open? What did the wick tell you? Where did it close relative to the open?') +
+        q('A chart is a story. The trader who reads it best, not reacts to it fastest, wins.') },
+
+    9: { subject: 'The strategy isn\u2019t the problem.',
+      heroTitle: 'The trigger is missing.',
+      body: hi + p('I\u2019ve spoken to traders who have been trading for years. They understand price action. They understand liquidity. They understand structure.') +
+        p('And they\u2019re still not consistent.') +
+        p('The strategy isn\u2019t the problem. The trigger is.') +
+        p('A trigger is the exact, mechanical condition that tells you when to enter. Not \u201cwhen it looks ready.\u201d A specific, observable event that either happened or didn\u2019t.') +
+        p('In CTW, the trigger is clear. The wick swept the level. The next candle closed with OFC. The HTF is aligned. I enter. Three conditions. All three have to be met. If one is missing, I don\u2019t trade.') +
+        p('Without a trigger, you have knowledge without action. You can see the setup forming. You understand what\u2019s happening. But you don\u2019t know when to enter, so you either enter too early, too late, or not at all.') +
+        q('Knowledge without a trigger is just expensive theory. The trigger is the trade.') },
+
+    10: { subject: 'Two candles. That\u2019s the entire framework.',
+      heroTitle: 'Two candles. One story.\u2122',
+      body: hi + p('Strip everything back. Remove the indicators. Remove the complex confluence. Remove the multi-step decision trees.') +
+        p('What I\u2019m looking for is two candles.') +
+        p(b('Candle 1') + ' sweeps a level. It takes out the stops sitting at a significant high or low, extends beyond it with a wick, and then pulls back. That\u2019s the sweep.') +
+        p(b('Candle 2') + ' confirms the direction. It closes with momentum in the opposite direction of the sweep. The body is clear. The close is committed. That\u2019s the OFC.') +
+        p('I enter after Candle 2 closes. That\u2019s the entire framework. Two candles. One story.') +
+        p('Everything else I teach \u2014 timeframe alignment, zone identification, session timing, position sizing \u2014 that\u2019s context. It makes the two-candle setup more reliable. But the core never changes.') +
+        q('The simplest version of the truth is always the most powerful version. Two candles is the truth.') },
+
+    11: { subject: 'If you\u2019re asking whether it counts, it doesn\u2019t.',
+      heroTitle: 'OFC is not a feeling. It\u2019s a fact.',
+      body: hi + p('Orderflow confirmation. OFC.') +
+        p('It\u2019s the moment Candle 2 closes with clear directional momentum. The body of the candle shows commitment. Price moved, it didn\u2019t reverse within the candle, and it closed near the extreme.') +
+        p('The test I use is simple: if I\u2019m asking myself \u201cdoes this count?\u201d, the answer is no.') +
+        p('Clear OFC doesn\u2019t require analysis. It doesn\u2019t require second-guessing. When it\u2019s there, you see it immediately. The candle committed. The close is clean.') +
+        p('A doji doesn\u2019t have OFC. A spinning top doesn\u2019t have OFC. A candle that wicks aggressively in both directions and closes in the middle \u2014 no OFC. You skip it.') +
+        p('This is what separates the CTW framework from a feeling-based approach. I\u2019m not asking \u201cdoes this look ready?\u201d I\u2019m asking a specific, mechanical question: did Candle 2 close with OFC? Yes or no.') +
+        q('OFC is binary. Either the candle committed or it didn\u2019t. There\u2019s no middle ground.') },
+
+    12: { subject: 'Two hours. Then you close the platform.',
+      heroTitle: 'Your edge lives in two hours.',
+      body: hi + p('The London session opens. The first two hours after the open are where the most significant institutional activity happens. That\u2019s where I trade.') +
+        p('After those two hours, I close the platform.') +
+        p('This isn\u2019t a rule I follow reluctantly. It\u2019s a rule I follow because I\u2019ve seen what happens when I don\u2019t. The longer I sit in front of a chart looking for something to trade, the worse my decisions get. I start seeing setups that aren\u2019t there.') +
+        p('Two hours of focused, rule-based execution produces better results than eight hours of watching and reacting.') +
+        p('If the setup appears in those two hours and all conditions are met, I trade it. If the setup doesn\u2019t appear, I close the platform and I\u2019m done for the day. No frustration. No chasing.') +
+        q('The edge is in the session. The mistakes are in the hours that follow.') },
+
+    13: { subject: 'Your stop goes where the trade is wrong.',
+      heroTitle: 'The stop is part of the trade.',
+      body: hi + p('I place my stop where the trade is wrong. Not where the loss feels acceptable.') +
+        p('In CTW, the trade is wrong when the setup that gave me the entry no longer exists. If I entered long after a sweep of a low \u2014 Candle 1 swept the low, Candle 2 confirmed upward momentum \u2014 my stop goes below the wick of Candle 1.') +
+        p('Why? Because if price goes back below that wick, the sweep failed. The reversal didn\u2019t hold. The trade is wrong. I exit.') +
+        p('A lot of traders place a fixed stop because that\u2019s what they can afford to lose on this trade. That has nothing to do with where the trade is wrong. You\u2019re placing your stop based on your account balance, not based on the structure of the setup.') +
+        p('When I\u2019ve defined where the trade is wrong, I can calculate how many lots to take so that losing the trade costs me a defined percentage of my account. The stop location comes first. The position size follows.') +
+        q('A stop placed where the trade is wrong is a risk management tool. A stop placed where the loss feels acceptable is a gamble.') },
+
+    14: { subject: 'Size follows the stop. Not the other way around.',
+      heroTitle: 'Mechanical sizing. Every trade.',
+      body: hi + p('Once I know where my stop goes \u2014 below the sweep wick, at the level where the trade is wrong \u2014 I can calculate my position size.') +
+        p('The process is simple. I decide in advance how much of my account I\u2019m willing to lose if this trade is wrong. I know the distance from my entry to my stop. I calculate the lot size that keeps my loss at exactly that amount.') +
+        p('That\u2019s my position size. I don\u2019t size up because the setup \u201clooks really good.\u201d I don\u2019t size down because I\u2019m nervous. The calculation produces the same answer every time given the same inputs.') +
+        p('This matters more than most traders realize. Consistent position sizing is what keeps you in the game during a losing streak. If you\u2019re risking a defined amount per trade and you have consecutive losses, the drawdown is survivable. You continue. You let the framework work.') +
+        p('Calculate the lot size. Every time. Mechanical. Consistent.') +
+        q('Position sizing is the discipline that lets your strategy breathe. Without it, even the best framework collapses under a losing streak.') },
+
+    15: { subject: 'If you didn\u2019t write it down, it didn\u2019t happen.',
+      heroTitle: 'The journal is your real edge.',
+      body: hi + p('After every trade, I write down what happened. Not just the outcome \u2014 the process.') +
+        p('Did the sweep happen at a significant level? Was the OFC clear on Candle 2? Did I enter at the right point? Was my stop placed correctly? Did I exit at my target or early?') +
+        p('These questions matter more than whether the trade won or lost.') +
+        p('Over time, a detailed journal shows me patterns I can\u2019t see in the moment. Maybe I consistently exit early on winning trades and eliminate my risk/reward. Maybe I\u2019m entering before OFC is confirmed.') +
+        p('Write down the process, not just the result. \u201cEntered long. Hit target.\u201d tells me nothing. \u201cPrevious session low swept, Candle 2 closed with clear OFC, entered at next candle open, stop below wick, target at previous session high\u201d \u2014 that tells me everything.') +
+        q('Your journal doesn\u2019t lie to you. It shows exactly where you followed the rules and exactly where you didn\u2019t.') },
+
+    16: { subject: 'Patience is not a mindset. It\u2019s a rule.',
+      heroTitle: 'You\u2019re not waiting. You\u2019re following a rule.',
+      body: hi + p('Every trader who has struggled with consistency has said at some point: \u201cI just need to be more patient.\u201d') +
+        p('Patience is not the solution. A clearer rule is.') +
+        p('When you have a specific, mechanical trigger for entry \u2014 the sweep happened, Candle 2 printed OFC, the HTF bias aligns \u2014 you\u2019re not waiting for something vague. You\u2019re waiting for three specific, observable events. Either they all happened or they didn\u2019t.') +
+        p('That\u2019s not patience. That\u2019s following a rule.') +
+        p('When I\u2019m in front of the charts and the setup isn\u2019t printing, I\u2019m not exercising patience. I\u2019m watching a chart waiting for three specific things to happen. If they don\u2019t happen, I close the platform. There\u2019s nothing to be patient about.') +
+        q('The clearer your rule, the easier the wait. Patience is a symptom of an unclear trigger.') },
+
+    17: { subject: 'Three losses in a row is not a crisis.',
+      heroTitle: 'Losing streaks test discipline, not strategy.',
+      body: hi + p('Three losses in a row is not a sign the framework is broken. It\u2019s three trades.') +
+        p('If you have a framework with consistent edge and you take many trades, you will have losing streaks. Statistics don\u2019t deliver losses in a neat, evenly spaced pattern. Sometimes they cluster.') +
+        p('The question I ask after a losing streak is not \u201cis the framework broken?\u201d The question is \u201cdid I follow the rules on every trade?\u201d') +
+        p('If yes \u2014 the framework lost those trades. That happens. Keep going. The edge plays out over a large sample size.') +
+        p('If no \u2014 I deviated on at least one trade. That\u2019s the thing to fix. Not the framework. My execution.') +
+        p('The most expensive thing you can do during a losing streak is change your strategy. You abandon something with edge right before it starts working again.') +
+        q('A losing streak tests your discipline. If your discipline holds, the framework will take care of the rest.') },
+
+    18: { subject: 'London tells you the story. New York continues it.',
+      heroTitle: 'Two sessions. One narrative.',
+      body: hi + p('London and New York are not two separate trading days. They\u2019re two chapters of the same story.') +
+        p('London typically establishes the directional move for the day. In the first two hours after the London open, I often see the significant sweeps \u2014 the moves that take out the previous session highs or lows, grab the liquidity, and set up the real directional move.') +
+        p('By the time London finishes, I usually have a clear read on what happened. Price swept a level, confirmed a direction, and is now pushing that way.') +
+        p('New York continues that story. It either extends the London move, or it creates one more sweep before continuing in the London direction.') +
+        p('For traders in the Americas timezone who missed London, New York is the second chance. The setup conditions are exactly the same. The difference is that now you have additional context from what London already told you.') +
+        q('The market tells one story per day. London opens the chapter. New York closes it.') },
+
+    19: { subject: 'Your job ends at entry.',
+      heroTitle: 'Let the trade reach the target.',
+      body: hi + p('After I enter a trade, my job is essentially done.') +
+        p('I\u2019ve identified the sweep. I\u2019ve waited for OFC. I\u2019ve placed my entry, my stop, and my target. All three are based on structure.') +
+        p('Now the market\u2019s job is to reach my target. My job during the trade is to not interfere.') +
+        p('The reason I exit early is fear. Price has moved in my direction, my target is further away, and I\u2019m terrified it\u2019s going to reverse and I\u2019ll give back the profit. So I close it early.') +
+        p('Over many trades, that fear destroys my risk/reward ratio. If I consistently exit before my target, I\u2019m not running the strategy I think I\u2019m running. I\u2019m running something much worse.') +
+        p('Set the target at the mechanical level. Let price get there. If the trade gets stopped out, fine. But if price is moving toward my target and the setup hasn\u2019t been invalidated, I\u2019m staying in.') +
+        q('Closing a trade early because it\u2019s in profit is not discipline. It\u2019s fear. Know the difference.') },
+
+    20: { subject: 'Before you look at the 15-minute, look at the daily.',
+      heroTitle: 'Bias before entry. Every session.',
+      body: hi + p('Every session, before I look at a single 15-minute candle, I look at the daily chart.') +
+        p('One question: what is the daily telling me about direction?') +
+        p('Is price making higher highs and higher lows? I\u2019m biased long. My CTW setups for the session are long setups.') +
+        p('Is price making lower highs and lower lows? I\u2019m biased short. Same framework, opposite direction.') +
+        p('Is price ranging between two clear levels? I\u2019m more cautious. I\u2019ll let that guide my bias based on which level price is approaching.') +
+        p('This check changes everything about how I interpret the 15-minute. A short setup on the 15-minute during a daily uptrend is not a trade I take. The higher timeframe has more information than I do.') +
+        q('Your 15-minute entry is a sentence. Your daily bias is the paragraph it belongs to. Read the paragraph first.') },
+
+    21: { subject: 'The market runs the same script every session.',
+      heroTitle: 'Read the script. Don\u2019t react to it.',
+      body: hi + p('Here\u2019s what happens in the market every session, without exception.') +
+        p('Institutional players need to fill large orders. To fill a large buy order, they need sellers. To create sellers, they push price down into stop losses \u2014 turning existing buyers into sellers by forcing them out of their positions. The stops trigger. Price drops. They fill their buy orders at the lower price. Then they push price up.') +
+        p('That\u2019s the script. The wick down is the stop hunt. The reversal is the institutional move.') +
+        p('The market ran this script this morning. It\u2019ll run it tomorrow. It ran it years ago and it\u2019ll run it years from now. Because the mechanics of large order execution don\u2019t change.') +
+        p('My job is to read the script and position after the stop hunt \u2014 in the same direction as the institution that just filled. The sweep told me what happened. Candle 2 tells me where they\u2019re going.') +
+        q('The market doesn\u2019t run randomly. It runs a script. Once you can read the script, every session becomes readable.') },
+
+    22: { subject: 'The best trade today might be no trade.',
+      heroTitle: 'Not trading is a position.',
+      body: hi + p('I don\u2019t trade every day. Some days, the setup doesn\u2019t print.') +
+        p('No clear sweep of a significant level: I don\u2019t trade. Price drifting through a zone without a sharp wick is not a setup.') +
+        p('No clear OFC on Candle 2: I don\u2019t trade. An indecisive close is the market telling me the story isn\u2019t finished yet.') +
+        p('HTF bias contradicts the 15-minute setup: I don\u2019t trade. I might have a technically valid lower timeframe setup that\u2019s fighting the higher timeframe current.') +
+        p('Major news event in the window: I don\u2019t trade. During significant releases, price movement is reaction, not institutional positioning. The script doesn\u2019t apply cleanly.') +
+        p('These aren\u2019t optional filters. They\u2019re rules. Not trading on a day with no setup is a good day. Capital preserved. Rules followed. Ready for tomorrow.') +
+        q('Discipline is knowing when to wait. Sitting on your hands when the setup isn\u2019t there is as important as entering when it is.') },
+
+    23: { subject: 'The first question is not how much. It\u2019s how consistent.',
+      heroTitle: 'Process first. Profit follows.',
+      body: hi + p('In the early stages, the question I want you to ask after every trade is not \u201chow much did I make?\u201d It\u2019s \u201cdid I follow the rules?\u201d') +
+        p('These are different questions with different answers and different implications.') +
+        p('How much you made on any given trade is partly outside your control. Whether you followed the rules is entirely within it. You either waited for the sweep and OFC or you didn\u2019t. You either placed your stop at the correct level or you didn\u2019t.') +
+        p('Over many trades, consistent rule-following produces a data set. You can look at your trades where you followed all your rules and see your actual win rate. You can see your actual risk/reward. You can see which sessions produce your best results.') +
+        p('None of that data exists if you\u2019re breaking rules half the time.') +
+        q('Consistent execution of a sound process is the only path to consistent results. There is no shortcut.') },
+
+    24: { subject: 'Risk management is not protection. It\u2019s psychology.',
+      heroTitle: 'Controlled risk keeps your mind clear.',
+      body: hi + p('I risk a defined, consistent amount per trade. Not because it\u2019s a magic number, but because of what it does to my psychology when trades go against me.') +
+        p('When I lose a trade with controlled risk, the loss stings but it doesn\u2019t destabilize me. I close the trade, write it in the journal, and prepare for the next one. My confidence in the framework is intact.') +
+        p('When traders risk too much per trade and they have a losing streak, the emotional damage compounds. That level of loss changes how you trade. You start second-guessing the framework. You reduce your size at the worst time \u2014 right when the edge is about to reassert itself.') +
+        p('Risk management isn\u2019t about limiting how much you can lose in the worst case. It\u2019s about keeping your psychology functional enough to continue executing over hundreds of trades.') +
+        p('Keep risk consistent. Stay in the game long enough for the edge to prove itself.') +
+        q('Risk management is what lets the framework breathe. Without it, even the best strategy collapses under a losing streak.') },
+
+    25: { subject: 'The traders who last don\u2019t have better strategies.',
+      heroTitle: 'Stay long enough to compound.',
+      body: hi + p('The traders who become consistently profitable are not the ones with the most sophisticated strategies. They\u2019re the ones who stayed long enough to accumulate a meaningful sample size.') +
+        p('A framework with genuine edge is mathematically profitable over enough trades. You only accumulate enough trades by staying in the game. Most traders never get there. They take a loss, start over with a new strategy, repeat the cycle.') +
+        p('The CTW framework is designed to keep you in the game. Controlled risk keeps your account intact during losing streaks. The two-hour rule keeps your decision-making sharp. The mechanical trigger removes the emotional variability.') +
+        p('None of these things are about finding the perfect entry. They\u2019re about building a sustainable practice that you can execute for years.') +
+        p('Stay in the game. The results come to those who stay.') +
+        q('The market rewards those who stay. Every trade is a data point. You need many of them. Stay long enough to collect them.') },
+
+    26: { subject: 'Where the candle opened tells you everything.',
+      heroTitle: 'The open is the starting point of the story.',
+      body: hi + p('The open of a candle is not just a price level. It\u2019s the starting point of the story that candle is about to tell.') +
+        p('Where price opens relative to the previous close tells me immediately whether there\u2019s a gap \u2014 a jump in sentiment between the last session and this one. How price behaves in the first candles after the open tells me whether institutions are active and directional.') +
+        p('The opening candle of a session is particularly significant. In London, the first 15-minute candle after the session opens often sets the tone. If it\u2019s a strong momentum candle in one direction, I watch the next candle carefully.') +
+        p('I mark the opening candle\u2019s high and low. These levels often act as reference points throughout the session. Price comes back to test them, sweep them, or break through them with momentum.') +
+        p('Never ignore where the candle opened. The open is the first word of the sentence. Read it before you try to trade the rest.') +
+        q('The open tells you where the session starts. Everything that follows is context around that starting point.') },
+
+    27: { subject: 'The close is what the candle decided.',
+      heroTitle: 'Wait for the decision.',
+      body: hi + p('In 15 minutes of trading, price travels. It moves up and down within the candle. It sweeps levels, creates wicks, tests supply and demand. All of that movement happens while the candle is forming.') +
+        p('The close is where the candle makes its final decision.') +
+        p('This is why I never enter a trade while the candle is still forming. I\u2019m watching an unfinished sentence. The candle hasn\u2019t decided yet.') +
+        p('I wait for the close. Then I read the complete sentence. Then I decide whether the sentence creates a setup.') +
+        p('If Candle 1 sweeps the level and closes back into range \u2014 that\u2019s the sweep confirmed. I\u2019m now waiting for Candle 2. When Candle 2 closes with clear OFC \u2014 that\u2019s the confirmation. I enter at the open of Candle 3.') +
+        p('I never enter a live candle. I always trade closed candles.') +
+        q('A candle in progress is an incomplete sentence. Wait for the full stop before you act on it.') },
+
+    28: { subject: 'Trade the structure, not the movement.',
+      heroTitle: 'Structure tells you where. Movement tells you when.',
+      body: hi + p('Price doesn\u2019t move randomly. It moves between structural levels \u2014 previous highs, previous lows, significant zones where buying or selling pressure has appeared before.') +
+        p('In CTW, I identify the significant structural levels before the session starts. Previous day\u2019s high and low. Session opening levels. These are my points of interest.') +
+        p('I\u2019m not watching the chart waiting for something to happen. I\u2019m watching price approach a pre-identified level and then observing what happens when it gets there.') +
+        p('Does price sweep the level and immediately reverse? That\u2019s a strong signal. Does it approach the level and stall without a clear sweep or OFC? I wait.') +
+        p('Structure is the context. Movement within that context is the story. I need both to have a trade.') +
+        q('Structure is the map. Price action is the journey. You need the map before you can read the journey.') },
+
+    29: { subject: 'You don\u2019t need to trade everything.',
+      heroTitle: 'Depth beats breadth.',
+      body: hi + p('I don\u2019t trade many pairs. I know one or two deeply.') +
+        p('When you trade one pair consistently, you build a relationship with its behavior. You start to understand when it\u2019s likely to make significant moves. You understand which sessions it\u2019s most active in. You understand its typical behavior and how it reacts to liquidity sweeps.') +
+        p('That knowledge accumulates over months of consistent observation. It makes the framework sharper because you\u2019re applying it to a market you know deeply.') +
+        p('The framework is universal. Your application of it will become more precise when you apply it to a market you understand deeply.') +
+        p('Pick one. Study it. Learn how it behaves specifically. The edge sharpens when you go deep rather than wide.') +
+        q('You don\u2019t need to trade everything. You need to trade one thing exceptionally well.') },
+
+    30: { subject: 'The trade is won before the session opens.',
+      heroTitle: 'Preparation is the edge.',
+      body: hi + p('Before the London session opens, I do the same thing every day. It takes about ten minutes.') +
+        p('I look at the daily chart. I identify the current direction. I note my bias for the session.') +
+        p('I look at the previous session\u2019s high and low. I mark them on my chart. These are the levels I expect price to interact with during the London open.') +
+        p('I look at any significant structural levels that price is approaching.') +
+        p('Then I wait.') +
+        p('I\u2019m not looking for a trade when the session opens. I\u2019m watching price move toward the levels I\u2019ve already identified and waiting for the CTW setup to appear at one of them.') +
+        q('The trader who prepared knows what they\u2019re looking for. The trader who didn\u2019t is just watching movement.') },
+
+    31: { subject: 'The indicator is not the edge.',
+      heroTitle: 'Price action tells the story. Indicators summarize it.',
+      body: hi + p('Indicators are calculated from price. They\u2019re a mathematical summary of what price already did.') +
+        p('When you add an indicator to your chart, you\u2019re not adding new information. You\u2019re adding a visual representation of information that\u2019s already visible in the price action.') +
+        p('The problem with indicators is they create distance between you and the actual story. You start waiting for the indicator to confirm what you\u2019re already seeing in the candle.') +
+        p('In CTW, I use a clean chart. Price. Levels. That\u2019s it.') +
+        p('The wick tells me where the sweep happened. The candle body tells me where momentum committed. The close tells me if OFC is present. All of that information is in the raw price action.') +
+        p('Remove the indicators. Learn to read the candle directly. The chart gets cleaner. The decision gets clearer.') +
+        q('Price action is the source. Indicators are a summary of the source. Why read the summary when you have the source?') },
+
+    32: { subject: 'The gap between sessions is information.',
+      heroTitle: 'Read the gap before you read the candles.',
+      body: hi + p('Between the close of one session and the open of the next, price doesn\u2019t trade in the same volume. And when the new session opens, there\u2019s often a repricing \u2014 a jump to where price should be based on sentiment that built up overnight.') +
+        p('That gap is information.') +
+        p('If London opens significantly higher than the previous close, there\u2019s bullish sentiment carry-over. The first candles of the London session often test whether that sentiment holds \u2014 or whether it gets swept as liquidity.') +
+        p('I always note where the previous session closed before the new session opens. The gap between sessions, however small, is part of the story I\u2019m reading when the first candles print.') +
+        p('The gap tells you where sentiment landed overnight. The opening candles tell you what institutions are going to do with that sentiment.') +
+        q('The gap is the market\u2019s morning statement. Read it before you read the candles.') },
+
+    33: { subject: 'Structure before setup.',
+      heroTitle: 'Is price trending or ranging?',
+      body: hi + p('Before I look for a CTW setup, I answer one question: is price trending or ranging?') +
+        p('A trend is a sequence of higher highs and higher lows (bullish) or lower highs and lower lows (bearish). A range is price oscillating between two horizontal levels.') +
+        p('The CTW framework applies in both environments, but the context is different.') +
+        p('In a trend, I\u2019m looking for sweeps of the pullback lows in an uptrend \u2014 these are the moments where weak hands get shaken out before price continues higher.') +
+        p('In a range, I\u2019m looking for sweeps of the range extremes \u2014 the moments where price breaks out, triggers stops, and then snaps back.') +
+        p('Knowing whether price is trending or ranging changes which sweeps I pay attention to and where I place my targets. Structure first. Then look for the setup within that structure.') +
+        q('You can\u2019t read a sentence without knowing what paragraph it belongs to. Identify the structure before you look for the setup.') },
+
+    34: { subject: 'The pullback is where the trade lives.',
+      heroTitle: 'Wait for price to come to you.',
+      body: hi + p('When price makes a strong directional move, it doesn\u2019t continue in a straight line. It pulls back.') +
+        p('The pullback is where I\u2019m looking for my entry.') +
+        p('In an uptrend, after a strong move up, price pulls back to a demand zone. During that pullback, I watch for a sweep of a significant level within the zone. If price sweeps a low within the pullback and then closes back up with OFC, that\u2019s my entry.') +
+        p('I\u2019m not chasing the initial move. I\u2019m patient. I mark the zone. I watch price pull back into it. I wait for the sweep and the confirmation. Then I enter.') +
+        p('The pullback is the opportunity. The patient trader who waited for price to come back to the zone gets a better entry than the trader who chased the initial move.') +
+        q('Chasing a move is the most expensive trade you can take. Wait for the pullback. The entry will be cleaner and the stop will be tighter.') },
+
+    35: { subject: 'You missed the first entry. There\u2019s another one.',
+      heroTitle: 'The second entry is just as valid.',
+      body: hi + p('You watched the setup form. The sweep happened. Candle 2 closed with OFC. You hesitated. You missed the entry.') +
+        p('That moment \u2014 the frustration of watching a trade move without you \u2014 is one of the most dangerous moments in trading. The instinct is to chase. To enter mid-move because you don\u2019t want to miss any more of it.') +
+        p('Don\u2019t.') +
+        p('Chasing is not the same as a valid second entry. A valid second entry is a new setup \u2014 price pulling back to a significant level after the initial move, forming a new sweep, giving you a new OFC signal. That is a trade.') +
+        p('A chase is entering because price moved and you feel left behind. That is emotion, not a setup.') +
+        p('When I miss an entry, I mark where the initial sweep happened and I watch whether price returns to that area. If it does and sets up again \u2014 new sweep, new OFC \u2014 I have a second entry.') +
+        q('The trade you missed is not an emergency. The trade you chased out of frustration usually is.') },
+
+    36: { subject: 'Where the candle closed tells you who won.',
+      heroTitle: 'Body versus wick. Read the result.',
+      body: hi + p('Every candle is a battle between buyers and sellers within that time period. The body and the wick tell you who won.') +
+        p('A long body with a short wick means one side dominated the entire candle. Price moved strongly in one direction and closed near the extreme. Clear winner. Strong momentum.') +
+        p('A short body with long wicks on both sides means neither side dominated. No winner. Indecision. I don\u2019t trade this candle as an OFC signal.') +
+        p('A long body with a single long wick on one side \u2014 that\u2019s the sweep setup. The wick tells me price went to one extreme, got rejected, and came back. The body tells me the winners were on the other side by the close.') +
+        p('For CTW, I\u2019m looking for Candle 2 to have a clean body with minimal wick on the closing side \u2014 confirming that the OFC direction held through the close.') +
+        q('The wick is the journey. The body is the destination. Read both to understand what happened.') },
+
+    37: { subject: 'Take the emotion out. Leave the rules in.',
+      heroTitle: 'Mechanical means emotion doesn\u2019t vote.',
+      body: hi + p('The word \u201cmechanical\u201d comes up a lot in how I describe CTW. I want to be clear about what that means.') +
+        p('Mechanical means the entry decision is based on observable, binary conditions. Either the sweep happened or it didn\u2019t. Either OFC is present or it isn\u2019t. Either the HTF is aligned or it isn\u2019t. Each answer is yes or no.') +
+        p('Emotion doesn\u2019t have a vote.') +
+        p('When trading is mechanical, you remove the biggest source of inconsistency in your results \u2014 the variability of how you feel on any given day. Some days you\u2019re confident. Some days you\u2019re nervous. On a feeling-based approach, those emotional states change your decisions. On a mechanical approach, you check the conditions and get yes-yes-yes or you don\u2019t.') +
+        p('The framework is the answer to the pull of emotion. Check the conditions. Follow the rule. Let the emotion watch.') +
+        q('Mechanical trading doesn\u2019t mean you don\u2019t feel things. It means those feelings don\u2019t make decisions.') },
+
+    38: { subject: 'Consistency is built in the daily practice.',
+      heroTitle: 'Same routine. Every session.',
+      body: hi + p('The traders I\u2019ve seen become consistently profitable have one thing in common: they show up the same way every day.') +
+        p('Same pre-session routine. Same level identification. Same bias check. Same conditions for entry. Same journaling after the session.') +
+        p('Consistency in the process produces consistency in the results. Not immediately. But over many trades, a consistent process produces data that tells you exactly what your framework produces when executed correctly.') +
+        p('The inconsistent trader can\u2019t tell you what their framework produces because they execute it differently every day. The results are a mix of the framework and the deviation, and they can\u2019t separate them.') +
+        p('Build a daily habit around the framework. The habit is the foundation. The results emerge from the habit.') +
+        q('Consistency in the process is the only path to consistency in the results. Build the habit before you worry about the outcome.') },
+
+    39: { subject: 'One clean trade is better than five messy ones.',
+      heroTitle: 'Quality over quantity.',
+      body: hi + p('Some sessions produce one clean CTW setup. Some produce two. Some produce none.') +
+        p('On a day with one clean setup, I take that trade. If it wins, I\u2019m done. If it loses, I\u2019m done. One trade.') +
+        p('The urge to take more trades after one loses is particularly dangerous. The instinct is to \u201cmake it back.\u201d That instinct produces a second trade that wasn\u2019t qualified, taken for emotional reasons, which often compounds the loss.') +
+        p('The framework doesn\u2019t produce many qualified setups in two hours on most days. If you think you\u2019re seeing many setups, look again. Ask whether each one truly met the sweep, OFC, and HTF conditions. Rigorously. Not generously.') +
+        p('Quality over quantity. One trade executed perfectly is worth more than five trades executed sloppily.') +
+        q('One trade that checks every box is worth five trades that don\u2019t. The market doesn\u2019t reward effort. It rewards precision.') },
+
+    40: { subject: 'The wick is a footprint.',
+      heroTitle: 'Someone was there. Read who.',
+      body: hi + p('When you see a wick on a candle \u2014 that extension beyond the body before the candle came back \u2014 something specific happened there.') +
+        p('Price went to that level. Orders were sitting there. Stops were triggered. Liquidity was taken. And then the participants who were filling orders at that level had what they needed, so they pushed price in the opposite direction.') +
+        p('The wick is a footprint. It shows you where the significant activity happened.') +
+        p('In CTW, I\u2019m reading that footprint. The key question after I see the wick: what happened at the level the wick touched?') +
+        p('Was there a previous significant high or low there? Was it the opening level of the previous session? Was there a clear zone of previous demand or supply? If the wick touched a significant, pre-identified level and then snapped back \u2014 that\u2019s meaningful.') +
+        q('A wick at a random level is noise. A wick at a significant level is a signal. Know the difference before you trade it.') },
+
+    41: { subject: 'The first period is the learning period.',
+      heroTitle: 'Learn before you earn.',
+      body: hi + p('I want to be honest with you about what the early stages of learning a framework look like.') +
+        p('In the beginning, you\u2019re building pattern recognition. You\u2019re learning what a clean sweep looks like versus a noisy one. You\u2019re learning what clear OFC looks like versus ambiguous closes. You\u2019re building the judgment that separates high-probability setups from mediocre ones.') +
+        p('That takes repetition. And during that repetition, you will take trades that don\u2019t meet the conditions as cleanly as you thought. You will misread HTF bias sometimes. These mistakes are part of the education. They\u2019re the data points that calibrate your judgment.') +
+        p('The expectation for the early period should be: follow the framework as consistently as possible, journal every trade, review where you deviated, correct the deviations.') +
+        p('Profitability follows execution consistency. Not the other way around.') +
+        q('The early period is not for profit. It\u2019s for precision. Precision produces profit. Impatience produces losses.') },
+
+    42: { subject: 'Fear and greed are the same problem wearing different clothes.',
+      heroTitle: 'Emotion is the variable you control.',
+      body: hi + p('Fear makes you exit trades early and miss targets. Greed makes you hold trades too long and give back profits. Both destroy your risk/reward.') +
+        p('They feel like opposite problems. They\u2019re the same problem \u2014 you\u2019re letting emotion override your pre-set rules.') +
+        p('Your rules exist to remove emotion from the decision. The target is set before you enter. The stop is set before you enter. The entry conditions are set before the session starts.') +
+        p('Every deviation from those pre-set rules \u2014 exiting early because you\u2019re scared, holding longer because you\u2019re greedy \u2014 is emotion making a decision that the rules already made.') +
+        p('Make more decisions before the session starts, so there are fewer decisions for the emotion to interfere with during the session. Plan the trade. Trust the plan.') +
+        q('Emotion is loudest when the trade is live. Make your decisions when it\u2019s quiet. Honor them when it\u2019s loud.') },
+
+    43: { subject: 'You will never be certain. Trade anyway.',
+      heroTitle: 'Certainty is not the goal. Probability is.',
+      body: hi + p('I never know for certain that a trade will work. Neither do you. Neither does anyone.') +
+        p('What I have is a framework with edge \u2014 a setup that, executed consistently over a large sample size, produces more winning trades than losing ones with a favorable risk/reward. That\u2019s the edge. Not certainty. Not prediction. Probability over a large sample.') +
+        p('The trap is waiting for certainty before entering. Certainty doesn\u2019t exist in trading. If you wait for a setup that you\u2019re completely sure will work, you\u2019ll never trade.') +
+        p('When the sweep happens at a significant level, when OFC is clear, when the HTF is aligned \u2014 I\u2019m entering because the probability is in my favor. Not because I know it will work.') +
+        p('Accept uncertainty. It\u2019s not a problem to be solved. It\u2019s the nature of markets.') +
+        q('Certainty is an illusion in trading. Probability is the reality. Build an edge around probability and accept the uncertainty.') },
+
+    44: { subject: 'The review session is as important as the trading session.',
+      heroTitle: 'Learn from what already happened.',
+      body: hi + p('After the session closes, I do a review. Not immediately \u2014 I give myself time away from the screen first. Then I come back and look at what happened.') +
+        p('I look at every setup that appeared \u2014 including the ones I didn\u2019t take. Did I miss a clean CTW setup? Did I take a trade that didn\u2019t actually meet all the conditions when I look at it now with fresh eyes?') +
+        p('I look at the trades I did take. Did the entry make sense? Was the stop placed correctly? Did I exit at the right point?') +
+        p('This review is not about judgment. It\u2019s about data collection. Every session produces information that makes the next session better.') +
+        p('Over time, patterns emerge. Maybe I consistently miss setups at the start of the session. Maybe I\u2019m consistently placing my stop slightly too tight. The review reveals what the session alone can\u2019t.') +
+        q('The session produces the trade. The review produces the improvement. You need both.') },
+
+    45: { subject: 'Doing nothing is a skill.',
+      heroTitle: 'Not every session needs a trade.',
+      body: hi + p('Some sessions I watch the market for two hours and I don\u2019t take a single trade.') +
+        p('Not because nothing happened. Because nothing that happened met all three conditions simultaneously. The sweep happened but the OFC was ambiguous. Or everything aligned but I was in a major news window.') +
+        p('So I close the platform.') +
+        p('Doing nothing in a session where the setup doesn\u2019t appear is one of the most valuable skills a trader can develop. It\u2019s also one of the hardest, because the instinct is to do something. Two hours of watching price move and having nothing to show for it creates pressure to enter anything.') +
+        p('Resist that pressure. An empty session is a good session when the conditions weren\u2019t there. The market will be there tomorrow. Your capital is still intact. You\u2019re ready for the next session.') +
+        q('The session with no trades, when the setup genuinely wasn\u2019t there, is a success. Capital preserved is capital available for the right trade.') },
+
+    46: { subject: 'The framework gets sharper over time.',
+      heroTitle: 'Time in the market compounds judgment.',
+      body: hi + p('The CTW framework is a skill. And like any skill, it compounds with practice.') +
+        p('In the early months, you\u2019re seeing the setup and not always trusting what you see. The wick looked like a sweep but you weren\u2019t sure. The OFC looked clean but you hesitated.') +
+        p('After several months, that hesitation reduces. You\u2019ve seen the pattern enough times that your recognition is faster and more reliable. You identify the sweep as it\u2019s setting up. You\u2019re ready for Candle 2 before it prints.') +
+        p('After a year, the setup is automatic. Your eye goes straight to the significant levels. The sweep is obvious. The OFC is either there or it isn\u2019t. The decision is fast and confident.') +
+        p('The traders who leave early never get to see what the compounded version of the skill looks like. They leave before the framework becomes instinctive.') +
+        q('Skills compound just like returns do. The early investment feels slow. The later returns are remarkable.') },
+
+    47: { subject: 'Don\u2019t trade the news. Trade the reaction.',
+      heroTitle: 'News creates liquidity. Liquidity creates setups.',
+      body: hi + p('I don\u2019t trade during major news releases. I close the platform before them and I don\u2019t re-open it until the initial volatility settles.') +
+        p('Here\u2019s why: during the news release itself, the price movement is reaction, not institutional positioning. The CTW setup conditions don\u2019t apply cleanly during that window.') +
+        p('But after the initial reaction settles, the market often sets up a clean CTW entry.') +
+        p('Why? Because the news created a big move. That big move swept liquidity. Stops got triggered. And then institutions start positioning for the real post-news direction.') +
+        p('That\u2019s when I re-open the platform. I look at what the news candle did. I look for the sweep it created. And I watch for the CTW setup to form as the volatility settles.') +
+        q('The news creates the liquidity. The setup forms after. Let the chaos settle before you look for the trade.') },
+
+    48: { subject: 'Set the target before you enter. Honor it after.',
+      heroTitle: 'Your target is a commitment.',
+      body: hi + p('Before I enter any trade, I know exactly where my target is.') +
+        p('Not \u201csomewhere up there.\u201d A specific level. The previous session\u2019s high. The next significant structural level. Something observable on the chart.') +
+        p('I enter. I place my stop. I set my target. Then I step back from the screen.') +
+        p('When the trade is live and price is moving toward the target, the temptation to close it early is real. \u201cI\u2019m in profit, what if it reverses?\u201d') +
+        p('That \u201cwhat if\u201d is the enemy of a profitable risk/reward ratio. The target was set at a structural level for a reason. Either price reaches it or it doesn\u2019t. But I give it the chance.') +
+        q('A target is a commitment you make to the trade before you enter. Honoring it is what separates a disciplined trader from an emotional one.') },
+
+    49: { subject: 'How I think about the week before it starts.',
+      heroTitle: 'Weekly context. Daily execution.',
+      body: hi + p('On Sunday evenings, before the week begins, I spend time looking at the weekly chart.') +
+        p('What did last week\u2019s candle do? Was it a strong directional candle? Did it sweep a significant weekly level? Where did it close relative to its range?') +
+        p('The weekly chart gives me the broadest context. I note the previous week\u2019s high and low. I look at any major weekly structural levels nearby. I look at the overall weekly bias.') +
+        p('That context sits beneath everything I do during the week. My daily bias is informed by the weekly structure. My session analysis is informed by the daily. The 15-minute setup is the execution point within all of that context.') +
+        p('A few minutes on Sunday changes how I see every session of the following week.') +
+        q('The week tells you the territory. The day tells you the direction. The session shows you the trade.') },
+
+    50: { subject: 'You\u2019ve made it complicated. Now make it simple.',
+      heroTitle: 'Simplicity is the destination.',
+      body: hi + p('Every trader who finds their edge goes through the same journey.') +
+        p('They start simple. They add complexity because simple feels too easy. They spend months buried in indicators, systems, and conflicting frameworks. They emerge from that complexity exhausted and ready to strip everything back.') +
+        p('That\u2019s where the real learning starts.') +
+        p('The CTW framework is simple on the surface. Sweep, OFC, entry. Two candles. It sounds too easy because traders are conditioned to believe that complexity equals edge. It doesn\u2019t.') +
+        p('Edge comes from consistent application of a sound principle over a large sample size. The simpler the system, the more consistently it can be applied. The more consistently it\u2019s applied, the more clearly you can see what it produces.') +
+        q('Simplicity is what you earn after you\u2019ve survived the complexity. Don\u2019t skip the journey, but don\u2019t stay in the complexity longer than you have to.') },
+
+    51: { subject: 'You\u2019re not building a trading account. You\u2019re building a skill.',
+      heroTitle: 'The skill is the asset.',
+      body: hi + p('The account balance is not the asset. The skill is.') +
+        p('An account balance can go to zero. The skill can\u2019t. A skilled trader who loses an account builds it back. An unskilled trader who gets lucky and grows an account loses it back.') +
+        p('In CTW, I\u2019m teaching you a reading skill. The ability to look at a 15-minute chart, identify the significant levels, wait for the sweep to appear, confirm OFC, and execute a mechanical entry with a defined stop and target.') +
+        p('That skill doesn\u2019t expire. It doesn\u2019t become obsolete. Institutional behavior \u2014 sweeping liquidity, filling orders, pushing price \u2014 has been consistent for decades and will continue to be consistent because it\u2019s built into how markets function at scale.') +
+        p('You\u2019re building something that compounds indefinitely. Not a particular account balance. A skill that serves you for life.') +
+        q('The account is the scorecard. The skill is the game. Build the skill and the scorecard takes care of itself.') },
+
+    52: { subject: 'The framework doesn\u2019t expire.',
+      heroTitle: 'What comes next is up to you.',
+      body: hi + p('You\u2019ve been through the framework. The core concepts are in front of you \u2014 the sweep, the OFC, the two-candle story, the HTF bias, the two-hour rule, the mechanical entry, the stop, the target.') +
+        p('What you do with that is entirely up to you.') +
+        p('The framework works on any pair, any session, any timeframe. It will work next year. It will work in ten years. Because it\u2019s built on institutional behavior that doesn\u2019t change \u2014 the need to fill large orders by creating and taking liquidity from predictable levels.') +
+        p('What I ask is that you be honest with yourself about your execution. Are you following the three conditions? Are you placing your stop where the trade is wrong? Are you journaling what\u2019s actually happening?') +
+        p('The framework produces edge. Your execution is what converts that edge into results.') +
+        q('The framework is yours now. The only remaining variable is your commitment to applying it.') }
+  };
+
+  var e = emails[emailNum];
+  if (!e) return null;
+  return {
+    subject:     e.subject,
+    kickerText:  'CATCH THE WICK\u2122 \u00b7 THE FRAMEWORK',
+    heroTitle:   e.heroTitle,
+    heroSubtitle:'Catch The Wick\u2122 \u00b7 FortitudeFX\u2122',
+    body:        e.body
+  };
 }
 
 // =============================================================================
@@ -674,13 +1044,14 @@ async function getEmailForContact(contact, env) {
     else if (path === 'Bootcamp') content = getBootcampEmail(dayNum, firstName);
     else                          content = getFreeEmail(dayNum, firstName);
   } else if (dayNum > 7) {
-    // Framework series — dynamically generated
-    // Weekly: only send on days 8, 15, 22, 29... (every 7 days after Day 7)
+    // Framework series — static 52 emails cycling weekly
+    // Only send on days 8, 15, 22, 29... (every 7 days after Day 7)
     var daysSinceOnboarding = dayNum - 7;
     if (daysSinceOnboarding % 7 !== 1) return null;
-    var weekNum = Math.ceil(daysSinceOnboarding / 7);
-    content = await generateFrameworkEmail(env, firstName);
-    if (content) content._dayNum = 'fw:' + weekNum;
+    var weekNum   = Math.ceil(daysSinceOnboarding / 7);
+    var emailNum  = ((weekNum - 1) % 52) + 1; // cycle 1-52
+    content = getFrameworkEmail(emailNum, firstName);
+    if (content) content._dayNum = 'fw:' + weekNum + ':' + emailNum;
   }
 
   if (!content) return null;
@@ -827,6 +1198,66 @@ async function handleApprove(request, env) {
   return new Response(JSON.stringify({
     success: true, sent: sent, errors: errors, total: graduated.length
   }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
+
+
+// =============================================================================
+// WEEKLY DRAFT SEND — Sunday 8am Dubai
+// =============================================================================
+// Sends this week's framework email to Salman for review.
+// He clicks Approve & Send to distribute to all graduated members.
+
+async function sendWeeklyDraft(env) {
+  // Read which email number we're on from KV
+  var weekRaw  = await env.FFX_KV.get('framework:week').catch(function() { return null; });
+  var weekNum  = weekRaw ? parseInt(weekRaw) + 1 : 1;
+  var emailNum = ((weekNum - 1) % 52) + 1;
+
+  var content  = getFrameworkEmail(emailNum, 'Salman');
+  if (!content) {
+    console.error('[FFX Email] Weekly draft: no content for email', emailNum);
+    return;
+  }
+
+  // Store draft for approve endpoint
+  await env.FFX_KV.put('framework:draft', JSON.stringify({
+    subject:     content.subject,
+    kickerText:  content.kickerText,
+    heroTitle:   content.heroTitle,
+    heroSubtitle:content.heroSubtitle,
+    body:        content.body,
+    emailNum:    emailNum,
+    weekNum:     weekNum
+  }), { expirationTtl: 60 * 60 * 24 * 7 });
+
+  // Build approve button
+  var approveButton =
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;">' +
+    '<tr><td style="background:#f0f0f4;padding:20px;border-radius:8px;text-align:center;">' +
+    '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;color:rgba(26,26,46,0.5);letter-spacing:0.08em;text-transform:uppercase;">DRAFT — Email ' + emailNum + '/52 — Week ' + weekNum + '</p>' +
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:13px;color:rgba(26,26,46,0.6);">Review before sending to all graduated members</p>' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">' +
+    '<tr><td style="border-radius:999px;background-color:#C9A84C;">' +
+    '<a href="https://ffx-email-worker.salmankhanfx.workers.dev/email-worker/approve" style="display:inline-block;padding:14px 36px;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#0d0d14;text-decoration:none;letter-spacing:0.02em;">Approve &amp; Send to Members &#8594;</a>' +
+    '</td></tr></table></td></tr></table>';
+
+  var draftHtml = ffxEmail({
+    kickerText:   content.kickerText,
+    heroTitle:    content.heroTitle,
+    heroSubtitle: content.heroSubtitle,
+    bodyHtml:     content.body + approveButton,
+    footerNote:   'This is your weekly draft email. Click Approve & Send to distribute to all members who have completed onboarding.'
+  });
+
+  var ok = await sendEmail(env, SENDER_EMAIL, 'Salman', '[DRAFT] ' + content.subject, draftHtml);
+
+  if (ok) {
+    // Advance week counter
+    await env.FFX_KV.put('framework:week', String(weekNum));
+    console.log('[FFX Email] Weekly draft sent: email', emailNum, '/ week', weekNum);
+  } else {
+    console.error('[FFX Email] Weekly draft failed to send');
+  }
 }
 
 // =============================================================================
@@ -1004,9 +1435,10 @@ async function handleTestRun(request, env) {
     else                                content = getFreeEmail(state.day, 'Test');
     label = 'ONBOARDING Day ' + state.day + '/7 (' + state.path + ')';
   } else {
-    // Framework series — dynamically generated
-    content = await generateFrameworkEmail(env, 'Test');
-    label   = 'FRAMEWORK (generated)';
+    // Framework series — static 52 emails cycling
+    var fwNum = ((state.day - 8) % 52) + 1;
+    content   = getFrameworkEmail(fwNum, 'Test');
+    label     = 'FRAMEWORK ' + fwNum + '/52';
   }
 
   if (!content) {
@@ -1058,7 +1490,17 @@ async function handleTestRun(request, env) {
 export default {
   // Cron trigger — runs daily at 7am Dubai (03:00 UTC)
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(runDailyEmailSequence(env));
+    var now = new Date();
+    // Sunday = 0 in UTC, but 7am Dubai = 3am UTC, so check day in Dubai (UTC+4)
+    var dubaiHour = (now.getUTCHours() + 4) % 24;
+    var dubaiDay  = new Date(now.getTime() + 4 * 60 * 60 * 1000).getUTCDay();
+    if (dubaiDay === 0) {
+      // Sunday 7am Dubai — send weekly draft to Salman for review
+      ctx.waitUntil(sendWeeklyDraft(env));
+    } else {
+      // All other days — run daily onboarding sequence
+      ctx.waitUntil(runDailyEmailSequence(env));
+    }
   },
 
   // HTTP handler — for preview and manual trigger
