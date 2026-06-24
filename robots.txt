@@ -1,20 +1,12 @@
 User-agent: *
 Allow: /
+
+# Internal tooling — operator only, never indexed
 Disallow: /dashboard
-Disallow: /dashboard-newsletter
-Disallow: /dashboard-youtube
-Disallow: /dashboard-seo
-Disallow: /dashboard-social
-Disallow: /dashboard-queue
-Disallow: /dashboard-knowledge
-Disallow: /dashboard-indexing
-Disallow: /dashboard-health
-Disallow: /dashboard-generate
-Disallow: /dashboard-audience
-Disallow: /dashboard-press
 Disallow: /generate
 Disallow: /publish
 Disallow: /retry
 Disallow: /notify
+Disallow: /press
 
 Sitemap: https://fortitudefx.com/sitemap.xml

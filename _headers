@@ -13,3 +13,25 @@
 
 /en-us/*
   X-Robots-Tag: noindex, nofollow
+
+# ── Global security headers ──
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+# ── Long-cache immutable static assets ──
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+/*.ico
+  Cache-Control: public, max-age=31536000, immutable
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+# ── Article data: short edge cache, must-revalidate ──
+/articles.json
+  Cache-Control: public, max-age=300, must-revalidate

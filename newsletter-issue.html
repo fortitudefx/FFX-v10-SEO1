@@ -5,6 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FFX Newsletter | FortitudeFX</title>
   <meta name="description" content="FortitudeFX bi-weekly intelligence brief — markets, mindset, lifestyle, and the Catch The Wick framework." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://fortitudefx.com/newsletter" id="canonicalTag" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://fortitudefx.com/newsletter" id="ogUrl" />
+  <meta property="og:title" content="FFX Newsletter | FortitudeFX" id="ogTitle" />
+  <meta property="og:description" content="FortitudeFX bi-weekly intelligence brief — markets, mindset, lifestyle, and the Catch The Wick framework." id="ogDesc" />
+  <meta property="og:image" content="https://fortitudefx.com/og-fortitudefx.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="FortitudeFX — Catch The Wick mechanical forex trading system" />
+  <meta property="og:site_name" content="FortitudeFX™" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@_fortitudefx" />
+  <meta name="twitter:title" content="FFX Newsletter | FortitudeFX" id="twTitle" />
+  <meta name="twitter:description" content="FortitudeFX bi-weekly intelligence brief — markets, mindset, lifestyle, and the Catch The Wick framework." id="twDesc" />
+  <meta name="twitter:image" content="https://fortitudefx.com/og-fortitudefx.png" />
+  <meta name="twitter:image:alt" content="FortitudeFX — Catch The Wick mechanical forex trading system" />
+  <meta name="theme-color" content="#0d0d14" />
   <link rel="stylesheet" href="/styles-base.css" />
   <link rel="stylesheet" href="/styles-components.css" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
@@ -335,6 +354,22 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 function renderIssue(issue, el) {
   document.title = 'Issue #' + issue.issueNumber + ' \u00b7 Catch The Wick\u2122 | FortitudeFX';
+  // ── Per-issue SEO meta (client-side; middleware SSRs the same for crawlers) ──
+  try {
+    var issueUrl = 'https://fortitudefx.com/newsletter-issue?date=' + (issue.issueDate || '');
+    var issueTitle = 'Issue #' + issue.issueNumber + ' \u00b7 Catch The Wick\u2122 | FortitudeFX';
+    var issueDesc = (issue.mindsetLine || (issue.weekInMarkets && issue.weekInMarkets.content) ||
+      'FortitudeFX bi-weekly intelligence brief — markets, mindset, lifestyle, and the Catch The Wick framework.');
+    issueDesc = String(issueDesc).replace(/<[^>]+>/g, '').slice(0, 160);
+    var setMeta = function(id, val) { var e = document.getElementById(id); if (e) e.setAttribute(id === 'canonicalTag' ? 'href' : 'content', val); };
+    setMeta('canonicalTag', issueUrl);
+    setMeta('ogUrl', issueUrl);
+    setMeta('ogTitle', issueTitle);
+    setMeta('twTitle', issueTitle);
+    setMeta('ogDesc', issueDesc);
+    setMeta('twDesc', issueDesc);
+    var md = document.querySelector('meta[name="description"]'); if (md) md.setAttribute('content', issueDesc);
+  } catch (e) {}
   document.getElementById('issueNum').textContent   = 'Issue #' + issue.issueNumber;
   document.getElementById('heroMeta').textContent   = formatDate(issue.issueDate) + ' \u00b7 Bi-Weekly Intelligence Brief';
   document.getElementById('breadcrumbDate').textContent = formatDate(issue.issueDate);
