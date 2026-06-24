@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>FortitudeFX | Catch The Wick™ — Mechanical Forex Trading</title>
-<meta name="description" content="FortitudeFX — Catch The Wick™. Two candles. One story. Five mechanical entry models. Zero guesswork. Join the free community." />
+<meta name="description" content="FortitudeFX — Catch The Wick™. Two candles. One story. Mechanical entry models. Zero guesswork. Join the free community." />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="https://fortitudefx.com/" />
 <meta property="og:type" content="website" />
@@ -199,41 +199,17 @@
     line-height: 1.7;
   }
 
-  /* ── 2-Candle Animation ── */
-  .candle-diagram {
-    margin: 56px auto 0;
+  /* ── Catch The Wick — Hero Animation ── */
+  .ctw-hero {
+    margin: 40px auto 0;
+    width: min(700px, 100%);
+    aspect-ratio: 100 / 74;
     position: relative;
-    width: 320px;
-    height: 220px;
   }
-  .candle-diagram svg { overflow: visible; }
-  .wick-line {
-    stroke-dasharray: 200;
-    stroke-dashoffset: 200;
-    animation: drawWick 1.2s ease forwards 0.4s;
-  }
-  .body-rect {
-    opacity: 0;
-    animation: fadeInBody 0.5s ease forwards 1.6s;
-  }
-  .sweep-arrow {
-    opacity: 0;
-    animation: fadeInBody 0.6s ease forwards 2.2s;
-  }
-  .entry-arrow {
-    opacity: 0;
-    animation: fadeInBody 0.6s ease forwards 2.8s;
-  }
-  .candle2-body {
-    opacity: 0;
-    animation: fadeInBody 0.6s ease forwards 3.2s;
-  }
-  @keyframes drawWick {
-    to { stroke-dashoffset: 0; }
-  }
-  @keyframes fadeInBody {
-    from { opacity: 0; transform: scaleY(0.6); }
-    to   { opacity: 1; transform: scaleY(1); }
+  .ctw-hero canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .arrival-cta-wrap {
@@ -441,172 +417,64 @@
     line-height: 1.4;
   }
 
-  /* CTW Diagram */
+  /* CTW still — final resting frame of the hero animation, in a card matching the EM cards */
   .ctw-diagram {
-    background: #1A1510;
-    border-radius: 8px;
-    padding: 40px 32px;
     position: relative;
+    background: #fff;
+    border: 1px solid rgba(26,21,16,0.07);
+    border-top: 3px solid #C9A84C;
+    border-radius: 8px;
+    padding: 28px 30px 22px;
+    box-shadow: 0 20px 48px rgba(26,21,16,0.06);
   }
   .ctw-diagram-label {
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(201,168,76,0.7);
-    margin-bottom: 32px;
+    color: #9A7B28;
+    margin-bottom: 20px;
   }
-  .ctw-candles {
-    display: flex;
-    align-items: flex-end;
-    gap: 40px;
-    justify-content: center;
-    height: 200px;
-    margin-bottom: 24px;
+  .ctw-still {
+    width: 100%;
+    aspect-ratio: 100 / 74;
     position: relative;
   }
-  .ctw-candle-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-  }
-  .ctw-candle-label {
-    font-size: 9px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.3);
-    margin-bottom: 8px;
-    text-align: center;
-  }
-  /* Candle 1 — bearish with long bottom wick */
-  .c1-wick-top {
-    width: 1.5px;
-    height: 24px;
-    background: rgba(255,255,255,0.4);
-  }
-  .c1-body {
-    width: 32px;
-    height: 80px;
-    background: linear-gradient(180deg, #e05555 0%, #c03030 100%);
-    border-radius: 2px;
-    position: relative;
-  }
-  .c1-wick-bottom {
-    width: 1.5px;
-    background: #C9A84C;
-    height: 0;
-    animation: growWick 0.8s ease forwards 1s;
-    transform-origin: top;
-  }
-  @keyframes growWick {
-    to { height: 56px; }
-  }
-  .sweep-zone {
-    position: absolute;
-    bottom: -60px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 20px;
-    border: 1px dashed rgba(201,168,76,0.5);
-    border-radius: 2px;
-    opacity: 0;
-    animation: fadeInBody 0.5s ease forwards 1.8s;
-  }
-  .sweep-label {
-    position: absolute;
-    bottom: -80px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 8px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #C9A84C;
-    white-space: nowrap;
-    opacity: 0;
-    animation: fadeInBody 0.5s ease forwards 2s;
-  }
-
-  /* Candle 2 — bullish continuation */
-  .c2-wick-top {
-    width: 1.5px;
-    height: 16px;
-    background: rgba(255,255,255,0.4);
-    opacity: 0;
-    animation: fadeInBody 0.4s ease forwards 2.4s;
-  }
-  .c2-body {
-    width: 32px;
-    height: 0;
-    background: linear-gradient(180deg, #4ecb71 0%, #2d9e50 100%);
-    border-radius: 2px;
-    opacity: 0;
-    animation: growBody 0.7s ease forwards 2.6s;
-  }
-  @keyframes growBody {
-    from { height: 0; opacity: 0; }
-    to   { height: 90px; opacity: 1; }
-  }
-  .c2-wick-bottom {
-    width: 1.5px;
-    height: 12px;
-    background: rgba(255,255,255,0.4);
-    opacity: 0;
-    animation: fadeInBody 0.4s ease forwards 3.2s;
-  }
-
-  /* Entry arrow between candles */
-  .entry-marker {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    opacity: 0;
-    animation: fadeInBody 0.6s ease forwards 3s;
-  }
-  .entry-dot {
-    width: 8px;
-    height: 8px;
-    background: #C9A84C;
-    border-radius: 50%;
-    box-shadow: 0 0 12px rgba(201,168,76,0.6);
-  }
-  .entry-line {
-    width: 1px;
-    height: 40px;
-    background: linear-gradient(180deg, #C9A84C, transparent);
-  }
-  .entry-text {
-    font-size: 8px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #C9A84C;
-    white-space: nowrap;
-  }
-
-  .ctw-diagram-footer {
-    text-align: center;
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.25);
-    text-transform: uppercase;
-    border-top: 1px solid rgba(255,255,255,0.07);
-    padding-top: 20px;
-    margin-top: 8px;
+  .ctw-still canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   /* EM Cards */
+  .em-intro {
+    max-width: 1200px;
+    margin: 96px auto 0;
+    padding: 0 24px;
+    text-align: center;
+  }
+  .em-intro-kicker {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    margin-bottom: 16px;
+  }
+  .em-intro-heading {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(26px, 3vw, 40px);
+    font-weight: 700;
+    line-height: 1.15;
+    color: #1A1510;
+    letter-spacing: -0.02em;
+  }
   .em-cards {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     max-width: 1200px;
-    margin: 80px auto 0;
+    margin: 36px auto 0;
     padding: 0 24px;
   }
   .em-card {
@@ -749,6 +617,126 @@
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
+  }
+
+  /* ── SCENE — EVIDENCE (chart carousel) ── */
+  #scene-evidence {
+    padding: 140px 0 130px;
+    background: #FAF8F5;
+    overflow: hidden;
+  }
+  .evidence-inner {
+    max-width: 1200px;
+    margin: 0 auto 56px;
+    padding: 0 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+  .evidence-head { max-width: 640px; }
+  .evidence-kicker {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    margin-bottom: 18px;
+  }
+  .evidence-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 3.2vw, 44px);
+    font-weight: 700;
+    line-height: 1.12;
+    color: #1A1510;
+    letter-spacing: -0.02em;
+  }
+  .evidence-stat { text-align: right; }
+  .evidence-stat-num {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(40px, 5vw, 64px);
+    font-weight: 700;
+    color: #C9A84C;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .evidence-stat-label {
+    display: block;
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: rgba(26, 21, 16, 0.5);
+    text-transform: uppercase;
+  }
+  /* placeholder state — clearly NOT a real claim until replaced */
+  .evidence-stat.is-placeholder .evidence-stat-num { color: rgba(26, 21, 16, 0.22); }
+  .evidence-stat.is-placeholder .evidence-stat-label {
+    color: rgba(224, 107, 26, 0.85);
+    text-transform: none;
+    letter-spacing: 0;
+    font-style: italic;
+  }
+
+  .evidence-carousel {
+    position: relative;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  }
+  .evidence-track {
+    display: flex;
+    gap: 20px;
+    width: max-content;
+    animation: evidence-scroll 52s linear infinite;
+  }
+  .evidence-carousel:hover .evidence-track { animation-play-state: paused; }
+  @keyframes evidence-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .evidence-card { flex-shrink: 0; width: 360px; }
+  .evidence-chart {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid rgba(26, 21, 16, 0.08);
+    box-shadow: 0 16px 40px rgba(26, 21, 16, 0.06);
+  }
+  .evidence-chart img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .evidence-chart.is-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(26, 21, 16, 0.035) 28px, rgba(26, 21, 16, 0.035) 29px),
+      linear-gradient(160deg, #ffffff, #F6F1E9);
+  }
+  .evidence-chart-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(26, 21, 16, 0.3);
+    border: 1px dashed rgba(26, 21, 16, 0.22);
+    padding: 8px 14px;
+    border-radius: 100px;
+  }
+  .evidence-caption {
+    margin-top: 14px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: rgba(26, 21, 16, 0.45);
+  }
+  .evidence-caption span { color: #9A7B28; font-weight: 600; }
+  @media (max-width: 700px) {
+    .evidence-card { width: 280px; }
+    .evidence-inner { justify-content: flex-start; }
+    .evidence-stat { text-align: left; }
   }
 
   /* ── SCENE 6 — PROOF ── */
@@ -972,28 +960,25 @@
   }
 
   /* ── Responsive ── */
+  @media (max-width: 1024px) {
+    .em-cards { grid-template-columns: repeat(2, 1fr); }
+  }
   @media (max-width: 900px) {
     nav { padding: 0 24px; }
     .nav-links { display: none; }
     .mechanism-grid { grid-template-columns: 1fr; gap: 48px; }
     .distinction-grid { grid-template-columns: 1fr; }
-    .em-cards { grid-template-columns: 1fr; }
     .footer-inner { flex-direction: column; gap: 32px; }
     .footer-bottom { flex-direction: column; text-align: center; }
   }
   @media (max-width: 600px) {
-    .em-cards { padding: 0; }
+    .em-cards { padding: 0; grid-template-columns: 1fr; }
     .distinction-col { padding: 32px 24px; }
   }
 
   /* ── Reduced motion ── */
   @media (prefers-reduced-motion: reduce) {
     .reveal { opacity: 1; transform: none; transition: none; }
-    .wick-line, .body-rect, .sweep-arrow, .entry-arrow, .candle2-body,
-    .c1-wick-bottom, .c2-body, .c2-wick-top, .c2-wick-bottom,
-    .sweep-zone, .sweep-label, .entry-marker { animation: none; opacity: 1; height: auto; }
-    .c1-wick-bottom { height: 56px; }
-    .c2-body { height: 90px; }
   }
 </style>
 </head>
@@ -1040,49 +1025,9 @@
 
   <p class="arrival-sub reveal reveal-delay-2">Most people just trade. There's a difference — and it comes down to one moment, two candles.</p>
 
-  <!-- 2-Candle Animation -->
-  <div class="candle-diagram reveal reveal-delay-3">
-    <svg width="320" height="220" viewBox="0 0 320 220">
-      <!-- Candle 1 — bearish with wick -->
-      <!-- Top wick -->
-      <line x1="100" y1="30" x2="100" y2="60" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-      <!-- Body -->
-      <rect x="84" y="60" width="32" height="80" rx="2" fill="#c03030" opacity="0.9"/>
-      <!-- Bottom wick — animated gold -->
-      <line class="wick-line" x1="100" y1="140" x2="100" y2="185" stroke="#C9A84C" stroke-width="2"/>
-      <!-- Sweep zone -->
-      <rect x="70" y="178" width="60" height="14" rx="2" stroke="#C9A84C" stroke-width="1" stroke-dasharray="4,3" fill="none" opacity="0.6"/>
-      <text x="100" y="205" text-anchor="middle" font-size="8" fill="#C9A84C" font-family="Inter,sans-serif" letter-spacing="1" opacity="0.8">SWEEP ZONE</text>
-
-      <!-- Entry marker -->
-      <g class="sweep-arrow" opacity="0">
-        <line x1="160" y1="140" x2="160" y2="165" stroke="#C9A84C" stroke-width="1" stroke-dasharray="3,2"/>
-        <circle cx="160" cy="135" r="5" fill="#C9A84C"/>
-        <text x="160" y="120" text-anchor="middle" font-size="8" fill="#C9A84C" font-family="Inter,sans-serif" letter-spacing="1">ENTRY</text>
-      </g>
-
-      <!-- Candle 2 — bullish -->
-      <g class="entry-arrow" opacity="0">
-        <!-- Top wick -->
-        <line x1="220" y1="55" x2="220" y2="75" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-        <!-- Body -->
-        <rect x="204" y="75" width="32" height="90" rx="2" fill="#2d9e50"/>
-        <!-- Bottom wick -->
-        <line x1="220" y1="165" x2="220" y2="180" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-        <!-- Label -->
-        <text x="220" y="200" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.3)" font-family="Inter,sans-serif" letter-spacing="1">CANDLE 2</text>
-      </g>
-
-      <!-- Candle 1 label -->
-      <text x="100" y="22" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.25)" font-family="Inter,sans-serif" letter-spacing="1">CANDLE 1</text>
-
-      <!-- OFC arrow -->
-      <g class="candle2-body" opacity="0">
-        <path d="M 148 130 Q 184 130 184 110" stroke="#C9A84C" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-        <polygon points="180,106 184,115 188,106" fill="#C9A84C"/>
-        <text x="168" y="148" text-anchor="middle" font-size="7" fill="rgba(201,168,76,0.7)" font-family="Inter,sans-serif" letter-spacing="1">OFC</text>
-      </g>
-    </svg>
+  <!-- Catch The Wick — Hero Animation -->
+  <div class="ctw-hero reveal reveal-delay-3">
+    <canvas id="ctwHeroCanvas" role="img" aria-label="Catch The Wick: candle two rallies up into the supply zone where a short order rests below, then rejects, triggers the entry, flips bearish and runs to target — leaving the upper wick that caught the zone."></canvas>
   </div>
 
   <div class="arrival-cta-wrap reveal reveal-delay-4">
@@ -1158,45 +1103,26 @@
         <li>Institutions sweep liquidity before reversing.</li>
         <li>The wick IS the institutional fill.</li>
         <li>Two candles tell you everything.</li>
-        <li>Five models tell you exactly when.</li>
+        <li>The models tell you exactly when.</li>
       </ul>
       <p class="mechanism-truth reveal reveal-delay-3">
         "Either the model is printing.<br>Or it isn't."
       </p>
     </div>
 
-    <!-- Right — diagram -->
+    <!-- Right — final-frame still of the CTW animation -->
     <div class="ctw-diagram reveal reveal-delay-2">
       <p class="ctw-diagram-label">CTW™ Entry Mechanism</p>
-      <div class="ctw-candles">
-        <!-- Candle 1 -->
-        <div class="ctw-candle-wrap">
-          <p class="ctw-candle-label">HTF Candle 1<br>Direction</p>
-          <div class="c1-wick-top"></div>
-          <div class="c1-body">
-            <div class="sweep-zone"></div>
-            <span class="sweep-label">Liquidity Swept</span>
-          </div>
-          <div class="c1-wick-bottom"></div>
-        </div>
-
-        <!-- Entry marker -->
-        <div class="entry-marker">
-          <span class="entry-text">Entry</span>
-          <div class="entry-line"></div>
-          <div class="entry-dot"></div>
-        </div>
-
-        <!-- Candle 2 -->
-        <div class="ctw-candle-wrap">
-          <p class="ctw-candle-label">HTF Candle 2<br>Your Move</p>
-          <div class="c2-wick-top"></div>
-          <div class="c2-body"></div>
-          <div class="c2-wick-bottom"></div>
-        </div>
+      <div class="ctw-still">
+        <canvas id="ctwStillCanvas" role="img" aria-label="The completed Catch The Wick setup: candle two rejected from the supply zone, triggered the entry, flipped bearish and ran to target — leaving the gold upper wick that caught the zone."></canvas>
       </div>
-      <p class="ctw-diagram-footer">Catch The Wick™ &nbsp;·&nbsp; 2 Candles. 1 Story.™</p>
     </div>
+  </div>
+
+  <!-- Four core models intro -->
+  <div class="em-intro reveal">
+    <p class="em-intro-kicker">The Framework</p>
+    <h3 class="em-intro-heading">Four core models.<br>Everything else is a variation.</h3>
   </div>
 
   <!-- EM Cards -->
@@ -1218,6 +1144,12 @@
       <h3 class="em-title">Breakout Entry</h3>
       <p class="em-desc">Shallow pullback into a valid zone. Momentum locked in. Breakout entry on the continuation. You ride the session with the trend confirmed.</p>
       <p class="em-truth">"Momentum locked. You ride it."</p>
+    </div>
+    <div class="em-card reveal reveal-delay-3">
+      <p class="em-label">EM4</p>
+      <h3 class="em-title">Failed Reaction</h3>
+      <p class="em-desc">Supply and demand collide at the zone. The first reaction fails — and the failure reveals the stronger hand. You take the side the market just proved.</p>
+      <p class="em-truth">"Let them fight. You back the winner."</p>
     </div>
   </div>
 </section>
@@ -1246,7 +1178,7 @@
         <p class="distinction-col-label">FortitudeFX™</p>
         <h3 class="distinction-col-title">The exact trigger. Every time.</h3>
         <ul class="distinction-list">
-          <li>5 models built around one market behaviour</li>
+          <li>Mechanical models built around one market behaviour</li>
           <li>Either it's printing or it isn't — no grey area</li>
           <li>In within 15 minutes. Out within 30.</li>
           <li>Any pair. Any session. Any timeframe.</li>
@@ -1258,6 +1190,46 @@
     <p class="distinction-bottom reveal reveal-delay-3">
       "The gap between knowing and executing<br>is where accounts go to die.<br>CTW closes that gap."
     </p>
+  </div>
+</section>
+
+<!-- ═══ SCENE — EVIDENCE (chart carousel) ═══ -->
+<!--
+  CAROUSEL: drop your real chart captures in later.
+  Replace each  <div class="evidence-chart is-placeholder">…</div>
+  with         <div class="evidence-chart"><img src="/charts/your-file.png" alt="EUR/USD London — CTW setup"></div>
+  Cards are duplicated once (SET 1 + SET 2) for a seamless loop — update BOTH copies of each card.
+  The stat number + label are placeholders too — give me your real number to swap in.
+-->
+<section id="scene-evidence">
+  <div class="evidence-inner">
+    <div class="evidence-head reveal">
+      <p class="evidence-kicker">Caught In The Wild</p>
+      <h2 class="evidence-headline">Real setups.<br>Real sessions.</h2>
+    </div>
+    <div class="evidence-stat is-placeholder reveal reveal-delay-1">
+      <span class="evidence-stat-num">000+</span>
+      <span class="evidence-stat-label">← your real number goes here</span>
+    </div>
+  </div>
+
+  <div class="evidence-carousel">
+    <div class="evidence-track">
+      <!-- ── SET 1 ── -->
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 01</span></div><figcaption class="evidence-caption"><span>EUR/USD</span> · London</figcaption></figure>
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 02</span></div><figcaption class="evidence-caption"><span>GBP/JPY</span> · New York</figcaption></figure>
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 03</span></div><figcaption class="evidence-caption"><span>XAU/USD</span> · London</figcaption></figure>
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 04</span></div><figcaption class="evidence-caption"><span>USD/JPY</span> · Asia</figcaption></figure>
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 05</span></div><figcaption class="evidence-caption"><span>GBP/USD</span> · London</figcaption></figure>
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 06</span></div><figcaption class="evidence-caption"><span>EUR/JPY</span> · New York</figcaption></figure>
+      <!-- ── SET 2 (duplicate — keep identical to SET 1) ── -->
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 01</span></div><figcaption class="evidence-caption"><span>EUR/USD</span> · London</figcaption></figure>
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 02</span></div><figcaption class="evidence-caption"><span>GBP/JPY</span> · New York</figcaption></figure>
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 03</span></div><figcaption class="evidence-caption"><span>XAU/USD</span> · London</figcaption></figure>
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 04</span></div><figcaption class="evidence-caption"><span>USD/JPY</span> · Asia</figcaption></figure>
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 05</span></div><figcaption class="evidence-caption"><span>GBP/USD</span> · London</figcaption></figure>
+      <figure class="evidence-card"><div class="evidence-chart is-placeholder"><span class="evidence-chart-tag">Chart 06</span></div><figcaption class="evidence-caption"><span>EUR/JPY</span> · New York</figcaption></figure>
+    </div>
   </div>
 </section>
 
@@ -1385,10 +1357,334 @@
       });
     }
   })();
+
+  // ── Catch The Wick — hero animation (canvas, locked geometry) ──
+  (function() {
+    var container = document.querySelector('.ctw-hero');
+    if (!container) return;
+    var cv = container.querySelector('canvas');
+    if (!cv || !cv.getContext) return;
+    var ctx = cv.getContext('2d');
+    var W = 0, H = 0, dpr = Math.max(1, window.devicePixelRatio || 1);
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    var C = {
+      c1: '#A89E8C',
+      rise: '#3A322A', fall: '#E06B1A', gold: '#C9A84C', goldLine: '#BD9A3E', goldDeep: '#9A7B28', ink: '#1A1510',
+      supFill: 'rgba(201,168,76,0.20)', supLine: 'rgba(189,154,62,0.6)', supLbl: '#9A7B28',
+      slFill: 'rgba(192,57,43,0.13)', slLine: 'rgba(192,57,43,0.5)', slLbl: '#A3302A',
+      tpFill: 'rgba(201,168,76,0.13)', tpLine: 'rgba(189,154,62,0.45)', tpLbl: '#9A7B28'
+    };
+
+    var C1_WTOP = 0.05, C1_BTOP = 0.16, C1_BBOT = 0.39, C1_WBOT = 0.52;
+    var OPEN = 0.39, CLOSE = 0.65, HIGH = 0.27, LOW = 0.79;
+    var SUP_TOP = 0.24, SUP_BOT = 0.30, SL = 0.21, ENTRY = 0.34, TP = 0.83;
+
+    function mapL(L) { return 24 + L * (H - 88); }
+    function clamp(u, a, b) { return Math.max(a, Math.min(b, u)); }
+    function lerp(a, b, u) { return a + (b - a) * u; }
+    function seg(t, a, b) { return clamp((t - a) / (b - a), 0, 1); }
+    function eoc(u) { return 1 - Math.pow(1 - u, 3); }
+    function eiq(u) { return u * u; }
+    function eoq(u) { return 1 - (1 - u) * (1 - u); }
+
+    var T = {
+      C1_END: 750, ZONE_START: 800, ZONE_END: 1300, RISE_START: 1350, RISE_END: 2300,
+      BRK_START: 2050, BRK_END: 2560, STALL_END: 2750, FALL_END: 3750, RETRACE_END: 4060,
+      SETTLE_END: 4820, TOTAL: 5350
+    };
+
+    function closeL(t) {
+      if (t < T.RISE_START) return OPEN;
+      if (t < T.RISE_END) return lerp(OPEN, HIGH, eoc(seg(t, T.RISE_START, T.RISE_END)));
+      if (t < T.STALL_END) return HIGH;
+      if (t < T.FALL_END) return lerp(HIGH, LOW, eiq(seg(t, T.STALL_END, T.FALL_END)));
+      if (t < T.RETRACE_END) return lerp(LOW, CLOSE, eoq(seg(t, T.FALL_END, T.RETRACE_END)));
+      return CLOSE;
+    }
+
+    var hi = OPEN, lo = OPEN, triggered = false, trigTime = -1;
+    function reset() { hi = OPEN; lo = OPEN; triggered = false; trigTime = -1; }
+
+    function dline(x1, x2, L, col, a, w) {
+      ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = col; ctx.lineWidth = w || 1.2;
+      ctx.setLineDash([6, 5]); ctx.beginPath(); var y = mapL(L); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke(); ctx.restore();
+    }
+    function lbl(txt, x, y, col, a, al) {
+      ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = col;
+      ctx.font = "700 " + Math.max(11, Math.round(W * 0.02)) + "px 'Inter', sans-serif";
+      ctx.textAlign = al || 'left'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x, y); ctx.restore();
+    }
+
+    function frame(t) {
+      ctx.clearRect(0, 0, W, H);
+      var ox = W * 0.095; // shift drawing right so the chart cluster centers under the headline
+      var c1x = W * 0.335 + ox, c2x = W * 0.465 + ox, hw = Math.max(12, W * 0.05);
+      var supL = W * 0.14 + ox, supR = W * 0.65 + ox, boxL = W * 0.47 + ox, boxR = W * 0.67 + ox;
+      var lw = Math.max(2.5, W * 0.005);
+      var settle = seg(t, T.RETRACE_END, T.SETTLE_END);
+      var dimB = 1 - settle * 0.30;
+
+      var zOp = seg(t, T.ZONE_START, T.ZONE_END) * dimB;
+      if (zOp > 0) {
+        ctx.globalAlpha = zOp; ctx.fillStyle = C.supFill;
+        ctx.fillRect(supL, mapL(SUP_TOP), supR - supL, mapL(SUP_BOT) - mapL(SUP_TOP)); ctx.globalAlpha = 1;
+        dline(supL, supR, SUP_TOP, C.supLine, zOp * 0.85, 1.6); dline(supL, supR, SUP_BOT, C.supLine, zOp * 0.85, 1.6);
+      }
+      var bOp = seg(t, T.BRK_START, T.BRK_END) * dimB;
+      if (bOp > 0) {
+        ctx.globalAlpha = bOp; ctx.fillStyle = C.slFill;
+        ctx.fillRect(boxL, mapL(SL), boxR - boxL, mapL(ENTRY) - mapL(SL));
+        ctx.fillStyle = C.tpFill; ctx.fillRect(boxL, mapL(ENTRY), boxR - boxL, mapL(TP) - mapL(ENTRY)); ctx.globalAlpha = 1;
+        dline(boxL, boxR, SL, C.slLine, bOp, 1.8); dline(boxL, boxR, TP, C.tpLine, bOp, 1.8);
+      }
+      var eAlive = seg(t, T.BRK_START, T.BRK_END);
+      if (eAlive > 0) {
+        var ea = triggered ? 1 : (0.6 * eAlive); ea *= (triggered ? 1 : dimB);
+        dline(boxL, boxR, ENTRY, C.goldLine, ea, triggered ? lw : 2);
+        if (triggered && trigTime > 0) {
+          var since = t - trigTime, pr = clamp(since / 440, 0, 1);
+          if (pr < 1) {
+            ctx.save(); ctx.globalAlpha = (1 - pr) * 0.9; ctx.strokeStyle = C.gold; ctx.lineWidth = lw;
+            ctx.beginPath(); ctx.arc(c2x, mapL(ENTRY), 6 + pr * 30, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+          }
+        }
+      }
+      var c1p = seg(t, 0, T.C1_END);
+      if (c1p > 0) {
+        var o = C1_BBOT, cc = lerp(C1_BBOT, C1_BTOP, eoc(c1p));
+        var wh = lerp(C1_BBOT, C1_WTOP, eoq(clamp(c1p * 1.15, 0, 1)));
+        var wl = lerp(C1_BBOT, C1_WBOT, eoq(clamp(c1p * 1.15, 0, 1)));
+        ctx.globalAlpha = dimB; ctx.strokeStyle = C.c1; ctx.lineWidth = lw; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(c1x, mapL(Math.min(wh, cc))); ctx.lineTo(c1x, mapL(cc)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(c1x, mapL(o)); ctx.lineTo(c1x, mapL(wl)); ctx.stroke();
+        ctx.fillStyle = C.c1; ctx.fillRect(c1x - hw, mapL(cc), hw * 2, Math.max(2, mapL(o) - mapL(cc))); ctx.globalAlpha = 1;
+      }
+      if (t >= T.RISE_START) {
+        var cl = closeL(t); hi = Math.min(hi, cl); lo = Math.max(lo, cl);
+        if (!triggered && t > T.STALL_END && cl >= ENTRY) { triggered = true; trigTime = t; }
+        var red = cl > OPEN; var col = red ? C.fall : C.rise;
+        var bTop = Math.min(OPEN, cl), bBot = Math.max(OPEN, cl);
+        var bodyDim = 1 - settle * 0.10;
+        ctx.globalAlpha = bodyDim; ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(c2x, mapL(bBot)); ctx.lineTo(c2x, mapL(lo)); ctx.stroke();
+        ctx.fillStyle = col; ctx.fillRect(c2x - hw, mapL(bTop), hw * 2, Math.max(2, mapL(bBot) - mapL(bTop))); ctx.globalAlpha = 1;
+        var wbase = Math.max(3, W * 0.0085);
+        var wc = settle > 0 ? C.gold : col, ww = wbase + settle * wbase * 0.8;
+        ctx.save(); ctx.globalAlpha = settle > 0 ? 1 : bodyDim; ctx.strokeStyle = wc; ctx.lineWidth = ww; ctx.lineCap = 'butt';
+        if (settle > 0) { ctx.shadowColor = C.gold; ctx.shadowBlur = settle * W * 0.022; }
+        ctx.beginPath(); ctx.moveTo(c2x, mapL(hi)); ctx.lineTo(c2x, mapL(bTop)); ctx.stroke(); ctx.restore();
+      }
+      if (zOp > 0) lbl('SUPPLY', supL + 2, mapL(SUP_TOP) - 11, C.supLbl, zOp, 'left');
+      if (bOp > 0) { lbl('SL', boxR - 2, mapL(SL) - 11, C.slLbl, bOp, 'right'); lbl('TP', boxR - 2, mapL(TP) + 13, C.tpLbl, bOp, 'right'); }
+      if (eAlive > 0) lbl('ENTRY', boxR - 2, mapL(ENTRY) - 11, C.goldDeep, Math.max(eAlive * 0.65, triggered ? 1 : 0.6), 'right');
+      if (settle > 0) {
+        ctx.save(); ctx.globalAlpha = settle; ctx.fillStyle = C.ink;
+        ctx.font = "italic 600 " + Math.round(W * 0.042) + "px 'Playfair Display', serif";
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('2 Candles. 1 Story.', W * 0.5, H - 26); ctx.restore();
+      }
+    }
+
+    var animTime = 0, last = 0, raf = null, running = false;
+    function tick(now) {
+      if (!last) last = now; var dt = now - last; last = now; if (dt > 60) dt = 60;
+      animTime += dt;
+      if (animTime >= T.TOTAL) { animTime = T.TOTAL; running = false; }
+      frame(animTime);
+      if (running) raf = window.requestAnimationFrame(tick);
+    }
+    function staticFinal() {
+      hi = HIGH; lo = LOW; triggered = true; trigTime = -999999;
+      animTime = T.TOTAL; frame(T.TOTAL);
+    }
+    function play() {
+      if (reduceMotion) { staticFinal(); return; }
+      if (raf) window.cancelAnimationFrame(raf);
+      reset(); animTime = 0; last = 0; running = true; raf = window.requestAnimationFrame(tick);
+    }
+
+    function sizeAndDraw() {
+      W = cv.clientWidth; H = cv.clientHeight;
+      if (!W || !H) return;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!running) frame(animTime);
+    }
+
+    function init() {
+      sizeAndDraw();
+      window.addEventListener('resize', function () {
+        dpr = Math.max(1, window.devicePixelRatio || 1); sizeAndDraw();
+      }, { passive: true });
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+          for (var i = 0; i < entries.length; i++) { if (entries[i].isIntersecting) { play(); } }
+        }, { threshold: 0.35 });
+        io.observe(cv);
+      } else {
+        play();
+      }
+    }
+
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(init); }
+    else { init(); }
+  })();
+
+  // ── Catch The Wick — mechanism still (renders the hero animation's final frame, static) ──
+  // Deliberately self-contained so the approved hero IIFE above is untouched.
+  (function() {
+    var container = document.querySelector('.ctw-still');
+    if (!container) return;
+    var cv = container.querySelector('canvas');
+    if (!cv || !cv.getContext) return;
+    var ctx = cv.getContext('2d');
+    var W = 0, H = 0, dpr = Math.max(1, window.devicePixelRatio || 1);
+
+    var C = {
+      c1: '#A89E8C',
+      rise: '#3A322A', fall: '#E06B1A', gold: '#C9A84C', goldLine: '#BD9A3E', goldDeep: '#9A7B28', ink: '#1A1510',
+      supFill: 'rgba(201,168,76,0.20)', supLine: 'rgba(189,154,62,0.6)', supLbl: '#9A7B28',
+      slFill: 'rgba(192,57,43,0.13)', slLine: 'rgba(192,57,43,0.5)', slLbl: '#A3302A',
+      tpFill: 'rgba(201,168,76,0.13)', tpLine: 'rgba(189,154,62,0.45)', tpLbl: '#9A7B28'
+    };
+
+    var C1_WTOP = 0.05, C1_BTOP = 0.16, C1_BBOT = 0.39, C1_WBOT = 0.52;
+    var OPEN = 0.39, CLOSE = 0.65, HIGH = 0.27, LOW = 0.79;
+    var SUP_TOP = 0.24, SUP_BOT = 0.30, SL = 0.21, ENTRY = 0.34, TP = 0.83;
+
+    function mapL(L) { return 24 + L * (H - 88); }
+    function clamp(u, a, b) { return Math.max(a, Math.min(b, u)); }
+    function lerp(a, b, u) { return a + (b - a) * u; }
+    function seg(t, a, b) { return clamp((t - a) / (b - a), 0, 1); }
+    function eoc(u) { return 1 - Math.pow(1 - u, 3); }
+    function eiq(u) { return u * u; }
+    function eoq(u) { return 1 - (1 - u) * (1 - u); }
+
+    var T = {
+      C1_END: 750, ZONE_START: 800, ZONE_END: 1300, RISE_START: 1350, RISE_END: 2300,
+      BRK_START: 2050, BRK_END: 2560, STALL_END: 2750, FALL_END: 3750, RETRACE_END: 4060,
+      SETTLE_END: 4820, TOTAL: 5350
+    };
+
+    function closeL(t) {
+      if (t < T.RISE_START) return OPEN;
+      if (t < T.RISE_END) return lerp(OPEN, HIGH, eoc(seg(t, T.RISE_START, T.RISE_END)));
+      if (t < T.STALL_END) return HIGH;
+      if (t < T.FALL_END) return lerp(HIGH, LOW, eiq(seg(t, T.STALL_END, T.FALL_END)));
+      if (t < T.RETRACE_END) return lerp(LOW, CLOSE, eoq(seg(t, T.FALL_END, T.RETRACE_END)));
+      return CLOSE;
+    }
+
+    var hi = HIGH, lo = LOW, triggered = true, trigTime = -999999;
+
+    function dline(x1, x2, L, col, a, w) {
+      ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = col; ctx.lineWidth = w || 1.2;
+      ctx.setLineDash([6, 5]); ctx.beginPath(); var y = mapL(L); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke(); ctx.restore();
+    }
+    function lbl(txt, x, y, col, a, al) {
+      ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = col;
+      ctx.font = "700 " + Math.max(11, Math.round(W * 0.02)) + "px 'Inter', sans-serif";
+      ctx.textAlign = al || 'left'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x, y); ctx.restore();
+    }
+
+    function frame(t) {
+      ctx.clearRect(0, 0, W, H);
+      var ox = W * 0.095; // mirror the hero: center the chart cluster within the frame
+      var c1x = W * 0.335 + ox, c2x = W * 0.465 + ox, hw = Math.max(12, W * 0.05);
+      var supL = W * 0.14 + ox, supR = W * 0.65 + ox, boxL = W * 0.47 + ox, boxR = W * 0.67 + ox;
+      var lw = Math.max(2.5, W * 0.005);
+      var settle = seg(t, T.RETRACE_END, T.SETTLE_END);
+      var dimB = 1 - settle * 0.30;
+
+      // scale the chart up to fill the card; tagline drawn after restore (unscaled, no clip)
+      var SC = 1.25, scx = W * 0.5, scy = mapL(0.44);
+      ctx.save(); ctx.translate(scx, scy); ctx.scale(SC, SC); ctx.translate(-scx, -scy);
+
+      var zOp = seg(t, T.ZONE_START, T.ZONE_END) * dimB;
+      if (zOp > 0) {
+        ctx.globalAlpha = zOp; ctx.fillStyle = C.supFill;
+        ctx.fillRect(supL, mapL(SUP_TOP), supR - supL, mapL(SUP_BOT) - mapL(SUP_TOP)); ctx.globalAlpha = 1;
+        dline(supL, supR, SUP_TOP, C.supLine, zOp * 0.85, 1.6); dline(supL, supR, SUP_BOT, C.supLine, zOp * 0.85, 1.6);
+      }
+      var bOp = seg(t, T.BRK_START, T.BRK_END) * dimB;
+      if (bOp > 0) {
+        ctx.globalAlpha = bOp; ctx.fillStyle = C.slFill;
+        ctx.fillRect(boxL, mapL(SL), boxR - boxL, mapL(ENTRY) - mapL(SL));
+        ctx.fillStyle = C.tpFill; ctx.fillRect(boxL, mapL(ENTRY), boxR - boxL, mapL(TP) - mapL(ENTRY)); ctx.globalAlpha = 1;
+        dline(boxL, boxR, SL, C.slLine, bOp, 1.8); dline(boxL, boxR, TP, C.tpLine, bOp, 1.8);
+      }
+      var eAlive = seg(t, T.BRK_START, T.BRK_END);
+      if (eAlive > 0) {
+        var ea = triggered ? 1 : (0.6 * eAlive); ea *= (triggered ? 1 : dimB);
+        dline(boxL, boxR, ENTRY, C.goldLine, ea, triggered ? lw : 2);
+        if (triggered && trigTime > 0) {
+          var since = t - trigTime, pr = clamp(since / 440, 0, 1);
+          if (pr < 1) {
+            ctx.save(); ctx.globalAlpha = (1 - pr) * 0.9; ctx.strokeStyle = C.gold; ctx.lineWidth = lw;
+            ctx.beginPath(); ctx.arc(c2x, mapL(ENTRY), 6 + pr * 30, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+          }
+        }
+      }
+      var c1p = seg(t, 0, T.C1_END);
+      if (c1p > 0) {
+        var o = C1_BBOT, cc = lerp(C1_BBOT, C1_BTOP, eoc(c1p));
+        var wh = lerp(C1_BBOT, C1_WTOP, eoq(clamp(c1p * 1.15, 0, 1)));
+        var wl = lerp(C1_BBOT, C1_WBOT, eoq(clamp(c1p * 1.15, 0, 1)));
+        ctx.globalAlpha = dimB; ctx.strokeStyle = C.c1; ctx.lineWidth = lw; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(c1x, mapL(Math.min(wh, cc))); ctx.lineTo(c1x, mapL(cc)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(c1x, mapL(o)); ctx.lineTo(c1x, mapL(wl)); ctx.stroke();
+        ctx.fillStyle = C.c1; ctx.fillRect(c1x - hw, mapL(cc), hw * 2, Math.max(2, mapL(o) - mapL(cc))); ctx.globalAlpha = 1;
+      }
+      if (t >= T.RISE_START) {
+        var cl = closeL(t); hi = Math.min(hi, cl); lo = Math.max(lo, cl);
+        if (!triggered && t > T.STALL_END && cl >= ENTRY) { triggered = true; trigTime = t; }
+        var red = cl > OPEN; var col = red ? C.fall : C.rise;
+        var bTop = Math.min(OPEN, cl), bBot = Math.max(OPEN, cl);
+        var bodyDim = 1 - settle * 0.10;
+        ctx.globalAlpha = bodyDim; ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(c2x, mapL(bBot)); ctx.lineTo(c2x, mapL(lo)); ctx.stroke();
+        ctx.fillStyle = col; ctx.fillRect(c2x - hw, mapL(bTop), hw * 2, Math.max(2, mapL(bBot) - mapL(bTop))); ctx.globalAlpha = 1;
+        var wbase = Math.max(3, W * 0.0085);
+        var wc = settle > 0 ? C.gold : col, ww = wbase + settle * wbase * 0.8;
+        ctx.save(); ctx.globalAlpha = settle > 0 ? 1 : bodyDim; ctx.strokeStyle = wc; ctx.lineWidth = ww; ctx.lineCap = 'butt';
+        if (settle > 0) { ctx.shadowColor = C.gold; ctx.shadowBlur = settle * W * 0.022; }
+        ctx.beginPath(); ctx.moveTo(c2x, mapL(hi)); ctx.lineTo(c2x, mapL(bTop)); ctx.stroke(); ctx.restore();
+      }
+      if (zOp > 0) lbl('SUPPLY', supL + 2, mapL(SUP_TOP) - 11, C.supLbl, zOp, 'left');
+      if (bOp > 0) { lbl('SL', boxR - 2, mapL(SL) - 11, C.slLbl, bOp, 'right'); lbl('TP', boxR - 2, mapL(TP) + 13, C.tpLbl, bOp, 'right'); }
+      if (eAlive > 0) lbl('ENTRY', boxR - 2, mapL(ENTRY) - 11, C.goldDeep, Math.max(eAlive * 0.65, triggered ? 1 : 0.6), 'right');
+
+      ctx.restore();
+
+      if (settle > 0) {
+        ctx.save(); ctx.globalAlpha = settle; ctx.fillStyle = C.ink;
+        ctx.font = "italic 600 " + Math.round(W * 0.042) + "px 'Playfair Display', serif";
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('2 Candles. 1 Story.', W * 0.5, H - 26); ctx.restore();
+      }
+    }
+
+    function render() {
+      W = cv.clientWidth; H = cv.clientHeight;
+      if (!W || !H) return;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      hi = HIGH; lo = LOW; triggered = true; trigTime = -999999;
+      frame(T.TOTAL);
+    }
+
+    window.addEventListener('resize', function () {
+      dpr = Math.max(1, window.devicePixelRatio || 1); render();
+    }, { passive: true });
+
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(render); }
+    else { render(); }
+  })();
 </script>
 
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Organization","name":"FortitudeFX™","url":"https://fortitudefx.com","logo":"https://fortitudefx.com/favicon-192x192.png","description":"Forex trading education brand built around the Catch The Wick™ methodology. 5 mechanical entry models. Zero guesswork.","sameAs":["https://www.youtube.com/@FortitudeFX","https://instagram.com/fortitudefx_official","https://x.com/_fortitudefx","https://tiktok.com/@fortitudefx_official"]}
+{"@context":"https://schema.org","@type":"Organization","name":"FortitudeFX™","url":"https://fortitudefx.com","logo":"https://fortitudefx.com/favicon-192x192.png","description":"Forex trading education brand built around the Catch The Wick™ methodology. Mechanical entry models. Zero guesswork.","sameAs":["https://www.youtube.com/@FortitudeFX","https://instagram.com/fortitudefx_official","https://x.com/_fortitudefx","https://tiktok.com/@fortitudefx_official"]}
 </script>
 
 </body>
