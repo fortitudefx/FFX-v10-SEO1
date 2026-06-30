@@ -93,16 +93,16 @@ export async function onRequestPost(context) {
             youtubeUrl: youtubeUrl || yt_url || '',
           };
 
-          // Update existing or prepend new
-          const existingIdx = index.findIndex(a => a.slug === slug);
-          if (existingIdx !== -1) {
-            index[existingIdx] = indexEntry;
-          } else {
-            index.unshift(indexEntry);
-          }
+          // Dedupe-on-write [WF]: remove ALL existing entries for this slug — this
+          // collapses any legacy duplicate / title:null twin of THIS slug — then
+          // prepend the fresh record. Guarantees exactly one entry per slug, always
+          // carrying its real title (`title` is non-empty: enforced at the top of this
+          // handler). Scoped to the published slug only — NOT a bulk index cleanup.
+          const deduped = index.filter(a => a && a.slug !== slug);
+          if (title) deduped.unshift(indexEntry); // never append a title:null stub
 
-          await env.FFX_KV.put('articles:index', JSON.stringify(index));
-          console.log('[FFX] articles:index updated, total articles:', index.length);
+          await env.FFX_KV.put('articles:index', JSON.stringify(deduped));
+          console.log('[FFX] articles:index updated, total articles:', deduped.length);
         } catch (idxErr) {
           console.error('[FFX] articles:index update failed (non-fatal):', idxErr.message);
         }
