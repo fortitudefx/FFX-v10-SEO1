@@ -74,7 +74,7 @@ Read this file first, every session, before acting.
 - [ ] Brief Claude on Scout Network to unblock Phase 5 voice + E-E-A-T work.
 
 ## Authored separately (not in this queue)
-- `CLAUDE.md` — thin behavioral contract pointing to this file. *To be written next session.*
+- `CLAUDE.md` — thin behavioral contract; committed to Redesign (84ae2ef). Doc architecture complete: `CLAUDE.md` → `TASKS.md` → frozen audits.
 
 ---
 
