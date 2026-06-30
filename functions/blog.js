@@ -952,3 +952,9 @@ export async function onRequestGet(context) {
     }
   });
 }
+
+// HEAD mirrors GET — identical status + headers, no body (honest status for HEAD).
+export async function onRequestHead(context) {
+  var res = await onRequestGet(context);
+  return new Response(null, { status: res.status, headers: res.headers });
+}
