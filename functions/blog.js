@@ -855,7 +855,7 @@ body {
     var MESSAGES = {
       timer: {
         headline: 'Most traders spend years jumping between strategies, indicators, and opinions without ever building a real framework.',
-        body: 'FortitudeFX was built to simplify trading into something mechanical, repeatable, and mentally sustainable. If you\'re serious about learning how we approach the market through the Catch The Wick framework — join the free community below.'
+        body: 'FortitudeFX was built to simplify trading into something mechanical, repeatable, and mentally sustainable. If you\\'re serious about learning how we approach the market through the Catch The Wick framework — join the free community below.'
       },
       exit: {
         headline: 'Before you go —',
