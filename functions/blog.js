@@ -915,6 +915,20 @@ export async function onRequestGet(context) {
     articles = []; // graceful — client fetch will repopulate
   }
 
+  // Defensive dedupe by slug [P1b] — a dirty articles:index can carry a real record
+  // plus a title:null twin; collapse to one card per slug, preferring the titled record.
+  // READ-ONLY: this only shapes what we render; it never writes KV.
+  var bySlug = {};
+  articles.forEach(function (a) {
+    if (!a || !a.slug) return;
+    var existing = bySlug[a.slug];
+    if (!existing) { bySlug[a.slug] = a; return; }
+    var existingHasTitle = existing.title && String(existing.title).trim();
+    var thisHasTitle     = a.title && String(a.title).trim();
+    if (!existingHasTitle && thisHasTitle) bySlug[a.slug] = a;
+  });
+  articles = Object.keys(bySlug).map(function (k) { return bySlug[k]; });
+
   // newest-first, matching blog.html:780
   articles.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
 
