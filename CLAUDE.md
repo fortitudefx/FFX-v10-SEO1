@@ -19,6 +19,7 @@ This file is **rules and pointers only**, and is intentionally thin. It does not
 - Commit by **filename** (`git add <file>`), never `git add .` — it sweeps in unrelated files.
 - **Never force-push.** Merge to `main` is **PR-only** — force-push silently drops infrastructure files.
 - Verify branch + `git status` before any commit; show `git log -1 --stat` after.
+- **Run the pre-deploy SEO audit before any merge to `main`; it must pass.** `node scripts/seo-audit.js <baseUrl>` (preview, then production) — read-only, GET/raw-bytes crawler checks; a non-zero exit must block the merge.
 
 ## Frozen reference docs (never overwrite)
 - `SEO-AUDIT.md` — public-page SEO defect baseline (pre-fix).
