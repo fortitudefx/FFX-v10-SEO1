@@ -40,6 +40,14 @@ Read this file first, every session, before acting.
 - [ ] Fix sitemap `<lastmod>`: stop hardcoding static `2026-04-26`; emit real dates. *(§D2)*
 - [ ] Fix `/blog` title length (86 chars → ≤60). *(§F)*
 
+### articles:index integrity + link-safety (authorized; sequence as noted)
+> Note: Cleanup (item 4) waits for Phase 2; writer-fix (item 3) does not.
+
+1. [ ] **LINK-SAFETY GATE A** (read-only, run before any dedupe or URL removal): Confirm article serving is INDEPENDENT of `articles:index` — i.e. prove the renderer serves an article from `article:{slug}` / `published:{videoId}` records, not from the index list. If true, deduping the index cannot break any shared `/article?slug=` link. Report evidence (file:line). If serving depends on the index in any way, STOP and flag — dedupe is not link-safe until resolved.
+2. [ ] **LINK-SAFETY GATE B** (read-only, run before Phase 2 URL removal): Map every URL ever shared on social to its fate. Pull posted URLs from the social post logs (`tweet.js` / `linkedin.js` / `discord.js` / `tumblr.js` — wherever posted URLs are recorded in KV). For each shared URL, classify it: "still lives" (slug survives) or "must get a 301" (regional slug being removed in Phase 2). Output the full list so no shared link is left to 404. If posted URLs are not logged anywhere retrievable, say so explicitly.
+3. [ ] **ROOT-CAUSE WRITER FIX** `[AUTHORIZED — KV write, do not run under read-only rule]` (needed regardless of Phase 2): Find where `articles:index` accumulates a second entry per slug with `title:null` (suspected: the index-update path on publish/re-publish in `publish.js`). Fix so the index dedupes on write and never writes a null-title stub again. This is the source of the 23 duplicates — fix it before cleaning the data, or the data re-dirties.
+4. [ ] **ONE-TIME INDEX CLEANUP** `[AUTHORIZED — KV write, do not run under read-only rule]` — RE-SEQUENCED: run AFTER Phase 2 has removed the regional slugs, so the final article set is cleaned once, not twice. Dedupe production `articles:index` to unique real records (keep the real-title record, drop the `title:null` twin). Verify unique=total, 0 duplicates, 0 null titles. (Tool likely `backfill-articles-index.js`.) Requires explicit go-ahead — KV write, not read-only.
+
 ## PHASE 2 — ELIMINATE THE REGIONAL PIPELINE *(DECIDED — confirmed by `BACKEND-AUDIT.md` §D: prompt orders "core trading insight identical")*
 - [ ] Audit every regional touchpoint: config rotation (`config:regionCycle` / `ffx-config.json`), consumer regional generation (`ffx-consumer` §D), `regionalContent` in `published:{id}` records, regional posting, regional slugs in sitemap + `articles:index`, canonical logic.
 - [ ] Remove regional article **generation** from `ffx-consumer`.
