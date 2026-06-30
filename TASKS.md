@@ -75,3 +75,8 @@ Read this file first, every session, before acting.
 
 ## Authored separately (not in this queue)
 - `CLAUDE.md` — thin behavioral contract pointing to this file. *To be written next session.*
+
+---
+
+## POLISH (lowest priority)
+- [ ] Collapse the http://www → https://www → apex redirect chain to a single hop (http://www straight to https://fortitudefx.com/). Cosmetic; both hops are clean 301s today. Cloudflare redirect-rule tweak. No SEO defect.
