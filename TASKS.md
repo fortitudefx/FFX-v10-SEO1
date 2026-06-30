@@ -50,7 +50,7 @@ Read this file first, every session, before acting.
 - [ ] **[P2-gen]** Remove regional article **generation** from `ffx-consumer`. *(stop the source first)*
 - [ ] **[P2-post]** Remove regional **posting** paths. *(after GB)*
 - [ ] **[P2-ui]** Remove **blog region filters / UI** without breaking list render or leaving dead region `fetch` params.
-- [ ] **[P2-301]** 301 each removed regional URL → its global parent in `functions/article.js` (404 only where no parent). *(after GB; before P2-idx; owner's 301-vs-404 call — see EXECUTION-PLAN.md D2)*
+- [ ] **[P2-301]** 301 all 13 shared regional URLs to their global parents (all parents exist); build the map from each record's `globalContent.slug ↔ regionalContent.slug` pairing, **NOT** suffix-strip. *(after GB; before P2-idx; see GATE-FINDINGS.md — `match-…-personality` exception 301s to a 404 if stripped naively)*
 - [ ] **[M2]** MERGE 2 → `main` (PR-only): Phase-2 code. *(after P2-audit…P2-301 verified)*
 - [ ] **[P2-idx]** `[AUTHORIZED — KV write]` Remove regional slugs from `articles:index`. *(after M2 so 301s are live; before CLEAN)*
 
