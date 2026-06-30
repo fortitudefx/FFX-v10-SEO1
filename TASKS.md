@@ -20,6 +20,23 @@ Read this file first, every session, before acting.
 - Any removal touching a KV key other functions read must list what breaks and handle it first.
 - `[AUTHORIZED — KV write]` items must NOT run under a read-only directive.
 
+## Step-ID glossary
+- **G0** — Gate 0: GSC 5xx check (confirm the reported 5xx URL now serves 200)
+- **GA** — Gate A: prove article serving is independent of `articles:index`
+- **GB** — Gate B: shared-link fate map (which posted URLs survive / 301 / 404)
+- **TQ** — Target Query check: how `intelligence-engine.js` selects `targetQuery`
+- **P1a** — newsletter-issue SSR
+- **P1b** — `/blog` defensive slug-dedupe
+- **HEAD** — HEAD requests mirror GET status/headers (no body) on the SSR functions
+- **WF** — Writer Fix: `publish.js` `articles:index`-write (dedupe on write, never a null-title stub)
+- **RG** — Recurrence Guard: repeatable pre-deploy SEO audit
+- **M1 / M2 / M3** — Merge 1 / 2 / 3 (Redesign → `main`, PR-only)
+- **P2-\*** — Phase 2 sub-steps (audit, gen, post, ui, 301, idx)
+- **CLEAN** — one-time `articles:index` data cleanup (authorized KV write)
+- **SM-verify** — sitemap verification (0 dupes, no regional, real lastmod)
+- **BK1 / BK2 / BK3** — Backend fixes (indexing auto-submit, linkedin-test removal, title-rewriter)
+- **POL** — Polish (single-hop www→apex redirect)
+
 ---
 
 ## 1 — PRE-FLIGHT & READ-ONLY GATES (block later steps; run first)
@@ -40,6 +57,7 @@ Read this file first, every session, before acting.
 - [ ] **Delete `_middleware.js`** (SSR emits the complete head itself; confirm no other route relied on it). *(§A1/§A2)*
 - [ ] **[P1a]** Build **newsletter-issue SSR** (per-issue title/canonical/OG/JSON-LD + body, server-side). *(§A2; see EXECUTION-PLAN.md)*
 - [ ] **[P1b]** Add `/blog` defensive slug-dedupe (clean list while production `articles:index` is still dirty). *(see EXECUTION-PLAN.md collision 6)*
+- [ ] **[HEAD]** HEAD requests mirror GET status/headers (no body) across `article.js`, `blog.js`, `newsletter-issue.js` — closes the dishonest 200-on-missing. *(built + verified on preview — cb45dda)*
 - [ ] **[WF]** `[AUTHORIZED — KV write]` `publish.js` writer fix: dedupe `articles:index` on write, never write a `title:null` stub. Bundle with the Phase-1 `publish.js` change. *(must precede CLEAN; see EXECUTION-PLAN.md)*
 - [ ] **[RG]** Build + wire the repeatable **pre-deploy SEO audit**; reference from `CLAUDE.md`. *(before Merge 1 so the cutover is audited; §SEO-AUDIT)*
 - [ ] **[M1]** MERGE 1 → `main` (PR-only): all Phase-1 above, URL-safe. *(after the gates + builds verified on preview)*
