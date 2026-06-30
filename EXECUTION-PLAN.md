@@ -67,7 +67,7 @@
 
 ## Collisions (explicitly surfaced)
 1. **CLEAN after P2-idx** — deduping the index before Phase 2 removes regional slugs would dedupe slugs about to be deleted → double work / churn. Cleanup runs once, last.
-2. **CLEAN after WF** — cleaning the data before the writer fix is live means the next publish re-creates `title:null` twins → re-dirties. WF (live at M1) precedes CLEAN.
+2. **CLEAN after WF — now SOFT, not load-bearing.** WF investigation found NO current writer actively re-dirties `articles:index` (all four writers already dedupe / require a real title; the 23 null-twins are legacy data). So CLEAN no longer depends on WF to prevent re-dirtying — there is no active re-dirty source. WF still precedes CLEAN as good practice (ship the code fix before the data mop-up; WF also self-heals each re-published slug), but the ordering is no longer a hard correctness gate.
 3. **GA before CLEAN and P2-idx** — if serving depended on `articles:index`, deduping/removing entries could 404 live `/article?slug=` URLs. GA proves independence first, or we STOP.
 4. **GB before P2-301/P2-post** — can't target redirects (or even see the 404 blast radius) without the shared-URL list. GB first.
 5. **Sitemap generator dedupe ≠ clean data** — the generator dedupes its *output* every publish (already built), so no duplicate `<loc>` ships even from dirty data; but the *underlying* `articles:index` stays dirty until WF+CLEAN, and the sitemap keeps regional URLs until P2-idx. Full sitemap correctness = generator (done) + P2-idx + CLEAN.
