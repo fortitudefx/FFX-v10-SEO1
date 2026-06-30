@@ -2,89 +2,84 @@
 
 **This is the single source of truth for what is left to do. It is the only live document; everything else is frozen reference.**
 Read this file first, every session, before acting.
+**Canonical execution order lives in `EXECUTION-PLAN.md`** — items below are ordered to match its locked sequence (step IDs in brackets). Don't reorder without updating that doc.
 
 ## Operating rules
 - Every line here is an **action** with a checkable state. If something is not an action, it does not belong here — it belongs in a reference doc.
-- **Never mark an item `[x]` done from memory or assumption.** Verify it in the actually-deployed branch/site first (Rule 25/26). If you cannot verify, leave it open and say what's needed to confirm.
+- **Never mark an item `[x]` done from memory or assumption.** Verify it in the actually-deployed branch/site first. If you cannot verify, leave it open and say what's needed to confirm.
 - One change cluster per deploy. Fix → verify → next. No patches; build the robust version.
-- Reference docs for evidence: `SEO-AUDIT.md` (public-page defects), `BACKEND-AUDIT.md` (backend function scoring).
+- Reference docs for evidence: `SEO-AUDIT.md` (public-page defects), `BACKEND-AUDIT.md` (backend scoring), `EXECUTION-PLAN.md` (order + dependencies).
 
 ## Status legend
 `[ ]` open · `[~]` in progress · `[x]` done (verified deployed) · `[BLOCKED]` waiting on input · `[DECISION]` needs Salman's call before execution
 
 ## Hard constraints (apply to every task)
-- **Never change the domain, page names, or any URL slug.** Fixes are internal to existing pages.
+- **Never change the domain, page names, or any URL slug.** Fixes are internal to existing pages. (Phase 2 regional-URL removal is the one sanctioned exception — handled via 301/404 per `EXECUTION-PLAN.md` D2.)
 - **No public page is deleted with `rm`.** Any removed public URL must be 301-redirected to the right page AND removed from the sitemap.
 - Dead **backend** code (orphaned/unreferenced) is safe to remove; dead **pages** are not.
 - Any removal touching a KV key other functions read must list what breaks and handle it first.
+- `[AUTHORIZED — KV write]` items must NOT run under a read-only directive.
 
 ---
 
-## PHASE 0 — PRE-FLIGHT (gates Phase 1)
-- [ ] Identify the GSC "Server error (5xx)" URL: GSC → Pages → 5xx → See Details. Confirm whether it currently returns 200 or still errors.
+## 1 — PRE-FLIGHT & READ-ONLY GATES (block later steps; run first)
+- [ ] **[G0]** Confirm the GSC "Server error (5xx)" URL now serves 200 (read-only). *(gates Merge 1 confidence; see EXECUTION-PLAN.md)*
+- [ ] **[GA]** Prove article serving is independent of `articles:index` (read-only). STOP if dependent. *(blocks CLEAN + P2-idx; see EXECUTION-PLAN.md)*
+- [ ] **[GB]** Map every socially-shared URL → "still lives" / "must 301-or-404" from the social post logs (read-only). List exactly what will 404. *(blocks P2-301/P2-post; see EXECUTION-PLAN.md)*
+- [ ] **[TQ]** Verify `targetQuery` selection (highest-opportunity vs first-in-list) in `intelligence-engine.js` (read-only). *(BACKEND-AUDIT.md §F)*
 
-*(Deploy-drift / middleware-deployment check removed: it only mattered if we intended to keep the middleware. We are deleting it and server-rendering instead, so the question is moot.)*
+## 2 — PHASE 1: finish + ship (URL-safe; → Merge 1)
+*Built + verified on Redesign preview, pending merge: article SSR, /blog SSR, canonicals, soft-404, sitemap generator dedupe + real lastmod, /blog title, `_middleware.js` deletion. Status stays open until merged + reviewed.*
+- [ ] Server-render the full **article** page (`<head>` + body + JSON-LD), zero client-only indexable content. *(§A1)*
+- [ ] Fix canonicals: real self-canonical per page from the server-render; eliminate empty `href=""`. *(§B)*
+- [ ] Kill the soft-404: bad/unknown `?slug=` returns a real **404**, not a 200 shell. *(§F1)*
+- [ ] Server-render the **/blog** list as real `<a href>` links in the bytes (not client `fetch('/articles')`). *(§E)*
+- [ ] Dedupe the sitemap at the generator (`publish.js`); every `<loc>` once. *(§D1)*
+- [ ] Sitemap `<lastmod>`: real dates, not hardcoded. *(§D2)*
+- [ ] Shorten the `/blog` `<title>` (86 → ≤60). *(§F)*
+- [ ] **Delete `_middleware.js`** (SSR emits the complete head itself; confirm no other route relied on it). *(§A1/§A2)*
+- [ ] **[P1a]** Build **newsletter-issue SSR** (per-issue title/canonical/OG/JSON-LD + body, server-side). *(§A2; see EXECUTION-PLAN.md)*
+- [ ] **[P1b]** Add `/blog` defensive slug-dedupe (clean list while production `articles:index` is still dirty). *(see EXECUTION-PLAN.md collision 6)*
+- [ ] **[WF]** `[AUTHORIZED — KV write]` `publish.js` writer fix: dedupe `articles:index` on write, never write a `title:null` stub. Bundle with the Phase-1 `publish.js` change. *(must precede CLEAN; see EXECUTION-PLAN.md)*
+- [ ] **[RG]** Build + wire the repeatable **pre-deploy SEO audit**; reference from `CLAUDE.md`. *(before Merge 1 so the cutover is audited; §SEO-AUDIT)*
+- [ ] **[M1]** MERGE 1 → `main` (PR-only): all Phase-1 above, URL-safe. *(after the gates + builds verified on preview)*
 
-## PHASE 1 — STOP THE BLEEDING (structural public-page SEO fix; no URL changes)
-*Nothing else moves traffic until this ships. Source: `SEO-AUDIT.md` priority order.*
+## 3 — PHASE 2: eliminate the regional pipeline (URL removal; → Merge 2)
+*DECIDED (BACKEND-AUDIT.md §D: prompt orders "core trading insight identical"). Redirect stance: EXECUTION-PLAN.md D2.*
+- [ ] **[P2-audit]** Map every regional touchpoint: `config:regionCycle`/`ffx-config.json`, `ffx-consumer` regional gen, `regionalContent` in `published:{id}`, regional posting, regional slugs in `articles:index`+sitemap, canonical logic. *(read-only map first)*
+- [ ] **[P2-gen]** Remove regional article **generation** from `ffx-consumer`. *(stop the source first)*
+- [ ] **[P2-post]** Remove regional **posting** paths. *(after GB)*
+- [ ] **[P2-ui]** Remove **blog region filters / UI** without breaking list render or leaving dead region `fetch` params.
+- [ ] **[P2-301]** 301 each removed regional URL → its global parent in `functions/article.js` (404 only where no parent). *(after GB; before P2-idx; owner's 301-vs-404 call — see EXECUTION-PLAN.md D2)*
+- [ ] **[M2]** MERGE 2 → `main` (PR-only): Phase-2 code. *(after P2-audit…P2-301 verified)*
+- [ ] **[P2-idx]** `[AUTHORIZED — KV write]` Remove regional slugs from `articles:index`. *(after M2 so 301s are live; before CLEAN)*
 
-**Architecture rule for this phase:** the route renders complete HTML natively, server-side. No edge `<head>`-injection patch. `_middleware.js` is **deleted as part of this work**, not depended on. This is replace-and-remove in one atomic change — never remove-then-rebuild (removing it before the server-render replacement is live would serve crawlers a raw empty shell, strictly worse than today).
+## 4 — INDEX CLEANUP (terminal data step)
+- [ ] **[CLEAN]** `[AUTHORIZED — KV write]` One-time `articles:index` dedupe to unique real records (drop `title:null` twins); verify unique=total, 0 dupes, 0 null titles. Tool likely `backfill-articles-index.js`. *(after WF live AND P2-idx; see EXECUTION-PLAN.md collisions 1–2)*
+- [ ] **[SM-verify]** Confirm next-publish sitemap: 0 dupes, no regional URLs, real lastmod (read-only). *(after WF + P2-idx + CLEAN)*
 
-- [ ] Server-render the full **article** page — `<head>` + body + JSON-LD — server-side. Zero indexable content behind client JS, zero dependency on any edge rewrite. *(§A1)*
-- [ ] Server-render the full **newsletter-issue** page the same way — per-issue title/canonical/OG/JSON-LD + body, server-side. *(§A2)*
-- [ ] **Delete `_middleware.js`** in the same deploy, once both routes above render complete HTML on their own. The page now does natively what the middleware patched; keeping both is redundant. Confirm no other route relied on it.
-- [ ] Fix canonicals: real self-canonical per page, emitted by the server-render itself (not by middleware). Eliminate empty `href=""`. *(§B)*
-- [ ] Kill the soft-404: a bad/unknown `?slug=` returns a real **404**, not a 200 shell. *(§F1)*
-- [ ] Fix internal linking: home and `/blog` link to articles in **server HTML** (not client `fetch('/articles')`). Resolve the 34-URL orphan set. *(§E)*
-- [ ] Dedupe the sitemap: remove the 23 duplicate `<loc>` entries; fix generation in `publish.js` so it dedupes. *(§D1)*
-- [ ] Fix sitemap `<lastmod>`: stop hardcoding static `2026-04-26`; emit real dates. *(§D2)*
-- [ ] Fix `/blog` title length (86 chars → ≤60). *(§F)*
+## 5 — BACKEND FIXES (independent; any time after Merge 1; → Merge 3)
+- [ ] **[BK1]** Disable the article auto-submit in `indexing-engine.js` (`:536`, `:590`); keep URL-Inspection. *(DECIDED; BACKEND-AUDIT.md §4-A)*
+- [ ] **[BK2]** Remove orphan `functions/linkedin-test.js` after a read-only "no external monitor hits `/linkedin-test`" check. *(DECIDED; BACKEND-AUDIT.md §3)*
+- [ ] **[DECISION] [BK3]** Title-rewrite model: **remove** the `title_rewrite` path (`intelligence-engine.js:364-367,:671-677`; `title-test.js:52-54`) and freeze titles — OR constrain frequency. *(leaning remove; BACKEND-AUDIT.md §4-B/§4-C)*
+- [ ] **[M3]** MERGE 3 → `main` (PR-only): BK1–BK3.
 
-### articles:index integrity + link-safety (authorized; sequence as noted)
-> Note: Cleanup (item 4) waits for Phase 2; writer-fix (item 3) does not.
+## 6 — PHASE 5: engine tuning (last; needs Salman input)
+- [BLOCKED] Salman-voice recalibration (Scout Network method). *Unblocks on Salman's brief.*
+- [BLOCKED] E-E-A-T generation hardening (YMYL/finance). *Same brief.*
+- [ ] Optimize article naming / title-generation logic. *(BACKEND-AUDIT.md §E)*
+- [ ] Refine keyword strategy feeding the intelligence engine. *(BACKEND-AUDIT.md §F)*
 
-1. [ ] **LINK-SAFETY GATE A** (read-only, run before any dedupe or URL removal): Confirm article serving is INDEPENDENT of `articles:index` — i.e. prove the renderer serves an article from `article:{slug}` / `published:{videoId}` records, not from the index list. If true, deduping the index cannot break any shared `/article?slug=` link. Report evidence (file:line). If serving depends on the index in any way, STOP and flag — dedupe is not link-safe until resolved.
-2. [ ] **LINK-SAFETY GATE B** (read-only, run before Phase 2 URL removal): Map every URL ever shared on social to its fate. Pull posted URLs from the social post logs (`tweet.js` / `linkedin.js` / `discord.js` / `tumblr.js` — wherever posted URLs are recorded in KV). For each shared URL, classify it: "still lives" (slug survives) or "must get a 301" (regional slug being removed in Phase 2). Output the full list so no shared link is left to 404. If posted URLs are not logged anywhere retrievable, say so explicitly.
-3. [ ] **ROOT-CAUSE WRITER FIX** `[AUTHORIZED — KV write, do not run under read-only rule]` (needed regardless of Phase 2): Find where `articles:index` accumulates a second entry per slug with `title:null` (suspected: the index-update path on publish/re-publish in `publish.js`). Fix so the index dedupes on write and never writes a null-title stub again. This is the source of the 23 duplicates — fix it before cleaning the data, or the data re-dirties.
-4. [ ] **ONE-TIME INDEX CLEANUP** `[AUTHORIZED — KV write, do not run under read-only rule]` — RE-SEQUENCED: run AFTER Phase 2 has removed the regional slugs, so the final article set is cleaned once, not twice. Dedupe production `articles:index` to unique real records (keep the real-title record, drop the `title:null` twin). Verify unique=total, 0 duplicates, 0 null titles. (Tool likely `backfill-articles-index.js`.) Requires explicit go-ahead — KV write, not read-only.
-
-## PHASE 2 — ELIMINATE THE REGIONAL PIPELINE *(DECIDED — confirmed by `BACKEND-AUDIT.md` §D: prompt orders "core trading insight identical")*
-- [ ] Audit every regional touchpoint: config rotation (`config:regionCycle` / `ffx-config.json`), consumer regional generation (`ffx-consumer` §D), `regionalContent` in `published:{id}` records, regional posting, regional slugs in sitemap + `articles:index`, canonical logic.
-- [ ] Remove regional article **generation** from `ffx-consumer`.
-- [ ] Remove regional **posting** paths.
-- [ ] Remove **blog region filters / UI** — without breaking list render or leaving dead `fetch` params expecting region.
-- [ ] 301-redirect every known regional URL → its Global parent.
-- [ ] Remove all regional slugs from `sitemap.xml` and `articles:index`.
-
-> [DECISION] Ship Phase 1 + Phase 2 as **one combined deploy** (they touch the same files — article rendering, canonicals, sitemap), or strictly sequential? *Recommended: combined single launch, every URL unchanged.*
-
-## PHASE 3 — RECURRENCE GUARD (so SEO never silently drifts again)
-- [ ] Build a **repeatable pre-deploy SEO audit** (the `SEO-AUDIT.md` check, reusable) that runs against the code before every deploy.
-- [ ] Wire the audit into the launch process and reference it from `CLAUDE.md` (CLAUDE.md authored separately).
-
-## PHASE 4 — BACKEND FIXES *(audit complete — `BACKEND-AUDIT.md`; these are the confirmed actions)*
-- [ ] **Disable** the article auto-submit in `indexing-engine.js` (`:536`, `:590`). Keep URL-Inspection diagnostics + status tracking. *(DECIDED — Google Indexing API is JobPosting/BroadcastEvent only; article pings are ignored, violate ToS since May-2025 clarification, risk access revocation, and may harm evergreen indexing. §4-A.)*
-- [ ] Remove `linkedin-test.js` — orphaned (0 refs) debug route that also leaks LinkedIn token info publicly. *(DECIDED — §3 REMOVE; confirm no external monitor hits `/linkedin-test` first.)*
-- [ ] [DECISION] Title-rewrite model: **remove** the `title_rewrite` path from `intelligence-engine.js` (`:364-367`, `:671-677`) and `title-test.js` (live-title write `:52-54`) and freeze published titles — OR constrain frequency. *(HURTS by reasoned judgment; bounded by gate `:879` + per-slug suppression `:636-637`. Leaning remove, per "never drift again." §4-B/§4-C.)*
-- [ ] Close [UNVERIFIED]: confirm whether `targetQuery` selection picks the highest-opportunity term or just first-in-list in `intelligence-engine.js`. *(§F)*
-
-## PHASE 5 — ENGINE TUNING (after the above; needs Salman input)
-- [BLOCKED] Salman-voice recalibration (Scout Network method). *Unblocks when Salman briefs Claude on what was done in Scout Network.*
-- [BLOCKED] E-E-A-T generation hardening (YMYL/finance — harshest scrutiny). *Same brief.*
-- [ ] Optimize article naming / title-generation logic. *(BACKEND-AUDIT.md §E — title spec sound; revisit within the fixes above.)*
-- [ ] Refine keyword strategy / what feeds the intelligence engine (lean, remove waste). *(BACKEND-AUDIT.md §F — keyword sourcing is grounded; tune downstream.)*
+## 7 — POLISH (lowest priority)
+- [ ] **[POL]** Collapse `http://www → https://www → apex` to a single hop. Cosmetic; both hops are clean 301s today. No SEO defect.
 
 ---
 
 ## Open decisions for Salman (each is an action: decide)
-- [ ] Phase 1 + Phase 2 combined deploy vs sequential.
-- [ ] Title-rewrite model: remove vs constrain.
-- [ ] Brief Claude on Scout Network to unblock Phase 5 voice + E-E-A-T work.
+- [ ] **[DECISION]** Phase 1 vs Phase 2 deploy: combined vs sequential. *(EXECUTION-PLAN.md recommends sequential — M1 URL-safe first, then M2.)*
+- [ ] **[DECISION]** Title-rewrite model: remove vs constrain (BK3).
+- [ ] **[DECISION]** Home → article direct links: add a homepage article section (design change) vs rely on home→/blog→article. *(DEFERRED — EXECUTION-PLAN.md D3; orphan fix does not require it.)*
+- [ ] **[DECISION]** Brief Claude on Scout Network to unblock Phase 5 voice + E-E-A-T.
 
-## Authored separately (not in this queue)
-- `CLAUDE.md` — thin behavioral contract; committed to Redesign (84ae2ef). Doc architecture complete: `CLAUDE.md` → `TASKS.md` → frozen audits.
-
----
-
-## POLISH (lowest priority)
-- [ ] Collapse the http://www → https://www → apex redirect chain to a single hop (http://www straight to https://fortitudefx.com/). Cosmetic; both hops are clean 301s today. Cloudflare redirect-rule tweak. No SEO defect.
+## Reference / not in this queue
+- `CLAUDE.md` — thin behavioral contract; committed to Redesign (84ae2ef). Doc architecture: `CLAUDE.md` → `TASKS.md` → `EXECUTION-PLAN.md` → frozen audits (`SEO-AUDIT.md`, `BACKEND-AUDIT.md`).
