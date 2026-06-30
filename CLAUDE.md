@@ -17,9 +17,10 @@ This file is **rules and pointers only**, and is intentionally thin. It does not
 ## Git & deploy discipline
 - Active branch is **`Redesign`** (capital R).
 - Commit by **filename** (`git add <file>`), never `git add .` — it sweeps in unrelated files.
-- **Never force-push.** Merge to `main` is **PR-only** — force-push silently drops infrastructure files.
+- **Never force-push.**
+- **No incremental merges to `main` during the build.** All work stays on Redesign/preview until ONE final clean **CUTOVER** (archive the live site; Redesign *becomes* production — a full replacement, not a merge). Do not merge Redesign → `main` as routine progress. See EXECUTION-PLAN.md §CUTOVER (exact mechanism `[TO CONFIRM]` at cutover time).
 - Verify branch + `git status` before any commit; show `git log -1 --stat` after.
-- **Run the pre-deploy SEO audit before any merge to `main`; it must pass.** `node scripts/seo-audit.js <baseUrl>` (preview, then production) — read-only, GET/raw-bytes crawler checks; a non-zero exit must block the merge.
+- **The pre-deploy SEO audit must pass against preview at each checkpoint (M1/M2/M3) AND against the cutover/production before go-live.** `node scripts/seo-audit.js <baseUrl>` — read-only GET/raw-bytes crawler checks; a non-zero exit blocks that checkpoint or the cutover.
 
 ## Frozen reference docs (never overwrite)
 - `SEO-AUDIT.md` — public-page SEO defect baseline (pre-fix).

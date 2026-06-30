@@ -2,7 +2,9 @@
 
 **Purpose:** the architecturally correct order for every remaining fix, so no step is ever undone or invalidated by a later one, and no step runs that secretly depends on a later phase. This doc holds the *reasoning*; `TASKS.md` holds the *actions* in this order. Frozen reference — supersede with a new dated file, don't overwrite.
 
-**Status note:** Several Phase-1 items are already **built + verified on the Redesign preview** (article SSR, /blog SSR, sitemap generator dedupe+lastmod, /blog title, `_middleware.js` deletion, canonicals, soft-404). They are not yet merged to `main` and are not checked off in `TASKS.md` (owner reviews before check-off). "Built" below = on preview, pending Merge 1.
+**Status note:** Several Phase-1 items are already **built + verified on the Redesign preview** (article SSR, /blog SSR, sitemap generator dedupe+lastmod, /blog title, `_middleware.js` deletion, canonicals, soft-404). They are not yet live and are not checked off in `TASKS.md` (owner reviews before check-off). "Built" below = on preview, pending the final CUTOVER.
+
+**Go-live model (owner's definition — no incremental merges):** We do **NOT** do incremental git merges of Redesign into `main`. **ALL** work stays on Redesign / preview until the very end; nothing reaches the live audience until **one final cutover**. The M1/M2/M3 "checkpoints" below are **preview verification gates only** — they do not go live. GO-LIVE is a single **CUTOVER**: archive the current live site in its entirety and make **Redesign become production** (a full replacement), done only after everything is built, audit-passing, and stress-tested on preview. Because Redesign was branched from `main` they share git history, so a true clean cutover is **repoint Cloudflare Pages production → Redesign (archive old `main`)** OR **wholesale-replace `main` with Redesign after tagging/archiving the old version** — *not* a normal merge. Exact mechanism `[TO CONFIRM against the live Cloudflare project at cutover time]`.
 
 ---
 
@@ -15,7 +17,7 @@
 
 ## Item inventory (changes · reads/depends · produces · before/after · evidence)
 
-**G0 — GSC 5xx URL confirm** (read-only). Changes: nothing. Reads: GSC report; live URL status. Produces: confirmation the reported 5xx now serves 200 (SEO-AUDIT.md §C proved HTML routes are static 200; 5xx only on JSON subroutes). Before: anything. After: Merge 1 confidence. *Ev: SEO-AUDIT.md §C.*
+**G0 — GSC 5xx URL confirm** (read-only). Changes: nothing. Reads: GSC report; live URL status. Produces: confirmation the reported 5xx now serves 200 (SEO-AUDIT.md §C proved HTML routes are static 200; 5xx only on JSON subroutes). Before: anything. After: the M1 checkpoint confidence. *Ev: SEO-AUDIT.md §C.*
 
 **GA — Link-Safety Gate A** (read-only). Changes: nothing. Reads: `functions/article.js`, `functions/article-content.js` serving path. Produces: proof article serving resolves from `article:{slug}` / `published:{videoId}`, **not** the `articles:index` list — so deduping/removing index entries cannot break any `/article?slug=` link. **Before:** any index dedupe (CLEAN), any Phase-2 index removal. **After:** none. If serving depends on the index → STOP. *Ev: article-content.js reads `article:{slug}`/`published:{videoId}`; blog uses index only for the list.*
 
@@ -23,15 +25,15 @@
 
 **TQ — targetQuery [UNVERIFIED] check** (read-only). Changes: nothing. Reads: `intelligence-engine.js` brief-selection. Produces: confirmation whether `targetQuery` picks highest-opportunity term or first-in-list. Before/After: independent; informs Phase 4/5. *Ev: BACKEND-AUDIT.md §F.*
 
-**P1a — newsletter-issue SSR** (§A2). Changes: new `functions/newsletter-issue.js` (server-render per-issue title/canonical/OG/JSON-LD + body). Reads: `newsletter:issue:{date}` (read-only subrequest, like article SSR). Produces: complete crawlable issue page. Before: Merge 1. After: none. Note: currently a no-op risk only (0 published issues), but required before issues exist. *Ev: SEO-AUDIT.md §A2; middleware deletion removed its head-patch.*
+**P1a — newsletter-issue SSR** (§A2). Changes: new `functions/newsletter-issue.js` (server-render per-issue title/canonical/OG/JSON-LD + body). Reads: `newsletter:issue:{date}` (read-only subrequest, like article SSR). Produces: complete crawlable issue page. Before: the M1 checkpoint. After: none. Note: currently a no-op risk only (0 published issues), but required before issues exist. *Ev: SEO-AUDIT.md §A2; middleware deletion removed its head-patch.*
 
-**P1b — /blog defensive dedupe.** Changes: `functions/blog.js` dedupes the SSR list by slug. Reads: `/articles` (read-only). Produces: clean blog list even while production `articles:index` still holds 23 dup entries (interim, until CLEAN). **Before:** Merge 1 (so production blog is never ugly). **After:** redundant-but-harmless once CLEAN runs. Depends on GA (link-safety reasoning). *Ev: 58 entries/35 unique on production /articles.*
+**P1b — /blog defensive dedupe.** Changes: `functions/blog.js` dedupes the SSR list by slug. Reads: `/articles` (read-only). Produces: clean blog list even while production `articles:index` still holds 23 dup entries (interim, until CLEAN). **Before:** the M1 checkpoint (so production blog is never ugly). **After:** redundant-but-harmless once CLEAN runs. Depends on GA (link-safety reasoning). *Ev: 58 entries/35 unique on production /articles.*
 
-**WF — articles:index writer fix** `[AUTHORIZED — KV-write path]`. Changes: `functions/publish.js` index-update path — dedupe on write, never write a `title:null` stub. Reads: `articles:index`. Produces: future publishes stop creating duplicates. **Before:** CLEAN (else cleaned data re-dirties on next publish). **After:** GA (serving proven index-independent first, defensive). Bundle with the Phase-1 `publish.js` change (same file) → live by Merge 1. *Ev: publish.js index-update ~`:81-108`; suspected source of the `title:null` twins.*
+**WF — articles:index writer fix** `[AUTHORIZED — KV-write path]`. Changes: `functions/publish.js` index-update path — dedupe on write, never write a `title:null` stub. Reads: `articles:index`. Produces: future publishes stop creating duplicates. **Before:** CLEAN (else cleaned data re-dirties on next publish). **After:** GA (serving proven index-independent first, defensive). Bundle with the Phase-1 `publish.js` change (same file) → live by the M1 checkpoint. *Ev: publish.js index-update ~`:81-108`; suspected source of the `title:null` twins.*
 
-**RG — recurrence-guard pre-deploy SEO audit** (Phase 3). Changes: reusable audit script + wire into launch; reference from `CLAUDE.md`. Reads: code/build. Produces: every deploy gated by the SEO-AUDIT checks. **Before:** Merge 1 (so the cutover itself is audited). After: all later merges use it. *Ev: SEO-AUDIT.md (the checks to encode).*
+**RG — recurrence-guard pre-deploy SEO audit** (Phase 3). Changes: reusable audit script + wire into launch; reference from `CLAUDE.md`. Reads: code/build. Produces: every checkpoint + the cutover gated by the SEO-AUDIT checks. **Before:** the M1 checkpoint (so every checkpoint is audited). After: all later checkpoints + the CUTOVER use it. *Ev: SEO-AUDIT.md (the checks to encode).*
 
-**M1 — MERGE 1 → main** (PR-only). Changes: ships all Phase-1 (article SSR, /blog SSR+dedupe, newsletter SSR, canonicals §B, soft-404 §F1, sitemap generator dedupe §D1 + real lastmod §D2 + WF, /blog title §F, `_middleware.js` deletion) — **URL-safe, no removals.** Depends: G0, GA, P1a, P1b, WF, RG verified on preview. After: Phase 2.
+**M1 — CHECKPOINT 1: Phase-1 complete + audit-passing on preview** (NOT a live merge). All Phase-1 (article SSR, /blog SSR+dedupe, newsletter SSR, canonicals §B, soft-404 §F1, sitemap generator dedupe §D1 + real lastmod §D2 + WF, /blog title §F, `_middleware.js` deletion) built and verified on Redesign/preview; `scripts/seo-audit.js` passes against preview. **Stays on preview — does NOT go live** (no merge to `main`). Depends: G0, GA, P1a, P1b, WF, RG verified on preview. After: Phase 2.
 
 **P2-audit — regional touchpoint audit** (read-only map). Reads: `config:regionCycle`/`ffx-config.json`, `ffx-consumer` regional gen, `regionalContent` in `published:{id}`, regional posting, regional slugs in `articles:index`+sitemap, canonical logic. Produces: the exact removal/redirect work-list. Before: any Phase-2 change. *Ev: BACKEND-AUDIT.md §D.*
 
@@ -43,7 +45,7 @@
 
 **P2-301 — redirect removed regional URLs → global parent.** Changes: `functions/article.js` detects a regional slug and 301s to its global parent (query-param URLs can't be done in `_redirects`; the SSR Function resolves the parent via the sibling/`regionalContent` map). Produces: shared regional links land on the global article (per D2). **Before:** removing regional records (so the redirect is live before the URL stops resolving). **After:** GB (need the shared-URL list). *Ev: article-content.js sibling resolution; D2.*
 
-**M2 — MERGE 2 → main** (PR-only). Ships Phase-2 code (P2-gen, P2-post, P2-ui, P2-301). Depends: P2-audit…P2-301 verified on preview; GA, GB done. After: the KV data ops below.
+**M2 — CHECKPOINT 2: Phase-2 complete + audit-passing on preview** (NOT a live merge). Phase-2 code (P2-gen, P2-post, P2-ui, P2-301) built and verified on preview; audit passes. **Stays on preview — does NOT go live.** Depends: P2-audit…P2-301 verified on preview; GA, GB done. After: the KV data ops below.
 
 **P2-idx — remove regional slugs from articles:index** `[AUTHORIZED — KV write]`. Produces: index no longer lists regional articles → sitemap drops them on next publish. **Before:** CLEAN. **After:** M2 (redirects live first, so removed URLs 301 rather than 404 mid-flight).
 
@@ -57,11 +59,13 @@
 
 **BK3 — title-rewriter removal** (Phase 4) `[owner: remove vs constrain]`. Changes: remove `title_rewrite` path from `intelligence-engine.js` (`:364-367`,`:671-677`) and the live-title write in `title-test.js` (`:52-54`); freeze published titles. Independent of index chain (title-test updates `articles:index.title`, not the dup source). *Ev: BACKEND-AUDIT.md §4-B/§4-C.*
 
-**M3 — MERGE 3 → main** (PR-only). Ships BK1–BK3. Independent — may run any time after M1; sequenced after the SEO work only for focus.
+**M3 — CHECKPOINT 3: backend fixes complete + audit-passing on preview** (NOT a live merge). BK1–BK3 built and verified on preview. **Stays on preview — does NOT go live.** Independent — may reach this checkpoint any time after M1; sequenced after the SEO work only for focus.
 
 **P5 — engine tuning** (Phase 5). Article naming, keyword strategy; voice recalibration `[BLOCKED]`, E-E-A-T hardening `[BLOCKED]`. LAST; needs Salman brief (Scout Network). *Ev: BACKEND-AUDIT.md §E/§F.*
 
 **POL — single-hop redirect polish.** Collapse `http://www → https://www → apex` to one hop. Cosmetic, no SEO defect; lowest priority; anytime. *Ev: both hops are clean 301s today.*
+
+**CUTOVER — clean replacement: archive live site, Redesign becomes production** (the ONE and ONLY go-live; happens last, after EVERYTHING above is built, audit-passing, and stress-tested on preview). Nothing reaches the live audience before this. Steps: (1) archive the current live site in its entirety (tag/snapshot the old production); (2) make Redesign the production source — a full replacement, NOT a normal git merge; (3) run `scripts/seo-audit.js` against the cutover/production and confirm PASS before declaring go-live. **Technical reality:** Redesign was branched from `main`, so they share git history — a true clean cutover is therefore done by **repointing the Cloudflare Pages production branch to Redesign** (and archiving old `main`), **OR** wholesale-replacing `main`'s contents with Redesign after tagging/archiving the old version — *not* a normal merge. **Exact mechanism `[TO CONFIRM against the live Cloudflare project at cutover time]`.** Depends: all checkpoints (M1, M2, M3), CLEAN, SM-verify complete and audit-passing on preview.
 
 ---
 
@@ -85,20 +89,21 @@
 5. **P1a** — build newsletter-issue SSR (read-only data) [Phase-1; → M1]
 6. **P1b** — add `/blog` defensive slug-dedupe [after GA; → M1; interim until CLEAN]
 7. **WF** — `publish.js` writer fix: dedupe-on-write, no `title:null` stub `[AUTH]` [bundle w/ Phase-1 publish.js; MUST precede CLEAN]
-8. **RG** — build + wire pre-deploy SEO audit [before M1 so the cutover is audited]
-9. **M1** — MERGE 1 → main: all Phase-1 (URL-safe) [PR-only; after 1–8 verified on preview]
+8. **RG** — build + wire pre-deploy SEO audit [before C1 so every checkpoint is audited]
+9. **M1** — CHECKPOINT 1: all Phase-1 complete + `seo-audit.js` passing on preview [after 1–8 verified on preview; NOT a live merge — stays on preview]
 10. **P2-audit** — map every regional touchpoint (read-only) [before any Phase-2 change]
 11. **P2-gen** — remove regional generation from `ffx-consumer` [stop the source before removing outputs]
 12. **P2-post** — remove regional posting paths [after GB]
 13. **P2-ui** — remove blog region filters/UI [coordinate w/ P1b; no dead region params]
 14. **P2-301** — 301 removed regional URLs → global parent in `functions/article.js` (404 only where no parent; D2) [after GB; before P2-idx]
-15. **M2** — MERGE 2 → main: Phase-2 code [PR-only; after 10–14 verified]
-16. **P2-idx** — remove regional slugs from `articles:index` `[AUTH KV write]` [after M2 so 301s are live; before CLEAN]
-17. **CLEAN** — one-time `articles:index` dedupe to unique real records, 0 null `[AUTH KV write]` [after WF live AND P2-idx; terminal data step]
+15. **M2** — CHECKPOINT 2: Phase-2 complete + audit passing on preview [after 10–14 verified; NOT a live merge — stays on preview]
+16. **P2-idx** — remove regional slugs from `articles:index` `[AUTH KV write]` [after P2-301 live on preview; before CLEAN]
+17. **CLEAN** — one-time `articles:index` dedupe to unique real records, 0 null `[AUTH KV write]` [after WF + P2-idx; terminal data step]
 18. **SM-verify** — confirm next-publish sitemap: 0 dupes, no regional, real lastmod (read-only) [after 7+16+17]
-19. **BK1 / BK2 / BK3 → M3** — indexing-engine auto-submit disable; `linkedin-test.js` removal (after no-external-hits check); title-rewriter removal (owner: remove vs constrain); PR-only [independent; any time after M1]
-20. **P5** — engine tuning: naming, keyword strategy; voice `[BLOCKED]`, E-E-A-T `[BLOCKED]` [LAST; needs Salman brief]
+19. **BK1 / BK2 / BK3 → M3** — indexing-engine auto-submit disable; `linkedin-test.js` removal (after no-external-hits check); title-rewriter removal (owner: remove vs constrain) [independent; any time after M1] → **M3 CHECKPOINT: backend fixes verified on preview (NOT a live merge)**
+20. **P5** — engine tuning: naming, keyword strategy; voice `[BLOCKED]`, E-E-A-T `[BLOCKED]` [LAST build work; needs Salman brief]
 21. **POL** — single-hop www→apex redirect [lowest; anytime]
+22. **CUTOVER** — clean replacement: archive the live site in full, **Redesign becomes production** (full replacement, not a merge); run `seo-audit.js` against the cutover and confirm PASS before go-live [THE single go-live; after ALL of 1–21 + CLEAN + SM-verify complete and audit-passing on preview; mechanism `[TO CONFIRM]`]
 
 **DEFERRED (not in sequence until owner decides):** home→article direct links (D3 — design change).
 
