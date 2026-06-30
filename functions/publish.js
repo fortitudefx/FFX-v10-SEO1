@@ -187,23 +187,31 @@ export async function onRequestPost(context) {
       try {
         if (env.FFX_KV) {
           const kvList = await env.FFX_KV.list({ prefix: 'article:' });
+          // Only real article metadata keys — exclude article:links:{slug} (internal-link records)
+          const articleKeys = kvList.keys.filter(k => !k.name.startsWith('article:links:'));
           const slugEntries = await Promise.all(
-            kvList.keys.map(k => env.FFX_KV.get(k.name, { type: 'json' }))
+            articleKeys.map(k => env.FFX_KV.get(k.name, { type: 'json' }))
           );
-          articleSlugs = slugEntries.filter(Boolean).map(a => ({ slug: a.slug, date: a.date || articleDate }));
+          // Dedupe by slug — every article URL must appear exactly once (§D1)
+          const seenSlug = new Set();
+          articleSlugs = slugEntries
+            .filter(a => a && a.slug && !seenSlug.has(a.slug) && seenSlug.add(a.slug))
+            .map(a => ({ slug: a.slug, date: a.date || articleDate }));
         }
       } catch (kvErr) {
         console.log('[FFX] KV article list failed, using current slug only:', kvErr.message);
         articleSlugs = [{ slug, date: articleDate }];
       }
 
+      // Real, current date — emitted on every regeneration instead of a frozen literal (§D2)
+      const todayIso = new Date().toISOString().split('T')[0];
       const staticPages = [
-        { loc: 'https://fortitudefx.com/',           lastmod: '2026-04-26', changefreq: 'weekly',  priority: '1.0' },
-        { loc: 'https://fortitudefx.com/bootcamp',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
-        { loc: 'https://fortitudefx.com/vipdiscord', lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
-        { loc: 'https://fortitudefx.com/waitlist',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.7' },
-        { loc: 'https://fortitudefx.com/blog',       lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.8' },
-        { loc: 'https://fortitudefx.com/privacy',    lastmod: '2026-04-26', changefreq: 'yearly',  priority: '0.3' },
+        { loc: 'https://fortitudefx.com/',           lastmod: todayIso, changefreq: 'weekly',  priority: '1.0' },
+        { loc: 'https://fortitudefx.com/bootcamp',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.9' },
+        { loc: 'https://fortitudefx.com/vipdiscord', lastmod: todayIso, changefreq: 'weekly',  priority: '0.9' },
+        { loc: 'https://fortitudefx.com/waitlist',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.7' },
+        { loc: 'https://fortitudefx.com/blog',       lastmod: todayIso, changefreq: 'weekly',  priority: '0.8' },
+        { loc: 'https://fortitudefx.com/privacy',    lastmod: todayIso, changefreq: 'yearly',  priority: '0.3' },
       ];
 
       const articleEntries = articleSlugs.map(a => ({
@@ -213,9 +221,14 @@ export async function onRequestPost(context) {
         priority: '0.7'
       }));
 
+      // Final safety dedupe by loc — every URL appears exactly once regardless of source (§D1)
+      const seenLoc = new Set();
+      const uniqueEntries = [...staticPages, ...articleEntries]
+        .filter(u => u.loc && !seenLoc.has(u.loc) && seenLoc.add(u.loc));
+
       const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${[...staticPages, ...articleEntries].map(u => `  <url>
+${uniqueEntries.map(u => `  <url>
     <loc>${u.loc}</loc>
     <lastmod>${u.lastmod}</lastmod>
     <changefreq>${u.changefreq}</changefreq>
