@@ -19,6 +19,7 @@ This file is **rules and pointers only**, and is intentionally thin. It does not
 - Commit by **filename** (`git add <file>`), never `git add .` — it sweeps in unrelated files.
 - **Never force-push.**
 - **No incremental merges to `main` during the build.** All work stays on Redesign/preview until ONE final clean **CUTOVER** (archive the live site; Redesign *becomes* production — a full replacement, not a merge). Do not merge Redesign → `main` as routine progress. See EXECUTION-PLAN.md §CUTOVER (exact mechanism `[TO CONFIRM]` at cutover time).
+- **The cutover line:** anything Google can SEE or INDEX (public pages, SSR, sitemap, regional removal, index cleanup, existing-pages E-E-A-T, full guard sweep) is fixed + verified **BEFORE** cutover and gates go-live; anything private/backend or that only improves FUTURE content (dashboards, backend pipeline, engine tuning, E-E-A-T *engine* work, voice recalibration) happens **AFTER** cutover and does NOT gate it. See `TASKS.md` / `EXECUTION-PLAN.md`.
 - Verify branch + `git status` before any commit; show `git log -1 --stat` after.
 - **The pre-deploy SEO audit must pass against preview at each checkpoint (M1/M2/M3) AND against the cutover/production before go-live.** `node scripts/seo-audit.js <baseUrl>` — read-only GET/raw-bytes crawler checks; a non-zero exit blocks that checkpoint or the cutover.
 
