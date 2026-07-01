@@ -78,6 +78,7 @@ async function loadBrowser() {
 // computes visible to a human (opacity>0.5, not display:none/hidden, has size + text).
 async function renderReal(browser, url, selector) {
   const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 900 }); // realistic desktop, not the 800x600 default
   const errors = [];
   // Count uncaught JS errors: pageerror (e.g. the blank-article SyntaxError) + real
   // console.error from scripts. EXCLUDE "Failed to load resource" — that's an HTTP-status
@@ -89,6 +90,12 @@ async function renderReal(browser, url, selector) {
     const resp = await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
     status = resp ? resp.status() : 0;
     await sleep(1000); // let reveal observer + transitions settle
+    // Scroll the target into view so reveal-on-scroll (ffx-reveal) fires — a body that
+    // reveals only below the fold must NOT be a false FAIL. A page whose script is dead
+    // (the blank-article bug) never sets up the observer, so it stays opacity:0 even
+    // after this scroll → still correctly caught.
+    await page.evaluate((sel) => { const el = document.querySelector(sel); if (el) { el.scrollIntoView({ block: 'center' }); window.scrollBy(0, 150); } }, selector).catch(() => {});
+    await sleep(600);
     const vis = await page.evaluate((sel) => {
       const el = document.querySelector(sel);
       if (!el) return { found: false };
