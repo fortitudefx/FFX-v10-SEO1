@@ -63,7 +63,7 @@ Read this file first, every session, before acting.
 - [ ] **✅** **[HEAD]** HEAD requests mirror GET status/headers (no body) across `article.js`, `blog.js`, `newsletter-issue.js`. *(built + verified on preview — cb45dda)* **(done — preview)**
 - [ ] **✅** **[WF]** `[AUTHORIZED — KV write]` `publish.js` writer fix: dedupe `articles:index` on write, never write a `title:null` stub. *(must precede CLEAN; see EXECUTION-PLAN.md)* **(done — preview)**
 - [ ] **✅** **[RG]** Build + wire the repeatable **pre-deploy SEO audit** (incl. real-browser render check); reference from `CLAUDE.md`. *(before the M1 checkpoint so every checkpoint is audited)* **(done — preview)**
-- [ ] **[BK1]** Disable the article auto-submit in `indexing-engine.js` (`:536`, `:590`); keep URL-Inspection. *(BEFORE per owner: it fires at Google automatically — we want a clean handshake at relaunch. DECIDED; BACKEND-AUDIT.md §4-A)*
+- [ ] **✅** **[BK1]** Removed the improper Google Indexing-API auto-submit in `indexing-engine.js` (Step 5 + dead helpers `ixSubmitUrl`/`ixGetServiceAccountToken`); URL-Inspection + all diagnostics kept; fixed the stale `publish.js` "pings Google index" comment. *(6c59a7c; guard 33/33; audit confirmed never-fired — GOOGLE_PRIVATE_KEY_PEM unset)* **(done — preview)**
 - [ ] **[M1]** CHECKPOINT 1: all of B2 complete + `seo-audit.js` passing on preview. **Stays on preview — does NOT go live.**
 
 ## B3 — PHASE 2: eliminate the regional pipeline (URL removal; → M2 checkpoint)
