@@ -66,9 +66,10 @@ Read this file first, every session, before acting.
 - [ ] **✅** **[BK1]** Removed the improper Google Indexing-API auto-submit in `indexing-engine.js` (Step 5 + dead helpers `ixSubmitUrl`/`ixGetServiceAccountToken`); URL-Inspection + all diagnostics kept; fixed the stale `publish.js` "pings Google index" comment. *(6c59a7c; guard 33/33; audit confirmed never-fired — GOOGLE_PRIVATE_KEY_PEM unset)* **(done — preview)**
 - [ ] **[M1]** CHECKPOINT 1: all of B2 complete + `seo-audit.js` passing on preview. **Stays on preview — does NOT go live.**
 
-## B3 — PHASE 2: eliminate the regional pipeline (URL removal; → M2 checkpoint)
-*DECIDED (BACKEND-AUDIT.md §D). Redirect stance: EXECUTION-PLAN.md D2.*
-- [ ] **[P2-audit]** Map every regional touchpoint: `config:regionCycle`/`ffx-config.json`, `ffx-consumer` regional gen, `regionalContent` in `published:{id}`, regional posting, regional slugs in `articles:index`+sitemap, canonical logic. *(read-only map first)*
+## B3 — PHASE 2: regional pipeline (→ M2 checkpoint)
+*⚠️ PREMISE CORRECTED: the regionals are NOT duplicates — they are genuinely distinct localized articles that were mis-served by a bug (article-content served `globalContent.body` for every slug). The bug is now FIXED (regionals serve their own body). The "remove/301" items below (P2-301/idx/gen/post/ui) are therefore **UNDER OWNER REVIEW** — keep-and-fix vs remove is the owner's open decision (see the item-4 questions). Do not execute removal until the owner decides.*
+- [ ] **✅** **[P2-serve]** Fix the serving bug — regional URLs now serve their own distinct `regionalContent.body` (was `globalContent.body` for every slug); global/parent pages unchanged; graceful fallback if regional body missing. *(1618c54; guard hardened for below-fold reveal 0bccbe8; content check 13/13 serve own body + differ from parent; guard 33/33)* **(done — preview)**
+- [ ] **[P2-audit]** Map every regional touchpoint: `config:regionCycle`/`ffx-config.json`, `ffx-consumer` regional gen, `regionalContent` in `published:{id}`, regional posting, regional slugs in `articles:index`+sitemap, canonical logic. *(read-only map first — DONE across the P2 audit turns)*
 - [ ] **[P2-gen]** Remove regional article **generation** from `ffx-consumer`. *(stop the source first)*
 - [ ] **[P2-post]** Remove regional **posting** paths. *(after GB)*
 - [ ] **[P2-ui]** Remove **blog region filters / UI** without breaking list render or leaving dead region `fetch` params.
