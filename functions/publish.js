@@ -59,6 +59,30 @@ export async function onRequestPost(context) {
 
     // ── 1. Write article metadata to KV ────────────────────────────────────
     if (env.FFX_KV) {
+      // ── [collision guard] never let a DIFFERENT video's publish silently clobber
+      // an existing article URL. Slugs are AI-authored with no uniqueness guarantee,
+      // so two same-topic videos can mint the same slug. Block ONLY a proven
+      // video-vs-video collision (both records carry a non-empty, differing videoId);
+      // a same-videoId re-publish (overwrites its own record) and a genuinely new slug
+      // proceed unchanged. Fail loudly (409) rather than auto-rename — the platform
+      // posts already reference this slug's URL, so silently changing it would break them.
+      try {
+        const existingMeta = await env.FFX_KV.get(`article:${slug}`, { type: 'json' }).catch(() => null);
+        if (existingMeta && existingMeta.videoId && videoId && existingMeta.videoId !== videoId) {
+          console.error(`[FFX] SLUG COLLISION BLOCKED: article:${slug} is already owned by videoId=${existingMeta.videoId}; refusing to overwrite from videoId=${videoId}. Nothing published — assign a unique slug and retry.`);
+          return new Response(JSON.stringify({
+            error: 'Slug collision — this slug already belongs to a different video. Publish aborted so the existing article URL is not overwritten. Assign a unique slug and retry.',
+            slug,
+            existingVideoId: existingMeta.videoId,
+            incomingVideoId: videoId,
+          }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+      } catch (guardErr) {
+        // fail OPEN on a transient read error — the guard only ever blocks on a positive
+        // collision detection, so it never introduces a new failure mode for KV hiccups.
+        console.error('[FFX] slug collision guard read failed (non-fatal, proceeding):', guardErr.message);
+      }
+
       try {
         const articleMeta = {
           slug, title,
