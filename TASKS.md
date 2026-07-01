@@ -12,9 +12,11 @@ Read this file first, every session, before acting.
 - **Never mark an item `[x]` done from memory or assumption.** Verify it in the actually-deployed branch/site first. If you cannot verify, leave it open and say what's needed to confirm.
 - One change cluster per deploy. Fix → verify → next. No patches; build the robust version.
 - Reference docs for evidence: `SEO-AUDIT.md` (public-page defects), `BACKEND-AUDIT.md` (backend scoring), `GATE-FINDINGS.md` (gate results), `EXECUTION-PLAN.md` (order + dependencies).
+- **When a task is completed and verified, immediately update this file:** mark it **✅ (done — preview)**, or `[x]` once live. Keep the queue current — update AFTER doing the work, as a record.
 
 ## Status legend
 `[ ]` open · `[~]` in progress · `[x]` done (verified deployed) · `[BLOCKED]` waiting on input · `[DECISION]` needs Salman's call before execution
+**✅ = built + verified on preview (done bar cutover)** · `[ ]` = not started · `[x]` = live in production · 🔄 = in progress
 
 ## Hard constraints (apply to every task)
 - **Never change the domain, page names, or any URL slug.** Fixes are internal to existing pages. (Phase 2 regional-URL removal is the one sanctioned exception — handled via 301/404 per `EXECUTION-PLAN.md` D2.)
@@ -48,19 +50,19 @@ Read this file first, every session, before acting.
 
 ## B2 — PHASE 1: SSR structural fix (URL-safe; → M1 checkpoint)
 *Built + verified on Redesign preview, pending the final CUTOVER (NOT merged — nothing goes live until cutover): article SSR, /blog SSR, canonicals, soft-404, sitemap generator dedupe + real lastmod, /blog title, `_middleware.js` deletion, HEAD-mirror, blank-article template-escape fix. Status stays open until reviewed.*
-- [ ] Server-render the full **article** page (`<head>` + body + JSON-LD), zero client-only indexable content. *(§A1)*
-- [ ] Fix canonicals: real self-canonical per page from the server-render; eliminate empty `href=""`. *(§B)*
-- [ ] Kill the soft-404: bad/unknown `?slug=` returns a real **404**, not a 200 shell. *(§F1)*
-- [ ] Server-render the **/blog** list as real `<a href>` links in the bytes (not client `fetch('/articles')`). *(§E)*
-- [ ] Dedupe the sitemap at the generator (`publish.js`); every `<loc>` once. *(§D1)*
-- [ ] Sitemap `<lastmod>`: real dates, not hardcoded. *(§D2)*
-- [ ] Shorten the `/blog` `<title>` (86 → ≤60). *(§F)*
-- [ ] **Delete `_middleware.js`** (SSR emits the complete head itself; confirm no other route relied on it). *(§A1/§A2)*
-- [ ] **[P1a]** Build **newsletter-issue SSR** (per-issue title/canonical/OG/JSON-LD + body, server-side). *(§A2)*
-- [ ] **[P1b]** Add `/blog` defensive slug-dedupe (clean list while production `articles:index` is still dirty). *(EXECUTION-PLAN.md collision 6)*
-- [ ] **[HEAD]** HEAD requests mirror GET status/headers (no body) across `article.js`, `blog.js`, `newsletter-issue.js`. *(built + verified on preview — cb45dda)*
-- [ ] **[WF]** `[AUTHORIZED — KV write]` `publish.js` writer fix: dedupe `articles:index` on write, never write a `title:null` stub. *(must precede CLEAN; see EXECUTION-PLAN.md)*
-- [ ] **[RG]** Build + wire the repeatable **pre-deploy SEO audit** (incl. real-browser render check); reference from `CLAUDE.md`. *(before the M1 checkpoint so every checkpoint is audited)*
+- [ ] **✅** Server-render the full **article** page (`<head>` + body + JSON-LD), zero client-only indexable content. *(§A1)* **(done — preview)**
+- [ ] **✅** Fix canonicals: real self-canonical per page from the server-render; eliminate empty `href=""`. *(§B)* **(done — preview)**
+- [ ] **✅** Kill the soft-404: bad/unknown `?slug=` returns a real **404**, not a 200 shell. *(§F1)* **(done — preview)**
+- [ ] **✅** Server-render the **/blog** list as real `<a href>` links in the bytes (not client `fetch('/articles')`). *(§E)* **(done — preview)**
+- [ ] **✅** Dedupe the sitemap at the generator (`publish.js`); every `<loc>` once. *(§D1)* **(done — preview)**
+- [ ] **✅** Sitemap `<lastmod>`: real dates, not hardcoded. *(§D2)* **(done — preview)**
+- [ ] **✅** Shorten the `/blog` `<title>` (86 → ≤60). *(§F)* **(done — preview)**
+- [ ] **✅** **Delete `_middleware.js`** (SSR emits the complete head itself; confirm no other route relied on it). *(§A1/§A2)* **(done — preview)**
+- [ ] **✅** **[P1a]** Build **newsletter-issue SSR** (per-issue title/canonical/OG/JSON-LD + body, server-side). *(§A2)* **(done — preview)**
+- [ ] **✅** **[P1b]** Add `/blog` defensive slug-dedupe (clean list while production `articles:index` is still dirty). *(EXECUTION-PLAN.md collision 6)* **(done — preview)**
+- [ ] **✅** **[HEAD]** HEAD requests mirror GET status/headers (no body) across `article.js`, `blog.js`, `newsletter-issue.js`. *(built + verified on preview — cb45dda)* **(done — preview)**
+- [ ] **✅** **[WF]** `[AUTHORIZED — KV write]` `publish.js` writer fix: dedupe `articles:index` on write, never write a `title:null` stub. *(must precede CLEAN; see EXECUTION-PLAN.md)* **(done — preview)**
+- [ ] **✅** **[RG]** Build + wire the repeatable **pre-deploy SEO audit** (incl. real-browser render check); reference from `CLAUDE.md`. *(before the M1 checkpoint so every checkpoint is audited)* **(done — preview)**
 - [ ] **[BK1]** Disable the article auto-submit in `indexing-engine.js` (`:536`, `:590`); keep URL-Inspection. *(BEFORE per owner: it fires at Google automatically — we want a clean handshake at relaunch. DECIDED; BACKEND-AUDIT.md §4-A)*
 - [ ] **[M1]** CHECKPOINT 1: all of B2 complete + `seo-audit.js` passing on preview. **Stays on preview — does NOT go live.**
 
