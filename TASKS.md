@@ -16,7 +16,7 @@ Read this file first, every session, before acting.
 
 ## Status legend
 `[ ]` open · `[~]` in progress · `[x]` done (verified deployed) · `[BLOCKED]` waiting on input · `[DECISION]` needs Salman's call before execution
-**✅ = built + verified on preview (done bar cutover)** · `[ ]` = not started · `[x]` = live in production · 🔄 = in progress
+**✅ = built + verified on preview (done bar cutover)** · **✅ (done — gate) = read-only investigation complete** · `[ ]` = not started · `[x]` = live in production · 🔄 = in progress
 
 ## Hard constraints (apply to every task)
 - **Never change the domain, page names, or any URL slug.** Fixes are internal to existing pages. (Phase 2 regional-URL removal is the one sanctioned exception — handled via 301/404 per `EXECUTION-PLAN.md` D2.)
@@ -44,9 +44,9 @@ Read this file first, every session, before acting.
 # ═══ BEFORE CUTOVER — public-facing / indexing (GATES go-live) ═══
 
 ## B1 — PRE-FLIGHT & READ-ONLY GATES (run first)
-- [ ] **[G0]** Confirm the GSC "Server error (5xx)" URL now serves 200 (read-only). *(gates the M1 checkpoint; see EXECUTION-PLAN.md)*
-- [ ] **[GA]** Prove article serving is independent of `articles:index` (read-only). STOP if dependent. *(blocks CLEAN + P2-idx; see EXECUTION-PLAN.md)*
-- [ ] **[GB]** Map every socially-shared URL → "still lives" / "must 301-or-404" from the social post logs (read-only). List exactly what will 404. *(blocks P2-301/P2-post; see GATE-FINDINGS.md)*
+- [ ] **✅ (done — gate)** **[G0]** Confirm the GSC "Server error (5xx)" URL now serves 200 (read-only). *(gates the M1 checkpoint; findings in GATE-FINDINGS.md — 3ebd4f8)*
+- [ ] **✅ (done — gate)** **[GA]** Prove article serving is independent of `articles:index` (read-only). STOP if dependent. *(blocks CLEAN + P2-idx; findings in GATE-FINDINGS.md — 3ebd4f8)*
+- [ ] **✅ (done — gate)** **[GB]** Map every socially-shared URL → "still lives" / "must 301-or-404" from the social post logs (read-only). List exactly what will 404. *(blocks P2-301/P2-post; findings in GATE-FINDINGS.md — 3ebd4f8)*
 
 ## B2 — PHASE 1: SSR structural fix (URL-safe; → M1 checkpoint)
 *Built + verified on Redesign preview, pending the final CUTOVER (NOT merged — nothing goes live until cutover): article SSR, /blog SSR, canonicals, soft-404, sitemap generator dedupe + real lastmod, /blog title, `_middleware.js` deletion, HEAD-mirror, blank-article template-escape fix. Status stays open until reviewed.*
