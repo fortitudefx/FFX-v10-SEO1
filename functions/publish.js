@@ -1,6 +1,6 @@
 // FFX /publish Worker
 // ALWAYS: writes article + all platform content to articles.json
-// CONDITIONALLY: rebuilds sitemap + pings Google index
+// CONDITIONALLY: rebuilds sitemap (no Google ping — indexing is via GSC Request-Indexing, manual)
 
 export async function onRequestPost(context) {
   const { request, env } = context;
