@@ -59,13 +59,13 @@
 
 **GUARD-SWEEP — full-site guard sweep** (BEFORE cutover; final gate). Run the upgraded `seo-audit.js` across all SSR pages incl. the **real-browser render check** (body actually visible, no uncaught JS) — the exact blind spot that let the blank-article bug pass a bytes-only check. Must pass before CUTOVER.
 
-**BK1 — indexing-engine auto-submit disable** (Phase 4 — **AFTER cutover**). Changes: `indexing-engine.js` stop POSTing article URLs to the Indexing API; keep URL-Inspection. *Placement: a backend cron that pings Google's Indexing API — it does NOT change what Google crawls on the public pages, and runs on production already; indexing-**adjacent** (owner may pull earlier) but does not gate go-live.* *Ev: BACKEND-AUDIT.md §4-A; `indexing-engine.js:536,:590`.*
+**BK1 — indexing-engine auto-submit disable** (Phase 4 — **BEFORE cutover**, per owner). Changes: `indexing-engine.js` stop POSTing article URLs to the Indexing API; keep URL-Inspection. *Placement: it fires at Google automatically — we want a clean handshake at relaunch, so disable it before cutover.* *Ev: BACKEND-AUDIT.md §4-A; `indexing-engine.js:536,:590`.*
 
 **BK2 — linkedin-test.js removal** (Phase 4 — **AFTER cutover**). Changes: delete orphan `functions/linkedin-test.js`. Before: a read-only "no external monitor hits `/linkedin-test`" check. *Placement: purely backend/security cleanup — not a content/indexing page; does not gate go-live.* *Ev: 0 refs; BACKEND-AUDIT.md §3.*
 
-**BK3 — title-rewriter removal** (Phase 4 — **AFTER cutover**) `[owner: remove vs constrain]`. Changes: remove `title_rewrite` path from `intelligence-engine.js` (`:364-367`,`:671-677`) and the live-title write in `title-test.js` (`:52-54`); freeze published titles. *Placement: changes live titles only on FUTURE operator action — cutover-state titles are unaffected; engine/behaviour change, does not gate go-live.* *Ev: BACKEND-AUDIT.md §4-B/§4-C.*
+**BK3 — title-rewrite path made INERT** (Phase 4 — **anytime; NOT a pre-cutover blocker**). Re-scoped per owner: the title rewrite only ever fires on the owner's **manual dashboard CTA** — it is NOT automatic (no route/cron/trigger fires it), so it cannot affect cutover. Changes: disable the path so it is inert (cannot execute via any route/cron/trigger), reflect it OFF/greyed-out on the internal dashboard, fully **REVERSIBLE** (one toggle to re-enable later). `intelligence-engine.js:364-367,:671-677`; `title-test.js:52-54`. *Ev: BACKEND-AUDIT.md §4-B/§4-C.*
 
-**M3 — CHECKPOINT 3: backend fixes complete + audit-passing on preview** (AFTER cutover; NOT a live merge). BK1–BK3 built and verified on preview. Independent — sequenced after the SEO work; does not gate cutover.
+**M3 — CHECKPOINT 3: backend fixes complete + audit-passing on preview** (AFTER cutover; NOT a live merge). BK2–BK3 built and verified on preview. (BK1 is BEFORE cutover.) Independent — sequenced after the SEO work; does not gate cutover.
 
 **DASH/PIPE — dashboards + backend pipeline review** (**AFTER cutover**). Internal operator dashboards review; backend pipeline / workflow / design review. Private tooling — not public/indexed; no go-live effect.
 
@@ -99,7 +99,8 @@
 5. **P1b** — add `/blog` defensive slug-dedupe [after GA; → M1; interim until CLEAN]
 6. **WF** — `publish.js` writer fix: dedupe-on-write, no `title:null` stub `[AUTH]` [bundle w/ Phase-1 publish.js; MUST precede CLEAN]
 7. **RG** — build + wire pre-deploy SEO audit incl. real-browser render check [before M1 so every checkpoint is audited]
-8. **M1** — CHECKPOINT 1: all Phase-1 complete + `seo-audit.js` passing on preview [after 1–7 verified on preview; NOT a live merge — stays on preview]
+7b. **BK1** — indexing-engine auto-submit disable [**BEFORE cutover**, per owner: it fires at Google automatically → clean handshake at relaunch; part of the M1 set]
+8. **M1** — CHECKPOINT 1: all Phase-1 + BK1 complete + `seo-audit.js` passing on preview [after 1–7b verified on preview; NOT a live merge — stays on preview]
 9. **P2-audit** — map every regional touchpoint (read-only) [before any Phase-2 change]
 10. **P2-gen** — remove regional generation from `ffx-consumer` [stop the source before removing outputs]
 11. **P2-post** — remove regional posting paths [after GB]
@@ -115,7 +116,7 @@
 21. **CUTOVER** — clean replacement: archive the live site in full, **Redesign becomes production** (full replacement, not a merge); run `seo-audit.js` (incl. real-browser check) against the cutover and confirm PASS before go-live [THE single go-live; **depends on the BEFORE-CUTOVER group ONLY** (1–19; POL optional); mechanism `[TO CONFIRM]`]
 
 ### ═══ AFTER CUTOVER — private / backend / future (does NOT gate go-live) ═══
-22. **BK1 / BK2 / BK3 → M3** — indexing-engine auto-submit disable (backend cron pinging Google's Indexing API — does not change crawled public content); `linkedin-test.js` removal (backend/security); title-rewriter removal (changes live titles only on future operator action) → **M3 CHECKPOINT** [all backend; none change cutover-state public pages]
+22. **BK2 / BK3 → M3** — `linkedin-test.js` removal (backend/security); title-rewrite path made INERT + reversible (fires only on manual dashboard CTA, never automatic — cannot affect cutover; anytime) → **M3 CHECKPOINT** [backend; none change cutover-state public pages] · *(BK1 moved to the BEFORE group — step 7b)*
 23. **TQ** — verify `targetQuery` selection (read-only) [informs FUTURE generation only]
 24. **DASH/PIPE review** — internal dashboards review; backend pipeline / workflow / design review [private; no indexing effect]
 25. **ENGINE tuning** — article naming, keyword strategy; **E-E-A-T engine tuning** (FUTURE generation) `[BLOCKED]`; voice recalibration `[BLOCKED]` [improves future content; needs Salman/Scout-Network brief]

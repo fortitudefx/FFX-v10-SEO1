@@ -61,6 +61,7 @@ Read this file first, every session, before acting.
 - [ ] **[HEAD]** HEAD requests mirror GET status/headers (no body) across `article.js`, `blog.js`, `newsletter-issue.js`. *(built + verified on preview — cb45dda)*
 - [ ] **[WF]** `[AUTHORIZED — KV write]` `publish.js` writer fix: dedupe `articles:index` on write, never write a `title:null` stub. *(must precede CLEAN; see EXECUTION-PLAN.md)*
 - [ ] **[RG]** Build + wire the repeatable **pre-deploy SEO audit** (incl. real-browser render check); reference from `CLAUDE.md`. *(before the M1 checkpoint so every checkpoint is audited)*
+- [ ] **[BK1]** Disable the article auto-submit in `indexing-engine.js` (`:536`, `:590`); keep URL-Inspection. *(BEFORE per owner: it fires at Google automatically — we want a clean handshake at relaunch. DECIDED; BACKEND-AUDIT.md §4-A)*
 - [ ] **[M1]** CHECKPOINT 1: all of B2 complete + `seo-audit.js` passing on preview. **Stays on preview — does NOT go live.**
 
 ## B3 — PHASE 2: eliminate the regional pipeline (URL removal; → M2 checkpoint)
@@ -94,10 +95,9 @@ Read this file first, every session, before acting.
 # ═══ AFTER CUTOVER — private / backend / future (does NOT gate go-live) ═══
 
 ## A1 — BACKEND FIXES (Phase 4; → M3 checkpoint)
-- [ ] **[BK1]** Disable the article auto-submit in `indexing-engine.js` (`:536`, `:590`); keep URL-Inspection. *(AFTER: backend cron that pings Google's Indexing API — does NOT change what Google crawls on the public pages; indexing-adjacent, owner may pull earlier. DECIDED; BACKEND-AUDIT.md §4-A)*
 - [ ] **[BK2]** Remove orphan `functions/linkedin-test.js` after a read-only "no external monitor hits `/linkedin-test`" check. *(AFTER: purely backend/security cleanup, not a content/indexing page. DECIDED; BACKEND-AUDIT.md §3)*
-- [ ] **[DECISION] [BK3]** Title-rewrite model: **remove** the `title_rewrite` path (`intelligence-engine.js:364-367,:671-677`; `title-test.js:52-54`) and freeze titles — OR constrain frequency. *(AFTER: changes live titles only on future operator action — cutover-state titles are unaffected; engine/behaviour change. leaning remove; §4-B/§4-C)*
-- [ ] **[M3]** CHECKPOINT 3: BK1–BK3 complete + audit passing on preview.
+- [ ] **[BK3]** Make the title-rewrite path **INERT**: disable so it cannot execute via any route/cron/trigger, show it OFF/greyed-out on the internal dashboard, fully **REVERSIBLE** (one toggle to re-enable). *(re-scoped per owner: the rewrite only ever fires on the owner's manual dashboard CTA — NOT automatic — so it cannot affect cutover. Not a pre-cutover blocker — do anytime. `intelligence-engine.js:364-367,:671-677`; `title-test.js:52-54`; §4-B/§4-C)*
+- [ ] **[M3]** CHECKPOINT 3: BK2–BK3 complete + audit passing on preview.
 - [ ] **[TQ]** Verify `targetQuery` selection (highest-opportunity vs first-in-list) in `intelligence-engine.js` (read-only). *(AFTER: informs future generation only. BACKEND-AUDIT.md §F)*
 
 ## A2 — DASHBOARDS + BACKEND PIPELINE REVIEW (private; no indexing effect)
