@@ -725,10 +725,30 @@ function buildArticleInner(a) {
 }
 
 // ── Assemble the full page ──────────────────────────────────────────────────────
+// Cap the document <title> at ≤60 chars: prefer "Title | SITE", drop the brand
+// suffix if that overflows, and word-boundary-truncate a very long headline.
+function capTitle(title) {
+  var t    = String(title || '').trim();
+  var full = t + ' | ' + SITE;
+  if (full.length <= 60) return full;
+  if (t.length <= 60) return t;
+  return t.slice(0, 59).replace(/\s+\S*$/, '') + '…';
+}
+
+// Fallback meta description when excerpt is empty: derive from the body text,
+// else a brand template. Never emit content="".
+function deriveDesc(a) {
+  if (a.excerpt && String(a.excerpt).trim()) return String(a.excerpt).trim();
+  var txt = String(a.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (txt) { var s = txt.slice(0, 157); return txt.length > 157 ? s.replace(/\s+\S*$/, '') + '…' : s; }
+  return (a.title ? String(a.title).trim() + ' — ' : '') + 'Mechanical forex trading insights from FortitudeFX.';
+}
+
 function buildPage(a) {
   var url       = BASE + '/article?slug=' + a.slug;
   var fullTitle = a.title + ' | ' + SITE;
-  var desc      = a.excerpt || '';
+  var pageTitle = capTitle(a.title);
+  var desc      = deriveDesc(a);
   var robots    = a.draft ? 'noindex, nofollow' : 'index, follow';
   var inner     = buildArticleInner(a);
   var jsonld    = buildJsonLd(a, url);
@@ -740,7 +760,7 @@ function buildPage(a) {
 + GTAG + '\n'
 + '<meta charset="UTF-8" />\n'
 + '<meta name="viewport" content="width=device-width, initial-scale=1.0" />\n'
-+ '<title>' + htmlText(fullTitle) + '</title>\n'
++ '<title>' + htmlText(pageTitle) + '</title>\n'
 + '<meta name="description" content="' + attr(desc) + '" />\n'
 + '<meta name="robots" content="' + robots + '" />\n'
 + '<link rel="canonical" href="' + attr(url) + '" id="canonicalTag" />\n'

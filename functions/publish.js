@@ -229,12 +229,17 @@ export async function onRequestPost(context) {
 
       // Real, current date — emitted on every regeneration instead of a frozen literal (§D2)
       const todayIso = new Date().toISOString().split('T')[0];
+      // All indexable public pages (index,follow). Excludes /pricing and /press
+      // (both meta noindex) so the sitemap never advertises a non-indexable URL.
       const staticPages = [
         { loc: 'https://fortitudefx.com/',           lastmod: todayIso, changefreq: 'weekly',  priority: '1.0' },
         { loc: 'https://fortitudefx.com/bootcamp',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.9' },
         { loc: 'https://fortitudefx.com/vipdiscord', lastmod: todayIso, changefreq: 'weekly',  priority: '0.9' },
-        { loc: 'https://fortitudefx.com/waitlist',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.7' },
         { loc: 'https://fortitudefx.com/blog',       lastmod: todayIso, changefreq: 'weekly',  priority: '0.8' },
+        { loc: 'https://fortitudefx.com/newsletter', lastmod: todayIso, changefreq: 'weekly',  priority: '0.7' },
+        { loc: 'https://fortitudefx.com/waitlist',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.7' },
+        { loc: 'https://fortitudefx.com/joinfree',   lastmod: todayIso, changefreq: 'monthly', priority: '0.6' },
+        { loc: 'https://fortitudefx.com/contact',    lastmod: todayIso, changefreq: 'yearly',  priority: '0.6' },
         { loc: 'https://fortitudefx.com/privacy',    lastmod: todayIso, changefreq: 'yearly',  priority: '0.3' },
       ];
 

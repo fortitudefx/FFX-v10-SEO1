@@ -73,6 +73,7 @@ function buildMeta(issue, date) {
   return {
     title: attr(title), desc: attr(desc), url: attr(url), jsonld: jsonld,
     issueNum: htmlText('Issue #' + issue.issueNumber),
+    h1title:  htmlText('Issue #' + issue.issueNumber + ' — Catch The Wick™ Bi-Weekly Brief'),
     heroMeta: htmlText(formatDate(issue.issueDate) + ' · Bi-Weekly Intelligence Brief'),
     breadcrumb: htmlText(formatDate(issue.issueDate))
   };
@@ -220,7 +221,7 @@ function buildBody(issue) {
 }
 
 // newsletter-issue.html spliced byte-for-byte at build time, with per-issue
-// {{TITLE}}/{{DESC}}/{{URL}}/{{JSONLD}}/{{ISSUENUM}}/{{HEROMETA}}/{{BREADCRUMB}}/{{BODY}} markers.
+// {{TITLE}}/{{DESC}}/{{URL}}/{{JSONLD}}/{{ISSUENUM}}/{{H1TITLE}}/{{HEROMETA}}/{{BREADCRUMB}}/{{BODY}} markers.
 const TEMPLATE = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -527,7 +528,7 @@ const TEMPLATE = `<!DOCTYPE html>
           <span class="ni-badge-tag">Intelligence Brief</span>
           <span class="ni-badge-num" id="issueNum">{{ISSUENUM}}</span>
         </div>
-        <h1 class="ni-hero-title">Catch The Wick<sup style="font-size:0.4em;vertical-align:super;">™</sup></h1>
+        <h1 class="ni-hero-title">{{H1TITLE}}</h1>
         <div class="ni-hero-meta" id="heroMeta">{{HEROMETA}}</div>
       </div>
     </div>
@@ -830,6 +831,7 @@ export async function onRequestGet(context) {
       .split('{{URL}}').join(m.url)
       .split('{{JSONLD}}').join(m.jsonld)
       .split('{{ISSUENUM}}').join(m.issueNum)
+      .split('{{H1TITLE}}').join(m.h1title)
       .split('{{HEROMETA}}').join(m.heroMeta)
       .split('{{BREADCRUMB}}').join(m.breadcrumb)
       .split('{{BODY}}').join(body); // BODY last — issue content can't contain markers
