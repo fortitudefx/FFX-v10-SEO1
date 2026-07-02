@@ -236,6 +236,7 @@ export async function onRequestPost(context) {
         { loc: 'https://fortitudefx.com/bootcamp',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.9' },
         { loc: 'https://fortitudefx.com/vipdiscord', lastmod: todayIso, changefreq: 'weekly',  priority: '0.9' },
         { loc: 'https://fortitudefx.com/blog',       lastmod: todayIso, changefreq: 'weekly',  priority: '0.8' },
+        { loc: 'https://fortitudefx.com/about',      lastmod: todayIso, changefreq: 'monthly', priority: '0.7' },
         { loc: 'https://fortitudefx.com/newsletter', lastmod: todayIso, changefreq: 'weekly',  priority: '0.7' },
         { loc: 'https://fortitudefx.com/waitlist',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.7' },
         { loc: 'https://fortitudefx.com/joinfree',   lastmod: todayIso, changefreq: 'monthly', priority: '0.6' },

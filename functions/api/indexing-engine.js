@@ -32,6 +32,7 @@ var IX_CLIENT_ID    = '805135063067-mb9ap5knagr29280dmg1s63gcbd2f01t.apps.google
 var IX_STATIC_PAGES = [
   'https://fortitudefx.com/',
   'https://fortitudefx.com/blog',
+  'https://fortitudefx.com/about',
   'https://fortitudefx.com/bootcamp',
   'https://fortitudefx.com/vipdiscord',
   'https://fortitudefx.com/waitlist',
