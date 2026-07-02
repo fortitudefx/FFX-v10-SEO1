@@ -19,7 +19,7 @@ Read this file first, every session, before acting.
 **✅ = built + verified on preview (done bar cutover)** · **✅ (done — gate) = read-only investigation complete** · `[ ]` = not started · `[x]` = live in production · 🔄 = in progress
 
 ## Hard constraints (apply to every task)
-- **Never change the domain, page names, or any URL slug.** Fixes are internal to existing pages. (Phase 2 regional-URL removal is the one sanctioned exception — handled via 301/404 per `EXECUTION-PLAN.md` D2.)
+- **Never change the domain, page names, or any URL slug.** Fixes are internal to existing pages. (The former Phase-2 regional-URL removal exception is **RETIRED** — regionals are KEPT as distinct articles; no public URL is removed. See B3.)
 - **No public page is deleted with `rm`.** Any removed public URL must be 301-redirected to the right page AND removed from the sitemap.
 - Dead **backend** code (orphaned/unreferenced) is safe to remove; dead **pages** are not.
 - Any removal touching a KV key other functions read must list what breaks and handle it first.
@@ -35,7 +35,7 @@ Read this file first, every session, before acting.
 - **RG** — Recurrence Guard: repeatable pre-deploy SEO audit (incl. real-browser render check)
 - **M1 / M2 / M3** — Preview checkpoints 1 / 2 / 3 (built + audit-passing on preview; **NOT** live merges — nothing goes live until CUTOVER)
 - **CUTOVER** — the single final go-live: archive the live site in full, Redesign **becomes** production (full replacement, not a merge)
-- **P2-\*** — Phase 2 sub-steps (audit, gen, post, ui, 301, idx) · **CLEAN** — one-time `articles:index` cleanup · **SM-verify** — sitemap verification
+- **P2-\*** — Phase 2 sub-steps. DONE (live/preview): **P2-serve**, **P2-collision-guard**, **P2-recover**. **RETIRED** (regionals are kept, not removed): **P2-301**, **P2-idx**, and **P2-gen**/**P2-post** *as removals*. **P2-ui** = DECIDED KEEP (blog region filter is a real feature). **P2-tune** = AFTER-CUTOVER regional-generation fine-tuning + post-gen similarity gate. **P2-audit** = read-only touchpoint map (done). · **CLEAN** — one-time `articles:index` cleanup · **SM-verify** — sitemap verification
 - **BK1 / BK2 / BK3** — Backend fixes (indexing auto-submit, linkedin-test removal, title-rewriter) — all AFTER cutover (see placement notes)
 - **POL** — Polish (single-hop www→apex redirect)
 
@@ -45,8 +45,8 @@ Read this file first, every session, before acting.
 
 ## B1 — PRE-FLIGHT & READ-ONLY GATES (run first)
 - [ ] **✅ (done — gate)** **[G0]** Confirm the GSC "Server error (5xx)" URL now serves 200 (read-only). *(gates the M1 checkpoint; findings in GATE-FINDINGS.md — 3ebd4f8)*
-- [ ] **✅ (done — gate)** **[GA]** Prove article serving is independent of `articles:index` (read-only). STOP if dependent. *(blocks CLEAN + P2-idx; findings in GATE-FINDINGS.md — 3ebd4f8)*
-- [ ] **✅ (done — gate)** **[GB]** Map every socially-shared URL → "still lives" / "must 301-or-404" from the social post logs (read-only). List exactly what will 404. *(blocks P2-301/P2-post; findings in GATE-FINDINGS.md — 3ebd4f8)*
+- [ ] **✅ (done — gate)** **[GA]** Prove article serving is independent of `articles:index` (read-only). STOP if dependent. *(blocks CLEAN; findings in GATE-FINDINGS.md — 3ebd4f8)*
+- [ ] **✅ (done — gate)** **[GB]** Map every socially-shared URL → "still lives" / "must 301-or-404" from the social post logs (read-only). List exactly what will 404. *(findings in GATE-FINDINGS.md — 3ebd4f8; its downstream P2-301/P2-post are now RETIRED — regionals are kept — so GB stands only as a completed read-only record)*
 
 ## B2 — PHASE 1: SSR structural fix (URL-safe; → M1 checkpoint)
 *Built + verified on Redesign preview, pending the final CUTOVER (NOT merged — nothing goes live until cutover): article SSR, /blog SSR, canonicals, soft-404, sitemap generator dedupe + real lastmod, /blog title, `_middleware.js` deletion, HEAD-mirror, blank-article template-escape fix. Status stays open until reviewed.*
@@ -67,21 +67,21 @@ Read this file first, every session, before acting.
 - [ ] **[M1]** CHECKPOINT 1: all of B2 complete + `seo-audit.js` passing on preview. **Stays on preview — does NOT go live.**
 
 ## B3 — PHASE 2: regional pipeline (→ M2 checkpoint)
-*⚠️ PREMISE CORRECTED: the regionals are NOT duplicates — they are genuinely distinct localized articles that were mis-served by a bug (article-content served `globalContent.body` for every slug). The bug is now FIXED (regionals serve their own body). The "remove/301" items below (P2-301/idx/gen/post/ui) are therefore **UNDER OWNER REVIEW** — keep-and-fix vs remove is the owner's open decision (see the item-4 questions). Do not execute removal until the owner decides.*
+*✅ **DECIDED (owner) — regionals are KEPT.** They are genuinely distinct, correctly-served localized articles (the serving bug that fed `globalContent.body` for every slug is FIXED — regionals now serve their own body). **The entire remove/301/de-index plan is RETIRED, not pending.** The former removal items are struck below with a one-line reason (P2-301, P2-idx = NOT NEEDED; P2-gen/P2-post as removals = CANCELLED). The blog region filter (P2-ui) is a **decided KEEP** — a real feature now that regional pages have distinct content. The ONLY regional work that remains is: fine-tune generation so new regionals are genuinely differentiated + add a post-generation similarity gate — and that is **AFTER cutover** ([P2-tune] in A3; it improves future content only and has zero effect on what's live). What stays here as ✅ done: the serving fix, the collision guard, and the orphan recovery.*
 - [ ] **✅** **[P2-serve]** Fix the serving bug — regional URLs now serve their own distinct `regionalContent.body` (was `globalContent.body` for every slug); global/parent pages unchanged; graceful fallback if regional body missing. *(1618c54; guard hardened for below-fold reveal 0bccbe8; content check 13/13 serve own body + differ from parent; guard 33/33)* **(done — preview)**
 - [ ] **✅** **[P2-collision-guard]** `publish.js` blocks a DIFFERENT video from clobbering an existing `article:{slug}` (was a blind overwrite → orphaned 2 articles). Proven video-vs-video collision → 409, writes nothing; same-video re-publish + new slug unchanged. *(bf0442d; local sim a/b/c pass)* **(done — preview)**
 - [ ] **✅** **[P2-recover]** `[AUTHORIZED — KV write]` Recovered the 2 collision-orphaned globals to unique slugs: z2RwH06okKQ → `opening-candle-first-candle-sets-session-entry`, zjb6GkFyjjY → `fractal-price-action-multi-timeframe-strategy`. Each serves its OWN body (100% match, ≤3.6% vs colliding); the 2 previously-reachable articles UNCHANGED; both in blog list (index 35→37); guard 33/33. Sitemap includes them on next regen (keys present; not regenerated — avoids touching main). *(shared KV → live on prod too; reversible: delete the 2 `article:` keys + index entries)* **(done — preview)**
 - [ ] **[P2-audit]** Map every regional touchpoint: `config:regionCycle`/`ffx-config.json`, `ffx-consumer` regional gen, `regionalContent` in `published:{id}`, regional posting, regional slugs in `articles:index`+sitemap, canonical logic. *(read-only map first — DONE across the P2 audit turns)*
-- [ ] **[P2-gen]** Remove regional article **generation** from `ffx-consumer`. *(stop the source first)*
-- [ ] **[P2-post]** Remove regional **posting** paths. *(after GB)*
-- [ ] **[P2-ui]** Remove **blog region filters / UI** without breaking list render or leaving dead region `fetch` params.
-- [ ] **[P2-301]** 301 all 13 shared regional URLs to their global parents (all parents exist); build the map from each record's `globalContent.slug ↔ regionalContent.slug` pairing, **NOT** suffix-strip. *(after GB; before P2-idx; GATE-FINDINGS.md — `match-…-personality` exception)*
-- [ ] **[M2]** CHECKPOINT 2: Phase-2 code complete + audit passing on preview. **Stays on preview — does NOT go live.**
-- [ ] **[P2-idx]** `[AUTHORIZED — KV write]` Remove regional slugs from `articles:index`. *(after P2-301 live on preview; before CLEAN)*
+- ~~**[P2-gen]** Remove regional article generation from `ffx-consumer`.~~ **CANCELLED as a removal** — regionals are kept, so generation keeps running. (Superseded by [P2-tune] in A3: fine-tune generation for genuine differentiation + add a similarity gate, AFTER cutover.)
+- ~~**[P2-post]** Remove regional posting paths.~~ **CANCELLED as a removal** — regionals are kept, so posting keeps running.
+- ~~**[P2-ui]** Remove blog region filters / UI.~~ **DECIDED KEEP** — the blog region filter is a real feature now that regional pages have genuinely distinct content; not removed.
+- ~~**[P2-301]** 301 the 13 regional URLs to their global parents.~~ **NOT NEEDED** — regionals are kept; no regional URL is removed, so there is nothing to redirect.
+- ~~**[P2-idx]** `[AUTHORIZED — KV write]` Remove regional slugs from `articles:index`.~~ **NOT NEEDED** — regionals are kept; their slugs stay in the index (and the sitemap).
+- [ ] **[M2]** CHECKPOINT 2: Phase-2 is complete on preview — it now consists ONLY of the kept-and-fixed work (**[P2-serve]** ✅, **[P2-collision-guard]** ✅, **[P2-recover]** ✅), all done + audit-passing. No removal/301/de-index code remains. **Stays on preview — does NOT go live.**
 
 ## B4 — INDEX CLEANUP + sitemap verify (terminal data step)
 - [ ] **✅** **[CLEAN]** One-time `articles:index` dedupe — **verified NO-OP, no write required**: raw index already 37/37, 0 dupes, 0 `title:null`, raw↔projection 1:1; all real articles present (2 recovered + 13 regionals + 22 globals). The WF dedupe-on-write (`2a2388d`) + every publish since had already collapsed the old 58/35/23-null-twin state organically. Guard 33/33. `backfill-articles-index.js` NOT run — it reshapes/rebuilds (adds `hasBody`, resets `publishedAt`, sorts) and never removes twins, so it's the wrong tool. *(verified no-op: index already clean, no write required)* **(done — preview)**
-- [ ] **[SM-verify]** Confirm next-publish sitemap: 0 dupes, no regional URLs, real lastmod (read-only). *(after WF + P2-idx + CLEAN)*
+- [ ] **[SM-verify]** Confirm next-publish sitemap: 0 dupes, real lastmod, **regional URLs present by design** (regionals are kept — this is no longer a "no regional URLs" check) (read-only). *(after WF + CLEAN)*
 
 ## B5 — E-E-A-T (existing pages) + full guard sweep
 - [ ] **Existing public pages pass the E-E-A-T bar** — assessment + fix of the *current* live-bound public pages (homepage, articles, /blog, bootcamp, vipdiscord, pricing, etc.) so they meet the bar before they go live. *(criteria: see the [DECISION] below — this is the existing-pages check, NOT future generation)*
@@ -110,6 +110,7 @@ Read this file first, every session, before acting.
 - [ ] Backend **pipeline / workflow / design** review (generation→publish→distribute flow).
 
 ## A3 — ENGINE TUNING (improving FUTURE content; needs Salman input)
+- [ ] **[P2-tune]** Fine-tune regional article **generation** in `ffx-consumer` so new regionals are genuinely differentiated (not near-duplicates of the global/parent), **PLUS** add a **post-generation similarity gate** that blocks/flags a new regional too close to its parent or siblings. *(AFTER cutover — improves FUTURE content only; zero effect on what is live. Replaces the retired [P2-gen] "remove generation" plan; regionals are kept — see B3.)*
 - [ ] Optimize article naming / title-generation logic. *(BACKEND-AUDIT.md §E)*
 - [ ] Refine keyword strategy feeding the intelligence engine. *(BACKEND-AUDIT.md §F)*
 - [BLOCKED] **E-E-A-T engine tuning** — harden FUTURE article generation for YMYL/finance scrutiny (distinct from B5's existing-pages check). *Unblocks on Salman's brief; post-cutover. (was Phase-5 E-E-A-T generation hardening.)*
