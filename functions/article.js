@@ -477,6 +477,7 @@ const NAV          = `<nav id="mainNav" class="nav-dark">
   <a class="nav-brand" href="index.html">FortitudeFX<sup class="tm">™</sup></a>
   <ul class="nav-links">
     <li><a href="index.html">Home</a></li>
+    <li><a href="about.html">About</a></li>
     <li><a href="vipdiscord.html">VIP Discord</a></li>
     <li><a href="bootcamp.html">Bootcamp</a></li>
     <li><a href="blog.html" class="active">Blog</a></li>
@@ -492,6 +493,7 @@ const NAV          = `<nav id="mainNav" class="nav-dark">
 </nav>
 <div class="nav-mobile nav-dark-mobile" id="navMobile">
   <a href="index.html">Home</a>
+  <a href="about.html">About</a>
   <a href="vipdiscord.html">VIP Discord</a>
   <a href="bootcamp.html">Bootcamp</a>
   <a href="blog.html">Blog</a>
