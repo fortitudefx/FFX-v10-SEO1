@@ -80,7 +80,7 @@ Read this file first, every session, before acting.
 - [ ] **[P2-idx]** `[AUTHORIZED — KV write]` Remove regional slugs from `articles:index`. *(after P2-301 live on preview; before CLEAN)*
 
 ## B4 — INDEX CLEANUP + sitemap verify (terminal data step)
-- [ ] **[CLEAN]** `[AUTHORIZED — KV write]` One-time `articles:index` dedupe to unique real records (drop `title:null` twins); verify unique=total, 0 dupes, 0 null titles. Tool likely `backfill-articles-index.js`. *(after WF + P2-idx; EXECUTION-PLAN.md collisions 1–2)*
+- [ ] **✅** **[CLEAN]** One-time `articles:index` dedupe — **verified NO-OP, no write required**: raw index already 37/37, 0 dupes, 0 `title:null`, raw↔projection 1:1; all real articles present (2 recovered + 13 regionals + 22 globals). The WF dedupe-on-write (`2a2388d`) + every publish since had already collapsed the old 58/35/23-null-twin state organically. Guard 33/33. `backfill-articles-index.js` NOT run — it reshapes/rebuilds (adds `hasBody`, resets `publishedAt`, sorts) and never removes twins, so it's the wrong tool. *(verified no-op: index already clean, no write required)* **(done — preview)**
 - [ ] **[SM-verify]** Confirm next-publish sitemap: 0 dupes, no regional URLs, real lastmod (read-only). *(after WF + P2-idx + CLEAN)*
 
 ## B5 — E-E-A-T (existing pages) + full guard sweep
