@@ -515,6 +515,7 @@ const FOOTER       = `  <!-- Footer -->
         <li><a href="blog.html">Blog</a></li>
         <li><a href="contact.html">Contact</a></li>
         <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="disclaimer.html">Disclaimer</a></li>
       </ul>
       <div class="footer-socials">
         <a href="https://www.youtube.com/@FortitudeFX" class="footer-social-icon" aria-label="YouTube" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>
@@ -527,6 +528,7 @@ const FOOTER       = `  <!-- Footer -->
     <div class="footer-bottom">
       <p class="footer-copy">© 2026 FortitudeFX<sup class="tm">™</sup> · All rights reserved · Dubai, UAE</p>
       <p class="footer-tm">Catch The Wick<sup class="tm">™</sup> · 2 Candles. 1 Story.<sup class="tm">™</sup></p>
+      <p class="footer-disclaimer" style="max-width:820px;margin:14px auto 0;font-size:11px;line-height:1.6;color:rgba(255,255,255,0.3);text-align:center;padding:0 16px;">Educational content only — not financial advice. FortitudeFX<sup class="tm">™</sup> provides trading education based on price-action methodology. Nothing here is financial, investment, or trading advice, or a recommendation to buy or sell any instrument. Trading forex carries a high level of risk and can result in the loss of some or all of your capital; it is not suitable for everyone. Past performance is not indicative of future results. Always do your own research and consider seeking advice from an independent, licensed financial professional before trading. You are solely responsible for your own trading decisions.</p>
     </div>
   </footer>`;        // article.html 481-508
 const POPUP_HTML   = `<!-- Back to top -->
@@ -720,7 +722,8 @@ function buildArticleInner(a) {
         '<a class="btn-primary" href="vipdiscord.html?utm_source=article&utm_medium=cta&utm_campaign=discord&utm_content=' + attr(a.slug) + '">Join Free Discord</a>' +
         '<a class="btn-secondary" href="bootcamp.html?utm_source=article&utm_medium=cta&utm_campaign=bootcamp&utm_content=' + attr(a.slug) + '">Explore the Bootcamp</a>' +
       '</div>' +
-    '</div>'
+    '</div>' +
+    '<p class="article-foot-disclaimer" style="margin:40px 0 0;padding-top:24px;border-top:1px solid rgba(232,228,222,0.1);font-size:12px;line-height:1.7;color:rgba(232,228,222,0.45);">Educational content only — not financial advice. FortitudeFX<sup class="tm">™</sup> provides trading education based on price-action methodology. Nothing here is financial, investment, or trading advice, or a recommendation to buy or sell any instrument. Trading forex carries a high level of risk and can result in the loss of some or all of your capital; it is not suitable for everyone. Past performance is not indicative of future results. Always do your own research and consider seeking advice from an independent, licensed financial professional before trading. You are solely responsible for your own trading decisions.</p>'
   );
 }
 

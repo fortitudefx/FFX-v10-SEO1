@@ -36,6 +36,7 @@ var IX_STATIC_PAGES = [
   'https://fortitudefx.com/vipdiscord',
   'https://fortitudefx.com/waitlist',
   'https://fortitudefx.com/privacy',
+  'https://fortitudefx.com/disclaimer',
 ];
 
 // ── GET — return KV data ─────────────────────────────────────────────────────

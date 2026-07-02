@@ -241,6 +241,7 @@ export async function onRequestPost(context) {
         { loc: 'https://fortitudefx.com/joinfree',   lastmod: todayIso, changefreq: 'monthly', priority: '0.6' },
         { loc: 'https://fortitudefx.com/contact',    lastmod: todayIso, changefreq: 'yearly',  priority: '0.6' },
         { loc: 'https://fortitudefx.com/privacy',    lastmod: todayIso, changefreq: 'yearly',  priority: '0.3' },
+        { loc: 'https://fortitudefx.com/disclaimer', lastmod: todayIso, changefreq: 'yearly',  priority: '0.3' },
       ];
 
       const articleEntries = articleSlugs.map(a => ({
