@@ -192,6 +192,44 @@ body {
   margin-bottom: 40px;
 }
 
+/* ── Byline ── */
+.article-byline {
+  margin: -24px 0 40px;
+  font-size: 14px;
+  color: var(--cream-muted);
+  letter-spacing: 0.01em;
+}
+.article-byline a {
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.article-byline a:hover { color: var(--cream); }
+
+/* ── Source video link ── */
+.article-source-video {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 40px 0;
+  padding: 16px 22px;
+  border: 1px solid rgba(232,228,222,0.08);
+  border-radius: 12px;
+  background: rgba(232,228,222,0.03);
+  color: var(--cream);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.article-source-video:hover {
+  border-color: var(--gold-border);
+  background: rgba(201,168,76,0.05);
+}
+.article-source-video svg { width: 22px; height: 22px; color: var(--gold); flex-shrink: 0; }
+.article-source-video .article-source-arrow { margin-left: auto; color: var(--gold); }
+
 /* ── Article body typography ── */
 .article-body {
   font-size: 17px;
@@ -668,7 +706,7 @@ function buildJsonLd(a, url) {
     datePublished: a.date,
     dateModified: a.updatedAt || a.date,
     wordCount: a.body ? a.body.replace(/<[^>]+>/g, '').split(/\s+/).length : 0,
-    author: { '@type': 'Person', name: 'Salman Khan', url: BASE },
+    author: { '@type': 'Person', name: 'Salman Khan', url: BASE + '/about' },
     publisher: {
       '@type': 'Organization', name: SITE, url: BASE,
       logo: { '@type': 'ImageObject', url: OG_IMG }
@@ -713,8 +751,10 @@ function buildArticleInner(a) {
         '<span class="article-date-read">' + htmlText(formatDate(a.date)) + ' &nbsp;&middot;&nbsp; ' + htmlText(a.readTime || '7 min read') + '</span>' +
       '</div>' +
       '<h1>' + htmlText(a.title) + '</h1>' +
+      '<div class="article-byline">By <a href="/about">Salman Khan</a></div>' +
     '</div>' +
     '<div class="article-body ffx-reveal ffx-reveal-delay-2">' + (a.body || '') + '</div>' +
+    (a.youtubeUrl ? '<a class="article-source-video ffx-reveal ffx-reveal-delay-2" href="' + attr(a.youtubeUrl) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg><span>Watch the original video on YouTube</span><span class="article-source-arrow">&rarr;</span></a>' : '') +
     sibling +
     '<hr class="article-divider ffx-reveal ffx-reveal-delay-2">' +
     '<div class="article-cta ffx-reveal ffx-reveal-delay-3">' +
