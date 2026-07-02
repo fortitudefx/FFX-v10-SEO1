@@ -363,8 +363,36 @@ async function processJob(job, env) {
 }
 
 // ── Component 2: Fetch topically related published articles ───────────────
-// Reads articles:index, scores by tag overlap with transcript, returns top 3
-async function fetchRelatedArticles(transcript, env) {
+// Reads articles:index, scores each candidate by IDF-weighted tag-word overlap
+// with the transcript (+ a full-phrase bonus), returns the top 3.
+//
+// Replaces the old test that required a candidate's WHOLE tag string to appear
+// verbatim in the raw transcript — multi-word tags ("price action",
+// "liquidity sweep") almost never appear verbatim, so it scored 0 → no
+// candidates → 0 in-body links. The IDF weighting means words shared by many
+// articles (generic: "catch", "wick", "day") count for little, while rare
+// distinctive words ("liquidity", "fractal", "momentum") drive the match.
+const REL_STOPWORDS = new Set([
+  'the','and','for','with','your','you','this','that','from','have','what','when',
+  'will','they','them','then','than','into','over','only','just','more','most',
+  'here','there','their','about','which','while','been','were','also','some',
+  'trading','trade','trades','trader','traders','forex','market','markets','price'
+]);
+function relWordSet(str) {
+  const s = new Set();
+  const toks = String(str || '').toLowerCase().match(/[a-z0-9]+/g) || [];
+  for (let i = 0; i < toks.length; i++) {
+    if (toks[i].length >= 4 && !REL_STOPWORDS.has(toks[i])) s.add(toks[i]);
+  }
+  return s;
+}
+// Regional variants (…-gcc / …-us-canada / …) are deprioritised (tie-break only,
+// never excluded) so a global article prefers linking to global parents.
+function isRegionalSlug(slug) {
+  return /(?:-gcc|-sea-asia|-us-canada|-eu-uk-germany|-us|-eu)$/.test(String(slug || ''));
+}
+
+async function fetchRelatedArticles(transcript, env, excludeSlug) {
   const result = { articles: [], linkBlock: '', status: 'skipped' };
   try {
     const index = await env.FFX_KV.get('articles:index', { type: 'json' }).catch(function(){ return null; });
@@ -372,21 +400,49 @@ async function fetchRelatedArticles(transcript, env) {
       result.status = 'no_index';
       return result;
     }
-    const transcriptLower = transcript.toLowerCase();
-    const scored = index
-      .filter(function(a){ return a.slug && a.title && Array.isArray(a.tags); })
-      .map(function(a) {
-        const score = a.tags.filter(function(t){ return transcriptLower.includes(t.toLowerCase()); }).length;
-        return Object.assign({}, a, { score: score });
-      })
-      .filter(function(a){ return a.score > 0; })
-      .sort(function(a, b){ return b.score - a.score; })
-      .slice(0, 3);
 
-    if (scored.length === 0) {
-      result.status = 'no_match';
-      return result;
-    }
+    // Valid candidates: real slug + title + non-empty tags, excluding self.
+    const candidates = index.filter(function(a){
+      return a && a.slug && a.title && Array.isArray(a.tags) && a.tags.length > 0
+        && a.slug !== excludeSlug;
+    });
+    if (candidates.length === 0) { result.status = 'no_match'; return result; }
+
+    // Per-candidate distinctive tag-words + document frequency across the set.
+    const df = {};
+    const candWords = candidates.map(function(a){
+      const set = new Set();
+      a.tags.forEach(function(t){ relWordSet(t).forEach(function(w){ set.add(w); }); });
+      set.forEach(function(w){ df[w] = (df[w] || 0) + 1; });
+      return set;
+    });
+
+    const transcriptWords = relWordSet(transcript);
+    const transcriptLower  = String(transcript || '').toLowerCase();
+
+    const scored = candidates.map(function(a, i){
+      let score = 0;
+      // IDF-weighted single-word tag overlap (rare words dominate).
+      candWords[i].forEach(function(w){
+        if (transcriptWords.has(w)) score += 1 / (df[w] || 1);
+      });
+      // Strong bonus when a full multi-word tag phrase appears verbatim.
+      a.tags.forEach(function(t){
+        const phrase = String(t || '').toLowerCase().trim();
+        if (phrase.indexOf(' ') !== -1 && transcriptLower.indexOf(phrase) !== -1) score += 2;
+      });
+      return Object.assign({}, a, { score: score });
+    })
+    .filter(function(a){ return a.score > 0; })
+    .sort(function(a, b){
+      if (b.score !== a.score) return b.score - a.score;
+      const ar = isRegionalSlug(a.slug) ? 1 : 0, br = isRegionalSlug(b.slug) ? 1 : 0;
+      if (ar !== br) return ar - br; // prefer Global on ties
+      return String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')); // then recency
+    })
+    .slice(0, 3);
+
+    if (scored.length === 0) { result.status = 'no_match'; return result; }
 
     result.articles = scored;
     result.status = 'found';
@@ -397,7 +453,7 @@ async function fetchRelatedArticles(transcript, env) {
 
     result.linkBlock = '\n\nINTERNAL LINKING - RELATED PUBLISHED ARTICLES:\nLink naturally to these existing articles where topically relevant. Use descriptive anchor text, never "click here". Maximum 3 internal article links in the body.\n' + lines;
 
-    console.log('[FFX] Related articles found:', scored.length, '| slugs:', scored.map(function(a){return a.slug;}).join(', '));
+    console.log('[FFX] Related articles found:', scored.length, '| slugs:', scored.map(function(a){return a.slug + '(' + a.score.toFixed(2) + ')';}).join(', '));
     return result;
   } catch (err) {
     result.status = 'error';
@@ -568,7 +624,7 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
   if (env && region === 'Global') {
     // Fetch related articles for internal linking
     try {
-      relatedArticles = await fetchRelatedArticles(transcript, env);
+      relatedArticles = await fetchRelatedArticles(transcript, env, existingSlug);
     } catch (linkErr) {
       console.error('[FFX] Related articles fetch failed (non-fatal):', linkErr.message);
     }
@@ -690,11 +746,21 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
 
   if (existingSlug && existingSlug.trim() && region === 'Global') parsed.slug = existingSlug;
 
-  // Attach internal link data for link_graph write in processJob
+  // Attach ONLY the links Claude actually wove into the body, so
+  // content:link_graph reflects real in-body links — not merely intended
+  // candidates. (Fixes the honesty gap: bulk-link-scan reads link_graph for
+  // dedup, and would otherwise skip pairs that were never actually inserted.)
   if (region === 'Global' && relatedArticles && relatedArticles.articles.length > 0) {
-    parsed._linkedArticles = relatedArticles.articles.map(function(a) {
-      return { slug: a.slug, title: a.title, score: a.score };
+    const bodyStr = String(parsed.body || '');
+    const actuallyLinked = relatedArticles.articles.filter(function(a) {
+      return bodyStr.indexOf('/article?slug=' + a.slug) !== -1;
     });
+    if (actuallyLinked.length > 0) {
+      parsed._linkedArticles = actuallyLinked.map(function(a) {
+        return { slug: a.slug, title: a.title, score: a.score };
+      });
+    }
+    console.log('[FFX] Internal links actually inserted:', actuallyLinked.length, 'of', relatedArticles.articles.length, 'candidates offered');
   }
 
   console.log('[FFX] Article complete, slug:', parsed.slug, 'region:', region);
