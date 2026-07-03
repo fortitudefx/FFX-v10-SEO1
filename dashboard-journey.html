@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFX Email Journey</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/dashboard-styles.css">
+  <style>
+    .jr-wrap {
+      max-width: var(--content-max);
+      width: calc(100% - 80px);
+      margin: 32px auto 80px;
+      position: relative; z-index: 1;
+    }
+    .jr-head {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 20px; flex-wrap: wrap; margin-bottom: 22px;
+    }
+    .jr-title { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+    .jr-sub   { font-size: 12px; color: var(--muted-3); margin-top: 6px; }
+    .jr-pull {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+      color: #0b0b12; background: var(--accent);
+      border: none; border-radius: 9px; padding: 11px 20px; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .jr-pull:hover:not(:disabled) { opacity: 0.9; }
+    .jr-pull:active:not(:disabled) { transform: translateY(1px); }
+    .jr-pull:disabled { opacity: 0.5; cursor: default; }
+
+    /* Summary chips */
+    .jr-chips { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+    .jr-chip {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 18px; min-width: 120px;
+    }
+    .jr-chip-num { font-size: 24px; font-weight: 700; color: var(--text); line-height: 1; }
+    .jr-chip-lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-3); margin-top: 8px; }
+
+    /* Table */
+    .jr-tablewrap { border: 1px solid var(--border); border-radius: 14px; background: #0b0b12; overflow: hidden; }
+    .jr-scroll { overflow-x: auto; }
+    table.jr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .jr-table thead th {
+      text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted-3);
+      padding: 13px 18px; border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02); white-space: nowrap;
+    }
+    .jr-table tbody td { padding: 12px 18px; border-bottom: 1px solid var(--border-soft); color: var(--muted-2); vertical-align: middle; }
+    .jr-table tbody tr:last-child td { border-bottom: none; }
+    .jr-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+    .jr-name  { color: var(--text); font-weight: 600; }
+    .jr-email { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted-3); }
+    .jr-date  { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted-3); white-space: nowrap; }
+    .jr-sent  { font-variant-numeric: tabular-nums; color: var(--muted-2); }
+
+    /* Position + path pills */
+    .pill-pos { display: inline-block; font-size: 11px; font-weight: 600; padding: 4px 11px; border-radius: 100px; white-space: nowrap; border: 1px solid transparent; }
+    .pos-none  { color: var(--muted-3);              background: rgba(255,255,255,0.04); border-color: var(--border); }
+    .pos-onb   { color: var(--accent-warm-text);     background: var(--accent-warm-soft);   border-color: var(--accent-warm-line); }
+    .pos-fw    { color: var(--accent-text);          background: var(--accent-soft);        border-color: var(--accent-line); }
+    .pill-path { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px; color: var(--muted-2); background: rgba(255,255,255,0.05); border: 1px solid var(--border); }
+
+    .jr-state { padding: 60px 24px; text-align: center; color: var(--muted-3); font-size: 13px; }
+    .jr-err { color: var(--accent-orange-text); }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-wordmark">FFX <span>·</span> Internal</div>
+    <div class="nav-links">
+      <a href="/dashboard.html" class="nav-link">Dashboard</a>
+      <a href="/dashboard-press.html" class="nav-link">Press</a>
+      <a href="/dashboard-queue.html" class="nav-link">Queue</a>
+      <a href="/dashboard-knowledge.html" class="nav-link">Knowledge</a>
+      <a href="/dashboard-seo.html" class="nav-link">SEO</a>
+      <a href="/dashboard-audience.html" class="nav-link">Audience</a>
+      <a href="/dashboard-youtube.html" class="nav-link">YouTube</a>
+      <a href="/dashboard-health.html" class="nav-link">Health</a>
+      <a href="/dashboard-social.html" class="nav-link">Social</a>
+      <a href="/dashboard-indexing.html" class="nav-link">Indexing</a>
+      <a href="/dashboard-newsletter.html" class="nav-link">Newsletter</a>
+      <a href="/dashboard-journey.html" class="nav-link active">Journey</a>
+    </div>
+  </div>
+</nav>
+
+<div class="jr-wrap">
+  <div class="jr-head">
+    <div>
+      <div class="jr-title">Email Journey</div>
+      <div class="jr-sub">Where every contact is in the onboarding + framework sequence · read-only · <span id="pulledAt">not pulled yet</span></div>
+    </div>
+    <button class="jr-pull" id="pullBtn" onclick="pull()">⟳ Pull Live Data</button>
+  </div>
+
+  <div class="jr-chips" id="chips" style="display:none;">
+    <div class="jr-chip"><div class="jr-chip-num" id="cTotal">—</div><div class="jr-chip-lbl">Contacts</div></div>
+    <div class="jr-chip"><div class="jr-chip-num" id="cNone">—</div><div class="jr-chip-lbl">Not started</div></div>
+    <div class="jr-chip"><div class="jr-chip-num" id="cOnb">—</div><div class="jr-chip-lbl">In onboarding</div></div>
+    <div class="jr-chip"><div class="jr-chip-num" id="cFw">—</div><div class="jr-chip-lbl">In framework</div></div>
+  </div>
+
+  <div class="jr-tablewrap">
+    <div class="jr-scroll">
+      <table class="jr-table">
+        <thead>
+          <tr>
+            <th>Name</th><th>Email</th><th>Path</th><th>Journey position</th><th>Emails sent</th><th>Join date</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="6"><div class="jr-state" id="stateCell">Loading live data…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+  return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+}); }
+
+function posClass(p) {
+  if (p.indexOf('Onboarding') === 0) return 'pos-onb';
+  if (p.indexOf('Framework')  === 0) return 'pos-fw';
+  return 'pos-none';
+}
+
+function state(msg, isErr) {
+  document.getElementById('rows').innerHTML =
+    '<tr><td colspan="6"><div class="jr-state' + (isErr ? ' jr-err' : '') + '">' + esc(msg) + '</div></td></tr>';
+}
+
+async function pull() {
+  var btn = document.getElementById('pullBtn');
+  btn.disabled = true; btn.textContent = '⟳ Pulling…';
+  state('Pulling live data from Brevo + KV…');
+  try {
+    var res  = await fetch('/api/journey-status', { cache: 'no-store' });
+    var data = await res.json();
+    if (!res.ok || data.error) { throw new Error(data.error || ('HTTP ' + res.status)); }
+
+    var c = data.counts || {};
+    document.getElementById('cTotal').textContent = c.total != null ? c.total : '—';
+    document.getElementById('cNone').textContent  = c.notStarted != null ? c.notStarted : '—';
+    document.getElementById('cOnb').textContent   = c.onboarding != null ? c.onboarding : '—';
+    document.getElementById('cFw').textContent    = c.framework != null ? c.framework : '—';
+    document.getElementById('chips').style.display = 'flex';
+    document.getElementById('pulledAt').textContent =
+      'pulled ' + (data.pulledAt ? new Date(data.pulledAt).toLocaleString() : 'now');
+
+    var rows = data.contacts || [];
+    if (!rows.length) { state('No contacts found on Brevo List 4.'); return; }
+
+    var html = rows.map(function (r) {
+      return '<tr>' +
+        '<td class="jr-name">' + esc(r.name) + '</td>' +
+        '<td class="jr-email">' + esc(r.email) + '</td>' +
+        '<td><span class="pill-path">' + esc(r.path) + '</span></td>' +
+        '<td><span class="pill-pos ' + posClass(r.position) + '">' + esc(r.position) + '</span></td>' +
+        '<td class="jr-sent">' + (r.emailsSent || 0) + '</td>' +
+        '<td class="jr-date">' + esc(r.joinedDate || '—') + '</td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('rows').innerHTML = html;
+  } catch (err) {
+    state('Failed to pull: ' + err.message, true);
+    document.getElementById('pulledAt').textContent = 'pull failed';
+  } finally {
+    btn.disabled = false; btn.textContent = '⟳ Pull Live Data';
+  }
+}
+
+// Auto-pull on open (button re-pulls on demand)
+pull();
+</script>
+
+</body>
+</html>
