@@ -349,10 +349,10 @@ export async function onRequestPost(context) {
         heroSubtitle:    isVIP ? 'VIP Discord \u00b7 FortitudeFX\u2122' : 'Catch The Wick\u2122 Bootcamp',
         bodyHtml,
         footerNote:      'You are receiving this because you joined the FortitudeFX\u2122 waitlist at <a href="https://fortitudefx.com/waitlist" style="color:#C9A84C;text-decoration:none;">fortitudefx.com/waitlist</a>. Reply to this email anytime.',
-        ctaUrl:          null,
-        ctaLabel:        null,
-        secondaryCtaUrl:   null,
-        secondaryCtaLabel: null
+        ctaUrl:          'https://discord.com/invite/fWAPJdR8TR',
+        ctaLabel:        'Join the Free Discord',
+        secondaryCtaUrl:   'https://fortitudefx.com/waitlist?path=' + path + '#form',
+        secondaryCtaLabel: 'Back to the Waitlist'
       }),
       'support@fortitudefx.com', 'Salman | FortitudeFX'
     );
@@ -365,7 +365,7 @@ export async function onRequestPost(context) {
   }
 
   // ─── CONTACT ──────────────────────────────────────────────────────────────────
-  if (path === 'Contact') {
+  if (path === 'Contacts') {
     const bodyHtml = `
       <p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">Hi ${firstName},</p>
       <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;color:#444455;line-height:1.75;">Your message has been received.</p>
