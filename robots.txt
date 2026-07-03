@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Internal tooling — operator only, never indexed
+Disallow: /dashboard
+Disallow: /generate
+Disallow: /publish
+Disallow: /retry
+Disallow: /notify
+Disallow: /press
+
+Sitemap: https://fortitudefx.com/sitemap.xml

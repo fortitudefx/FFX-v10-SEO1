@@ -5,8 +5,7 @@ compatibility_date = "2025-01-01"
 # Production: runs daily at 7am Dubai time (UTC+4 = 03:00 UTC)
 [triggers]
 crons = [
-  "0 3 * * *",
-  "*/30 * * * * *"
+  "0 3 * * *"
 ]
 
 [[kv_namespaces]]

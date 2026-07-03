@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Temporarily Unavailable | FortitudeFX™</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+  background: #0d0d14;
+  color: #e8e4de;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+.bg-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.bg-glow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(ellipse at center, rgba(122,92,255,0.08) 0%, transparent 65%);
+}
+.brand {
+  position: fixed;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(232,228,222,0.3);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.brand:hover { color: rgba(232,228,222,0.65); }
+.card {
+  position: relative;
+  z-index: 1;
+  max-width: 400px;
+  animation: fadeIn 0.6s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.num {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(80px, 18vw, 140px);
+  font-weight: 700;
+  color: #C9A84C;
+  line-height: 1;
+  opacity: 0.25;
+  margin-bottom: 8px;
+  letter-spacing: -0.04em;
+}
+.headline {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 700;
+  color: #e8e4de;
+  margin-bottom: 14px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.sub {
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.7;
+  color: rgba(232,228,222,0.45);
+  margin-bottom: 40px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0d0d14;
+  background: #C9A84C;
+  text-decoration: none;
+  padding: 14px 32px;
+  border-radius: 100px;
+  transition: background 0.2s, transform 0.15s;
+  letter-spacing: 0.02em;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+.btn:hover {
+  background: #d4b05a;
+  transform: translateY(-1px);
+}
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(232,228,222,0.6);
+  background: transparent;
+  text-decoration: none;
+  padding: 14px 24px;
+  border-radius: 100px;
+  border: 1px solid rgba(232,228,222,0.18);
+  transition: color 0.2s, border-color 0.2s;
+  letter-spacing: 0.02em;
+}
+.btn-ghost:hover {
+  color: #e8e4de;
+  border-color: rgba(232,228,222,0.4);
+}
+@media (max-width: 480px) {
+  html, body { overflow: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-glow" aria-hidden="true"></div>
+<a class="brand" href="/">FortitudeFX™</a>
+
+<div class="card">
+  <div class="num">503</div>
+  <h1 class="headline">We'll be right back.</h1>
+  <p class="sub">This page is temporarily unavailable while we sort out a brief hiccup on our end. Your content isn't gone — please try again in a moment.</p>
+  <div class="actions">
+    <button class="btn" onclick="location.reload();">Try Again →</button>
+    <a href="/" class="btn-ghost">Home</a>
+    <a href="/blog" class="btn-ghost">Blog</a>
+  </div>
+</div>
+
+</body>
+</html>

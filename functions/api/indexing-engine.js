@@ -11,8 +11,9 @@
 //   Results returned in response body — dashboard renders immediately
 //
 // Google APIs used:
-//   URL Inspection API  — OAuth refresh token (GOOGLE_REFRESH_TOKEN)
-//   Indexing API        — Service account JWT (GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_PRIVATE_KEY_PEM)
+//   URL Inspection API  — OAuth refresh token (GOOGLE_REFRESH_TOKEN) — diagnostic reads only
+//   (Indexing API auto-submit REMOVED — BK1; it was improper for article URLs and never fired.
+//    Submission to Google is now the operator's manual GSC Request-Indexing action.)
 // =============================================================================
 
 var CORS_HEADERS = {
@@ -31,10 +32,12 @@ var IX_CLIENT_ID    = '805135063067-mb9ap5knagr29280dmg1s63gcbd2f01t.apps.google
 var IX_STATIC_PAGES = [
   'https://fortitudefx.com/',
   'https://fortitudefx.com/blog',
+  'https://fortitudefx.com/about',
   'https://fortitudefx.com/bootcamp',
   'https://fortitudefx.com/vipdiscord',
   'https://fortitudefx.com/waitlist',
   'https://fortitudefx.com/privacy',
+  'https://fortitudefx.com/disclaimer',
 ];
 
 // ── GET — return KV data ─────────────────────────────────────────────────────
@@ -250,27 +253,16 @@ async function runIndexingEngine(env) {
         });
       }
     }
-    await writeIndexProgress(env, 5, 6, 'Submitting URLs to Google Indexing API');
+    await writeIndexProgress(env, 5, 6, 'Finalizing analysis');
 
-    // Step 5: Submit fixable URLs via Indexing API (service account)
+    // Step 5 (removed — BK1): the Google Indexing-API auto-submit was improper
+    // (article URLs are not eligible — the Indexing API only supports JobPosting /
+    // BroadcastEvent) and never actually fired (GOOGLE_PRIVATE_KEY_PEM is not set).
+    // Removed. `submittedNow` stays an empty array so Step 6 and
+    // ixBuildPendingVerification keep working unchanged (submittedCount 0, graceful).
+    // Eligible pages are submitted MANUALLY by the operator via GSC Request-Indexing;
+    // the dashboard "Mark Submitted" button (PATCH) records that in KV — no Google call.
     var submittedNow = [];
-    if (env.GOOGLE_SERVICE_ACCOUNT_EMAIL && env.GOOGLE_PRIVATE_KEY_PEM) {
-      var saToken = await ixGetServiceAccountToken(env);
-      if (saToken) {
-        for (var k = 0; k < notIndexed.length; k++) {
-          var item = notIndexed[k];
-          if (item.cause === 'not_submitted' || item.cause === 'canonical_mismatch' || item.cause === 'unknown') {
-            var submitted = await ixSubmitUrl(saToken, item.url);
-            item.submittedAt   = submitted ? new Date().toISOString() : null;
-            item.submitSuccess = submitted;
-            if (submitted) submittedNow.push(item.url);
-          }
-        }
-        console.log('[indexing-engine] Submitted ' + submittedNow.length + ' URLs');
-      }
-    } else {
-      console.log('[indexing-engine] No service account — skipping Indexing API submission');
-    }
     await writeIndexProgress(env, 6, 6, 'Writing results to KV');
 
     // Step 6: Compare vs yesterday, write KV
@@ -480,49 +472,8 @@ async function ixGetOAuthToken(env) {
   } catch(e) { return null; }
 }
 
-// Service account token (JWT) for Google Indexing API
-async function ixGetServiceAccountToken(env) {
-  var serviceAccountEmail = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  var privateKeyPem       = env.GOOGLE_PRIVATE_KEY_PEM;
-  if (!serviceAccountEmail || !privateKeyPem) return null;
-  try {
-    var now     = Math.floor(Date.now() / 1000);
-    var header  = { alg: 'RS256', typ: 'JWT' };
-    var payload = {
-      iss:   serviceAccountEmail,
-      scope: 'https://www.googleapis.com/auth/indexing',
-      aud:   'https://oauth2.googleapis.com/token',
-      exp:   now + 3600,
-      iat:   now,
-    };
-    var encode = function(obj) {
-      return btoa(JSON.stringify(obj)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    };
-    var unsignedToken = encode(header) + '.' + encode(payload);
-    var pemContents = privateKeyPem
-      .replace(/-----BEGIN PRIVATE KEY-----/, '')
-      .replace(/-----END PRIVATE KEY-----/, '')
-      .replace(/\n/g, '').replace(/\r/g, '').trim();
-
-    var binaryKey = Uint8Array.from(atob(pemContents), function(c) { return c.charCodeAt(0); });
-    var cryptoKey = await crypto.subtle.importKey(
-      'pkcs8', binaryKey.buffer,
-      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
-    );
-    var encoder   = new TextEncoder();
-    var signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, encoder.encode(unsignedToken));
-    var sigB64    = btoa(String.fromCharCode.apply(null, new Uint8Array(signature)))
-      .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    var jwt = unsignedToken + '.' + sigB64;
-    var tokenRes  = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=' + jwt,
-    });
-    var tokenData = await tokenRes.json();
-    return tokenData.access_token || null;
-  } catch(e) { console.error('[indexing-engine] SA token error:', e.message); return null; }
-}
+// (removed — BK1) ixGetServiceAccountToken: minted the service-account JWT used only
+// by the removed Indexing-API auto-submit. No remaining callers.
 
 // Build full URL list from KV article records + static pages
 async function ixBuildUrlList(env) {
@@ -584,17 +535,7 @@ function ixClassify(r) {
   return 'unknown';
 }
 
-// Submit URL to Google Indexing API
-async function ixSubmitUrl(saToken, pageUrl) {
-  try {
-    var res = await fetch('https://indexing.googleapis.com/v3/urlNotifications:publish', {
-      method:  'POST',
-      headers: { 'Authorization': 'Bearer ' + saToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: pageUrl, type: 'URL_UPDATED' }),
-    });
-    if (!res.ok) { console.error('[indexing-engine] Submit failed for ' + pageUrl + ': ' + res.status); return false; }
-    return true;
-  } catch(e) { return false; }
-}
+// (removed — BK1) ixSubmitUrl: the improper POST to Google's Indexing API
+// (urlNotifications:publish) for article URLs. Removed; no remaining callers.
 
 function ixSleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }

@@ -45,7 +45,15 @@ export async function onRequestGet(context) {
       // Full article body lives in globalContent — not in platforms.blog.content
       try {
         const publishedEntry = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' });
-        if (publishedEntry?.globalContent?.body) {
+        // Serve the REGIONAL body when the requested slug IS the regional variant — it is
+        // genuinely distinct, localized content (not a duplicate of the global). Global /
+        // parent slugs never match this branch, so their behavior is completely unchanged.
+        // If a regional record has no body, fall through to globalContent (graceful, no error).
+        if (publishedEntry?.regionalContent?.slug === slug && publishedEntry?.regionalContent?.body) {
+          fullContent = publishedEntry.regionalContent;
+          body = fullContent.body;
+          console.log('[FFX Article] Served from published regionalContent:', slug);
+        } else if (publishedEntry?.globalContent?.body) {
           fullContent = publishedEntry.globalContent;
           body = fullContent.body;
           console.log('[FFX Article] Served from published globalContent:', slug);

@@ -9,3 +9,11 @@
 
 # Redirect old versioned privacy URL
 /privacy-v11 /privacy 301
+
+# Retired variant pages (existed on old main, removed at cutover) → 301 to their
+# canonical live pages (matches the pages' own canonical tags; hard-constraint:
+# a removed public URL must be 301'd).
+/vipdiscord2 /vipdiscord 301
+/vipdiscord2.html /vipdiscord 301
+/waitlist2 /waitlist 301
+/waitlist2.html /waitlist 301

@@ -1,679 +1,735 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y056J2K2WK"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-Y056J2K2WK');
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contact FortitudeFX™ — Questions &amp; Support</title>
+<meta name="description" content="Get in touch with FortitudeFX™. Questions about VIP Discord, the Bootcamp, partnerships, or anything else — we read every message." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://fortitudefx.com/contact" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://fortitudefx.com/contact" />
+<meta property="og:title" content="Contact | FortitudeFX™" />
+<meta property="og:description" content="Get in touch with FortitudeFX™. We read and respond to every message personally." />
+<meta property="og:image" content="https://fortitudefx.com/og-fortitudefx.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Contact | FortitudeFX™" />
+<meta name="twitter:description" content="Get in touch with FortitudeFX™. We read and respond to every message personally." />
+<meta name="twitter:image" content="https://fortitudefx.com/og-fortitudefx.png" />
+<meta name="theme-color" content="#0d0d14" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"ContactPage","name":"Contact FortitudeFX™","url":"https://fortitudefx.com/contact","description":"Get in touch with FortitudeFX™. Questions about VIP Discord, Bootcamp, partnerships, or general enquiries."}
 </script>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contact FortitudeFX | Trading Enquiries &amp; Support</title>
-  <meta name="description" content="Get in touch with FortitudeFX. Questions about VIP Discord, Bootcamp, partnerships, or general enquiries — we read every message." />
-  <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://fortitudefx.com/contact" />
 
-  <meta property="og:type"        content="website" />
-  <meta property="og:url"         content="https://fortitudefx.com/contact" />
-  <meta property="og:title"       content="Contact | FortitudeFX" />
-  <meta property="og:description" content="Get in touch with FortitudeFX." />
-  <meta property="og:image"       content="https://fortitudefx.com/og-fortitudefx.png" />
-  <meta property="og:site_name"   content="FortitudeFX" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles-nav-footer.css" />
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
-  <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:site"        content="@_fortitudefx" />
-  <meta name="twitter:title"       content="Contact | FortitudeFX" />
-  <meta name="twitter:description" content="Get in touch with FortitudeFX." />
-  <meta name="twitter:image"       content="https://fortitudefx.com/og-fortitudefx.png" />
+<style>
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #0d0d14;
+  color: #e8e4de;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
 
+/* ── Tokens ── */
+:root {
+  --gold: #C9A84C;
+  --orange: #E06B1A;
+  --dark: #0d0d14;
+  --dark-alt: #111118;
+  --cream: #e8e4de;
+  --cream-muted: rgba(232,228,222,0.5);
+  --gold-border: rgba(201,168,76,0.15);
+  --gold-border-strong: rgba(201,168,76,0.35);
+}
 
-  <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"ContactPage","name":"Contact FortitudeFX","url":"https://fortitudefx.com/contact","description":"Get in touch with FortitudeFX. Questions about VIP Discord, Bootcamp, partnerships, or general enquiries."}
-  </script>
-  <meta name="theme-color" content="#06060a" />
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  <link rel="stylesheet" href="styles-base.css" />
-  <link rel="stylesheet" href="styles-components.css" />
+/* ── Scroll reveal — bidirectional ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s cubic-bezier(0.22,1,0.36,1), transform 0.9s cubic-bezier(0.22,1,0.36,1);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.22s; }
+.reveal-delay-3 { transition-delay: 0.34s; }
 
-  <style>
-    /* Contact page styles */
-    .ct-hero-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3rem;
-      align-items: start;
-    }
-    @media (max-width: 860px) {
-      .ct-hero-grid { grid-template-columns: 1fr; gap: 2rem; }
-    }
+/* ── Nav ── */
+/* nav CSS moved to styles-nav-footer.css */
+/* ── Page layout ── */
+.page-wrap {
+  min-height: 100vh;
+  padding-top: 68px;
+  display: flex;
+  flex-direction: column;
+}
 
-    /* Contact cards */
-    .ct-contact-cards { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
-    .ct-contact-card {
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 1.25rem 1.5rem;
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-    .ct-contact-icon { font-size: 1.25rem; margin-top: 0.1rem; }
-    .ct-contact-label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.2rem; }
-    .ct-contact-value { font-size: 0.95rem; color: var(--text-primary); font-weight: 600; }
-    .ct-contact-value a { color: var(--accent-orange); text-decoration: none; }
-    .ct-contact-desc { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.5; }
+.page-hero {
+  padding: 80px 48px 100px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+}
 
-    /* Form card */
-    .ct-form-card {
-      background: var(--surface-card);
-      border: 1px solid rgba(224,107,26,0.25);
-      border-radius: var(--radius-xl);
-      padding: 2.25rem 2rem;
-      position: relative;
-      overflow: visible;
-      transition: border-color 0.3s, box-shadow 0.3s;
-      box-shadow: 0 0 80px rgba(224,107,26,0.30), 0 0 160px rgba(224,107,26,0.15);
-    }
-    .ct-form-card:hover,
-    .ct-form-card:focus-within {
-      border-color: rgba(224,107,26,0.75);
-      box-shadow: 0 0 80px rgba(224,107,26,0.40), 0 0 160px rgba(224,107,26,0.18);
-    }
-    .ct-form-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: var(--radius-xl);
-      background: radial-gradient(ellipse at 50% 0%, rgba(224,107,26,0.12) 0%, transparent 65%);
-      pointer-events: none;
-      transition: opacity 0.3s;
-    }
-    .ct-form-card:hover::before,
-    .ct-form-card:focus-within::before { opacity: 2; }
-    .ct-form-inner { position: relative; z-index: 1; }
+/* ── LEFT — info side ── */
+.info-side {
+  padding-top: 8px;
+}
+.kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.kicker::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 1px;
+  background: var(--gold);
+  opacity: 0.5;
+}
+.info-headline {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--cream);
+  margin-bottom: 20px;
+}
+.info-headline em {
+  font-style: italic;
+  color: var(--gold);
+}
+.info-body {
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.8;
+  color: var(--cream-muted);
+  margin-bottom: 48px;
+}
 
-    /* Fields */
-    .ct-field { margin-bottom: 1rem; }
-    .ct-field label {
-      display: block;
-      font-size: 0.92rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      margin-bottom: 0.35rem;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      font-family: inherit;
-    }
-    .ct-field input,
-    .ct-field select,
-    .ct-field textarea {
-      width: 100%;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 0.75rem 1rem;
-      font-size: 1.15rem;
-      color: var(--accent-orange);
-      outline: none;
-      transition: border-color 0.2s;
-      box-sizing: border-box;
-      font-family: inherit;
-    }
-    .ct-field input:focus,
-    .ct-field select:focus,
-    .ct-field textarea:focus { border-color: var(--accent-orange); }
-    .ct-field input::placeholder,
-    .ct-field textarea::placeholder { color: var(--text-muted); }
-    .ct-field select { color: var(--text-muted); }
-    .ct-field select:valid,
-    .ct-field select.has-value { color: var(--accent-orange); }
-    .ct-field select option { background: #1a1a2e; color: var(--text-primary); }
-    .ct-field textarea { resize: vertical; min-height: 120px; }
-    /* Autofill orange */
-    .ct-field input:-webkit-autofill,
-    .ct-field input:-webkit-autofill:hover,
-    .ct-field input:-webkit-autofill:focus {
-      -webkit-text-fill-color: var(--accent-orange) !important;
-      -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.04) inset !important;
-      transition: background-color 5000s ease-in-out 0s;
-    }
+/* Contact methods */
+.contact-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--gold-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.contact-method {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: var(--dark-alt);
+  transition: background 0.2s;
+  text-decoration: none;
+}
+.contact-method:hover { background: rgba(201,168,76,0.04); }
+.contact-method-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(201,168,76,0.06);
+  border: 1px solid var(--gold-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.contact-method-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--gold);
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.contact-method-icon.is-fill svg {
+  fill: var(--gold);
+  stroke: none;
+}
+.contact-method-content { flex: 1; min-width: 0; }
+.contact-method-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(232,228,222,0.3);
+  margin-bottom: 3px;
+}
+.contact-method-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--cream);
+}
+.contact-method-desc {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--cream-muted);
+  margin-top: 2px;
+}
+.contact-method-arrow {
+  color: rgba(232,228,222,0.2);
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: color 0.2s, transform 0.2s;
+}
+.contact-method:hover .contact-method-arrow {
+  color: var(--gold);
+  transform: translateX(3px);
+}
 
-    /* Submit */
-    .ct-submit-btn {
-      width: 100%;
-      background: var(--accent-orange);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-pill);
-      padding: 0.9rem 1.5rem;
-      font-size: 1.15rem;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 0.25rem;
-      transition: opacity 0.2s, transform 0.15s;
-      font-family: inherit;
-    }
-    .ct-submit-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
-    .ct-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+/* ── RIGHT — form side ── */
+.form-side {
+  position: sticky;
+  top: 96px;
+}
+.form-card {
+  background: rgba(232,228,222,0.03);
+  border: 1px solid var(--gold-border);
+  border-radius: 20px;
+  padding: 40px 36px;
+  transition: border-color 0.3s;
+}
+.form-card:focus-within { border-color: var(--gold-border-strong); }
 
-    /* Error */
-    .ct-form-error {
-      background: rgba(220,53,69,0.1);
-      border: 1px solid rgba(220,53,69,0.3);
-      color: #f87171;
-      border-radius: var(--radius-md);
-      padding: 0.7rem 1rem;
-      font-size: 0.97rem;
-      margin-bottom: 0.9rem;
-      display: none;
-    }
-    .ct-form-note { font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-top: 0.65rem; }
+.form-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--cream);
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.form-sub {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--cream-muted);
+  line-height: 1.65;
+  margin-bottom: 32px;
+}
 
-    /* Success */
-    .ct-success { display: none; text-align: center; padding: 1rem 0; }
-    .ct-success-icon { font-size: 2.5rem; margin-bottom: 1rem; }
-    .ct-success-title { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.5rem; }
-    .ct-success-sub { font-size: 1rem; color: var(--text-muted); margin: 0; line-height: 1.7; }
+/* Fields */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.field label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(232,228,222,0.3);
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  background: rgba(232,228,222,0.04);
+  border: 1px solid rgba(232,228,222,0.1);
+  border-radius: 10px;
+  padding: 13px 16px;
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  color: var(--cream);
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: rgba(201,168,76,0.45);
+  background: rgba(201,168,76,0.03);
+}
+.field input::placeholder,
+.field textarea::placeholder { color: rgba(232,228,222,0.2); }
+.field select { color: rgba(232,228,222,0.3); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(232,228,222,0.3)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; }
+.field select.has-value { color: var(--cream); }
+.field select option { background: #111118; color: var(--cream); }
+.field textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+.field input:-webkit-autofill,
+.field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--cream) !important;
+  -webkit-box-shadow: 0 0 0px 1000px #0d0d14 inset !important;
+}
 
-    @media (max-width: 640px) {
-      .ct-form-card { padding: 1.75rem 1.25rem; }
-    }
-  </style>
+/* Turnstile */
+.turnstile-wrap {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: center;
+}
 
-  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+/* Error */
+.form-error {
+  display: none;
+  font-size: 13px;
+  color: #f87171;
+  background: rgba(248,113,113,0.07);
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+/* Submit */
+.btn-submit {
+  width: 100%;
+  background: var(--gold);
+  color: #0d0d14;
+  border: none;
+  border-radius: 100px;
+  padding: 16px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, opacity 0.2s;
+}
+.btn-submit:hover:not(:disabled) {
+  background: #d4b05a;
+  transform: translateY(-1px);
+}
+.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.form-note {
+  margin-top: 14px;
+  font-size: 11px;
+  text-align: center;
+  color: rgba(232,228,222,0.22);
+  line-height: 1.65;
+}
+.form-note a {
+  color: rgba(232,228,222,0.35);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.form-note a:hover { color: var(--cream); }
+
+/* ── Success state ── */
+#successState { display: none; }
+.success-mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(201,168,76,0.08);
+  border: 1px solid var(--gold-border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+.success-mark svg {
+  width: 22px;
+  height: 22px;
+  stroke: var(--gold);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.success-headline {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cream);
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.success-sub {
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.8;
+  color: var(--cream-muted);
+  text-align: center;
+}
+
+/* ── Footer ── */
+/* footer CSS moved to styles-nav-footer.css */
+@media (max-width: 960px) {
+  /* nav responsive in styles-nav-footer.css */
+  .page-hero {
+    grid-template-columns: 1fr;
+    gap: 52px;
+    padding: 64px 24px 80px;
+  }
+  .form-side { position: static; }
+  /* footer responsive in styles-nav-footer.css */
+}
+@media (max-width: 480px) {
+  .form-card { padding: 28px 22px; }
+  .field-row { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+</style>
+
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="FortitudeFX — Catch The Wick mechanical forex trading system" />
+<meta property="og:site_name" content="FortitudeFX™" />
+<meta property="og:locale" content="en_US" />
+<meta name="twitter:site" content="@_fortitudefx" />
+<meta name="twitter:image:alt" content="FortitudeFX — Catch The Wick mechanical forex trading system" />
 </head>
-<body class="page-home">
+<body>
 
-  <div class="ffx-bg" aria-hidden="true">
-    <div class="ffx-glow ffx-glow-violet" style="width:900px;height:900px;top:-200px;right:-300px;opacity:0.60;"></div>
-    <div class="ffx-glow ffx-glow-deep"   style="width:800px;height:800px;top:-100px;left:-350px;opacity:0.50;"></div>
-    <div class="ffx-glow ffx-glow-mid"    style="width:1000px;height:600px;top:1600px;left:50%;transform:translateX(-50%);opacity:0.35;"></div>
+<!-- ── Nav ── -->
+<nav id="mainNav" class="nav-dark">
+  <a class="nav-brand" href="index.html">FortitudeFX<sup class="tm">™</sup></a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="vipdiscord.html">VIP Discord</a></li>
+    <li><a href="bootcamp.html">Bootcamp</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="contact.html" class="active">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a class="nav-btn-ghost" href="joinfree.html">Join Free</a>
+    <a class="nav-btn-primary" href="waitlist.html?path=VIP#form">Request Your Spot</a>
   </div>
-
-  <!-- NAV -->
-  <nav class="nav">
-    <div class="nav-wrap">
-      <div class="nav-brand"><a href="index.html">FORTITUDEFX</a></div>
-      <div class="nav-center">
-        <a href="index.html">Home</a>
-        <a href="vipdiscord.html">VIP Discord</a>
-        <a href="bootcamp.html">Bootcamp</a>
-        <a href="blog.html">Blog</a>
-        <a href="pricing.html">Pricing</a>
-        <a href="contact.html">Contact</a>
-      </div>
-      <button class="nav-toggle" id="navToggle" aria-label="Open menu"><span></span><span></span><span></span></button>
-      <div class="nav-cta">
-        <a class="nav-btn nav-btn-joinfree" href="joinfree.html">Join Free</a>
-        <a class="nav-btn nav-btn-primary" href="waitlist.html#form">Join Waitlist</a>
-      </div>
-    </div>
-    <div class="nav-mobile" id="navMobile">
-      <a href="index.html">Home</a>
-      <a href="vipdiscord.html">VIP Discord</a>
-      <a href="bootcamp.html">Bootcamp</a>
-      <a href="blog.html">Blog</a>
-      <a href="pricing.html">Pricing</a>
-      <a href="contact.html">Contact</a>
-      <div class="nav-mobile-cta">
-        <a class="nav-btn nav-btn-joinfree" href="joinfree.html">Join Free</a>
-        <a class="nav-btn nav-btn-primary" href="waitlist.html#form">Join Waitlist</a>
-      </div>
-    </div>
-  </nav>
-
-  <div class="page-container">
-
-    <section class="section hero ffx-reveal" id="top">
-      <div class="hero-glow"></div>
-      <div class="section-wrap">
-        <div class="ct-hero-grid">
-
-          <!-- Left: heading + contact info -->
-          <div style="position:relative;z-index:1;">
-            <div class="ffx-tagline-pill">
-              <span class="ffx-tagline-dot"></span>
-              GET IN TOUCH
-            </div>
-            <h1>We read<br><span class="gold">every message.</span></h1>
-            <p class="hero-sub">Whether you have a question about VIP Discord, the Bootcamp, a partnership idea, or anything else &#8212; reach out. We aim to respond within 24 hours.</p>
-
-            <div class="ct-contact-cards">
-              <div class="ct-contact-card">
-                <span class="ct-contact-icon">&#9993;</span>
-                <div>
-                  <div class="ct-contact-label">Email</div>
-                  <div class="ct-contact-value"><a href="mailto:contact@fortitudefx.com">contact@fortitudefx.com</a></div>
-                  <div class="ct-contact-desc">For all enquiries. We respond within 24 hours.</div>
-                </div>
-              </div>
-              <div class="ct-contact-card">
-                <span class="ct-contact-icon">&#128172;</span>
-                <div>
-                  <div class="ct-contact-label">Discord Community</div>
-                  <div class="ct-contact-value"><a href="joinfree.html">Join the Free Community</a></div>
-                  <div class="ct-contact-desc">Ask questions directly inside the community.</div>
-                </div>
-              </div>
-              <div class="ct-contact-card">
-                <span class="ct-contact-icon">&#128250;</span>
-                <div>
-                  <div class="ct-contact-label">YouTube</div>
-                  <div class="ct-contact-value"><a href="https://www.youtube.com/@FortitudeFX" target="_blank" rel="noopener noreferrer">@FortitudeFX</a></div>
-                  <div class="ct-contact-desc">7,570+ subscribers. New content every week.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right: form -->
-          <div style="position:relative;z-index:1;">
-            <div class="ct-form-card">
-              <div class="ct-form-inner">
-
-                <!-- Form state -->
-                <div id="ctFormState">
-                  <h3 style="font-size:1.38rem;font-weight:700;color:var(--text-primary);margin:0 0 0.4rem;font-family:inherit;">Send a Message</h3>
-                  <p style="font-size:1.06rem;color:var(--text-muted);margin:0 0 1.5rem;line-height:1.6;font-family:inherit;">Fill in the form and we&#8217;ll get back to you within 24 hours.</p>
-
-                  <div class="ct-form-error" id="ctError"></div>
-
-                  <!-- Name -->
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
-                    <div class="ct-field" style="margin-bottom:0;">
-                      <label for="ctFirstName">First Name</label>
-                      <input type="text" id="ctFirstName" placeholder="First name" autocomplete="given-name" />
-                    </div>
-                    <div class="ct-field" style="margin-bottom:0;">
-                      <label for="ctLastName">Last Name</label>
-                      <input type="text" id="ctLastName" placeholder="Last name" autocomplete="family-name" />
-                    </div>
-                  </div>
-
-                  <!-- Email -->
-                  <div class="ct-field">
-                    <label for="ctEmail">Email Address</label>
-                    <input type="email" id="ctEmail" placeholder="you@email.com" autocomplete="email" />
-                  </div>
-
-                  <!-- Category -->
-                  <div class="ct-field">
-                    <label for="ctCategory">Enquiry Type</label>
-                    <select id="ctCategory">
-                      <option value="" disabled selected>Select enquiry type</option>
-                      <option value="VIP Discord">VIP Discord</option>
-                      <option value="Bootcamp">Bootcamp</option>
-                      <option value="Support">Support</option>
-                      <option value="Partnership">Partnership</option>
-                      <option value="General Inquiry">General Inquiry</option>
-                      <option value="Media / Press">Media / Press</option>
-                    </select>
-                  </div>
-
-                  <!-- Message -->
-                  <div class="ct-field">
-                    <label for="ctMessage">Your Message</label>
-                    <textarea id="ctMessage" placeholder="Tell us what you&#8217;re looking for or how we can help..."></textarea>
-                  </div>
-
-                  <!-- Privacy note -->
-                  <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.55;margin:0 0 0.75rem;">
-                    By submitting you agree to our <a href="privacy.html" target="_blank" style="color:var(--text-secondary);">Privacy Policy</a>. Your data is stored securely and never sold.
-                  </p>
-
-                  <!-- Turnstile + GDPR -->
-                  <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;margin:0.75rem 0;">
-                    <div class="cf-turnstile" data-sitekey="0x4AAAAAADOXuZfCyZAZ8FBj" data-theme="dark" data-appearance="always" style="min-height:65px;"></div>
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;opacity:0.85;">
-                      <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg" aria-label="GDPR Compliant">
-                        <circle cx="22" cy="22" r="22" fill="#003399"/>
-                        <g fill="#FFCC00">
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(0,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(30,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(60,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(90,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(120,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(150,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(180,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(210,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(240,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(270,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(300,22,22)"/>
-                          <polygon points="22,4 22.7,6.2 25,6.2 23.2,7.5 23.9,9.7 22,8.4 20.1,9.7 20.8,7.5 19,6.2 21.3,6.2" transform="rotate(330,22,22)"/>
-                        </g>
-                        <text x="22" y="26" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="8.5" fill="#FFFFFF" letter-spacing="0.5">GDPR</text>
-                      </svg>
-                      <span style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Protected</span>
-                    </div>
-                  </div>
-
-                  <button class="ct-submit-btn" id="ctSubmit" type="button">Send Message &rarr;</button>
-                  <p class="ct-form-note">We read and respond to every message personally.</p>
-                </div>
-
-                <!-- Success state -->
-                <div class="ct-success" id="ctSuccess">
-                  <div class="ct-success-icon">&#x2705;</div>
-                  <h3 class="ct-success-title">Message received.</h3>
-                  <p class="ct-success-sub">Thank you for reaching out. We&#8217;ll get back to you at your email address within 24 hours.</p>
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-  </div>
-
-  <!-- FOOTER -->
-  <footer>
-    <div class="footer-wrap">
-      <div class="footer-left">
-        <div class="footer-brand">FORTITUDEFX</div>
-        <div class="footer-tagline">Catch The Wick</div>
-        <div class="footer-socials">
-          <a href="https://www.youtube.com/@FortitudeFX" class="footer-social" aria-label="YouTube" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
-          </a>
-          <a href="vipdiscord.html" class="footer-social" aria-label="Discord" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-          </a>
-          <a href="https://t.me/FFX_Official" class="footer-social" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-          </a>
-          <a href="https://instagram.com/fortitudefx_official" class="footer-social" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
-          </a>
-          <a href="https://tiktok.com/@fortitudefx_official" class="footer-social" aria-label="TikTok" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg>
-          </a>
-          <a href="https://x.com/_fortitudefx" class="footer-social" aria-label="X" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          </a>
-          <a href="https://facebook.com/FortitudefxOfficial" class="footer-social" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-          </a>
-          <a href="https://whop.com/joined/fortitude-fx/" class="footer-social" aria-label="Whop" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-          </a>
-        </div>
-      </div>
-      <div class="footer-right">
-        <nav class="footer-nav" aria-label="Footer navigation">
-          <a href="index.html">Home</a>
-          <a href="vipdiscord.html">VIP Discord</a>
-          <a href="bootcamp.html">Bootcamp</a>
-          <a href="blog.html">Blog</a>
-          <a href="waitlist.html#form">Waitlist</a>
-          <a href="joinfree.html" style="color:var(--accent-orange-text);">Join Free</a>
-          <a href="pricing.html">Pricing</a>
-          <a href="contact.html">Contact</a>
-          <a href="privacy.html">Privacy</a>
-        </nav>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      &copy; 2026 FortitudeFX. All rights reserved. &nbsp;&middot;&nbsp;
-      <a href="privacy.html" class="footer-privacy-link">Privacy Policy</a>
-    </div>
-  </footer>
-
-  <button class="back-to-top" id="backToTop" aria-label="Back to top">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"></polyline></svg>
+  <button class="nav-hamburger" id="navToggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
   </button>
+</nav>
+<div class="nav-mobile nav-dark-mobile" id="navMobile">
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="vipdiscord.html">VIP Discord</a>
+  <a href="bootcamp.html">Bootcamp</a>
+  <a href="blog.html">Blog</a>
+  <a href="contact.html">Contact</a>
+  <div class="nav-mobile-actions">
+    <a class="nav-btn-ghost" href="joinfree.html">Join Free</a>
+    <a class="nav-btn-primary" href="waitlist.html?path=VIP#form">Request Your Spot</a>
+  </div>
+</div>
 
-  <script>
-  (() => {
-    // Nav toggle
-    const toggle = document.getElementById('navToggle');
-    const mobile = document.getElementById('navMobile');
-    if (toggle && mobile) {
-      toggle.addEventListener('click', () => {
-        const open = mobile.classList.toggle('is-open');
-        toggle.setAttribute('aria-expanded', open);
-      });
-      mobile.querySelectorAll('a').forEach(a => {
-        a.addEventListener('click', () => {
-          mobile.classList.remove('is-open');
-          toggle.setAttribute('aria-expanded', false);
-        });
-      });
-    }
+<div class="page-wrap">
 
-    // Back to top
-    const btt = document.getElementById('backToTop');
-    if (btt) {
-      window.addEventListener('scroll', () => {
-        btt.classList.toggle('is-visible', window.scrollY > 400);
-      }, { passive: true });
-      btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-    }
+  <div class="page-hero">
 
-    // Scroll reveals
-    const reveals = document.querySelectorAll('.ffx-reveal');
-    if (reveals.length) {
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => {
-          if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
-        });
-      }, { threshold: 0.10 });
-      reveals.forEach(el => io.observe(el));
-    }
+    <!-- LEFT — info -->
+    <div class="info-side">
+      <p class="kicker reveal">Get in touch</p>
+      <h1 class="info-headline reveal reveal-delay-1">
+        We read<br><em>every message.</em>
+      </h1>
+      <p class="info-body reveal reveal-delay-2">
+        Whether you have a question about VIP Discord, the Bootcamp, a partnership idea, or anything else — reach out. We respond within 24 hours.
+      </p>
 
-    // Select orange on change
-    const categorySelect = document.getElementById('ctCategory');
-    categorySelect.addEventListener('change', () => {
-      categorySelect.classList.add('has-value');
-    });
+      <div class="contact-methods reveal reveal-delay-3">
 
-    // Form submit
-    const submitBtn  = document.getElementById('ctSubmit');
-    const errorBox   = document.getElementById('ctError');
-    const formState  = document.getElementById('ctFormState');
-    const successState = document.getElementById('ctSuccess');
+        <a class="contact-method" href="mailto:contact@fortitudefx.com">
+          <div class="contact-method-icon">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div class="contact-method-content">
+            <div class="contact-method-label">Email</div>
+            <div class="contact-method-value">contact@fortitudefx.com</div>
+            <div class="contact-method-desc">For all enquiries — we respond within 24 hours.</div>
+          </div>
+          <span class="contact-method-arrow">→</span>
+        </a>
 
-    function showError(msg) { errorBox.textContent = msg; errorBox.style.display = 'block'; }
-    function hideError()    { errorBox.style.display = 'none'; }
+        <a class="contact-method" href="joinfree.html">
+          <div class="contact-method-icon is-fill">
+            <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+          </div>
+          <div class="contact-method-content">
+            <div class="contact-method-label">Discord Community</div>
+            <div class="contact-method-value">Join the Free Community</div>
+            <div class="contact-method-desc">Ask questions directly inside the community.</div>
+          </div>
+          <span class="contact-method-arrow">→</span>
+        </a>
 
-    submitBtn.addEventListener('click', async () => {
-      hideError();
-      const firstName = document.getElementById('ctFirstName').value.trim();
-      const lastName  = document.getElementById('ctLastName').value.trim();
-      const email     = document.getElementById('ctEmail').value.trim();
-      const category  = document.getElementById('ctCategory').value;
-      const message   = document.getElementById('ctMessage').value.trim();
-      const token     = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
+        <a class="contact-method" href="https://www.youtube.com/@FortitudeFX" target="_blank" rel="noopener noreferrer">
+          <div class="contact-method-icon is-fill">
+            <svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+          </div>
+          <div class="contact-method-content">
+            <div class="contact-method-label">YouTube</div>
+            <div class="contact-method-value">@FortitudeFX</div>
+            <div class="contact-method-desc">New content every week.</div>
+          </div>
+          <span class="contact-method-arrow">→</span>
+        </a>
 
-      if (!firstName)  { showError('Please enter your first name.'); return; }
-      if (!lastName)   { showError('Please enter your last name.'); return; }
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showError('Please enter a valid email address.'); return;
+      </div>
+    </div>
+
+    <!-- RIGHT — form -->
+    <div class="form-side">
+      <div class="form-card">
+
+        <!-- Form state -->
+        <div id="formState">
+          <h2 class="form-title">Send a Message</h2>
+          <p class="form-sub">Fill in the form and we'll get back to you within 24 hours.</p>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="ctFirstName">First name</label>
+              <input type="text" id="ctFirstName" placeholder="First name" autocomplete="given-name" />
+            </div>
+            <div class="field">
+              <label for="ctLastName">Last name</label>
+              <input type="text" id="ctLastName" placeholder="Last name" autocomplete="family-name" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="ctEmail">Email</label>
+            <input type="email" id="ctEmail" placeholder="you@email.com" autocomplete="email" />
+          </div>
+
+          <div class="field">
+            <label for="ctCategory">Enquiry type</label>
+            <select id="ctCategory">
+              <option value="" disabled selected>Select enquiry type</option>
+              <option value="VIP Discord">VIP Discord</option>
+              <option value="Bootcamp">Bootcamp</option>
+              <option value="Support">Support</option>
+              <option value="Partnership">Partnership</option>
+              <option value="General Inquiry">General Inquiry</option>
+              <option value="Media / Press">Media / Press</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="ctMessage">Message</label>
+            <textarea id="ctMessage" placeholder="Tell us what you're looking for or how we can help…"></textarea>
+          </div>
+
+          <div class="turnstile-wrap">
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAADOXuZfCyZAZ8FBj" data-theme="dark" data-appearance="always" style="min-height:65px;"></div>
+          </div>
+
+          <div class="form-error" id="formError"></div>
+
+          <button class="btn-submit" id="submitBtn">Send Message →</button>
+
+          <p class="form-note">
+            By submitting you agree to our <a href="privacy.html">Privacy Policy</a>. Your data is stored securely and never sold. We read and respond to every message personally.
+          </p>
+        </div>
+
+        <!-- Success state -->
+        <div id="successState">
+          <div class="success-mark">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h2 class="success-headline">Message received.</h2>
+          <p class="success-sub">Thank you for reaching out. We'll get back to you at your email address within 24 hours.</p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Footer ── -->
+  <footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <strong>FortitudeFX<sup class="tm">™</sup></strong>
+      Catch The Wick<sup class="tm">™</sup> · Dubai, UAE
+    </div>
+    <ul class="footer-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="vipdiscord.html">VIP Discord</a></li>
+      <li><a href="bootcamp.html">Bootcamp</a></li>
+      <li><a href="blog.html">Blog</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="privacy.html">Privacy</a></li>
+      <li><a href="disclaimer.html">Disclaimer</a></li>
+    </ul>
+    <div class="footer-socials">
+      <a href="https://www.youtube.com/@FortitudeFX" class="footer-social-icon" aria-label="YouTube" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>
+      <a href="https://instagram.com/fortitudefx_official" class="footer-social-icon" aria-label="Instagram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg></a>
+      <a href="https://tiktok.com/@fortitudefx_official" class="footer-social-icon" aria-label="TikTok" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg></a>
+      <a href="https://x.com/_fortitudefx" class="footer-social-icon" aria-label="X" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+      <a href="https://t.me/FFX_Official" class="footer-social-icon" aria-label="Telegram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p class="footer-copy">© 2026 FortitudeFX<sup class="tm">™</sup> · All rights reserved · Dubai, UAE</p>
+    <p class="footer-tm">Catch The Wick<sup class="tm">™</sup> · 2 Candles. 1 Story.<sup class="tm">™</sup></p>
+    <p class="footer-disclaimer" style="max-width:820px;margin:14px auto 0;font-size:11px;line-height:1.6;color:rgba(255,255,255,0.3);text-align:center;padding:0 16px;">Educational content only — not financial advice. FortitudeFX<sup class="tm">™</sup> provides trading education based on price-action methodology. Nothing here is financial, investment, or trading advice, or a recommendation to buy or sell any instrument. Trading forex carries a high level of risk and can result in the loss of some or all of your capital; it is not suitable for everyone. Past performance is not indicative of future results. Always do your own research and consider seeking advice from an independent, licensed financial professional before trading. You are solely responsible for your own trading decisions.</p>
+  </div>
+</footer>
+
+</div><!-- /.page-wrap -->
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Scroll reveal — bidirectional ── */
+  var revealEls = document.querySelectorAll('.reveal');
+  function checkVisibility() {
+    var wh = window.innerHeight;
+    var threshold = wh * 0.88;
+    revealEls.forEach(function (el) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < threshold && rect.bottom > 0) {
+        el.classList.add('visible');
+      } else {
+        el.classList.remove('visible');
       }
-      if (!category)   { showError('Please select an enquiry type.'); return; }
-      if (!message)    { showError('Please enter your message.'); return; }
-      if (!token)      { showError('Please complete the security check.'); return; }
+    });
+  }
+  window.addEventListener('scroll', checkVisibility, { passive: true });
+  window.addEventListener('resize', checkVisibility, { passive: true });
+  checkVisibility();
+  window.addEventListener('load', checkVisibility);
 
-      submitBtn.disabled    = true;
-      submitBtn.textContent = 'Sending\u2026';
+  /* ── Nav scroll ── */
+  var nav = document.getElementById('mainNav');
+  window.addEventListener('scroll', function () {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
 
-      try {
-        const res = await fetch('/submit', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            firstName,
-            lastName,
-            email,
-            path:             'Contact',
-            turnstileToken:   token,
-            CONTACT_CATEGORY: category,
-            NOTE:             message
-          })
-        });
+  /* ── Mobile nav ── */
+  var toggle = document.getElementById('navToggle');
+  var mobileNav = document.getElementById('navMobile');
+  if (toggle && mobileNav) {
+    toggle.addEventListener('click', function () {
+      mobileNav.classList.toggle('open');
+    });
+    mobileNav.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () { mobileNav.classList.remove('open'); });
+    });
+  }
 
-        if (res.ok) {
-          formState.style.display = 'none';
-          successState.style.display = 'block';
-        } else {
-          const data = await res.json().catch(() => ({}));
-          showError(data.error || 'Something went wrong. Please try again.');
-          submitBtn.disabled    = false;
-          submitBtn.textContent = 'Send Message \u2192';
-          if (window.turnstile) window.turnstile.reset();
-        }
-      } catch (err) {
-        showError('Network error \u2014 please check your connection and try again.');
-        submitBtn.disabled    = false;
+  /* ── Select orange on change ── */
+  var categorySelect = document.getElementById('ctCategory');
+  categorySelect.addEventListener('change', function () {
+    categorySelect.classList.add('has-value');
+  });
+
+  /* ── Form submission ── */
+  var firstNameEl  = document.getElementById('ctFirstName');
+  var lastNameEl   = document.getElementById('ctLastName');
+  var emailEl      = document.getElementById('ctEmail');
+  var errorEl      = document.getElementById('formError');
+  var submitBtn    = document.getElementById('submitBtn');
+  var formState    = document.getElementById('formState');
+  var successState = document.getElementById('successState');
+
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = 'block'; }
+  function hideError()    { errorEl.style.display = 'none'; }
+
+  submitBtn.addEventListener('click', async function () {
+    hideError();
+
+    var firstName = firstNameEl.value.trim();
+    var lastName  = lastNameEl.value.trim();
+    var email     = emailEl.value.trim();
+    var category  = categorySelect.value;
+    var message   = document.getElementById('ctMessage').value.trim();
+    var tokenEl   = document.querySelector('[name="cf-turnstile-response"]');
+    var token     = tokenEl ? tokenEl.value : '';
+
+    if (!firstName)  { showError('Please enter your first name.'); return; }
+    if (!lastName)   { showError('Please enter your last name.'); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showError('Please enter a valid email address.'); return;
+    }
+    if (!category)   { showError('Please select an enquiry type.'); return; }
+    if (!message)    { showError('Please enter your message.'); return; }
+    if (!token)      { showError('Please complete the security check.'); return; }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending\u2026';
+
+    try {
+      var res = await fetch('/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName:        firstName,
+          lastName:         lastName,
+          email:            email,
+          path:             'Contacts',
+          turnstileToken:   token,
+          CONTACT_CATEGORY: category,
+          NOTE:             message
+        })
+      });
+
+      if (res.ok) {
+        formState.style.display = 'none';
+        successState.style.display = 'block';
+      } else {
+        var data = await res.json().catch(function () { return {}; });
+        showError(data.error || 'Something went wrong. Please try again.');
+        submitBtn.disabled = false;
         submitBtn.textContent = 'Send Message \u2192';
         if (window.turnstile) window.turnstile.reset();
       }
+    } catch (err) {
+      showError('Network error \u2014 please check your connection and try again.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send Message \u2192';
+      if (window.turnstile) window.turnstile.reset();
+    }
+  });
+
+  /* Enter key on text fields triggers submit */
+  [firstNameEl, lastNameEl, emailEl].forEach(function (el) {
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') submitBtn.click();
     });
+  });
 
-    // Enter key
-    ['ctFirstName','ctLastName','ctEmail'].forEach(id => {
-      document.getElementById(id).addEventListener('keydown', e => {
-        if (e.key === 'Enter') submitBtn.click();
-      });
-    });
-  })();
-  </script>
-
-  <!-- ═══════════════════════════════════════════════════════════════
-     FFX FLOATING SOCIAL ICONS — INLINE SNIPPET
-     ═══════════════════════════════════════════════════════════════
-     Paste this entire block just before </body> on all public pages:
-       index.html, vipdiscord.html, bootcamp.html, blog.html,
-       article.html, pricing.html, contact.html, privacy.html
-
-     Desktop only — hidden on mobile (< 1024px)
-     Icons: YouTube · X · Instagram · TikTok · Discord
-     Discord links to joinfree.html
-     ═══════════════════════════════════════════════════════════════ -->
-  
-<nav id="ffx-social-float" aria-label="Social media links">
-
-  <!-- YouTube -->
-  <a href="https://www.youtube.com/@FortitudeFX"
-     class="ffx-social-icon ffx-si-yt"
-     target="_blank" rel="noopener noreferrer"
-     aria-label="YouTube">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/>
-    </svg>
-
-  </a>
-
-  <!-- X -->
-  <a href="https://x.com/_fortitudefx"
-     class="ffx-social-icon ffx-si-x"
-     target="_blank" rel="noopener noreferrer"
-     aria-label="X">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-    </svg>
-
-  </a>
-
-  <!-- Instagram -->
-  <a href="https://instagram.com/fortitudefx_official"
-     class="ffx-social-icon ffx-si-ig"
-     target="_blank" rel="noopener noreferrer"
-     aria-label="Instagram">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
-    </svg>
-
-  </a>
-
-  <!-- TikTok -->
-  <a href="https://tiktok.com/@fortitudefx_official"
-     class="ffx-social-icon ffx-si-tt"
-     target="_blank" rel="noopener noreferrer"
-     aria-label="TikTok">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/>
-    </svg>
-
-  </a>
-
-  <!-- Discord → Join Free -->
-  <a href="joinfree.html"
-     class="ffx-social-icon ffx-si-dc"
-     aria-label="Join Free Discord">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-    </svg>
-
-  </a>
-
-</nav>
-
-<script>
-(function() {
-  var float = document.getElementById('ffx-social-float');
-  if (!float) return;
-
-  var current  = 0;
-  var target   = 0;
-  var maxShift = 70;
-
-  function getScrollRatio() {
-    var doc   = document.documentElement;
-    var total = doc.scrollHeight - doc.clientHeight;
-    if (total <= 0) return 0.5;
-    return window.scrollY / total;
-  }
-
-  function getClampedTop() {
-    var container = document.querySelector('.page-container');
-    if (!container) return window.innerHeight / 2 - float.offsetHeight / 2;
-
-    var rect    = container.getBoundingClientRect();
-    var floatH  = float.offsetHeight;
-    var padding = 16;
-
-    // Centre of visible container portion
-    var visTop    = Math.max(rect.top, 0);
-    var visBottom = Math.min(rect.bottom, window.innerHeight);
-    var centre    = (visTop + visBottom) / 2 - floatH / 2;
-
-    // Clamp within container borders
-    var minTop = rect.top + padding;
-    var maxTop = rect.bottom - floatH - padding;
-
-    return Math.max(minTop, Math.min(maxTop, centre));
-  }
-
-  window.addEventListener('scroll', function() {
-    target = (getScrollRatio() - 0.5) * maxShift;
-  }, { passive: true });
-
-  var start = performance.now();
-
-  function tick(now) {
-    var elapsed = (now - start) / 1000;
-    current    += (target - current) * 0.06;
-    var breath  = Math.sin(elapsed * 0.4) * 3.5;
-    var top     = getClampedTop();
-
-    float.style.top       = top + 'px';
-    float.style.transform = 'translateY(' + (current + breath).toFixed(2) + 'px)';
-
-    requestAnimationFrame(tick);
-  }
-
-  requestAnimationFrame(tick);
 })();
 </script>
 

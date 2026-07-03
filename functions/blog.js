@@ -1,0 +1,965 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// FFX /blog — Server-Side Render of the article list (Phase 1, §E orphan fix)
+//
+// Claims GET /blog and server-renders the full article list as real <a href>
+// links in the raw HTML bytes — so every article is reachable by following links
+// (not only via the sitemap). Replaces the client-only fetch('/articles') render
+// as the FIRST paint; the existing client script still runs to power the filters
+// (it re-renders the identical list and builds the region/category tabs), so the
+// design and behaviour are unchanged. The only difference: the list is now in the
+// served bytes instead of behind JS.
+//
+// HARD RULES honoured:
+//  - READ-ONLY against KV. The list comes from the existing /articles endpoint
+//    (articles.js is read-only — only env.FFX_KV.get), via an internal subrequest.
+//  - URL unchanged (/blog). Markup/CSS spliced byte-for-byte from blog.html.
+//  - Also shortens the <title>/og:title/twitter:title (§F): 86 → 53 chars.
+//
+// Resilience: if /articles is unavailable at request time, the page still renders
+// (200) with the original "Loading…" placeholder and the client fetch repopulates
+// it — the blog page always exists, so a list hiccup is never a hard error.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BASE = 'https://fortitudefx.com';
+
+function attr(v) {
+  return String(v == null ? '' : v).replace(/[<>"]/g, function (c) {
+    return c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;';
+  }).replace(/\s+/g, ' ').trim();
+}
+function htmlText(v) {
+  return String(v == null ? '' : v).replace(/[<>&]/g, function (c) {
+    return c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&amp;';
+  });
+}
+
+const MONTHS = ['January','February','March','April','May','June','July',
+                'August','September','October','November','December'];
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  var d = new Date(String(dateStr) + 'T00:00:00');
+  if (isNaN(d.getTime())) return String(dateStr);
+  return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+}
+
+// Reproduces blog.html's client card template (blog.html:762-773) exactly.
+function buildCard(a) {
+  return '<a class="blog-item" href="/article?slug=' + attr(a.slug) + '">' +
+      '<div class="blog-item-left">' +
+        '<span class="blog-item-tag">' + htmlText(a.category) + '</span>' +
+        '<p class="blog-item-title">' + htmlText(a.title) + '</p>' +
+        '<p class="blog-item-excerpt">' + htmlText(a.excerpt) + '</p>' +
+      '</div>' +
+      '<div class="blog-item-right">' +
+        '<span class="blog-item-date">' + htmlText(formatDate(a.date)) + '</span>' +
+        '<span class="blog-item-read">' + htmlText(a.readTime || '7 min read') + '</span>' +
+        '<span class="blog-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" stroke-width="2"></polyline></svg></span>' +
+      '</div>' +
+    '</a>';
+}
+
+// Full blog.html, spliced byte-for-byte at build time, with the <title>/og/twitter
+// shortened and {{COUNT}} / {{LIST}} injection points placed in #blogCount / #blogList.
+const TEMPLATE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y056J2K2WK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-Y056J2K2WK');
+</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Forex Trading Insights | FortitudeFX — Catch The Wick</title>
+<meta name="description" content="Salman Khan's forex trading insights — the Catch The Wick™ methodology, execution discipline, and market psychology. Built for traders who want rules, not guesses." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://fortitudefx.com/blog" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://fortitudefx.com/blog" />
+<meta property="og:title" content="Forex Trading Insights | FortitudeFX — Catch The Wick" />
+<meta property="og:description" content="Salman Khan's forex trading insights — the Catch The Wick™ methodology, execution discipline, and market psychology. Built for traders who want rules, not guesses." />
+<meta property="og:image" content="https://fortitudefx.com/og-fortitudefx.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:site_name" content="FortitudeFX™" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@_fortitudefx" />
+<meta name="twitter:title" content="Forex Trading Insights | FortitudeFX — Catch The Wick" />
+<meta name="twitter:description" content="Forex trading strategy, price action, and trader mindset — from FortitudeFX™." />
+<meta name="twitter:image" content="https://fortitudefx.com/og-fortitudefx.png" />
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Blog","name":"FortitudeFX™ Blog","url":"https://fortitudefx.com/blog","description":"Forex trading strategy, price action analysis, risk management guides, and trader mindset articles from FortitudeFX™.","publisher":{"@type":"Organization","name":"FortitudeFX™","url":"https://fortitudefx.com"}}
+</script>
+
+<meta name="theme-color" content="#0d0d14" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles-nav-footer.css" />
+
+<style>
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #0d0d14;
+  color: #e8e4de;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Tokens ── */
+:root {
+  --gold: #C9A84C;
+  --orange: #E06B1A;
+  --dark: #0d0d14;
+  --dark-alt: #111118;
+  --cream: #e8e4de;
+  --cream-muted: rgba(232,228,222,0.5);
+  --cream-faint: rgba(232,228,222,0.08);
+  --gold-border: rgba(201,168,76,0.15);
+  --gold-border-strong: rgba(201,168,76,0.3);
+}
+
+/* ── Page layout ── */
+.page-wrap {
+  min-height: 100vh;
+  padding-top: 68px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Blog hero ── */
+.blog-hero {
+  padding: 72px 48px 56px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  border-bottom: 1px solid var(--gold-border);
+}
+.blog-kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.blog-kicker::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 1px;
+  background: var(--gold);
+  opacity: 0.5;
+}
+.blog-hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(36px, 5vw, 60px);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--cream);
+  margin-bottom: 16px;
+}
+.blog-hero-meta {
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--cream-muted);
+  max-width: 560px;
+}
+
+/* ── Blog body ── */
+.blog-body {
+  flex: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 48px 48px 80px;
+}
+
+/* ── Filters ── */
+.blog-filters {
+  margin-bottom: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(232,228,222,0.25);
+  min-width: 68px;
+  flex-shrink: 0;
+}
+.filter-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 100px;
+  border: 1px solid rgba(232,228,222,0.1);
+  background: transparent;
+  color: rgba(232,228,222,0.4);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.filter-btn:hover {
+  border-color: rgba(201,168,76,0.3);
+  color: rgba(232,228,222,0.75);
+}
+.filter-btn.active {
+  background: rgba(201,168,76,0.1);
+  border-color: rgba(201,168,76,0.4);
+  color: var(--gold);
+}
+
+/* ── Article count ── */
+.blog-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(232,228,222,0.25);
+  margin-bottom: 24px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Article list ── */
+.blog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.blog-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+  padding: 36px 36px;
+  background: var(--dark-alt);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  margin-bottom: 12px;
+}
+.blog-item:hover {
+  background: rgba(201,168,76,0.04);
+  border-color: var(--gold-border);
+  transform: translateX(3px);
+}
+
+.blog-item-left { flex: 1; min-width: 0; }
+
+.blog-item-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 10px;
+  padding: 3px 10px;
+  border: 1px solid var(--gold-border);
+  border-radius: 100px;
+  background: rgba(201,168,76,0.06);
+}
+
+.blog-item-title {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(15px, 1.8vw, 18px);
+  font-weight: 600;
+  color: var(--cream);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+.blog-item-excerpt {
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--cream-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.blog-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 100px;
+}
+
+.blog-item-date {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(232,228,222,0.3);
+  white-space: nowrap;
+}
+.blog-item-read {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(232,228,222,0.2);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+.blog-arrow {
+  color: rgba(201,168,76,0.3);
+  transition: color 0.2s, transform 0.2s;
+  margin-top: 4px;
+}
+.blog-arrow svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.blog-item:hover .blog-arrow {
+  color: var(--gold);
+  transform: translateX(3px);
+}
+
+.blog-empty {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--cream-muted);
+  padding: 48px 0;
+  text-align: center;
+}
+
+/* ── Newsletter block ── */
+.blog-newsletter {
+  margin-top: 64px;
+  padding: 48px 48px;
+  border: 1px solid var(--gold-border);
+  border-radius: 20px;
+  background: rgba(201,168,76,0.03);
+  text-align: center;
+}
+.blog-newsletter-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(201,168,76,0.7);
+  display: block;
+  margin-bottom: 16px;
+}
+.blog-newsletter h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 700;
+  color: var(--cream);
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+.blog-newsletter p {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--cream-muted);
+  line-height: 1.75;
+  max-width: 480px;
+  margin: 0 auto 32px;
+}
+.blog-newsletter-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn-nl-primary {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0d0d14;
+  background: var(--gold);
+  text-decoration: none;
+  padding: 14px 28px;
+  border-radius: 100px;
+  transition: background 0.2s, transform 0.15s;
+  letter-spacing: 0.02em;
+}
+.btn-nl-primary:hover { background: #d4b05a; transform: translateY(-1px); }
+.btn-nl-secondary {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--cream-muted);
+  background: transparent;
+  text-decoration: none;
+  padding: 14px 28px;
+  border-radius: 100px;
+  border: 1px solid rgba(232,228,222,0.15);
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+}
+.btn-nl-secondary:hover { border-color: rgba(232,228,222,0.35); color: var(--cream); }
+
+/* ── Popup ── */
+#ffx-popup-overlay {
+  position: fixed; inset: 0;
+  background: rgba(6,6,10,0.80);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+#ffx-popup-overlay.is-open { opacity: 1; visibility: visible; }
+#ffx-popup {
+  background: #0d0d14;
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 24px;
+  padding: 44px 40px 36px;
+  max-width: 520px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 80px rgba(201,168,76,0.06);
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+}
+#ffx-popup-overlay.is-open #ffx-popup { transform: translateY(0) scale(1); }
+#ffx-popup::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent);
+}
+#ffx-popup-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(232,228,222,0.05);
+  border: 1px solid rgba(232,228,222,0.1);
+  color: rgba(232,228,222,0.45);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+#ffx-popup-close:hover { background: rgba(232,228,222,0.1); color: var(--cream); }
+.ffx-popup-sig {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(201,168,76,0.7);
+  margin-bottom: 16px;
+}
+.ffx-popup-headline {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cream);
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  margin: 0 0 14px;
+}
+.ffx-popup-body {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--cream-muted);
+  line-height: 1.75;
+  margin: 0 0 10px;
+}
+.ffx-popup-sign {
+  font-size: 13px;
+  color: rgba(232,228,222,0.3);
+  font-style: italic;
+  margin: 0 0 28px;
+}
+.ffx-popup-divider {
+  height: 1px;
+  background: rgba(232,228,222,0.07);
+  margin: 0 0 24px;
+}
+.ffx-popup-actions { display: flex; flex-direction: column; gap: 10px; }
+.ffx-popup-btn-primary {
+  display: block; width: 100%; text-align: center;
+  padding: 14px 24px; border-radius: 100px;
+  background: var(--gold); border: none;
+  color: #0d0d14; font-size: 14px; font-weight: 700;
+  letter-spacing: 0.04em; text-decoration: none;
+  transition: background 0.2s, transform 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+.ffx-popup-btn-primary:hover { background: #d4b05a; transform: translateY(-1px); }
+.ffx-popup-btn-secondary {
+  display: block; width: 100%; text-align: center;
+  padding: 13px 24px; border-radius: 100px;
+  background: transparent; border: 1px solid rgba(232,228,222,0.14);
+  color: var(--cream-muted); font-size: 14px; font-weight: 500;
+  letter-spacing: 0.03em; text-decoration: none;
+  transition: border-color 0.2s, color 0.2s, transform 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+.ffx-popup-btn-secondary:hover { border-color: rgba(232,228,222,0.3); color: var(--cream); transform: translateY(-1px); }
+
+/* ── Back to top ── */
+.back-to-top {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(201,168,76,0.1);
+  border: 1px solid var(--gold-border);
+  color: var(--gold);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+  z-index: 50;
+}
+.back-to-top.is-visible { opacity: 1; visibility: visible; }
+.back-to-top:hover { background: rgba(201,168,76,0.2); }
+.back-to-top svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .blog-hero { padding: 56px 24px 40px; }
+  .blog-body { padding: 36px 24px 64px; }
+  .blog-item { grid-template-columns: 1fr; gap: 16px; padding: 24px; }
+  .blog-item-right { flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; }
+  .blog-newsletter { padding: 36px 24px; }
+  .back-to-top { bottom: 20px; right: 20px; }
+}
+@media (max-width: 600px) {
+  .filter-label { display: none; }
+  .filter-row { gap: 6px; }
+  .filter-btn { font-size: 11px; padding: 4px 11px; }
+  #ffx-popup { padding: 36px 24px 28px; }
+  .blog-newsletter-actions { flex-direction: column; align-items: stretch; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .blog-item { transition: none; }
+}
+</style>
+
+<meta property="og:image:alt" content="FortitudeFX — Catch The Wick mechanical forex trading system" />
+<meta property="og:locale" content="en_US" />
+<meta name="twitter:image:alt" content="FortitudeFX — Catch The Wick mechanical forex trading system" />
+</head>
+<body>
+
+<!-- Nav -->
+<nav id="mainNav" class="nav-dark">
+  <a class="nav-brand" href="index.html">FortitudeFX<sup class="tm">™</sup></a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="vipdiscord.html">VIP Discord</a></li>
+    <li><a href="bootcamp.html">Bootcamp</a></li>
+    <li><a href="blog.html" class="active">Blog</a></li>
+    <li><a href="contact.html">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a class="nav-btn-ghost" href="joinfree.html">Join Free</a>
+    <a class="nav-btn-primary" href="waitlist.html?path=VIP#form">Request Your Spot</a>
+  </div>
+  <button class="nav-hamburger" id="navToggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="nav-mobile nav-dark-mobile" id="navMobile">
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="vipdiscord.html">VIP Discord</a>
+  <a href="bootcamp.html">Bootcamp</a>
+  <a href="blog.html">Blog</a>
+  <a href="contact.html">Contact</a>
+  <div class="nav-mobile-actions">
+    <a class="nav-btn-ghost" href="joinfree.html">Join Free</a>
+    <a class="nav-btn-primary" href="waitlist.html?path=VIP#form">Request Your Spot</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+  <!-- Blog hero -->
+  <div class="blog-hero">
+    <p class="blog-kicker">Journal</p>
+    <h1>Trading Insights</h1>
+    <p class="blog-hero-meta">Strategy, price action, risk management &amp; trader mindset — from the FortitudeFX<sup class="tm">™</sup> desk.</p>
+  </div>
+
+  <!-- Blog body -->
+  <div class="blog-body">
+
+    <!-- Filter tabs — injected by JS after articles load -->
+    <div id="blogFilters"></div>
+
+    <div class="blog-count" id="blogCount">{{COUNT}}</div>
+
+    <div class="blog-list" id="blogList">{{LIST}}</div>
+
+    <!-- Newsletter block -->
+    <div class="blog-newsletter">
+      <span class="blog-newsletter-kicker">Bi-Weekly Newsletter</span>
+      <h3>The FFX Intelligence Brief.</h3>
+      <p>Markets. Mindset. Lifestyle. The Catch The Wick framework — applied, explained, and lived. Every two weeks in your inbox.</p>
+      <div class="blog-newsletter-actions">
+        <a href="joinfree.html" class="btn-nl-primary">Join Free →</a>
+        <a href="/newsletter" class="btn-nl-secondary">Browse Issues →</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>FortitudeFX<sup class="tm">™</sup></strong>
+        Catch The Wick<sup class="tm">™</sup> · Dubai, UAE
+      </div>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="vipdiscord.html">VIP Discord</a></li>
+        <li><a href="bootcamp.html">Bootcamp</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="disclaimer.html">Disclaimer</a></li>
+      </ul>
+      <div class="footer-socials">
+        <a href="https://www.youtube.com/@FortitudeFX" class="footer-social-icon" aria-label="YouTube" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>
+        <a href="https://instagram.com/fortitudefx_official" class="footer-social-icon" aria-label="Instagram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg></a>
+        <a href="https://tiktok.com/@fortitudefx_official" class="footer-social-icon" aria-label="TikTok" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg></a>
+        <a href="https://x.com/_fortitudefx" class="footer-social-icon" aria-label="X" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="https://t.me/FFX_Official" class="footer-social-icon" aria-label="Telegram" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© 2026 FortitudeFX<sup class="tm">™</sup> · All rights reserved · Dubai, UAE</p>
+      <p class="footer-tm">Catch The Wick<sup class="tm">™</sup> · 2 Candles. 1 Story.<sup class="tm">™</sup></p>
+      <p class="footer-disclaimer" style="max-width:820px;margin:14px auto 0;font-size:11px;line-height:1.6;color:rgba(255,255,255,0.3);text-align:center;padding:0 16px;">Educational content only — not financial advice. FortitudeFX<sup class="tm">™</sup> provides trading education based on price-action methodology. Nothing here is financial, investment, or trading advice, or a recommendation to buy or sell any instrument. Trading forex carries a high level of risk and can result in the loss of some or all of your capital; it is not suitable for everyone. Past performance is not indicative of future results. Always do your own research and consider seeking advice from an independent, licensed financial professional before trading. You are solely responsible for your own trading decisions.</p>
+    </div>
+  </footer>
+
+</div><!-- /.page-wrap -->
+
+<!-- Back to top -->
+<button class="back-to-top" id="backToTop" aria-label="Back to top">
+  <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"></polyline></svg>
+</button>
+
+<!-- Popup -->
+<div id="ffx-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="ffx-popup-headline">
+  <div id="ffx-popup">
+    <button id="ffx-popup-close" aria-label="Close">&times;</button>
+    <div class="ffx-popup-sig">FortitudeFX<sup class="tm">™</sup></div>
+    <h2 class="ffx-popup-headline" id="ffx-popup-headline"></h2>
+    <p class="ffx-popup-body" id="ffx-popup-body"></p>
+    <p class="ffx-popup-sign">— Salman Khan</p>
+    <div class="ffx-popup-divider"></div>
+    <div class="ffx-popup-actions">
+      <a href="joinfree.html" class="ffx-popup-btn-primary">Join Free →</a>
+      <a href="waitlist.html?path=VIP#form" class="ffx-popup-btn-secondary">Request Your Spot →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ── Nav ── */
+  var nav = document.getElementById('mainNav');
+  window.addEventListener('scroll', function() {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
+
+  var toggle = document.getElementById('navToggle');
+  var mobile = document.getElementById('navMobile');
+  if (toggle && mobile) {
+    toggle.addEventListener('click', function() {
+      var open = mobile.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open);
+    });
+    mobile.querySelectorAll('a').forEach(function(a) {
+      a.addEventListener('click', function() {
+        mobile.classList.remove('open');
+        toggle.setAttribute('aria-expanded', false);
+      });
+    });
+  }
+
+  /* ── Back to top ── */
+  var btt = document.getElementById('backToTop');
+  if (btt) {
+    window.addEventListener('scroll', function() {
+      btt.classList.toggle('is-visible', window.scrollY > 400);
+    }, { passive: true });
+    btt.addEventListener('click', function() { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  }
+
+  /* ── Article filters and fetch ── */
+  var REGIONS    = ['All', 'Global', 'GCC', 'US/Canada', 'EU/UK/Germany', 'SEA/Asia'];
+  var CATEGORIES = ['All', 'Strategy', 'Mindset', 'Price Action', 'Risk Management', 'Execution'];
+
+  var allArticles   = [];
+  var activeRegion   = 'All';
+  var activeCategory = 'All';
+
+  function matchRegion(article, filter) {
+    if (filter === 'All') return true;
+    var r = (article.region || 'Global').toLowerCase();
+    if (filter === 'Global')        return r === 'global';
+    if (filter === 'GCC')           return r.includes('gcc');
+    if (filter === 'US/Canada')     return r.includes('us') || r.includes('canada');
+    if (filter === 'EU/UK/Germany') return r.includes('eu') || r.includes('uk') || r.includes('germany');
+    if (filter === 'SEA/Asia')      return r.includes('sea') || r.includes('asia');
+    return true;
+  }
+
+  function matchCategory(article, filter) {
+    if (filter === 'All') return true;
+    return (article.category || '').toLowerCase() === filter.toLowerCase();
+  }
+
+  function applyFilters() {
+    var filtered = allArticles.filter(function(a) {
+      return matchRegion(a, activeRegion) && matchCategory(a, activeCategory);
+    });
+    renderArticles(filtered);
+    document.querySelectorAll('.filter-btn[data-region]').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.region === activeRegion);
+    });
+    document.querySelectorAll('.filter-btn[data-category]').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.category === activeCategory);
+    });
+  }
+
+  function buildFilters() {
+    var container = document.getElementById('blogFilters');
+    container.className = 'blog-filters';
+
+    var regionRow = document.createElement('div');
+    regionRow.className = 'filter-row';
+    regionRow.innerHTML = '<span class="filter-label">Region</span>';
+    REGIONS.forEach(function(r) {
+      var btn = document.createElement('button');
+      btn.className = 'filter-btn' + (r === 'All' ? ' active' : '');
+      btn.textContent = r;
+      btn.dataset.region = r;
+      btn.addEventListener('click', function() { activeRegion = r; applyFilters(); });
+      regionRow.appendChild(btn);
+    });
+
+    var catRow = document.createElement('div');
+    catRow.className = 'filter-row';
+    catRow.innerHTML = '<span class="filter-label">Category</span>';
+    CATEGORIES.forEach(function(c) {
+      var btn = document.createElement('button');
+      btn.className = 'filter-btn' + (c === 'All' ? ' active' : '');
+      btn.textContent = c;
+      btn.dataset.category = c;
+      btn.addEventListener('click', function() { activeCategory = c; applyFilters(); });
+      catRow.appendChild(btn);
+    });
+
+    container.appendChild(regionRow);
+    container.appendChild(catRow);
+  }
+
+  var list  = document.getElementById('blogList');
+  var count = document.getElementById('blogCount');
+
+  function formatDate(dateStr) {
+    var d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function renderArticles(articles) {
+    if (!articles || articles.length === 0) {
+      list.innerHTML = '<div class="blog-empty">No articles match this filter.</div>';
+      count.textContent = '';
+      return;
+    }
+    count.textContent = articles.length + ' article' + (articles.length === 1 ? '' : 's');
+    list.innerHTML = articles.map(function(a) {
+      return '<a class="blog-item" href="/article?slug=' + a.slug + '">' +
+        '<div class="blog-item-left">' +
+          '<span class="blog-item-tag">' + a.category + '</span>' +
+          '<p class="blog-item-title">' + a.title + '</p>' +
+          '<p class="blog-item-excerpt">' + a.excerpt + '</p>' +
+        '</div>' +
+        '<div class="blog-item-right">' +
+          '<span class="blog-item-date">' + formatDate(a.date) + '</span>' +
+          '<span class="blog-item-read">' + a.readTime + '</span>' +
+          '<span class="blog-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" stroke-width="2"></polyline></svg></span>' +
+        '</div>' +
+      '</a>';
+    }).join('');
+  }
+
+  fetch('/articles')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      allArticles = (data.articles || []).sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+      if (allArticles.length === 0) {
+        list.innerHTML = '<div class="blog-empty">No articles yet — check back soon.</div>';
+        return;
+      }
+      buildFilters();
+      renderArticles(allArticles);
+      count.textContent = allArticles.length + ' articles';
+    })
+    .catch(function(err) {
+      list.innerHTML = '<div class="blog-empty">Could not load articles — ' + err.message + '</div>';
+    });
+
+  /* ── Popup ── */
+  if (!sessionStorage.getItem('ffx_popup_shown')) {
+    var MESSAGES = {
+      timer: {
+        headline: 'Most traders spend years jumping between strategies, indicators, and opinions without ever building a real framework.',
+        body: 'FortitudeFX was built to simplify trading into something mechanical, repeatable, and mentally sustainable. If you\\'re serious about learning how we approach the market through the Catch The Wick framework — join the free community below.'
+      },
+      exit: {
+        headline: 'Before you go —',
+        body: 'The goal here was never to create another signal group or "trade all day" community. FortitudeFX is built around structure, patience, and freeing traders from emotional decision-making and screen addiction. If that resonates with you, join the free Discord or the waitlist and stay connected.'
+      }
+    };
+    var overlay  = document.getElementById('ffx-popup-overlay');
+    var headline = document.getElementById('ffx-popup-headline');
+    var body     = document.getElementById('ffx-popup-body');
+    var closeBtn = document.getElementById('ffx-popup-close');
+    var shown = false; var timerRef = null; var exitBound = false;
+
+    function showPopup(variant) {
+      if (shown) return; shown = true;
+      sessionStorage.setItem('ffx_popup_shown', '1');
+      if (timerRef) clearTimeout(timerRef);
+      if (exitBound) document.removeEventListener('mouseleave', onMouseLeave);
+      headline.textContent = MESSAGES[variant].headline;
+      body.textContent     = MESSAGES[variant].body;
+      overlay.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closePopup() {
+      overlay.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+    closeBtn.addEventListener('click', closePopup);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closePopup(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closePopup(); });
+
+    timerRef = setTimeout(function() { showPopup('timer'); }, 30000 + Math.random() * 5000);
+
+    function onMouseLeave(e) { if (e.clientY <= 0) showPopup('exit'); }
+    if (window.innerWidth >= 768) { exitBound = true; document.addEventListener('mouseleave', onMouseLeave); }
+  }
+
+})();
+</script>
+
+</body>
+</html>
+`;
+
+export async function onRequestGet(context) {
+  var request = context.request;
+
+  // READ-ONLY: pull the article list from /articles (articles.js → env.FFX_KV.get only)
+  var articles = [];
+  try {
+    var acUrl = new URL('/articles', request.url);
+    var res = await fetch(acUrl.toString(), { headers: { 'Accept': 'application/json' } });
+    if (res.ok) {
+      var data = await res.json();
+      if (data && Array.isArray(data.articles)) articles = data.articles;
+    }
+  } catch (e) {
+    articles = []; // graceful — client fetch will repopulate
+  }
+
+  // Defensive dedupe by slug [P1b] — a dirty articles:index can carry a real record
+  // plus a title:null twin; collapse to one card per slug, preferring the titled record.
+  // READ-ONLY: this only shapes what we render; it never writes KV.
+  var bySlug = {};
+  articles.forEach(function (a) {
+    if (!a || !a.slug) return;
+    var existing = bySlug[a.slug];
+    if (!existing) { bySlug[a.slug] = a; return; }
+    var existingHasTitle = existing.title && String(existing.title).trim();
+    var thisHasTitle     = a.title && String(a.title).trim();
+    if (!existingHasTitle && thisHasTitle) bySlug[a.slug] = a;
+  });
+  articles = Object.keys(bySlug).map(function (k) { return bySlug[k]; });
+
+  // newest-first, matching blog.html:780
+  articles.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+
+  var listHtml, countHtml;
+  if (articles.length) {
+    listHtml  = articles.map(buildCard).join('');
+    countHtml = articles.length + ' article' + (articles.length === 1 ? '' : 's');
+  } else {
+    listHtml  = '<div class="blog-empty">Loading articles&hellip;</div>';
+    countHtml = '';
+  }
+
+  // split/join (not replace) → literal substitution, immune to $-patterns in data
+  var html = TEMPLATE.split('{{LIST}}').join(listHtml).split('{{COUNT}}').join(countHtml);
+
+  return new Response(html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'public, max-age=0, must-revalidate'
+    }
+  });
+}
+
+// HEAD mirrors GET — identical status + headers, no body (honest status for HEAD).
+export async function onRequestHead(context) {
+  var res = await onRequestGet(context);
+  return new Response(null, { status: res.status, headers: res.headers });
+}

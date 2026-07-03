@@ -1,6 +1,6 @@
 // FFX /publish Worker
 // ALWAYS: writes article + all platform content to articles.json
-// CONDITIONALLY: rebuilds sitemap + pings Google index
+// CONDITIONALLY: rebuilds sitemap (no Google ping — indexing is via GSC Request-Indexing, manual)
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -59,6 +59,30 @@ export async function onRequestPost(context) {
 
     // ── 1. Write article metadata to KV ────────────────────────────────────
     if (env.FFX_KV) {
+      // ── [collision guard] never let a DIFFERENT video's publish silently clobber
+      // an existing article URL. Slugs are AI-authored with no uniqueness guarantee,
+      // so two same-topic videos can mint the same slug. Block ONLY a proven
+      // video-vs-video collision (both records carry a non-empty, differing videoId);
+      // a same-videoId re-publish (overwrites its own record) and a genuinely new slug
+      // proceed unchanged. Fail loudly (409) rather than auto-rename — the platform
+      // posts already reference this slug's URL, so silently changing it would break them.
+      try {
+        const existingMeta = await env.FFX_KV.get(`article:${slug}`, { type: 'json' }).catch(() => null);
+        if (existingMeta && existingMeta.videoId && videoId && existingMeta.videoId !== videoId) {
+          console.error(`[FFX] SLUG COLLISION BLOCKED: article:${slug} is already owned by videoId=${existingMeta.videoId}; refusing to overwrite from videoId=${videoId}. Nothing published — assign a unique slug and retry.`);
+          return new Response(JSON.stringify({
+            error: 'Slug collision — this slug already belongs to a different video. Publish aborted so the existing article URL is not overwritten. Assign a unique slug and retry.',
+            slug,
+            existingVideoId: existingMeta.videoId,
+            incomingVideoId: videoId,
+          }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+      } catch (guardErr) {
+        // fail OPEN on a transient read error — the guard only ever blocks on a positive
+        // collision detection, so it never introduces a new failure mode for KV hiccups.
+        console.error('[FFX] slug collision guard read failed (non-fatal, proceeding):', guardErr.message);
+      }
+
       try {
         const articleMeta = {
           slug, title,
@@ -93,16 +117,16 @@ export async function onRequestPost(context) {
             youtubeUrl: youtubeUrl || yt_url || '',
           };
 
-          // Update existing or prepend new
-          const existingIdx = index.findIndex(a => a.slug === slug);
-          if (existingIdx !== -1) {
-            index[existingIdx] = indexEntry;
-          } else {
-            index.unshift(indexEntry);
-          }
+          // Dedupe-on-write [WF]: remove ALL existing entries for this slug — this
+          // collapses any legacy duplicate / title:null twin of THIS slug — then
+          // prepend the fresh record. Guarantees exactly one entry per slug, always
+          // carrying its real title (`title` is non-empty: enforced at the top of this
+          // handler). Scoped to the published slug only — NOT a bulk index cleanup.
+          const deduped = index.filter(a => a && a.slug !== slug);
+          if (title) deduped.unshift(indexEntry); // never append a title:null stub
 
-          await env.FFX_KV.put('articles:index', JSON.stringify(index));
-          console.log('[FFX] articles:index updated, total articles:', index.length);
+          await env.FFX_KV.put('articles:index', JSON.stringify(deduped));
+          console.log('[FFX] articles:index updated, total articles:', deduped.length);
         } catch (idxErr) {
           console.error('[FFX] articles:index update failed (non-fatal):', idxErr.message);
         }
@@ -187,23 +211,38 @@ export async function onRequestPost(context) {
       try {
         if (env.FFX_KV) {
           const kvList = await env.FFX_KV.list({ prefix: 'article:' });
+          // Only real article metadata keys — exclude article:links:{slug} (internal-link records)
+          const articleKeys = kvList.keys.filter(k => !k.name.startsWith('article:links:'));
           const slugEntries = await Promise.all(
-            kvList.keys.map(k => env.FFX_KV.get(k.name, { type: 'json' }))
+            articleKeys.map(k => env.FFX_KV.get(k.name, { type: 'json' }))
           );
-          articleSlugs = slugEntries.filter(Boolean).map(a => ({ slug: a.slug, date: a.date || articleDate }));
+          // Dedupe by slug — every article URL must appear exactly once (§D1)
+          const seenSlug = new Set();
+          articleSlugs = slugEntries
+            .filter(a => a && a.slug && !seenSlug.has(a.slug) && seenSlug.add(a.slug))
+            .map(a => ({ slug: a.slug, date: a.date || articleDate }));
         }
       } catch (kvErr) {
         console.log('[FFX] KV article list failed, using current slug only:', kvErr.message);
         articleSlugs = [{ slug, date: articleDate }];
       }
 
+      // Real, current date — emitted on every regeneration instead of a frozen literal (§D2)
+      const todayIso = new Date().toISOString().split('T')[0];
+      // All indexable public pages (index,follow). Excludes /pricing and /press
+      // (both meta noindex) so the sitemap never advertises a non-indexable URL.
       const staticPages = [
-        { loc: 'https://fortitudefx.com/',           lastmod: '2026-04-26', changefreq: 'weekly',  priority: '1.0' },
-        { loc: 'https://fortitudefx.com/bootcamp',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
-        { loc: 'https://fortitudefx.com/vipdiscord', lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.9' },
-        { loc: 'https://fortitudefx.com/waitlist',   lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.7' },
-        { loc: 'https://fortitudefx.com/blog',       lastmod: '2026-04-26', changefreq: 'weekly',  priority: '0.8' },
-        { loc: 'https://fortitudefx.com/privacy',    lastmod: '2026-04-26', changefreq: 'yearly',  priority: '0.3' },
+        { loc: 'https://fortitudefx.com/',           lastmod: todayIso, changefreq: 'weekly',  priority: '1.0' },
+        { loc: 'https://fortitudefx.com/bootcamp',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.9' },
+        { loc: 'https://fortitudefx.com/vipdiscord', lastmod: todayIso, changefreq: 'weekly',  priority: '0.9' },
+        { loc: 'https://fortitudefx.com/blog',       lastmod: todayIso, changefreq: 'weekly',  priority: '0.8' },
+        { loc: 'https://fortitudefx.com/about',      lastmod: todayIso, changefreq: 'monthly', priority: '0.7' },
+        { loc: 'https://fortitudefx.com/newsletter', lastmod: todayIso, changefreq: 'weekly',  priority: '0.7' },
+        { loc: 'https://fortitudefx.com/waitlist',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.7' },
+        { loc: 'https://fortitudefx.com/joinfree',   lastmod: todayIso, changefreq: 'monthly', priority: '0.6' },
+        { loc: 'https://fortitudefx.com/contact',    lastmod: todayIso, changefreq: 'yearly',  priority: '0.6' },
+        { loc: 'https://fortitudefx.com/privacy',    lastmod: todayIso, changefreq: 'yearly',  priority: '0.3' },
+        { loc: 'https://fortitudefx.com/disclaimer', lastmod: todayIso, changefreq: 'yearly',  priority: '0.3' },
       ];
 
       const articleEntries = articleSlugs.map(a => ({
@@ -213,9 +252,14 @@ export async function onRequestPost(context) {
         priority: '0.7'
       }));
 
+      // Final safety dedupe by loc — every URL appears exactly once regardless of source (§D1)
+      const seenLoc = new Set();
+      const uniqueEntries = [...staticPages, ...articleEntries]
+        .filter(u => u.loc && !seenLoc.has(u.loc) && seenLoc.add(u.loc));
+
       const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${[...staticPages, ...articleEntries].map(u => `  <url>
+${uniqueEntries.map(u => `  <url>
     <loc>${u.loc}</loc>
     <lastmod>${u.lastmod}</lastmod>
     <changefreq>${u.changefreq}</changefreq>
