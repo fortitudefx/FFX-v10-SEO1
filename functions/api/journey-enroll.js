@@ -91,10 +91,16 @@ async function run(context, execute) {
     if (sentSet.has(emailLc))          action = 'SKIP — has email:log (mid-sequence)';
     else if (enrolledSet.has(emailLc)) action = 'SKIP — already enrolled';
 
+    // First-name-only greeting (mirrors the worker fix: split FIRSTNAME to 1st token)
+    const rawFirst     = a.FIRSTNAME || '';
+    const greetingName = (rawFirst.trim().split(/\s+/)[0]) || 'there';
     const row = {
       name:             [a.FIRSTNAME, a.LASTNAME].filter(Boolean).join(' ').trim() || '—',
       email:            email,
       path:             a.FFX_PATH || 'Free (default)',
+      rawFirstName:     rawFirst || '(none)',
+      greetingWouldBe:  'Hi ' + greetingName + ',',
+      multiWordFirst:   rawFirst.trim().split(/\s+/).length > 1,
       currentPosition:  (sentSet.has(emailLc) ? 'in sequence' : 'Not started'),
       currentJoinDate:  a.FFX_JOINED_DATE || '(none)',
       wouldSetJoinDate: joinDate,
@@ -128,6 +134,7 @@ async function run(context, execute) {
     totalContacts:   contacts.length,
     wouldEnroll:     toEnroll,
     wouldSkip:       plan.length - toEnroll,
+    multiWordFirstNames: plan.filter(function (r) { return r.multiWordFirst; }).length,
     executedCount:   plan.filter(function (r) { return r.executed; }).length,
     plan:            plan
   }, 200);
