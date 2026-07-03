@@ -109,10 +109,13 @@ async function run(context, execute) {
     };
 
     if (execute && action === 'ENROLL') {
+      // Set join date on everyone; set FFX_PATH="Free" on those not already VIP/Bootcamp.
+      const attrsToSet = { FFX_JOINED_DATE: joinDate };
+      if (a.FFX_PATH !== 'VIP' && a.FFX_PATH !== 'Bootcamp') attrsToSet.FFX_PATH = 'Free';
       const put = await fetch('https://api.brevo.com/v3/contacts/' + encodeURIComponent(email), {
         method: 'PUT',
         headers: { 'api-key': env.BREVO_API_KEY, 'content-type': 'application/json' },
-        body: JSON.stringify({ attributes: { FFX_JOINED_DATE: joinDate } })
+        body: JSON.stringify({ attributes: attrsToSet })
       });
       if (put.ok || put.status === 204) {
         await env.FFX_KV.put('journey:enrolled:' + emailLc,

@@ -1027,7 +1027,7 @@ async function getEmailForContact(contact, env) {
   var attrs      = contact.attributes || {};
   var path       = attrs.FFX_PATH       || 'Free';
   var joinedDate = attrs.FFX_JOINED_DATE || null;
-  var firstName  = attrs.FIRSTNAME       || 'there';
+  var firstName  = ((attrs.FIRSTNAME || 'there').trim().split(/\s+/)[0]) || 'there'; // first name only
 
   if (!joinedDate) return null;
 
