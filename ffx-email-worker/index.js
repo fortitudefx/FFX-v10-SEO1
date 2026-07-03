@@ -1491,15 +1491,15 @@ export default {
   // Cron trigger — runs daily at 7am Dubai (03:00 UTC)
   async scheduled(event, env, ctx) {
     var now = new Date();
-    // Sunday = 0 in UTC, but 7am Dubai = 3am UTC, so check day in Dubai (UTC+4)
-    var dubaiHour = (now.getUTCHours() + 4) % 24;
-    var dubaiDay  = new Date(now.getTime() + 4 * 60 * 60 * 1000).getUTCDay();
+    // Day-of-week in Dubai (UTC+4). Sunday = 0.
+    var dubaiDay = new Date(now.getTime() + 4 * 60 * 60 * 1000).getUTCDay();
+    // Daily onboarding (days 1-7) + per-contact framework sequence — runs EVERY
+    // day, including Sunday, so no contact's onboarding day is ever skipped.
+    ctx.waitUntil(runDailyEmailSequence(env));
+    // Sunday (Dubai) — ALSO send the weekly Insight draft to Salman for review,
+    // IN ADDITION to (never instead of) the daily sequence.
     if (dubaiDay === 0) {
-      // Sunday 7am Dubai — send weekly draft to Salman for review
       ctx.waitUntil(sendWeeklyDraft(env));
-    } else {
-      // All other days — run daily onboarding sequence
-      ctx.waitUntil(runDailyEmailSequence(env));
     }
   },
 
