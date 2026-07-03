@@ -1152,113 +1152,10 @@ async function runDailyEmailSequence(env) {
 }
 
 
-// =============================================================================
-// APPROVE & SEND — sends last generated draft to all graduated members
-// =============================================================================
-
-async function handleApprove(request, env) {
-  // Read the last generated draft from KV
-  var draft = await env.FFX_KV.get('framework:draft', { type: 'json' }).catch(function() { return null; });
-  if (!draft) {
-    return new Response(JSON.stringify({ error: 'No draft found. Generate a draft first.' }), {
-      status: 404, headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  // Fetch all contacts who have completed onboarding (daysSince >= 7)
-  var allContacts = await getAllContacts(env);
-  var graduated = allContacts.filter(function(c) {
-    var joinedDate = (c.attributes || {}).FFX_JOINED_DATE;
-    if (!joinedDate) return false;
-    var joined    = new Date(joinedDate + 'T00:00:00Z');
-    var today     = new Date();
-    var daysSince = Math.floor((today - joined) / (1000 * 60 * 60 * 24));
-    return daysSince >= 7;
-  });
-
-  var sent = 0; var errors = 0;
-
-  for (var i = 0; i < graduated.length; i++) {
-    var contact   = graduated[i];
-    var firstName = (contact.attributes || {}).FIRSTNAME || 'there';
-    var html      = ffxEmail({
-      kickerText:   draft.kickerText,
-      heroTitle:    draft.heroTitle,
-      heroSubtitle: draft.heroSubtitle,
-      bodyHtml:     draft.body.replace(/Hi there,/, 'Hi ' + firstName + ','),
-      footerNote:   'You are receiving this as part of the FortitudeFX™ community. Reply to this email anytime.'
-    });
-    var ok = await sendEmail(env, contact.email, firstName, draft.subject, html);
-    if (ok) sent++; else errors++;
-  }
-
-  // Clear the draft after sending
-  await env.FFX_KV.delete('framework:draft').catch(function() {});
-
-  return new Response(JSON.stringify({
-    success: true, sent: sent, errors: errors, total: graduated.length
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-}
-
-
-// =============================================================================
-// WEEKLY DRAFT SEND — Sunday 8am Dubai
-// =============================================================================
-// Sends this week's framework email to Salman for review.
-// He clicks Approve & Send to distribute to all graduated members.
-
-async function sendWeeklyDraft(env) {
-  // Read which email number we're on from KV
-  var weekRaw  = await env.FFX_KV.get('framework:week').catch(function() { return null; });
-  var weekNum  = weekRaw ? parseInt(weekRaw) + 1 : 1;
-  var emailNum = ((weekNum - 1) % 52) + 1;
-
-  var content  = getFrameworkEmail(emailNum, 'Salman');
-  if (!content) {
-    console.error('[FFX Email] Weekly draft: no content for email', emailNum);
-    return;
-  }
-
-  // Store draft for approve endpoint
-  await env.FFX_KV.put('framework:draft', JSON.stringify({
-    subject:     content.subject,
-    kickerText:  content.kickerText,
-    heroTitle:   content.heroTitle,
-    heroSubtitle:content.heroSubtitle,
-    body:        content.body,
-    emailNum:    emailNum,
-    weekNum:     weekNum
-  }), { expirationTtl: 60 * 60 * 24 * 7 });
-
-  // Build approve button
-  var approveButton =
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;">' +
-    '<tr><td style="background:#f0f0f4;padding:20px;border-radius:8px;text-align:center;">' +
-    '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;color:rgba(26,26,46,0.5);letter-spacing:0.08em;text-transform:uppercase;">DRAFT — Email ' + emailNum + '/52 — Week ' + weekNum + '</p>' +
-    '<p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:13px;color:rgba(26,26,46,0.6);">Review before sending to all graduated members</p>' +
-    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">' +
-    '<tr><td style="border-radius:999px;background-color:#C9A84C;">' +
-    '<a href="https://ffx-email-worker.salmankhanfx.workers.dev/email-worker/approve" style="display:inline-block;padding:14px 36px;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#0d0d14;text-decoration:none;letter-spacing:0.02em;">Approve &amp; Send to Members &#8594;</a>' +
-    '</td></tr></table></td></tr></table>';
-
-  var draftHtml = ffxEmail({
-    kickerText:   content.kickerText,
-    heroTitle:    content.heroTitle,
-    heroSubtitle: content.heroSubtitle,
-    bodyHtml:     content.body + approveButton,
-    footerNote:   'This is your weekly draft email. Click Approve & Send to distribute to all members who have completed onboarding.'
-  });
-
-  var ok = await sendEmail(env, SENDER_EMAIL, 'Salman', '[DRAFT] ' + content.subject, draftHtml);
-
-  if (ok) {
-    // Advance week counter
-    await env.FFX_KV.put('framework:week', String(weekNum));
-    console.log('[FFX Email] Weekly draft sent: email', emailNum, '/ week', weekNum);
-  } else {
-    console.error('[FFX Email] Weekly draft failed to send');
-  }
-}
+// (Removed: sendWeeklyDraft / handleApprove Sunday framework-broadcast — it
+//  duplicated the per-contact weekly framework send. Members now get the
+//  framework email exactly once, via runDailyEmailSequence on their own weekly
+//  boundary.)
 
 // =============================================================================
 // HTTP HANDLER — TEST/PREVIEW MODE
@@ -1345,11 +1242,6 @@ async function handleRequest(request, env) {
     } catch(e) {
       return new Response(JSON.stringify({ error: e.message, keyInfo: keyInfo }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
-  }
-
-  // Approve & Send — sends last generated draft to all graduated members
-  if (path === '/email-worker/approve') {
-    return handleApprove(request, env);
   }
 
   // Skip onboarding — jump state to Day 8 for framework testing
@@ -1490,17 +1382,11 @@ async function handleTestRun(request, env) {
 export default {
   // Cron trigger — runs daily at 7am Dubai (03:00 UTC)
   async scheduled(event, env, ctx) {
-    var now = new Date();
-    // Day-of-week in Dubai (UTC+4). Sunday = 0.
-    var dubaiDay = new Date(now.getTime() + 4 * 60 * 60 * 1000).getUTCDay();
-    // Daily onboarding (days 1-7) + per-contact framework sequence — runs EVERY
-    // day, including Sunday, so no contact's onboarding day is ever skipped.
+    // Daily onboarding (days 1-7) + per-contact framework sequence (day 8+),
+    // runs EVERY day so no onboarding day is skipped. The framework email is
+    // delivered exactly once per contact, on their own weekly boundary
+    // (idempotent). There is no separate Sunday broadcast.
     ctx.waitUntil(runDailyEmailSequence(env));
-    // Sunday (Dubai) — ALSO send the weekly Insight draft to Salman for review,
-    // IN ADDITION to (never instead of) the daily sequence.
-    if (dubaiDay === 0) {
-      ctx.waitUntil(sendWeeklyDraft(env));
-    }
   },
 
   // HTTP handler — for preview and manual trigger
