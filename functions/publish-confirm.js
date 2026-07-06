@@ -70,8 +70,18 @@ export async function onRequestPost(context) {
     }
   }
 
+  // ── REGIONAL DISABLED (Global-only, 2026-07-07) ──────────────────────────
+  // WHY: regional English variants duplicate/cannibalize their global sibling and signal
+  //      thin content on a young low-authority domain. Decision: 1 global article per video.
+  // REVIVE WHEN: domain has real ranking authority AND we add genuinely localized content
+  //      (region-specific substance) with correct self-canonical + hreflang alternates.
+  // TO REVIVE: set GLOBAL_ONLY = false below + uncomment the paired blocks in
+  //      ffx-consumer/index.js and dashboard-queue.html (~:635).
+  // GUARANTEED BACKSTOP: even if regionalContent somehow arrives, it is never published.
+  // ─────────────────────────────────────────────────────────────────────────
+  const GLOBAL_ONLY = true;
   // ── Blog Regional ─────────────────────────────────────────────────────────
-  if (userSelected.blog && regionalContent && regionalContent.slug) {
+  if (!GLOBAL_ONLY && userSelected.blog && regionalContent && regionalContent.slug) {
     try {
       const res = await callWorker(`${baseUrl}/publish`, {
         ...regionalContent,

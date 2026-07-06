@@ -66,7 +66,16 @@ async function processJob(job, env) {
 
   let transcript, globalContent, globalArticle, selectedLinkedin, selectedDiscord, selectedX, regionName, regionIndex;
 
-  if (checkpoint && checkpoint.globalContent && checkpoint.transcript) {
+  // ── REGIONAL DISABLED (Global-only, 2026-07-07) ──────────────────────────
+  // WHY: regional English variants duplicate/cannibalize their global sibling and signal
+  //      thin content on a young low-authority domain. Decision: 1 global article per video.
+  // REVIVE WHEN: domain has real ranking authority AND we add genuinely localized content
+  //      (region-specific substance) with correct self-canonical + hreflang alternates.
+  // TO REVIVE: remove the `false &&` below (restores the resume-from-regional checkpoint) +
+  //      uncomment the paired blocks in this file (regional article/platforms),
+  //      publish-confirm.js (~:74), dashboard-queue.html (~:635).
+  // ─────────────────────────────────────────────────────────────────────────
+  if (false && checkpoint && checkpoint.globalContent && checkpoint.transcript) {
     // RESUME — skip transcript + global steps
     console.log('[FFX] Checkpoint found — resuming from regional article for:', videoId);
     transcript       = checkpoint.transcript;
@@ -174,31 +183,43 @@ async function processJob(job, env) {
       console.error('[FFX] Checkpoint write failed (non-fatal):', cpErr.message);
     }
 
-    await updateJob(env, jobId, videoId, 'processing', 'regional_article');
+    // REGIONAL DISABLED (Global-only, 2026-07-07) — no regional step follows; see block below.
+    // await updateJob(env, jobId, videoId, 'processing', 'regional_article');
   }
 
-  // REGIONAL ARTICLE
-  let regionalArticle;
-  try {
-    regionalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, regionName, globalArticle.slug, existingSlug);
-    console.log('[FFX] Regional article done, region:', regionName);
-  } catch (err) {
-    await failJob(env, jobId, videoId, 'regional_article', formatClaudeError(err, 'Regional article (' + regionName + ')'), true);
-    return;
-  }
-
-  await updateJob(env, jobId, videoId, 'processing', 'regional_platforms');
-  let regionalPlatforms;
-  try {
-    regionalPlatforms = await callClaudePlatforms(transcript, youtubeUrl, env.ANTHROPIC_API_KEY,
-      selectedLinkedin, selectedDiscord, selectedX, regionName, regionalArticle.slug);
-    console.log('[FFX] Regional platforms done');
-  } catch (err) {
-    await failJob(env, jobId, videoId, 'regional_platforms', formatClaudeError(err, 'Regional platforms (' + regionName + ')'), true);
-    return;
-  }
-
-  const regionalContent = Object.assign({}, regionalArticle, regionalPlatforms, { region: regionName, regionLabel: regionName, videoId, youtubeUrl });
+  // ── REGIONAL DISABLED (Global-only, 2026-07-07) ──────────────────────────
+  // WHY: regional English variants duplicate/cannibalize their global sibling and signal
+  //      thin content on a young low-authority domain. Decision: 1 global article per video.
+  // REVIVE WHEN: domain has real ranking authority AND we add genuinely localized content
+  //      (region-specific substance) with correct self-canonical + hreflang alternates.
+  // TO REVIVE: uncomment the regional article + platforms block below (delete the
+  //      `const regionalContent = null;` line) + the paired blocks: resume `false &&` above,
+  //      publish-confirm.js (~:74), dashboard-queue.html (~:635).
+  // NOTE: regionalContent forced null → the video record carries no blog_regional content.
+  // ─────────────────────────────────────────────────────────────────────────
+  const regionalContent = null;
+  // // REGIONAL ARTICLE
+  // let regionalArticle;
+  // try {
+  //   regionalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, regionName, globalArticle.slug, existingSlug);
+  //   console.log('[FFX] Regional article done, region:', regionName);
+  // } catch (err) {
+  //   await failJob(env, jobId, videoId, 'regional_article', formatClaudeError(err, 'Regional article (' + regionName + ')'), true);
+  //   return;
+  // }
+  //
+  // await updateJob(env, jobId, videoId, 'processing', 'regional_platforms');
+  // let regionalPlatforms;
+  // try {
+  //   regionalPlatforms = await callClaudePlatforms(transcript, youtubeUrl, env.ANTHROPIC_API_KEY,
+  //     selectedLinkedin, selectedDiscord, selectedX, regionName, regionalArticle.slug);
+  //   console.log('[FFX] Regional platforms done');
+  // } catch (err) {
+  //   await failJob(env, jobId, videoId, 'regional_platforms', formatClaudeError(err, 'Regional platforms (' + regionName + ')'), true);
+  //   return;
+  // }
+  //
+  // const regionalContent = Object.assign({}, regionalArticle, regionalPlatforms, { region: regionName, regionLabel: regionName, videoId, youtubeUrl });
 
   try { await env.FFX_KV.put('config:regionCycle', String((regionIndex + 1) % 4)); } catch {}
 

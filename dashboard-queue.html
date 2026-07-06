@@ -632,7 +632,17 @@ async function publishQueueItem(videoId,slug,actionRow,pubBtn,container,videoRec
   pubBtn.disabled=true; pubBtn.textContent='Publishing\u2026';
   const gc=videoRecord.platforms?.blog_global?.content||{};
   const merged={...gc,...(editsData.edits||{})};
-  const regional=videoRecord.platforms?.blog_regional?.content||null;
+  // ── REGIONAL DISABLED (Global-only, 2026-07-07) ──────────────────────────
+  // WHY: regional English variants duplicate/cannibalize their global sibling and signal
+  //      thin content on a young low-authority domain. Decision: 1 global article per video.
+  // REVIVE WHEN: domain has real ranking authority AND we add genuinely localized content
+  //      (region-specific substance) with correct self-canonical + hreflang alternates.
+  // TO REVIVE: restore the original read below (delete the `const regional=null;` line) +
+  //      uncomment the paired blocks in ffx-consumer/index.js and publish-confirm.js (~:74).
+  // Dashboard never sends a regional payload; press-publish + publish-confirm also enforce this.
+  // ─────────────────────────────────────────────────────────────────────────
+  const regional=null;
+  // const regional=videoRecord.platforms?.blog_regional?.content||null;
   try{
     const res=await fetch('/press-publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({videoId,slug,platforms,content:merged,regionalContent:regional,source:'queue'})});
     const data=await res.json();
