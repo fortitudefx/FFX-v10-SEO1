@@ -795,10 +795,25 @@ function buildPage(a) {
   var fullTitle = a.title + ' | ' + SITE;
   var pageTitle = capTitle(a.title);
   var desc      = deriveDesc(a);
-  var robots    = a.draft ? 'noindex, nofollow' : 'index, follow';
+  // ── REGIONAL CONSOLIDATION (noindex→global, 2026-07-07) ──────────────────
+  // WHY: 14 regional variants are same-intent duplicates of their global sibling
+  //      (cosmetic diffs only) — consolidate to stop cannibalization on a young domain.
+  // EFFECT: regionals serve noindex,follow + canonical→global sibling; noindex-only +
+  //      self-canonical where no live SAME-VIDEO global exists (slug-collision orphans,
+  //      e.g. z2RwH06okKQ). a._consolidateTo is resolved videoId-authoritatively in the
+  //      route handler (onRequestGet) — NOT by suffix-strip.
+  // REVERT: restore `var robots = a.draft ? 'noindex, nofollow' : 'index, follow';`,
+  //      `canonicalUrl = url`, and `hreflang = buildHreflang(a, url)` (delete this block).
+  // ─────────────────────────────────────────────────────────────────────────
+  var isRegional   = !a.draft && !!a.region && a.region !== 'Global';
+  var robots       = a.draft ? 'noindex, nofollow'
+                   : (isRegional ? 'noindex, follow' : 'index, follow');
+  var canonicalUrl = (isRegional && a._consolidateTo)
+                   ? (BASE + '/article?slug=' + a._consolidateTo)
+                   : url;
   var inner     = buildArticleInner(a);
   var jsonld    = buildJsonLd(a, url);
-  var hreflang  = buildHreflang(a, url);
+  var hreflang  = isRegional ? '' : buildHreflang(a, url);  // noindex regional: no self hreflang alternate
 
   return '<!DOCTYPE html>\n'
 + '<html lang="en">\n'
@@ -809,7 +824,7 @@ function buildPage(a) {
 + '<title>' + htmlText(pageTitle) + '</title>\n'
 + '<meta name="description" content="' + attr(desc) + '" />\n'
 + '<meta name="robots" content="' + robots + '" />\n'
-+ '<link rel="canonical" href="' + attr(url) + '" id="canonicalTag" />\n'
++ '<link rel="canonical" href="' + attr(canonicalUrl) + '" id="canonicalTag" />\n'
 + '<meta property="og:type" content="article" />\n'
 + '<meta property="og:image" content="' + OG_IMG + '" />\n'
 + '<meta property="og:image:width" content="1200" />\n'
@@ -921,6 +936,30 @@ export async function onRequestGet(context) {
   }
   var a = data.article;
   if (!a.slug) return serve404(request);
+
+  // ── REGIONAL CONSOLIDATION (noindex→global, 2026-07-07) ──────────────────
+  // Resolve the videoId-authoritative canonical target for a regional variant.
+  // a.siblingSlug is derived from THIS video's published record, but a slug
+  // collision (a later video republished under the same slug) can make it point
+  // to a DIFFERENT video's global. Only canonicalise when the LIVE article at
+  // siblingSlug is genuinely this video's global (same videoId + Global). The
+  // slug-collision orphan (z2RwH06okKQ) fails this test → noindex-only, self-canonical.
+  // REVERT: delete this block (buildPage then sees no _consolidateTo → self-canonical).
+  // ─────────────────────────────────────────────────────────────────────────
+  a._consolidateTo = null;
+  if (a.region && a.region !== 'Global' && a.siblingSlug && a.videoId) {
+    try {
+      var sibUrl = new URL('/article-content?slug=' + encodeURIComponent(a.siblingSlug), request.url);
+      var sibRes = await fetch(sibUrl.toString(), { headers: { 'Accept': 'application/json' } });
+      if (sibRes.ok) {
+        var sibData = await sibRes.json();
+        var sib = sibData && sibData.article;
+        if (sib && sib.videoId && sib.videoId === a.videoId && (!sib.region || sib.region === 'Global')) {
+          a._consolidateTo = a.siblingSlug; // same-video live global → safe canonical target
+        }
+      }
+    } catch (e) { /* leave null → noindex-only, self-canonical (safe default) */ }
+  }
 
   // BUILD fully in memory…
   var html;
