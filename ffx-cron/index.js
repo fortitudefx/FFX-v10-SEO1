@@ -22,9 +22,45 @@ const QUEUE_TOPUP_BY   = 7;
 
 export default {
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(runCron(env));
+    // Two schedules share this Worker (see wrangler.toml):
+    //   "10 5 …" = dedicated intelligence-engine run (own invocation, fresh budget)
+    //   everything else ("0 5 …") = the signals/pipeline run
+    if (event.cron === '10 5 * * MON,TUE,WED,THU,FRI') {
+      ctx.waitUntil(runEngine(env));
+    } else {
+      ctx.waitUntil(runCron(env));
+    }
   }
 };
+
+// ── Dedicated intelligence-engine trigger ─────────────────────────────────────
+// Runs in its OWN cron invocation (10:05 UTC) with a full Worker budget, AFTER the
+// 05:00 signals run has written seo:signals/ga4:signals. This replaces the old
+// tail-of-runCron trigger that kept getting cut off (brief stale 3 weeks while
+// signals stayed fresh). Explicit success/error logging — no silent path — so the
+// next failure shows up in `wrangler tail ffx-cron` as a real line.
+async function runEngine(env) {
+  console.log('[ffx-cron] Engine run: triggering intelligence engine…');
+  try {
+    const intelRes = await fetch('https://fortitudefx.com/api/intelligence-engine', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (intelRes.ok) {
+      let stamp = 'unknown';
+      try {
+        const b = await env.FFX_KV.get('intelligence:brief', { type: 'json' });
+        stamp = (b && b.generatedAt) || 'no-generatedAt';
+      } catch (readErr) { stamp = 'brief-read-failed: ' + readErr.message; }
+      console.log('[ffx-cron] Intelligence engine OK — brief.generatedAt=' + stamp);
+    } else {
+      const body = await intelRes.text().catch(function () { return ''; });
+      console.error('[ffx-cron] Intelligence engine FAILED — status ' + intelRes.status + ' body=' + body.slice(0, 300));
+    }
+  } catch (e) {
+    console.error('[ffx-cron] Intelligence engine ERROR — ' + e.message);
+  }
+}
 
 async function runCron(env) {
   try {
@@ -163,21 +199,11 @@ async function runCron(env) {
       console.error('[ffx-cron] YouTube search signals failed (non-fatal):', ytSigErr.message);
     }
 
-    // ── Step 6: Trigger intelligence engine ───────────────────────────────
-    console.log('[ffx-cron] Triggering intelligence engine...');
-    try {
-      const intelRes = await fetch('https://fortitudefx.com/api/intelligence-engine', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (intelRes.ok) {
-        console.log('[ffx-cron] Intelligence engine triggered');
-      } else {
-        console.error('[ffx-cron] Intelligence engine failed:', intelRes.status);
-      }
-    } catch(e) {
-      console.error('[ffx-cron] Intelligence engine error:', e.message);
-    }
+    // ── Step 6: Intelligence engine — MOVED OUT ───────────────────────────
+    // The engine trigger now runs in its own dedicated cron invocation
+    // (runEngine, "10 5 …") with a fresh Worker budget. Keeping it at the tail
+    // of this long signals run was exhausting the budget and cutting off the
+    // brief write (3-week outage). Do NOT re-add the engine fetch here.
 
     // ── Step 7: Check 72hr reply performance ──────────────────────────────
     // Reads reply_performance records older than 72hrs, queries GA4 referral

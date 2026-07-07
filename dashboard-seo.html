@@ -349,10 +349,18 @@
       <div class="header-count" id="headerCount">Search Console</div>
     </div>
     <div class="header-right">
-      <button onclick="seedTargets()" id="seedBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.08);color:rgba(62,207,142,0.60);border:1px solid rgba(62,207,142,0.15);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Seed founding targets (run once)">⊕ Seed Targets</button>
+      <!-- Seed Targets button removed (one-time setup; already seeded, 409s on re-press). -->
             <button onclick="runBackfill()" id="backfillBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(56,189,248,0.08);color:rgba(56,189,248,0.70);border:1px solid rgba(56,189,248,0.18);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Backfill articles index from KV">↻ Backfill Index</button>
-<button onclick="triggerIntelligence()" id="intelBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(201,168,76,0.10);color:rgba(201,168,76,0.70);border:1px solid rgba(201,168,76,0.20);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Run intelligence analysis">⚡ Run Analysis</button>
-      <button onclick="triggerSignals()" id="signalBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Refresh SEO signals">⟳ Refresh Signals</button>
+      <!-- Run Analysis + Refresh Signals folded under Advanced: the Mon-Fri 05:00 UTC cron
+           runs BOTH daily, so pressing them is double-spend (Run Analysis is a paid Claude call). -->
+      <details style="display:inline-block;vertical-align:middle;">
+        <summary style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.40);cursor:pointer;padding:5px 12px;border:1px solid rgba(255,255,255,0.10);border-radius:5px;">⚙ Advanced / manual re-run</summary>
+        <div style="display:inline-flex;gap:8px;align-items:center;margin-left:8px;">
+          <span style="font-size:9px;color:rgba(255,255,255,0.30);max-width:220px;">Cron runs both daily (Mon–Fri 05:00 UTC) — manual press = double-spend; Run Analysis is a paid Claude call.</span>
+          <button onclick="triggerIntelligence()" id="intelBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(201,168,76,0.10);color:rgba(201,168,76,0.70);border:1px solid rgba(201,168,76,0.20);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Run intelligence analysis (cron does this daily)">⚡ Run Analysis</button>
+          <button onclick="triggerSignals()" id="signalBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Refresh SEO signals (cron does this daily)">⟳ Refresh Signals</button>
+        </div>
+      </details>
       <div class="date-selector" id="dateSelector" style="display:none;">
         <button class="date-btn" data-days="7">7D</button>
         <button class="date-btn active" data-days="28">28D</button>
@@ -379,6 +387,27 @@
   <!-- Dashboard -->
   <div class="seo-dashboard" id="seoDashboard">
 
+    <!-- KPI-FIRST ORDER (Step 6): reorder via CSS `order` on a flex column — no DOM moves,
+         so all ID-based population is untouched. Lower order = higher on the page. -->
+    <style>
+      #seoDashboard { display:flex; flex-direction:column; align-items:stretch; }
+      #intelSteps      { order:0; }
+      #seoFreshness    { order:1; }
+      #statRow         { order:2; }
+      #queriesGrid     { order:3; }
+      #articlesGrid    { order:4; }
+      #positionGrid    { order:5; }
+      #chartsRow       { order:6; }
+      #targetScorecard { order:7; }
+      #intelBriefPanel { order:8; }
+      #linkGraphPanel  { order:9; }
+    </style>
+
+    <!-- Per-source freshness stamps (Step 6): each read from its own blob's generatedAt.
+         NO single global stamp — sources update independently (the outage had fresh
+         signals + a 3-week-stale brief). Older than ~48h (daily cadence) → RED/STALE. -->
+    <div id="seoFreshness" style="display:none;font-size:11px;color:rgba(255,255,255,0.40);padding:2px 2px 10px;letter-spacing:0.04em;"></div>
+
     <!-- Run Analysis step list -->
     <div class="intel-steps" id="intelSteps">
       <div class="intel-step pending" id="istep-0"><div class="intel-step-icon pending" id="istep-icon-0">&#9675;</div><div class="intel-step-label">Reading SEO &amp; GA4 signals</div></div>
@@ -389,103 +418,29 @@
       <div class="intel-step pending" id="istep-5"><div class="intel-step-icon pending" id="istep-icon-5">&#9675;</div><div class="intel-step-label">Analysis complete</div></div>
     </div>
 
-    <!-- Directive Panel -->
-    <div id="directivePanel" style="display:none;margin-bottom:20px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.30);border-radius:14px;padding:24px 28px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:#C9A84C;">&#9889; TODAY'S DIRECTIVE</div>
-        <div id="directiveConfidence" style="font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#C9A84C;border:1px solid rgba(201,168,76,0.40);border-radius:5px;padding:4px 12px;background:rgba(201,168,76,0.10);"></div>
-      </div>
-      <div id="directiveText" style="font-size:17px;font-weight:700;color:#ffffff;line-height:1.5;margin-bottom:10px;"></div>
-      <div id="directiveSubtext" style="font-size:14px;color:rgba(255,255,255,0.75);margin-bottom:14px;line-height:1.6;"></div>
-      <div id="directiveNote" style="font-size:13px;color:#C9A84C;margin-bottom:18px;line-height:1.5;"></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-        <div id="directiveActionBtn"></div>
-        <button onclick="markDirectiveDone()" style="font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.15);color:#3ecf8e;border:1px solid rgba(62,207,142,0.40);border-radius:6px;padding:8px 18px;cursor:pointer;">&#10003; Done</button>
-        <button onclick="snoozeDirective()" style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.70);border:1px solid rgba(255,255,255,0.18);border-radius:6px;padding:8px 18px;cursor:pointer;">&#10074;&#10074; Snooze 24hrs</button>
-        <button onclick="dismissDirective()" style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:none;color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:8px 18px;cursor:pointer;">&#10007; Not Applicable</button>
-      </div>
-      <!-- Directive execution step list -->
-      <div id="directiveStepList" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px 16px;margin-top:6px;"></div>
-    </div>
+    <!-- Directive Panel REMOVED — it was a literal duplicate of Daily Mandate #1 (same
+         Claude directiveResolution field). Mandates below carry the same actions.
+         (render/handlers are guarded with if(!panel) so leaving their JS is harmless.) -->
 
-    <!-- Intelligence Brief Panel -->
+    <!-- Daily Mandates Panel (was "Intelligence Brief" — weeklyInsight narrative
+         Key Win/Key Risk/Forecast + Next Article/Pattern removed as near-zero-data
+         narration at this traffic; the guarded render simply skips the missing ids).
+         #briefGenTime is the intelligence:brief.generatedAt freshness stamp. -->
     <div id="intelBriefPanel" style="display:none;border-radius:14px;border:1px solid rgba(255,255,255,0.09);background:#13151b;margin-bottom:24px;overflow:hidden;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span style="font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.70);">Intelligence Brief</span>
-          <span id="briefMomentum" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border-radius:5px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.12);">&#8212;</span>
-        </div>
-        <span id="briefGenTime" style="font-size:11px;color:rgba(255,255,255,0.28);"></span>
+        <span style="font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.70);">Daily Mandates</span>
+        <span id="briefGenTime" style="font-size:11px;color:rgba(255,255,255,0.40);"></span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <div style="padding:20px 24px;border-right:1px solid rgba(255,255,255,0.07);">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">Key Win</div>
-          <div id="briefKeyWin" style="font-size:14px;color:#ffffff;line-height:1.6;">&#8212;</div>
-        </div>
-        <div style="padding:20px 24px;border-right:1px solid rgba(255,255,255,0.07);">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">Key Risk</div>
-          <div id="briefKeyRisk" style="font-size:14px;color:#ffffff;line-height:1.6;">&#8212;</div>
-        </div>
-        <div style="padding:20px 24px;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">30-Day Forecast</div>
-          <div id="briefForecast" style="font-size:14px;color:#ffffff;line-height:1.6;">&#8212;</div>
-        </div>
-      </div>
-      <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);">Daily Mandates</div>
-          <div style="font-size:10px;color:rgba(255,255,255,0.25);">Complete both each day</div>
-        </div>
+      <div style="padding:20px 24px;">
         <div id="dailyMandates" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;">
-        <div style="padding:20px 24px;border-right:1px solid rgba(255,255,255,0.07);">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">Next Article Target</div>
-          <div id="briefArticleTarget" style="font-size:15px;color:#C9A84C;font-weight:700;margin-bottom:6px;">&#8212;</div>
-          <div id="briefArticleAngle" style="font-size:13px;color:rgba(255,255,255,0.60);line-height:1.5;">&#8212;</div>
-        </div>
-        <div style="padding:20px 24px;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">New Pattern Detected</div>
-          <div id="briefPattern" style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;">&#8212;</div>
-        </div>
-      </div>
     </div>
 
-    <!-- Thread Mandate Panel -->
-    <div id="threadMandatePanel" style="display:none;border-radius:14px;border:1px solid rgba(122,92,255,0.20);background:#13151b;margin-bottom:24px;overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span style="font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.70);">Thread Mandate</span>
-          <span id="threadPlatformBadge" style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border-radius:5px;background:rgba(122,92,255,0.12);color:rgba(167,139,250,1);border:1px solid rgba(122,92,255,0.30);"></span>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button id="threadSnoozeBtn" onclick="snoozeThreadMandate()" style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:none;color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 12px;cursor:pointer;">Snooze 24hrs</button>
-          <button id="threadIgnoreBtn" onclick="ignoreThreadMandate()" style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:none;color:rgba(255,255,255,0.25);border:none;padding:5px 8px;cursor:pointer;">Not today</button>
-        </div>
-      </div>
-      <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <div id="threadTopic" style="font-size:16px;font-weight:700;color:#ffffff;line-height:1.5;margin-bottom:6px;"></div>
-        <div id="threadAngle" style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.5;margin-bottom:4px;"></div>
-        <div id="threadReasoning" style="font-size:12px;color:rgba(122,92,255,0.70);line-height:1.5;"></div>
-      </div>
-      <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">Draft Post</div>
-        <div id="threadDraftPost" style="font-size:14px;color:rgba(255,255,255,0.80);line-height:1.7;white-space:pre-wrap;"></div>
-      </div>
-      <div style="padding:16px 24px;display:flex;gap:10px;align-items:center;">
-        <button onclick="copyThreadDraft()" style="font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(122,92,255,0.15);color:rgba(167,139,250,1);border:1px solid rgba(122,92,255,0.35);border-radius:6px;padding:8px 18px;cursor:pointer;">Copy Draft</button>
-        <button id="threadDoneBtn" onclick="markThreadDone()" style="font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.12);color:#3ecf8e;border:1px solid rgba(62,207,142,0.30);border-radius:6px;padding:8px 18px;cursor:pointer;">&#10003; Posted</button>
-        <span id="threadPlatformLink" style="font-size:12px;color:rgba(255,255,255,0.35);"></span>
-      </div>
-    </div>
+    <!-- Thread Mandate Panel REMOVED (decorative forum-reply links incl. Forex Factory;
+         no SEO signal, and the thread mandate came from the brief). -->
 
-    <!-- Directive History Panel -->
-    <div id="directiveHistoryPanel" style="display:none;border-radius:14px;border:1px solid rgba(255,255,255,0.09);background:#13151b;margin-bottom:24px;overflow:hidden;">
-      <div style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <span style="font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.70);">Directive History</span>
-      </div>
-      <div id="directiveHistoryList" style="padding:20px 24px;font-size:13px;color:rgba(255,255,255,0.40);">Loading...</div>
-    </div>
+    <!-- Directive History Panel REMOVED (dead loop — outcome is written null by every
+         writer and can never resolve to "improved"; the acted-on log carried no result). -->
 
     <!-- Link Graph Panel -->
     <div id="linkGraphPanel" style="display:none;border-radius:14px;border:1px solid rgba(255,255,255,0.09);background:#13151b;margin-bottom:24px;overflow:hidden;">
@@ -554,7 +509,7 @@
     </div>
 
     <!-- Position distribution + Alerts -->
-    <div class="seo-grid-2">
+    <div class="seo-grid-2" id="positionGrid">
       <div class="seo-panel">
         <div class="seo-panel-header"><span class="seo-panel-title">Position Distribution</span></div>
         <div class="pos-dist" id="posDist">
@@ -571,7 +526,7 @@
     </div>
 
     <!-- Top queries + Top pages -->
-    <div class="seo-grid-2">
+    <div class="seo-grid-2" id="queriesGrid">
       <div class="seo-panel">
         <div class="seo-panel-header"><span class="seo-panel-title">Top Queries</span></div>
         <div class="seo-table-head queries-row" style="display:grid;">
@@ -589,7 +544,7 @@
     </div>
 
     <!-- Articles + Countries -->
-    <div class="seo-grid-2">
+    <div class="seo-grid-2" id="articlesGrid">
       <div class="seo-panel">
         <div class="seo-panel-header"><span class="seo-panel-title">Article Performance</span></div>
         <div class="seo-table-head pages-row" style="display:grid;">
@@ -1323,10 +1278,23 @@ function renderIntelBrief(brief) {
     momentumEl.textContent = momentum.toUpperCase();
   }
 
+  // Freshness stamp for the brief/mandates (Step 6): intelligence:brief.generatedAt,
+  // RED/STALE if older than ~48h (daily cron cadence). This is the passive monitor that
+  // would have surfaced the 3-week engine outage while signals stayed fresh.
   var genEl = document.getElementById('briefGenTime');
-  if (genEl && brief.generatedAt) {
-    var d = new Date(brief.generatedAt);
-    genEl.textContent = 'Updated ' + d.toLocaleString('en-GB', { weekday:'short', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai' }) + ' Dubai';
+  if (genEl) {
+    if (brief.generatedAt) {
+      var d = new Date(brief.generatedAt);
+      var ageH = (Date.now() - d.getTime()) / 3600000;
+      var stale = ageH > 48;
+      var rel = ageH < 1 ? Math.max(1, Math.round(ageH * 60)) + 'm' : ageH < 48 ? Math.round(ageH) + 'h' : Math.round(ageH / 24) + 'd';
+      genEl.textContent = 'Updated ' + rel + ' ago · ' + d.toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai' }) + (stale ? '  ⚠ STALE' : '');
+      genEl.style.color = stale ? '#f87171' : 'rgba(255,255,255,0.40)';
+      genEl.style.fontWeight = stale ? '700' : '400';
+    } else {
+      genEl.textContent = 'never generated  ⚠ STALE';
+      genEl.style.color = '#f87171';
+    }
   }
 
   var win = document.getElementById('briefKeyWin');
@@ -1605,6 +1573,9 @@ async function loadDirectiveHistory() {
 // ── Directive rendering ───────────────────────────────────────────────────
 function renderDirectiveFromBrief(brief) {
   if (!brief) return;
+  // Directive panel removed (merged into Daily Mandates) — no-op if its DOM is gone,
+  // so the unguarded element writes below never throw in any call path.
+  if (!document.getElementById('directivePanel')) return;
   var snoozedUntil = localStorage.getItem('ffx_directive_snoozed');
   if (snoozedUntil && new Date(snoozedUntil) > new Date()) return;
 
@@ -2070,6 +2041,32 @@ document.getElementById('dateSelector').addEventListener('click', e => {
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────
+// Freshness stamp for the SEO-signals-backed panels (stat-row/queries/charts):
+// seo:signals.generatedAt, RED/STALE if older than ~48h (daily cron cadence).
+// Per-source (NOT a single global stamp) — signals + brief update independently.
+async function loadFreshnessStamps() {
+  var el = document.getElementById('seoFreshness');
+  if (!el) return;
+  el.style.display = 'block';
+  try {
+    var r = await fetch('/api/seo-signals', { cache: 'no-store' });
+    var d = await r.json();
+    var obj = d.signals || d;
+    var ts = obj && obj.generatedAt;
+    if (!ts) { el.textContent = 'SEO signals: never generated  ⚠ STALE'; el.style.color = '#f87171'; el.style.fontWeight = '700'; return; }
+    var age = (Date.now() - new Date(ts).getTime()) / 3600000;
+    var stale = age > 48;
+    var rel = age < 1 ? Math.max(1, Math.round(age * 60)) + 'm' : age < 48 ? Math.round(age) + 'h' : Math.round(age / 24) + 'd';
+    var abs = new Date(ts).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai' });
+    el.textContent = 'SEO signals updated ' + rel + ' ago · ' + abs + (stale ? '  ⚠ STALE' : '');
+    el.style.color = stale ? '#f87171' : 'rgba(255,255,255,0.40)';
+    el.style.fontWeight = stale ? '700' : '400';
+  } catch (e) {
+    el.textContent = 'SEO signals: freshness check failed';
+    el.style.color = '#f87171';
+  }
+}
+
 function showDashboard() {
   document.getElementById('connectBox').style.display = 'none';
   document.getElementById('seoDashboard').classList.add('visible');
@@ -2077,14 +2074,14 @@ function showDashboard() {
   document.getElementById('statusDot').style.cssText = '';
   document.getElementById('signalBtn').style.display = 'inline-block';
   document.getElementById('intelBtn').style.display = 'inline-block';
-  document.getElementById('seedBtn').style.display = 'inline-block';
   document.getElementById('backfillBtn').style.display = 'inline-block';
+  // (Seed Targets button removed; Directive + Directive-History panels removed —
+  //  their loaders are no longer called. loadAll → loadIntelBrief renders the Mandates.)
   loadAll(28);
   loadTargetScorecard();
   loadCharts(28);
-  loadAndRenderDirective();
-  loadDirectiveHistory();
   loadLinkGraph();
+  loadFreshnessStamps();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

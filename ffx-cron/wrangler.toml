@@ -2,9 +2,17 @@ name = "ffx-cron"
 main = "index.js"
 compatibility_date = "2025-01-01"
 
-# Cron trigger — Mon-Fri 9am Dubai time (GST = UTC+4, so 5am UTC) — full pipeline
+# Cron triggers — Mon-Fri 9am Dubai (GST=UTC+4 → 5am UTC).
+#  0 5 = signals/pipeline run (video, queue, SEO+GA4 signals, target actuals, YT search, reply-perf).
+# 10 5 = DEDICATED intelligence-engine run in its OWN Worker invocation (fresh budget), 10 min later
+#        so signals are already written. Split out because the engine's Claude call at the tail of
+#        the long signals run was exhausting the Worker budget (brief went 3 weeks stale while
+#        signals stayed fresh). scheduled() branches on event.cron.
 [triggers]
-crons = ["0 5 * * MON,TUE,WED,THU,FRI"]
+crons = [
+  "0 5 * * MON,TUE,WED,THU,FRI",
+  "10 5 * * MON,TUE,WED,THU,FRI"
+]
 
 [[kv_namespaces]]
 binding = "FFX_KV"

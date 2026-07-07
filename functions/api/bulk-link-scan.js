@@ -18,6 +18,18 @@ export async function onRequestGet(context) {
       return json({ error: 'articles:index is empty. Run POST /api/backfill-articles-index first.' }, 400, headers);
     }
 
+    // REGIONAL GUARD (Global-only): articles:index carries no region field, so enrich
+    // each entry's region from its article:{slug} record. The pairing loops below then
+    // skip any pair with a non-Global end — Auto-Link never links to/from the 14 noindex
+    // regional variants (they're canonical'd to their global sibling; linking wastes equity).
+    await Promise.all(articles.map(async function (a) {
+      if (a.region) return;
+      try {
+        const rec = await env.FFX_KV.get('article:' + a.slug, { type: 'json' });
+        a.region = (rec && rec.region) || 'Global';
+      } catch (e) { a.region = 'Global'; }
+    }));
+
     // Read all link_graph keys
     const lgList = await env.FFX_KV.list({ prefix: 'content:link_graph:' }).catch(function(){ return { keys: [] }; });
     const linkGraphEntries = (await Promise.all(
@@ -83,6 +95,7 @@ export async function onRequestGet(context) {
       for (var j = i + 1; j < articles.length; j++) {
         var a = articles[i];
         var b = articles[j];
+        if ((a.region && a.region !== 'Global') || (b.region && b.region !== 'Global')) continue; // regional guard: no links to/from noindex regionals
         if (!a.tags || !b.tags) continue;
         var sharedTags = a.tags.filter(function(t) {
           return b.tags.some(function(bt){ return bt.toLowerCase() === t.toLowerCase(); });
@@ -158,6 +171,18 @@ export async function onRequestPost(context) {
       return json({ error: 'articles:index is empty. Run POST /api/backfill-articles-index first.' }, 400, headers);
     }
 
+    // REGIONAL GUARD (Global-only): articles:index carries no region field, so enrich
+    // each entry's region from its article:{slug} record. The pairing loops below then
+    // skip any pair with a non-Global end — Auto-Link never links to/from the 14 noindex
+    // regional variants (they're canonical'd to their global sibling; linking wastes equity).
+    await Promise.all(articles.map(async function (a) {
+      if (a.region) return;
+      try {
+        const rec = await env.FFX_KV.get('article:' + a.slug, { type: 'json' });
+        a.region = (rec && rec.region) || 'Global';
+      } catch (e) { a.region = 'Global'; }
+    }));
+
     // ── Step 1: Build current link map from link_graph + articles:index ──
     const lgList = await env.FFX_KV.list({ prefix: 'content:link_graph:' }).catch(function(){ return { keys: [] }; });
     const linkGraphEntries = (await Promise.all(
@@ -187,6 +212,7 @@ export async function onRequestPost(context) {
     for (var i = 0; i < articles.length; i++) {
       for (var j = i + 1; j < articles.length; j++) {
         var a = articles[i]; var b = articles[j];
+        if ((a.region && a.region !== 'Global') || (b.region && b.region !== 'Global')) continue; // regional guard: no links to/from noindex regionals
         if (!a.tags || !b.tags) continue;
         var shared = a.tags.filter(function(t){
           return b.tags.some(function(bt){ return bt.toLowerCase() === t.toLowerCase(); });
