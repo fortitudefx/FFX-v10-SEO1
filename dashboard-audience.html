@@ -251,9 +251,17 @@
       <div class="header-count" id="headerCount">GA4 Analytics</div>
     </div>
     <div class="header-right">
-      <button onclick="seedTargets()" id="seedBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(62,207,142,0.08);color:rgba(62,207,142,0.60);border:1px solid rgba(62,207,142,0.15);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Seed founding targets (run once)">⊕ Seed Targets</button>
-      <button onclick="triggerSignals()" id="signalBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Refresh GA4 signals">⟳ Refresh Signals</button>
-      <button onclick="triggerIntelligence()" id="intelBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(201,168,76,0.10);color:rgba(201,168,76,0.70);border:1px solid rgba(201,168,76,0.20);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Run intelligence analysis">⚡ Run Analysis</button>
+      <!-- Seed Targets removed (one-time setup; already seeded, 409s on re-press). -->
+      <!-- Run Analysis + Refresh Signals folded under Advanced: the Mon-Fri 05:00 UTC cron
+           runs BOTH daily; Run Analysis is the SAME shared engine (a paid Claude call). -->
+      <details style="display:inline-block;vertical-align:middle;">
+        <summary style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.40);cursor:pointer;padding:5px 12px;border:1px solid rgba(255,255,255,0.10);border-radius:5px;">⚙ Advanced / manual re-run</summary>
+        <div style="display:inline-flex;gap:8px;align-items:center;margin-left:8px;">
+          <span style="font-size:9px;color:rgba(255,255,255,0.30);max-width:230px;">Cron runs both daily (Mon–Fri 05:00 UTC) — manual = double-spend; Run Analysis is a paid Claude call (shared with SEO).</span>
+          <button onclick="triggerSignals()" id="signalBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.10);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Refresh GA4 signals (cron does this daily)">⟳ Refresh Signals</button>
+          <button onclick="triggerIntelligence()" id="intelBtn" style="display:none;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(201,168,76,0.10);color:rgba(201,168,76,0.70);border:1px solid rgba(201,168,76,0.20);border-radius:5px;padding:5px 12px;cursor:pointer;" title="Run intelligence analysis (cron does this daily)">⚡ Run Analysis</button>
+        </div>
+      </details>
       <div class="date-selector" id="dateSelector" style="display:none;">
         <button class="date-btn" data-days="7">7D</button>
         <button class="date-btn active" data-days="28">28D</button>
@@ -276,7 +284,25 @@
   <!-- Dashboard -->
   <div class="aud-dashboard" id="audDashboard">
 
+    <!-- KPI-FIRST ORDER (Step 6): CSS `order` on a flex column — no DOM moves, ID-based
+         population untouched. Lower order = higher on the page. -->
+    <style>
+      #audDashboard { display:flex; flex-direction:column; align-items:stretch; }
+      #intelSteps             { order:0; }
+      #audFreshness           { order:1; }
+      #statRow                { order:2; }
+      #acquisitionGrid        { order:3; }
+      #sourcesGrid            { order:4; }
+      #sessionGrid            { order:5; }
+      #countriesGrid          { order:6; }
+      #targetScorecard        { order:7; }
+      #audienceDirectivePanel { order:8; }
+    </style>
 
+    <!-- Per-source freshness stamp (Step 6): GA4 from ga4:signals.generatedAt, RED/STALE
+         if older than ~48h. Brief stamp lives on the Mandate panel (#audBriefGenTime).
+         NO single global stamp — sources update independently. -->
+    <div id="audFreshness" style="display:none;font-size:11px;color:rgba(255,255,255,0.40);padding:2px 2px 10px;letter-spacing:0.04em;"></div>
 
     <!-- Target Scorecard -->
     <div class="scorecard" id="targetScorecard" style="display:none;">
@@ -301,10 +327,12 @@
 
     <!-- Audience Directive Panel -->
     <div id="audienceDirectivePanel" style="display:none;margin-bottom:20px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.30);border-radius:14px;padding:24px 28px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:#C9A84C;">&#9889; AUDIENCE DIRECTIVE</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:#C9A84C;">&#9889; AUDIENCE MANDATE</div>
         <div id="audDirectiveImpact" style="font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#C9A84C;border:1px solid rgba(201,168,76,0.40);border-radius:5px;padding:4px 12px;background:rgba(201,168,76,0.10);"></div>
       </div>
+      <!-- Freshness stamp: intelligence:brief.generatedAt, RED/STALE > ~48h (Step 6). -->
+      <div id="audBriefGenTime" style="font-size:11px;color:rgba(255,255,255,0.40);margin-bottom:14px;"></div>
       <div id="audDirectiveText" style="font-size:17px;font-weight:700;color:#ffffff;line-height:1.5;margin-bottom:10px;"></div>
       <div id="audDirectiveReasoning" style="font-size:14px;color:rgba(255,255,255,0.65);margin-bottom:14px;line-height:1.6;"></div>
       <div id="audDirectiveMandate" style="font-size:13px;color:#C9A84C;margin-bottom:18px;line-height:1.5;"></div>
@@ -315,37 +343,13 @@
       </div>
     </div>
 
-    <!-- Audience Intelligence Brief -->
-    <div id="audBriefPanel" style="display:none;border-radius:14px;border:1px solid rgba(255,255,255,0.09);background:#13151b;margin-bottom:24px;overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span style="font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.70);">Audience Intelligence</span>
-          <span id="audMomentum" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border-radius:5px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.50);border:1px solid rgba(255,255,255,0.12);">&#8212;</span>
-        </div>
-        <span id="audBriefGenTime" style="font-size:11px;color:rgba(255,255,255,0.28);"></span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.07);">
-        <div style="padding:20px 24px;border-right:1px solid rgba(255,255,255,0.07);">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">Key Win</div>
-          <div id="audKeyWin" style="font-size:14px;color:#ffffff;line-height:1.6;">&#8212;</div>
-        </div>
-        <div style="padding:20px 24px;border-right:1px solid rgba(255,255,255,0.07);">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">Key Risk</div>
-          <div id="audKeyRisk" style="font-size:14px;color:#ffffff;line-height:1.6;">&#8212;</div>
-        </div>
-        <div style="padding:20px 24px;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">30-Day Forecast</div>
-          <div id="audForecast" style="font-size:14px;color:#ffffff;line-height:1.6;">&#8212;</div>
-        </div>
-      </div>
-      <div style="padding:20px 24px;">
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.36);margin-bottom:10px;">Today's Mandate</div>
-        <div id="audMandateText" style="font-size:14px;color:#C9A84C;line-height:1.6;">&#8212;</div>
-      </div>
-    </div>
+    <!-- Audience Intelligence Brief panel REMOVED — Key Win/Key Risk/30-Day Forecast were
+         weeklyInsight-style narration, and "Today's Mandate" duplicated the Audience Mandate
+         above. The distinct audience decision lives in the Mandate panel; renderAudBrief()
+         guards with if(!panel)return, so its call in loadAudBriefAndDirective safely no-ops. -->
 
     <!-- Stat cards -->
-    <div class="stat-row">
+    <div class="stat-row" id="statRow">
       <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value" id="statUsers">—</div><div id="deltaUsers"></div></div>
       <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value" id="statSessions">—</div><div id="deltaSessions"></div></div>
       <div class="stat-card"><div class="stat-label">Avg Session Duration</div><div class="stat-value" id="statDuration">—</div><div id="deltaDuration"></div></div>
@@ -353,7 +357,7 @@
     </div>
 
     <!-- Session trend + New vs Returning -->
-    <div class="aud-grid-2">
+    <div class="aud-grid-2" id="sessionGrid">
       <div class="aud-panel">
         <div class="aud-panel-header"><span class="aud-panel-title">Daily Sessions — Trend</span></div>
         <div class="chart-wrap">
@@ -374,7 +378,7 @@
     </div>
 
     <!-- Traffic sources + Top pages -->
-    <div class="aud-grid-2">
+    <div class="aud-grid-2" id="sourcesGrid">
       <div class="aud-panel">
         <div class="aud-panel-header"><span class="aud-panel-title">Traffic Sources</span></div>
         <div class="source-bar-wrap" id="sourcesList"><div class="panel-loading">Loading…</div></div>
@@ -387,7 +391,7 @@
     </div>
 
     <!-- Countries + Devices -->
-    <div class="aud-grid-2">
+    <div class="aud-grid-2" id="countriesGrid">
       <div class="aud-panel">
         <div class="aud-panel-header"><span class="aud-panel-title">Top Countries</span></div>
         <div class="aud-table-head row-3"><span>Country</span><span style="text-align:right;">Users</span><span style="text-align:right;">Sessions</span></div>
@@ -400,7 +404,7 @@
     </div>
 
     <!-- Acquisition channels -->
-    <div class="aud-grid-2" style="margin-bottom:0;">
+    <div class="aud-grid-2" id="acquisitionGrid" style="margin-bottom:0;">
       <div class="aud-panel">
         <div class="aud-panel-header"><span class="aud-panel-title">Acquisition Channels</span></div>
         <div class="aud-table-head row-4"><span>Channel</span><span style="text-align:right;">Users</span><span style="text-align:right;">Sessions</span><span style="text-align:right;">Conv%</span></div>
@@ -863,11 +867,9 @@ function buildAudExecSummary(overview, prevOverview, sourcesData, pagesData, cha
   const durDelta    = pDur    ? ((dur-pDur)/pDur*100).toFixed(1)           : null;
   const bounceDelta = pBounce ? ((bounce-pBounce)/pBounce*100).toFixed(1)  : null;
 
-  // Engagement Quality Score (0-100)
-  const durScore    = Math.min(dur/180*40, 40);     // up to 40pts: 3min+ = max
-  const bounceScore = Math.min((1-bounce)*40, 40);  // up to 40pts: 0% bounce = max
-  const userScore   = Math.min(users/500*20, 20);   // up to 20pts: 500+ users = max
-  const eqs         = Math.round(durScore + bounceScore + userScore);
+  // EQS (Engagement Quality Score) REMOVED — date-range artifact: durScore/bounceScore/
+  // userScore all scaled with the selected window's raw totals, so the same audience
+  // scored differently at 7D vs 90D. Misleading; cut with its card below.
 
   // Best traffic source by quality (longest session)
   const sources  = sourcesData.rows || [];
@@ -893,10 +895,8 @@ function buildAudExecSummary(overview, prevOverview, sourcesData, pagesData, cha
   document.getElementById('execMomentum').className   = 'exec-momentum momentum-' + momentum;
   document.getElementById('execMomentum').textContent = momentumText;
 
-  // 30-day forecast
-  const daysInPeriod = currentDays || 28;
-  const dailyUsers   = users / daysInPeriod;
-  const forecast30   = Math.round(dailyUsers * 30);
+  // 30-Day Forecast REMOVED — dailyUsers×30 with no growth/decay model; it moved with the
+  // selected date range and a short-window spike inflated it. Cut with its card below.
 
   const html = `
     <div class="exec-grid">
@@ -930,33 +930,11 @@ function buildAudExecSummary(overview, prevOverview, sourcesData, pagesData, cha
 
     <div class="exec-grid-3">
       <div class="exec-block">
-        <div class="exec-block-title">Engagement Quality Score</div>
-        <div class="exec-score" style="color:${eqs>=70?'rgba(62,207,142,0.90)':eqs>=40?'rgba(201,168,76,0.90)':'rgba(248,113,113,0.80)'}">${eqs}<span style="font-size:18px;font-weight:400;color:rgba(255,255,255,0.30)">/100</span></div>
-        <div class="exec-score-label">${eqs>=70?'High quality audience':eqs>=40?'Moderate engagement':'Low engagement'}</div>
-        <div class="exec-block-content" style="margin-top:10px;font-size:13px;">
-          ${eqs >= 70 ? `<span class="good">Strong.</span> Visitors are reading, staying, and engaging.`
-            : eqs >= 40 ? `<span class="warn">Moderate.</span> Some engagement but bounce rate or session time needs improvement.`
-            : `<span class="bad">Low.</span> Most visitors leave quickly. Content or landing page experience needs work.`}
-        </div>
-      </div>
-      <div class="exec-block">
         <div class="exec-block-title">Content Gravity</div>
         <div class="exec-block-content" style="font-size:13px;">
           <strong>Top page:</strong> <span class="warn">${escHtml(topSlug)}</span><br><br>
           This is your <strong>strongest content magnet</strong>. Create more articles on this topic and link them here.
           ${retPct > 0 ? `<br><br><strong>${retPct}%</strong> of users are <span class="${parseFloat(retPct)>=20?'good':'warn'}">returning visitors</span>.` : ''}
-        </div>
-      </div>
-      <div class="exec-block">
-        <div class="exec-block-title">30-Day Forecast</div>
-        <div class="exec-score" style="color:rgba(255,255,255,0.80)">${fmt(forecast30)}</div>
-        <div class="exec-score-label">projected users next 30 days</div>
-        <div class="exec-block-content" style="margin-top:10px;font-size:13px;">
-          Best traffic source: <strong>${escHtml(bestSource)}</strong>.
-          ${parseFloat(retPct) < 20
-            ? `Returning visitor rate <span class="warn">${retPct}%</span> — below target of 20-30%. Focus on email capture to bring people back.`
-            : `Returning visitor rate <span class="good">${retPct}%</span> — healthy community forming.`
-          }
         </div>
       </div>
     </div>
@@ -996,17 +974,48 @@ document.getElementById('dateSelector').addEventListener('click', e => {
 });
 
 // ── Show dashboard ────────────────────────────────────────────────────────
+// Per-source freshness stamps (Step 6): GA4 signals (ga4:signals.generatedAt) on the GA4
+// panels + Mandate (intelligence:brief.generatedAt) on the Mandate panel. Each RED/"STALE"
+// when older than ~48h (daily cadence). No single global stamp — sources update independently.
+async function loadFreshnessStamps() {
+  function stamp(el, ts, label) {
+    if (!el) return;
+    if (!ts) { el.textContent = label + ': never generated  ⚠ STALE'; el.style.color = '#f87171'; el.style.fontWeight = '700'; return; }
+    var age = (Date.now() - new Date(ts).getTime()) / 3600000;
+    var stale = age > 48;
+    var rel = age < 1 ? Math.max(1, Math.round(age * 60)) + 'm' : age < 48 ? Math.round(age) + 'h' : Math.round(age / 24) + 'd';
+    var abs = new Date(ts).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai' });
+    el.textContent = label + ' updated ' + rel + ' ago · ' + abs + (stale ? '  ⚠ STALE' : '');
+    el.style.color = stale ? '#f87171' : 'rgba(255,255,255,0.40)';
+    el.style.fontWeight = stale ? '700' : '400';
+  }
+  var ga4El = document.getElementById('audFreshness');
+  if (ga4El) ga4El.style.display = 'block';
+  try {
+    var r = await fetch('/api/ga4-signals', { cache: 'no-store' });
+    var d = await r.json(); var o = d.signals || d;
+    stamp(ga4El, o && o.generatedAt, 'GA4 signals');
+  } catch (e) { if (ga4El) { ga4El.textContent = 'GA4 signals: freshness check failed'; ga4El.style.color = '#f87171'; } }
+  try {
+    var rb = await fetch('/api/intelligence-engine', { cache: 'no-store' });
+    var db = await rb.json(); var b = db.brief || db;
+    stamp(document.getElementById('audBriefGenTime'), b && b.generatedAt, 'Mandate');
+  } catch (e) {}
+}
+
 function showDashboard() {
   document.getElementById('connectBox').style.display = 'none';
   document.getElementById('audDashboard').classList.add('visible');
   document.getElementById('dateSelector').style.display = 'flex';
   document.getElementById('statusDot').style.cssText = '';
   document.getElementById('signalBtn').style.display = 'inline-block';
-  document.getElementById('seedBtn').style.display = 'inline-block';
   document.getElementById('intelBtn').style.display = 'inline-block';
+  // (Seed Targets button removed; Audience Brief panel removed — loadAudBriefAndDirective
+  //  still renders the Audience Mandate; renderAudBrief no-ops on the removed panel.)
   loadAll(28);
   loadTargetScorecard();
   loadAudBriefAndDirective();
+  loadFreshnessStamps();
 }
 
 // ── Trigger intelligence engine ──────────────────────────────────────────
