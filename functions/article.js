@@ -8,8 +8,19 @@
 // patch (both removed/retired in this change).
 //
 // HARD RULES honoured:
-//  - READ-ONLY against KV. Data comes from /article-content (read-only) via an
-//    internal subrequest — identical data, identical fallback order, zero writes.
+//  - Data comes from /article-content (read-only) via an internal subrequest —
+//    identical data, identical fallback order. SELF-HEAL (SH-2, 2026-07-09): on a
+//    TRANSIENT subrequest failure (network throw / non-200 / bad JSON / bodyless)
+//    the subrequest is retried once (short backoff); if it still fails we read the
+//    SAME underlying sources DIRECTLY (KV published/video/video:slug + articles.json
+//    — mirrors article-content.js) and render from that. A 503 is served only when
+//    the article is still genuinely unbuildable after retry AND direct fallback.
+//  - The ONLY KV write in this file is a lightweight, TTL'd diagnostic record written
+//    immediately before any 503 (key '503log:<ms>:<slug>'), so a residual 503 is
+//    diagnosable via the site edge (GET /article?diag503=<token>) WITHOUT the
+//    Cloudflare control plane / `wrangler tail`. The write is fully wrapped — a
+//    logging failure can never escalate the response. The render path is otherwise
+//    read-only. A genuine 404 (unknown slug) is never healed, never logged.
 //  - Every URL byte-identical. /article?slug=… unchanged.
 //  - Exact same markup/CSS/classes as article.html (spliced verbatim at build).
 //    The only visible change is the "Loading…" shell is gone.
@@ -28,6 +39,13 @@ const SITE    = 'FortitudeFX™';
 const OG_IMG  = 'https://fortitudefx.com/og-fortitudefx.png';
 const IMG_ALT = 'FortitudeFX — Catch The Wick mechanical forex trading system';
 const BASE    = 'https://fortitudefx.com';
+
+// ── SH-2 self-heal + edge-readable diagnostics (2026-07-09) ─────────────────────
+const BACKOFF_MS   = 200;        // one short backoff before the single subrequest retry
+const LOG_TTL      = 604800;     // 7 days — 503 diagnostic records self-expire
+const DIAG_TOKEN   = 'ffx-503-9d4b1c'; // gate for GET /article?diag503=<token> (logs are
+                                       // non-sensitive: branch id + status + slug, no PII)
+const ARTICLES_RAW = 'https://raw.githubusercontent.com/fortitudefx/FFX-v10-SEO1/main/articles.json';
 
 // ── Escaping helpers (reused verbatim from the retired _middleware.js) ──────────
 function attr(v) {
@@ -905,37 +923,274 @@ async function serveAsset(request, path, status, extraHeaders) {
 function serve404(request) { return serveAsset(request, '/404.html', 404, null); }
 function serve503(request) { return serveAsset(request, '/503.html', 503, { 'Retry-After': '120' }); }
 
-// ── Route handler ───────────────────────────────────────────────────────────────
-export async function onRequestGet(context) {
-  var request = context.request;
-  var url = new URL(request.url);
-  var slug = url.searchParams.get('slug');
+// ── SH-2 self-heal helpers ──────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
-  // No slug → not a real article → honest 404
-  if (!slug) return serve404(request);
-
-  // Read the same data the same way as /article-content (read-only subrequest)
+// One attempt at the internal /article-content subrequest. Classifies the outcome so
+// the caller can distinguish a GENUINE 404 (do not heal/log) from a TRANSIENT failure
+// (retry → fallback). Never throws.
+async function tryContentOnce(request, slug) {
   var res;
   try {
     var acUrl = new URL('/article-content?slug=' + encodeURIComponent(slug), request.url);
     res = await fetch(acUrl.toString(), { headers: { 'Accept': 'application/json' } });
   } catch (e) {
-    return serve503(request); // transient — could not reach the data path
+    return { ok: false, notfound: false, branch: 'subreq-fetch-threw', detail: String((e && e.message) || e) };
+  }
+  if (res.status === 404) return { ok: false, notfound: true, branch: 'subreq-404', detail: '404' };
+  if (!res.ok)            return { ok: false, notfound: false, branch: 'subreq-not-ok', detail: 'status=' + res.status };
+  var data;
+  try { data = await res.json(); }
+  catch (e) { return { ok: false, notfound: false, branch: 'subreq-json-parse', detail: String((e && e.message) || e) }; }
+  if (!data || data.success === false || !data.article) {
+    return { ok: false, notfound: false, branch: 'subreq-no-article', detail: 'success=' + (data && data.success) };
+  }
+  return { ok: true, article: data.article };
+}
+
+// Subrequest with ONE retry on transient failure. Returns 'ok' | 'notfound' | 'fail'.
+// A successful retry is a SILENT heal (no 503, no log). Records the last real failure
+// branch/detail on `diag` for the logger.
+async function fetchContentWithRetry(request, slug, diag) {
+  var a1 = await tryContentOnce(request, slug);
+  if (a1.ok)       return { status: 'ok', article: a1.article };
+  if (a1.notfound) return { status: 'notfound' };
+  diag.retried = true;
+  diag.branch = a1.branch; diag.detail = a1.detail;
+  await sleep(BACKOFF_MS);
+  var a2 = await tryContentOnce(request, slug);
+  if (a2.ok)       return { status: 'ok', article: a2.article };
+  if (a2.notfound) return { status: 'notfound' };
+  diag.branch = a2.branch; diag.detail = a2.detail;
+  return { status: 'fail' };
+}
+
+// Direct read of the SAME underlying sources /article-content uses, in the SAME order
+// (article-content.js:30-199). Used only as the fallback when the subrequest is
+// transiently down. Read-only. Returns 'ok' | 'notfound' | 'error'. Never throws.
+async function readArticleDirect(env, slug) {
+  if (!env || !env.FFX_KV) return { status: 'error' };
+  var meta;
+  try { meta = await env.FFX_KV.get('article:' + slug, { type: 'json' }); }
+  catch (e) { return { status: 'error' }; }
+  if (!meta) return { status: 'notfound' };   // no metadata key = genuinely missing (honest 404)
+
+  var videoId = meta.videoId;
+  var body = '';
+  var fullContent = {};
+  var siblingSlug = null, siblingRegion = null, siblingTitle = null;
+
+  if (videoId) {
+    try {
+      var pub = await env.FFX_KV.get('published:' + videoId, { type: 'json' });
+      if (pub) {
+        if (pub.regionalContent && pub.regionalContent.slug === slug && pub.regionalContent.body) {
+          fullContent = pub.regionalContent; body = fullContent.body;
+        } else if (pub.globalContent && pub.globalContent.body) {
+          fullContent = pub.globalContent; body = fullContent.body;
+        } else if (pub.platforms && pub.platforms.blog && pub.platforms.blog.content && pub.platforms.blog.content.body) {
+          fullContent = pub.platforms.blog.content; body = fullContent.body;
+        }
+        if (pub.regionalContent && pub.regionalContent.slug) {
+          var rSlug   = pub.regionalContent.slug;
+          var rRegion = pub.regionalContent.region || pub.region || 'Regional';
+          var rTitle  = pub.regionalContent.title || '';
+          if (slug === (pub.globalContent && pub.globalContent.slug)) {
+            siblingSlug = rSlug; siblingRegion = rRegion; siblingTitle = rTitle;
+          } else if (slug === rSlug) {
+            siblingSlug   = (pub.globalContent && pub.globalContent.slug) || null;
+            siblingRegion = 'Global';
+            siblingTitle  = (pub.globalContent && pub.globalContent.title) || '';
+          }
+        }
+      }
+    } catch (e) { /* non-fatal */ }
+
+    if (!body) {
+      try {
+        var vid = await env.FFX_KV.get('video:' + videoId, { type: 'json' });
+        if (vid) {
+          var bc = (vid.platforms && vid.platforms.blog_global && vid.platforms.blog_global.content) || vid.content || null;
+          if (bc) { fullContent = bc; body = bc.body || ''; }
+        }
+      } catch (e) { /* non-fatal */ }
+    }
   }
 
-  if (res.status === 404) return serve404(request);       // genuinely missing
-  if (!res.ok)            return serve503(request);        // 5xx / KV error → transient
+  if (!body) {
+    try {
+      var se = await env.FFX_KV.get('video:slug:' + slug, { type: 'json' });
+      if (se && se.content) { fullContent = se.content; body = se.content.body || ''; }
+    } catch (e) { /* non-fatal */ }
+  }
 
-  var data;
-  try { data = await res.json(); } catch (e) { return serve503(request); }
+  if (!body) {
+    try {
+      var gh = await fetch(ARTICLES_RAW, { headers: { 'Cache-Control': 'no-cache' } });
+      if (gh.ok) {
+        var all = await gh.json();
+        var found = Array.isArray(all) ? all.find(function (x) { return x.slug === slug; }) : null;
+        if (found && found.body) { body = found.body; fullContent = found; }
+      }
+    } catch (e) { /* non-fatal */ }
+  }
 
-  if (!data || data.success === false || !data.article) {
-    // article-content returns 404 for truly-missing (handled above); a non-success
-    // 200 here means the renderer cannot build a page → transient.
+  // On-the-fly internal-link injection — mirrors article-content.js:140-166.
+  if (body) {
+    try {
+      var pendingLinks = await env.FFX_KV.get('article:links:' + slug, { type: 'json' });
+      if (pendingLinks && Array.isArray(pendingLinks.links) && pendingLinks.links.length > 0) {
+        var linksHtml = pendingLinks.links.map(function (l) {
+          return '<p>For further reading, see <a href="' + l.targetUrl + '">' + l.targetTitle + '</a>.</p>';
+        }).join('');
+        var ctaIdx = body.indexOf('discord.gg/fortitudefx');
+        if (ctaIdx !== -1) {
+          var paraStart = body.lastIndexOf('<p', ctaIdx);
+          body = (paraStart !== -1) ? (body.slice(0, paraStart) + linksHtml + body.slice(paraStart)) : (body + linksHtml);
+        } else { body = body + linksHtml; }
+      }
+    } catch (e) { /* non-fatal */ }
+  }
+
+  var article = {
+    slug:       meta.slug,
+    title:      meta.title    || fullContent.title    || '',
+    excerpt:    meta.excerpt  || fullContent.excerpt  || '',
+    category:   meta.category || fullContent.category || 'Strategy',
+    tags:       Array.isArray(meta.tags) ? meta.tags : (fullContent.tags || []),
+    readTime:   meta.readTime || fullContent.readTime || '5 min read',
+    date:       meta.date     || fullContent.date     || '',
+    body:       body || fullContent.body || '',
+    youtubeUrl: meta.youtubeUrl || fullContent.youtubeUrl || '',
+    videoId:    meta.videoId  || '',
+    region:     meta.region   || fullContent.region   || 'Global',
+    draft:      meta.draft    || false,
+    siblingSlug: siblingSlug,
+    siblingRegion: siblingRegion,
+    siblingTitle: siblingTitle
+  };
+
+  // Newsletter cross-link append — mirrors article-content.js:188-199.
+  try {
+    var refs = await env.FFX_KV.get('newsletter:article_refs:' + slug, { type: 'json' });
+    if (Array.isArray(refs) && refs.length > 0) {
+      var latest = refs[refs.length - 1];
+      var nlUrl  = '/newsletter-issue?date=' + latest.issueDate;
+      var nlBlock = '<div style="margin-top:32px;padding:16px 20px;border-left:3px solid rgba(201,168,76,0.70);background:rgba(201,168,76,0.05);border-radius:0 8px 8px 0;">'
+        + '<p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(201,168,76,0.70);">Featured in Newsletter</p>'
+        + '<p style="margin:0;font-size:14px;"><a href="' + nlUrl + '" style="color:#7a5cff;text-decoration:none;font-weight:700;">Read Issue #' + latest.issueNumber + ' →</a></p>'
+        + '</div>';
+      article.body = (article.body || '') + nlBlock;
+    }
+  } catch (e) { /* non-fatal */ }
+
+  return { status: 'ok', article: article };
+}
+
+// ── SH-2 observability: write a lightweight, TTL'd 503 diagnostic to KV ──────────
+// Called immediately before EVERY 503. Fully wrapped: a logging failure is swallowed
+// so it can never escalate the response into a worse failure.
+async function log503(context, diag) {
+  try {
+    var env = context && context.env;
+    if (!env || !env.FFX_KV) return;
+    var ts  = Date.now();
+    var key = '503log:' + ts + ':' + (diag.slug || 'noslug');
+    var rec = {
+      ts:       new Date(ts).toISOString(),
+      slug:     diag.slug || null,
+      branch:   diag.branch || 'unknown',
+      detail:   diag.detail || '',
+      retried:  !!diag.retried,
+      fellBack: !!diag.fellBack
+    };
+    await env.FFX_KV.put(key, JSON.stringify(rec), { expirationTtl: LOG_TTL });
+  } catch (e) {
+    // Swallow — logging must never make the outage worse.
+  }
+}
+
+// Edge-readable diagnostics: GET /article?diag503=<token> → recent 503 records as JSON.
+// Reachable from the site edge, so residual 503s are diagnosable WITHOUT the control
+// plane. noindex + no-store. Non-sensitive payload.
+async function serveDiag503(context, token) {
+  var headers = {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Robots-Tag': 'noindex, nofollow'
+  };
+  if (token !== DIAG_TOKEN) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: headers });
+  }
+  var env = context && context.env;
+  if (!env || !env.FFX_KV) {
+    return new Response(JSON.stringify({ error: 'kv-unbound' }), { status: 500, headers: headers });
+  }
+  try {
+    var list = await env.FFX_KV.list({ prefix: '503log:', limit: 1000 });
+    var keys = (list && list.keys) ? list.keys.slice() : [];
+    keys.sort(function (a, b) {
+      return (parseInt(b.name.split(':')[1], 10) || 0) - (parseInt(a.name.split(':')[1], 10) || 0);
+    });
+    var top = keys.slice(0, 200);
+    var records = [];
+    for (var i = 0; i < top.length; i++) {
+      var v = await env.FFX_KV.get(top[i].name, { type: 'json' });
+      if (v) records.push(v);
+    }
+    return new Response(JSON.stringify({ count: records.length, total: keys.length, records: records }, null, 2),
+      { status: 200, headers: headers });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String((e && e.message) || e) }), { status: 500, headers: headers });
+  }
+}
+
+// ── Route handler ───────────────────────────────────────────────────────────────
+export async function onRequestGet(context) {
+  var request = context.request;
+  var url = new URL(request.url);
+
+  // ── Edge-readable diagnostics (no control plane needed) ──────────────────
+  // GET /article?diag503=<token> → recent 503 records this function wrote.
+  var diagTok = url.searchParams.get('diag503');
+  if (diagTok) return serveDiag503(context, diagTok);
+
+  var slug = url.searchParams.get('slug');
+
+  // No slug → not a real article → honest 404 (never 503, never logged)
+  if (!slug) return serve404(request);
+
+  var diag = { slug: slug, retried: false, fellBack: false, branch: '', detail: '' };
+
+  // ── PART 1a: internal /article-content subrequest, retry once on transient failure ──
+  var got = await fetchContentWithRetry(request, slug, diag);
+
+  // Genuinely missing → honest 404. Never healed, never logged.
+  if (got.status === 'notfound') return serve404(request);
+
+  var a = (got.status === 'ok') ? got.article : null;
+
+  // ── PART 1b: direct-source fallback when the subrequest failed OR returned a
+  //            bodyless article. Reads the SAME sources /article-content would. ──
+  var bodyUsable = a && a.body && String(a.body).trim();
+  if (got.status === 'fail' || !bodyUsable) {
+    diag.fellBack = true;
+    var direct = await readArticleDirect(context.env, slug);
+    if (direct.status === 'ok' && direct.article.body && String(direct.article.body).trim()) {
+      a = direct.article;                 // healed from the underlying source
+    } else if (!a && direct.status === 'notfound') {
+      return serve404(request);           // both paths agree: genuinely gone
+    }
+    // else: keep whatever `a` we have (possibly null / bodyless) → checks below decide
+  }
+
+  // No usable article after retry AND direct fallback → genuine transient 503 (logged)
+  if (!a) {
+    diag.branch = diag.branch || 'no-article-after-fallback';
+    await log503(context, diag);
     return serve503(request);
   }
-  var a = data.article;
-  if (!a.slug) return serve404(request);
+  if (!a.slug) return serve404(request);  // malformed record → honest 404
 
   // ── REGIONAL CONSOLIDATION (noindex→global, 2026-07-07) ──────────────────
   // Resolve the videoId-authoritative canonical target for a regional variant.
@@ -963,13 +1218,23 @@ export async function onRequestGet(context) {
 
   // BUILD fully in memory…
   var html;
-  try { html = buildPage(a); } catch (e) { return serve503(request); }
+  try { html = buildPage(a); }
+  catch (e) {
+    diag.branch = 'buildpage-threw'; diag.detail = String((e && e.message) || e);
+    await log503(context, diag);
+    return serve503(request);
+  }
 
   // …then VERIFY it is complete BEFORE sending. Never emit a partial/shell page.
   var titleOk = !!(a.title && String(a.title).trim());
   var bodyOk  = !!(a.body && String(a.body).trim());
   var markupOk = html.indexOf('<h1>') !== -1 && html.indexOf('class="article-body') !== -1;
-  if (!titleOk || !bodyOk || !markupOk) return serve503(request);
+  if (!titleOk || !bodyOk || !markupOk) {
+    diag.branch = 'incomplete';
+    diag.detail = 'title=' + titleOk + ' body=' + bodyOk + ' markup=' + markupOk;
+    await log503(context, diag);
+    return serve503(request);
+  }
 
   return new Response(html, {
     status: 200,
