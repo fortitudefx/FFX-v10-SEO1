@@ -2,6 +2,8 @@
 // ALWAYS: writes article + all platform content to articles.json
 // CONDITIONALLY: rebuilds sitemap (no Google ping — indexing is via GSC Request-Indexing, manual)
 
+import { BASE, STATIC_PAGES, isIndexableArticle } from './_seo-pages.js';
+
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -219,7 +221,10 @@ export async function onRequestPost(context) {
           // Dedupe by slug — every article URL must appear exactly once (§D1)
           const seenSlug = new Set();
           articleSlugs = slugEntries
-            .filter(a => a && a.slug && !seenSlug.has(a.slug) && seenSlug.add(a.slug))
+            // Only INDEXABLE articles belong in the sitemap. Regionals/drafts are served
+            // noindex by article.js, so they must never be advertised here. Uses the shared
+            // isIndexableArticle predicate (functions/_seo-pages.js) that mirrors article.js.
+            .filter(a => a && a.slug && isIndexableArticle(a) && !seenSlug.has(a.slug) && seenSlug.add(a.slug))
             .map(a => ({ slug: a.slug, date: a.date || articleDate }));
         }
       } catch (kvErr) {
@@ -229,21 +234,12 @@ export async function onRequestPost(context) {
 
       // Real, current date — emitted on every regeneration instead of a frozen literal (§D2)
       const todayIso = new Date().toISOString().split('T')[0];
-      // All indexable public pages (index,follow). Excludes /pricing and /press
-      // (both meta noindex) so the sitemap never advertises a non-indexable URL.
-      const staticPages = [
-        { loc: 'https://fortitudefx.com/',           lastmod: todayIso, changefreq: 'weekly',  priority: '1.0' },
-        { loc: 'https://fortitudefx.com/bootcamp',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.9' },
-        { loc: 'https://fortitudefx.com/vipdiscord', lastmod: todayIso, changefreq: 'weekly',  priority: '0.9' },
-        { loc: 'https://fortitudefx.com/blog',       lastmod: todayIso, changefreq: 'weekly',  priority: '0.8' },
-        { loc: 'https://fortitudefx.com/about',      lastmod: todayIso, changefreq: 'monthly', priority: '0.7' },
-        { loc: 'https://fortitudefx.com/newsletter', lastmod: todayIso, changefreq: 'weekly',  priority: '0.7' },
-        { loc: 'https://fortitudefx.com/waitlist',   lastmod: todayIso, changefreq: 'weekly',  priority: '0.7' },
-        { loc: 'https://fortitudefx.com/joinfree',   lastmod: todayIso, changefreq: 'monthly', priority: '0.6' },
-        { loc: 'https://fortitudefx.com/contact',    lastmod: todayIso, changefreq: 'yearly',  priority: '0.6' },
-        { loc: 'https://fortitudefx.com/privacy',    lastmod: todayIso, changefreq: 'yearly',  priority: '0.3' },
-        { loc: 'https://fortitudefx.com/disclaimer', lastmod: todayIso, changefreq: 'yearly',  priority: '0.3' },
-      ];
+      // All indexable public pages — built from the SINGLE shared list
+      // (functions/_seo-pages.js) so sitemap staticPages and indexing-engine
+      // IX_STATIC_PAGES cannot drift. Excludes /pricing + /press (both noindex).
+      const staticPages = STATIC_PAGES.map(function (p) {
+        return { loc: BASE + p.path, lastmod: todayIso, changefreq: p.changefreq, priority: p.priority };
+      });
 
       const articleEntries = articleSlugs.map(a => ({
         loc: `https://fortitudefx.com/article?slug=${a.slug}`,

@@ -800,9 +800,10 @@ export async function onRequestGet(context) {
   var url = new URL(request.url);
   var date = url.searchParams.get('date');
 
-  // No date → a bare issue URL is not a resource → send to the index.
+  // No date → a bare issue URL is not a resource → send to the index. A bare
+  // /newsletter-issue never has content, so this is a PERMANENT move → 301 (absolute Location).
   if (!date) {
-    return new Response(null, { status: 302, headers: { 'Location': '/newsletter', 'Cache-Control': 'no-store' } });
+    return new Response(null, { status: 301, headers: { 'Location': 'https://fortitudefx.com/newsletter', 'Cache-Control': 'no-store' } });
   }
   // Malformed date → genuinely not a valid issue id → honest 404.
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return serve404(request);

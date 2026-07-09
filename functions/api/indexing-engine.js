@@ -29,16 +29,11 @@ var IX_HISTORY_TTL  = 7776000;
 var IX_STATUS_TTL   = 90000;
 var IX_CLIENT_ID    = '805135063067-mb9ap5knagr29280dmg1s63gcbd2f01t.apps.googleusercontent.com';
 
-var IX_STATIC_PAGES = [
-  'https://fortitudefx.com/',
-  'https://fortitudefx.com/blog',
-  'https://fortitudefx.com/about',
-  'https://fortitudefx.com/bootcamp',
-  'https://fortitudefx.com/vipdiscord',
-  'https://fortitudefx.com/waitlist',
-  'https://fortitudefx.com/privacy',
-  'https://fortitudefx.com/disclaimer',
-];
+// Static page set now comes from the SINGLE shared source of truth
+// (functions/_seo-pages.js) so it can never drift from the sitemap generator.
+// The previous hardcoded list was missing /newsletter, /joinfree, /contact.
+import { STATIC_PAGE_URLS } from '../_seo-pages.js';
+var IX_STATIC_PAGES = STATIC_PAGE_URLS;
 
 // ── GET — return KV data ─────────────────────────────────────────────────────
 

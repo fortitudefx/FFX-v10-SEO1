@@ -1,7 +1,11 @@
 # Redirect /index.html to canonical root — prevents Google flagging it as a redirect page
 /index.html / 301
 
-# Redirect old /blog/:slug URLs to correct article URL format
+# Redirect old /blog/:slug URLs to correct article URL format.
+# .html-suffixed legacy blog URLs first — strip the extension so the captured slug
+# resolves to a real article (otherwise :slug keeps ".html" and 301s to a 404).
+# Must precede the generic rule (Cloudflare _redirects: first match wins).
+/blog/:slug.html /article?slug=:slug 301
 /blog/:slug /article?slug=:slug 301
 
 # Redirect /vip-discord (hyphenated) to correct URL
