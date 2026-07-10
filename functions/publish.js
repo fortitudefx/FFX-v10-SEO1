@@ -4,6 +4,14 @@
 
 import { BASE, STATIC_PAGES, isIndexableArticle } from './_seo-pages.js';
 
+// SH-3 (2026-07-10): post-publish sitemap self-check. After the sitemap PUT, re-fetch
+// the just-written sitemap and confirm THIS article's <loc> is present iff it is
+// indexable. A failure NEVER aborts the publish — it logs loudly to KV (short TTL,
+// non-sensitive: slug/loc/present flags) readable via the site edge at
+// GET /publish?diag=<token>, and is reported per-publish in the response.
+const SITEMAP_DIAG_TOKEN = 'ffx-sitemap-7b2e';
+const SITEMAP_LOG_TTL    = 604800; // 7 days — self-check records self-expire
+
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -94,6 +102,9 @@ export async function onRequestPost(context) {
           readTime: readTime || '5 min read',
           date: articleDate,
           region: body.region || 'Global',
+          // Persist draft so the sitemap filter's isIndexableArticle draft-exclusion
+          // is real for this path (previously absent → drafts were never excluded).
+          draft: !!body.draft,
           youtubeUrl: youtubeUrl || yt_url || '',
           videoId: videoId || '',
           createdAt: new Date().toISOString(),
@@ -207,6 +218,8 @@ export async function onRequestPost(context) {
     }
 
     // ── 2. CONDITIONALLY: sitemap only ────────────────────────────────────
+    // Reported per-publish in the response so the operator sees the outcome.
+    let sitemapCheck = 'skipped (skipSitemapAndIndex set)';
     if (!skipSitemapAndIndex) {
 
       let articleSlugs = [];
@@ -274,7 +287,7 @@ ${uniqueEntries.map(u => `  <url>
         sitemapSha = sd.sha;
       }
 
-      await fetch(sitemapUrl, {
+      const sitemapPutRes = await fetch(sitemapUrl, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${GITHUB_TOKEN}`,
@@ -293,11 +306,25 @@ ${uniqueEntries.map(u => `  <url>
           ...(sitemapSha && { sha: sitemapSha })
         })
       });
+      const sitemapPutOk = !!(sitemapPutRes && sitemapPutRes.ok);
+      console.log('[FFX] sitemap.xml PUT status:', sitemapPutRes && sitemapPutRes.status);
 
-      console.log('[FFX] sitemap.xml updated');
+      // ── 2b. POST-PUT SELF-CHECK (SH-3) — the durable guard against a silently
+      //        failed PUT. Re-fetches the just-written sitemap and confirms THIS
+      //        article's <loc> is present iff indexable. NEVER aborts the publish.
+      try {
+        sitemapCheck = await selfCheckSitemap({
+          env, sitemapUrl, GITHUB_TOKEN, slug,
+          indexable: isIndexableArticle({ slug, draft: !!body.draft, region: body.region || 'Global' }),
+          putOk: sitemapPutOk,
+        });
+      } catch (scErr) {
+        sitemapCheck = 'check-error (non-fatal)';
+        console.error('[FFX] sitemap self-check threw (swallowed, publish unaffected):', scErr.message);
+      }
     }
 
-    return new Response(JSON.stringify({ success: true, slug }), {
+    return new Response(JSON.stringify({ success: true, slug, sitemap: sitemapCheck }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
@@ -305,6 +332,89 @@ ${uniqueEntries.map(u => `  <url>
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
     });
+  }
+}
+
+// ── SH-3: post-publish sitemap self-check ───────────────────────────────────────
+// Re-fetch the just-written sitemap (authoritative Contents API — NOT the ~5min-cached
+// raw CDN) and confirm THIS article's <loc> is present iff indexable. Returns a short
+// human verdict for the publish response. On failure: logs loudly + writes an
+// edge-readable KV diagnostic. Fully self-contained — every await is guarded; it can
+// never throw into (or abort) the publish flow.
+async function selfCheckSitemap({ env, sitemapUrl, GITHUB_TOKEN, slug, indexable, putOk }) {
+  const thisLoc = `https://fortitudefx.com/article?slug=${slug}`;
+  let present = false, refetchOk = false, xmlLen = 0;
+  try {
+    const verifyRes = await fetch(sitemapUrl, {
+      headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker', Accept: 'application/vnd.github.raw' }
+    });
+    refetchOk = !!(verifyRes && verifyRes.ok);
+    if (refetchOk) {
+      const liveXml = await verifyRes.text();
+      xmlLen = liveXml.length;
+      present = liveXml.indexOf(`<loc>${thisLoc}</loc>`) !== -1;
+    }
+  } catch (e) {
+    refetchOk = false;
+  }
+
+  // Expected: indexable → must be present; non-indexable → must be absent.
+  const ok = putOk && refetchOk && (indexable ? present : !present);
+  if (ok) {
+    console.log(`[FFX] sitemap self-check OK for ${slug}: updated ✓`);
+    return 'updated ✓';
+  }
+
+  const verdict = !putOk    ? 'SITEMAP PUT FAILED ✗'
+                : !refetchOk ? 'SITEMAP VERIFY UNREACHABLE ✗'
+                : indexable  ? 'SITEMAP MISSING ARTICLE ✗'
+                :              'SITEMAP LEAKED NON-INDEXABLE ✗';
+  console.error(`[FFX] SITEMAP SELF-CHECK FAILED for ${slug}: ${verdict} (putOk=${putOk} refetchOk=${refetchOk} present=${present} indexable=${indexable})`);
+  try {
+    if (env && env.FFX_KV) {
+      const ts = Date.now();
+      await env.FFX_KV.put(`sitemapcheck:${ts}:${slug}`, JSON.stringify({
+        ts: new Date(ts).toISOString(), slug, loc: thisLoc, indexable,
+        putOk, refetchOk, present, xmlLen, verdict
+      }), { expirationTtl: SITEMAP_LOG_TTL });
+    }
+  } catch (logErr) {
+    console.error('[FFX] sitemap self-check log write failed (swallowed):', logErr.message);
+  }
+  return verdict;
+}
+
+// Edge-readable diagnostics: GET /publish?diag=<token> → recent sitemap self-check
+// failures. Reachable from the site edge (no control plane / wrangler needed).
+// noindex + no-store. Non-sensitive payload (slug/loc/present flags).
+export async function onRequestGet(context) {
+  const { request, env } = context;
+  const url = new URL(request.url);
+  const headers = {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Robots-Tag': 'noindex, nofollow'
+  };
+  if (url.searchParams.get('diag') !== SITEMAP_DIAG_TOKEN) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers });
+  }
+  if (!env || !env.FFX_KV) {
+    return new Response(JSON.stringify({ error: 'kv-unbound' }), { status: 500, headers });
+  }
+  try {
+    const list = await env.FFX_KV.list({ prefix: 'sitemapcheck:', limit: 1000 });
+    const keys = ((list && list.keys) || []).slice().sort(function (a, b) {
+      return (parseInt(b.name.split(':')[1], 10) || 0) - (parseInt(a.name.split(':')[1], 10) || 0);
+    });
+    const top = keys.slice(0, 200);
+    const records = [];
+    for (let i = 0; i < top.length; i++) {
+      const v = await env.FFX_KV.get(top[i].name, { type: 'json' });
+      if (v) records.push(v);
+    }
+    return new Response(JSON.stringify({ count: records.length, total: keys.length, records }, null, 2), { status: 200, headers });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String((e && e.message) || e) }), { status: 500, headers });
   }
 }
 
