@@ -344,13 +344,67 @@ export async function onRequestPost(context) {
     console.log('[FFX] KV write failed (non-fatal):', kvErr.message);
   }
 
+  // ── HONEST VERDICT (SH-4, 2026-07-11) ────────────────────────────────────────
+  // FIX: previously this returned `success:true` + HTTP 200 UNCONDITIONALLY, so a
+  // failed article publish (e.g. slug-collision 409) still read as success while the
+  // other platforms posted. Now: success is true ONLY IF every platform the user
+  // SELECTED actually succeeded. This changes REPORTING ONLY — no platform's publish
+  // logic above is touched. A platform "succeeded" iff its status is a real result
+  // (not 'pending', not 'not_selected', not an 'Error: …' string). blogRegional is
+  // excluded from the verdict: it is intentionally disabled by GLOBAL_ONLY and is not
+  // a user-selectable platform key.
+  const REPORT_PLATFORMS = ['blog', 'x', 'linkedin', 'tumblr', 'discord'];
+  const succeeded = (s) => !!s && s !== 'pending' && s !== 'not_selected' && !String(s).startsWith('Error');
+  const cleanErr  = (s) => String(s == null ? 'unknown error' : s).replace(/^Error:\s*/, '');
+
+  const selectedPlatforms = REPORT_PLATFORMS.filter((k) => userSelected[k]);
+  const platformResults = {};
+  selectedPlatforms.forEach((k) => {
+    platformResults[k] = succeeded(status[k])
+      ? { ok: true,  result: status[k] }
+      : { ok: false, error: cleanErr(status[k]) };
+  });
+  const posted = selectedPlatforms.filter((k) => platformResults[k].ok);
+  const failed = selectedPlatforms.filter((k) => !platformResults[k].ok);
+  const allOk  = failed.length === 0;
+
+  // The article/blog is the anchor — surface its outcome explicitly and clearly.
+  const articleSelected = !!userSelected.blog;
+  const articleOk       = succeeded(status.blog);
+  const articleFailed   = articleSelected && !articleOk;
+
+  let error = null;
+  if (!allOk) {
+    if (articleFailed) {
+      error = `Article did NOT publish — ${cleanErr(status.blog)}`;
+      const otherFails = failed.filter((k) => k !== 'blog');
+      if (otherFails.length) error += ` | also failed: ${otherFails.join(', ')}`;
+      if (posted.length)     error += ` | these DID post and now link to a URL that is NOT this article: ${posted.join(', ')}`;
+    } else {
+      error = `Publish incomplete — failed: ${failed.map((k) => `${k} (${platformResults[k].error})`).join('; ')}`;
+      if (posted.length) error += ` | posted: ${posted.join(', ')}`;
+    }
+    console.error('[FFX] PUBLISH NOT FULLY SUCCESSFUL:', error);
+  }
+
+  // Non-2xx on any failure so the honest verdict propagates through press-publish's
+  // existing `!res.ok` handling to the dashboard (which then shows red, not green).
+  // 409 when the article itself failed (usually a slug collision); 502 when only
+  // ancillary social platforms failed.
+  const httpStatus = allOk ? 200 : (articleFailed ? 409 : 502);
+
   return resp({
-    success: true,
+    success: allOk,
     slug,
-    status,
+    error,                                 // null on full success
+    articlePublished: articleSelected ? articleOk : null,
+    platforms: platformResults,            // per-platform breakdown: { ok, result | error }
+    posted,                                // platforms that actually posted
+    failed,                                // selected platforms that failed
+    status,                                // raw per-platform status (unchanged shape — back-compat)
     contentPerfVerified: typeof contentPerfVerified !== 'undefined' ? contentPerfVerified : null,
     contentPerfError:    typeof contentPerfError    !== 'undefined' ? contentPerfError    : null,
-  }, 200, headers);
+  }, httpStatus, headers);
 }
 
 export async function onRequestOptions() {
