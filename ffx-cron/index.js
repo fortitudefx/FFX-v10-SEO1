@@ -19,6 +19,7 @@ import {
   readDemandMap, writeDemandMap, selectTargets, markClaimed,
   retrieveNuggetIds, keywordId,
 } from '../lib/keyword/select.js';
+import { ensureDemandMap, ensureCorpus } from '../lib/keyword/seed.js';
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 const QUEUE_KEY        = 'queue:index';
@@ -256,13 +257,20 @@ async function runCron(env) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function runKeywordSource(env) {
+  // Self-seed on first run — no manual step, no key. demand:map from committed
+  // data; gate:corpus (deterministic) from the 26 via the live site.
+  try {
+    const sm = await ensureDemandMap(env);
+    if (sm.seeded) console.log('[ffx-cron][keyword] Self-seeded demand:map —', sm.count, 'targets');
+    const sc = await ensureCorpus(env, 'https://fortitudefx.com', fetch);
+    if (sc.seeded) console.log('[ffx-cron][keyword] Self-seeded gate:corpus —', sc.count, 'of', sc.attempted, 'articles');
+  } catch (seedErr) {
+    console.error('[ffx-cron][keyword] Self-seed failed (non-fatal):', seedErr.message);
+  }
+
   const map = await readDemandMap(env);
   if (!map.length) {
-    console.error('[ffx-cron][keyword] demand:map is empty — run POST /api/seed-demand-map once. Skipping.');
-    await sendAlertEmail(env, {
-      subject: '[FFX Keyword] demand:map not seeded',
-      message: 'SOURCE_MODE=keyword but demand:map is empty. Seed it once via POST /api/seed-demand-map, then the cron will start generating.',
-    });
+    console.error('[ffx-cron][keyword] demand:map still empty after self-seed — skipping.');
     return;
   }
 

@@ -1,15 +1,12 @@
 // functions/api/seed-demand-map.js
-// POST /api/seed-demand-map?key=GATE_AUDIT_KEY  → writes the keyword demand map to
-// demand:map (KV) from the committed lib/keyword/seed-data.js. Run ONCE to arm
-// SOURCE_MODE=keyword. Thereafter the cron claims targets from it each weekday.
+// POST /api/seed-demand-map  → writes the keyword demand map to demand:map (KV)
+// from the committed lib/keyword/seed-data.js. The cron self-seeds too, so you
+// rarely need this; it stays as a manual seed/inspect tool.
 //
-// Key-guarded (reuses GATE_AUDIT_KEY). Refuses to clobber a seeded map unless
-// &force=1 is passed — re-seeding would reset every target's claimed/done status
-// and re-generate articles already made. GET returns the map's status without
-// writing (open/claimed/done counts), so you can inspect runway any time.
-//
-// This writes ONLY demand:map. It touches no article, no live page, nothing
-// publishable. Nothing here can publish.
+// No key — it only ever writes demand:map from committed data (no user input, no
+// article, no live page, nothing publishable). Refuses to clobber a seeded map
+// unless &force=1 (re-seeding resets claimed/done status). GET returns the map's
+// open/claimed/winnable counts so you can check runway any time.
 
 import { SEED_TARGETS, WINNABLE_TOPIC_COUNT } from '../../lib/keyword/seed-data.js';
 
@@ -34,20 +31,10 @@ function summarise(map) {
 
 const HEADERS = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' };
 
-function guard(env, url) {
-  if (!env.GATE_AUDIT_KEY) return json({ error: 'GATE_AUDIT_KEY not set — set it in the Cloudflare dashboard, then call with ?key=' }, 500, HEADERS);
-  if (url.searchParams.get('key') !== env.GATE_AUDIT_KEY) return json({ error: 'forbidden — valid ?key= required' }, 403, HEADERS);
-  if (!env.FFX_KV) return json({ error: 'FFX_KV not bound' }, 500, HEADERS);
-  return null;
-}
-
 // GET — inspect the live map without writing (runway check).
 export async function onRequestGet(context) {
-  const { request, env } = context;
-  const url = new URL(request.url);
-  const blocked = guard(env, url);
-  if (blocked) return blocked;
-
+  const { env } = context;
+  if (!env.FFX_KV) return json({ error: 'FFX_KV not bound' }, 500, HEADERS);
   const existing = await env.FFX_KV.get(DEMAND_MAP_KEY, { type: 'json' }).catch(() => null);
   if (!Array.isArray(existing)) return json({ seeded: false, seedSize: SEED_TARGETS.length, winnableTopicsInSeed: WINNABLE_TOPIC_COUNT }, 200, HEADERS);
   return json({ seeded: true, live: summarise(existing) }, 200, HEADERS);
@@ -57,9 +44,7 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const { request, env } = context;
   const url = new URL(request.url);
-  const blocked = guard(env, url);
-  if (blocked) return blocked;
-
+  if (!env.FFX_KV) return json({ error: 'FFX_KV not bound' }, 500, HEADERS);
   const force = url.searchParams.get('force') === '1';
   const existing = await env.FFX_KV.get(DEMAND_MAP_KEY, { type: 'json' }).catch(() => null);
   if (Array.isArray(existing) && existing.length && !force) {
