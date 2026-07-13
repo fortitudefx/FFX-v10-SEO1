@@ -1142,7 +1142,7 @@ async function callClaudeKeywordPlatforms(article, targetQuery, blogUrl, apiKey,
     '  "discord": "…"\n' +
     '}\n\n' +
     'X THREAD — THE PRIORITY. Exactly 6 tweets, each ≤ 275 characters, each on its own idea, flowing as a thread:\n' +
-    '- Tweet 1 = HOOK. Scroll-stopping and SPECIFIC about "' + targetQuery + '" — a concrete claim, a costly mistake, or a counter-intuitive truth from the article. No link, no hashtag. It must earn the expand. Not "Let\'s talk about…".\n' +
+    '- Tweet 1 = HOOK, CONTRARIAN + tension-driven. Open by challenging the common belief about "' + targetQuery + '" or naming how it is usually taught/traded wrong, then imply the fix — create a gap the reader NEEDS closed so they expand the thread. It must be specific and true to the article (never hype, never a fabricated stat). SHAPE examples (do not copy verbatim, adapt to the article): "Everyone trades ' + targetQuery + ' backwards." / "You were taught ' + targetQuery + ' wrong." / "' + targetQuery + ' isn\'t what your indicator says it is." / "Stop entering ' + targetQuery + ' the way you were shown." A trailing 🧵 is fine. No link, no hashtag. (Still obey the banned-openings list — do not start with "Most traders"/"Many traders".)\n' +
     '- Tweets 2–5 = one concrete teaching point each, building the method step by step (setup → trigger → entry → risk). Short lines, a line break where it helps. Self-contained but sequential. No links.\n' +
     '- Tweet 6 = PAYOFF in one line, then on new lines "Full breakdown 👇" and the BLOG URL. At most ONE hashtag, here only.\n' +
     'Weave "' + targetQuery + '" in naturally (tweet 1 + at least one more). Plain text tweets.\n\n' +
