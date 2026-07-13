@@ -71,6 +71,28 @@ async function runEngine(env) {
   } catch (e) {
     console.error('[ffx-cron] Intelligence engine ERROR — ' + e.message);
   }
+
+  // ── QUALITY AUTOPILOT ───────────────────────────────────────────────────────
+  // Runs after the engine (seo:signals already fresh from the 05:00 run): verifies
+  // prior fixes, diagnoses underperformers, feeds keyword outcomes back to
+  // demand:map, and enqueues ONE fix (auto-republished on gate pass). Guardrailed
+  // (min-age, churn-cap, kill-switch, 1/run). Non-fatal.
+  try {
+    const apRes = await fetch('https://fortitudefx.com/api/quality-autopilot', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+    });
+    if (apRes.ok) {
+      const r = await apRes.json().catch(function () { return {}; });
+      console.log('[ffx-cron] Autopilot OK — fixCandidates=' + ((r.fixCandidates || []).length)
+        + ' escalations=' + ((r.escalations || []).length)
+        + ' actedOn=' + (r.actedOn ? r.actedOn.slug : 'none')
+        + ' deprioritized=' + ((r.keywordFeedback && r.keywordFeedback.deprioritizedKeywords || []).length));
+    } else {
+      console.error('[ffx-cron] Autopilot FAILED — status ' + apRes.status);
+    }
+  } catch (e) {
+    console.error('[ffx-cron] Autopilot ERROR — ' + e.message);
+  }
 }
 
 async function runCron(env) {

@@ -30,6 +30,7 @@ export async function onRequestPost(context) {
       seoSignals, seoLearning, ga4Signals, ga4Learning,
       ytSignals, discordSignals, emailSignals, intelSignals,
       calSignals, knowledgeTaxonomy, knowledgePerf, prevBrief,
+      newsletterLastSentRaw, autopilotSignals,
     ] = await Promise.all([
       env.FFX_KV.get('seo:signals',          { type: 'json' }).catch(() => null),
       env.FFX_KV.get('seo:learning',          { type: 'json' }).catch(() => null),
@@ -44,6 +45,7 @@ export async function onRequestPost(context) {
       env.FFX_KV.get('knowledge:performance', { type: 'json' }).catch(() => null),
       env.FFX_KV.get('intelligence:brief',    { type: 'json' }).catch(() => null),
       env.FFX_KV.get('newsletter:last_sent',  { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('autopilot:signals',     { type: 'json' }).catch(() => null),
     ]);
 
     if (!seoSignals && !ga4Signals) {
@@ -162,6 +164,19 @@ export async function onRequestPost(context) {
 
     // Append YouTube performance intelligence context
     let finalContext = signalContextWithNewsletter;
+
+    // Quality Autopilot feedback — keyword outcomes from live results. Deprioritized
+    // keywords produced pages that underperformed even when gate-clean, so the brief
+    // must NOT re-suggest them (the keyword injection now reflects real results).
+    if (autopilotSignals && (autopilotSignals.deprioritizedKeywords?.length || autopilotSignals.underperformingKeywords?.length)) {
+      finalContext += '\n\n' + '='.repeat(50) + '\nQUALITY AUTOPILOT — KEYWORD OUTCOMES (act on these)\n' + '='.repeat(50) + '\n';
+      if (autopilotSignals.deprioritizedKeywords?.length)
+        finalContext += 'DO NOT target these — they underperformed on live data and are deprioritized: ' + autopilotSignals.deprioritizedKeywords.join(', ') + '\n';
+      if (autopilotSignals.underperformingKeywords?.length)
+        finalContext += 'Underperforming (weak so far, watch before repeating): ' + autopilotSignals.underperformingKeywords.join(', ') + '\n';
+      if (autopilotSignals.winnerQuery)
+        finalContext += 'WINNING intent (mine for sibling angles): "' + autopilotSignals.winnerQuery + '"\n';
+    }
 
     if (ytSignals || (Array.isArray(ytTitleLearning) && ytTitleLearning.length > 0)) {
       finalContext += '\n\n' + '='.repeat(50) + '\nYOUTUBE CHANNEL INTELLIGENCE\n' + '='.repeat(50) + '\n';

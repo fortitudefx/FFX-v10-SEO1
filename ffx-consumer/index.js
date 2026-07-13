@@ -51,15 +51,15 @@ async function processJob(job, env) {
     await processKeywordJob(job, env);
     return;
   }
-  const { jobId, videoId, youtubeUrl, existingSlug } = job;
-  console.log('[FFX] Processing job:', jobId, 'videoId:', videoId);
+  const { jobId, videoId, youtubeUrl, existingSlug, autopilot, fixDirective } = job;
+  console.log('[FFX] Processing job:', jobId, 'videoId:', videoId, autopilot ? '(autopilot fix)' : '');
 
   // ── Skip Phase 1 entirely if video already fully generated ──────────────
   // Happens when: regenerate pressed after success, or Phase 2 (SEO) failed
   // All KV data from Phase 1 is permanent — no need to re-run 4 Claude calls
   try {
     const existingVideo = await env.FFX_KV.get('video:' + videoId, { type: 'json' }).catch(function() { return null; });
-    if (existingVideo && existingVideo.slug && existingVideo.platforms) {
+    if (existingVideo && existingVideo.slug && existingVideo.platforms && !autopilot) {
       console.log('[FFX] video:' + videoId + ' already exists — skipping Phase 1, marking job complete');
       await kvPut(env, 'job:' + jobId, JSON.stringify({
         status: 'complete', videoId: videoId, generatedAt: existingVideo.generatedAt || new Date().toISOString(),
@@ -163,7 +163,7 @@ async function processJob(job, env) {
 
     await updateJob(env, jobId, videoId, 'processing', 'global_article');
     try {
-      globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug, env);
+      globalArticle = await callClaudeArticle(transcript, youtubeUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug, env, { fixDirective: fixDirective || null });
       console.log('[FFX] Global article done, slug:', globalArticle.slug);
     } catch (err) {
       await failJob(env, jobId, videoId, 'global_article', formatClaudeError(err, 'Global article'), true);
@@ -416,6 +416,14 @@ async function processJob(job, env) {
     console.error('[FFX] queue:index update failed (non-fatal):', err.message);
   }
 
+  // AUTOPILOT — auto-republish the fixed page on the SAME URL (gate re-enforced by /publish).
+  if (autopilot && gateVerdict && gateVerdict.status === 'passed') {
+    try {
+      const pub = await autoPublishAutopilot(env, globalContent, youtubeUrl);
+      console.log('[FFX][autopilot] republish', globalContent.slug, pub.ok ? 'OK' : ('FAILED ' + pub.status + ' ' + pub.body));
+    } catch (e) { console.error('[FFX][autopilot] publish error (non-fatal):', e.message); }
+  }
+
   await kvPut(env, 'job:' + jobId, JSON.stringify({
     status: 'complete', videoId, generatedAt: new Date().toISOString(),
   }), { expirationTtl: 86400 });
@@ -445,15 +453,16 @@ async function processJob(job, env) {
 // (processJob above) is untouched.
 // ─────────────────────────────────────────────────────────────────────────────
 async function processKeywordJob(job, env) {
-  const { jobId, keyword, targetQuery, canonical, cluster, proprietaryTerm, nuggetTags, nuggetIds, dryRun } = job;
+  const { jobId, keyword, targetQuery, canonical, cluster, proprietaryTerm, nuggetTags, nuggetIds, dryRun, existingSlug, autopilot, fixDirective } = job;
   const kw = keyword || targetQuery;
   const videoId = keywordId(kw);   // synthetic id → video:{id}/queue/gate plumbing works unchanged
   console.log('[FFX][keyword] Processing:', jobId, '| keyword:', kw, dryRun ? '| DRY_RUN' : '');
 
-  // Idempotent — skip if already generated (mirrors the video path).
+  // Idempotent — skip if already generated (mirrors the video path). Autopilot
+  // fixes intentionally regenerate an existing page, so they bypass the skip.
   try {
     const existing = await env.FFX_KV.get('video:' + videoId, { type: 'json' }).catch(function(){ return null; });
-    if (existing && existing.slug) {
+    if (existing && existing.slug && !autopilot) {
       console.log('[FFX][keyword] video:' + videoId + ' already exists — marking job complete');
       await kvPut(env, 'job:' + jobId, JSON.stringify({ status: 'complete', videoId, keyword: kw, skipped: true, generatedAt: existing.generatedAt || new Date().toISOString() }), { expirationTtl: 86400 });
       return;
@@ -478,8 +487,8 @@ async function processKeywordJob(job, env) {
   await updateJob(env, jobId, videoId, 'processing', 'article');
   let article;
   try {
-    article = await callClaudeArticle(grounding, sourceUrl, env.ANTHROPIC_API_KEY, 'Global', null, null, env,
-      { sourceMode: 'keyword', target, hasNuggets });
+    article = await callClaudeArticle(grounding, sourceUrl, env.ANTHROPIC_API_KEY, 'Global', null, existingSlug || null, env,
+      { sourceMode: 'keyword', target, hasNuggets, fixDirective: fixDirective || null });
   } catch (err) {
     await failJob(env, jobId, videoId, 'article', formatClaudeError(err, 'Keyword article'), true);
     return;
@@ -563,6 +572,15 @@ async function processKeywordJob(job, env) {
       }
     }
   } catch (e) { console.error('[FFX][keyword] queue:index update failed (non-fatal):', e.message); }
+
+  // AUTOPILOT — auto-republish the fixed page on the SAME URL. /publish re-enforces
+  // the gate, so a fix that somehow regressed cannot go live.
+  if (autopilot && gateVerdict && gateVerdict.status === 'passed') {
+    try {
+      const pub = await autoPublishAutopilot(env, content, sourceUrl);
+      console.log('[FFX][keyword][autopilot] republish', content.slug, pub.ok ? 'OK' : ('FAILED ' + pub.status + ' ' + pub.body));
+    } catch (e) { console.error('[FFX][keyword][autopilot] publish error (non-fatal):', e.message); }
+  }
 
   await kvPut(env, 'job:' + jobId, JSON.stringify({ status: 'complete', videoId, keyword: kw, slug: content.slug, gateStatus: record.gateStatus, generatedAt: record.generatedAt }), { expirationTtl: 86400 });
   try { await env.FFX_KV.delete('lock:generating'); } catch {}
@@ -739,6 +757,25 @@ async function failJob(env, jobId, videoId, step, reason, retryable) {
 async function kvPut(env, key, value, options) {
   options = options || {};
   await env.FFX_KV.put(key, value, options);
+}
+
+// AUTOPILOT auto-republish — a fix regeneration that PASSED the gate is published
+// to the SAME URL via /publish (which re-enforces the gate: a fix can never lower
+// quality). Only ever called for job.autopilot === true on a passing verdict.
+async function autoPublishAutopilot(env, content, youtubeUrl) {
+  const payload = {
+    slug: content.slug, title: content.title, excerpt: content.excerpt,
+    category: content.category, tags: content.tags, readTime: content.readTime,
+    body: content.body, youtubeUrl: youtubeUrl || content.youtubeUrl || '',
+    linkedin: content.linkedin, discord: content.discord, tumblr: content.tumblr,
+    tweet1: content.tweet1, tweet2: content.tweet2, tweet3: content.tweet3,
+    tweet4: content.tweet4, tweet5: content.tweet5, tweet6: content.tweet6,
+  };
+  const res = await fetch('https://fortitudefx.com/publish', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+  });
+  const body = await res.text().catch(function () { return ''; });
+  return { ok: res.ok, status: res.status, body: body.slice(0, 200) };
 }
 
 async function fetchTranscriptSupadata(youtubeUrl, apiKey) {
@@ -930,7 +967,13 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
   // contract on top of the existing voice/trademark rules (which stay absolute).
   const keywordInstruction = (isKeyword && kwTarget) ? keywordArticleInstruction(kwTarget, opts.hasNuggets !== false) : '';
 
-  const systemPrompt = 'You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.' + signalInjection + voiceRules + keywordInstruction + '\n\nTRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.\n\nArticle region: ' + region + regionInstruction + '\n\nGenerate ONLY the blog article fields. Return a single valid JSON object with exactly these keys and no others:\n\n{\n  "slug": "url-safe-lowercase-hyphenated-3-to-6-words",\n  "title": "SEO title 50-60 characters including primary keyword",\n  "excerpt": "compelling meta description max 160 characters",\n  "category": "exactly one of: Strategy, Psychology, Risk Management, Market Analysis, Fundamentals",\n  "tags": "comma-separated 4-6 relevant tags",\n  "readTime": "7 min read",\n  "body": "a complete SEO article as valid HTML using h2 and h3 tags. Write ONLY to the length the topic genuinely needs — thorough but never padded. Do NOT repeat yourself, restate points, or add filler to reach a word count: a tight, complete article outranks a long padded one, and Google does not reward length for its own sake. Depth must come from real substance, not volume. Include internal links to /bootcamp /vipdiscord /blog. End with CTA to join free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark."\n}\n\nCRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. No preamble. Start with { end with }.\nThe body field contains HTML - ensure all quotes inside HTML attributes use single quotes to avoid breaking JSON string parsing.';
+  // Autopilot improvement pass: regenerating an existing published page to fix a
+  // specific recorded weakness. Keep the same slug/topic; raise quality only.
+  const fixInstruction = opts.fixDirective
+    ? '\n\nIMPROVEMENT PASS (this regenerates an EXISTING published page — keep the same topic and slug, do not change the URL, just raise quality): ' + opts.fixDirective
+    : '';
+
+  const systemPrompt = 'You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.' + signalInjection + voiceRules + keywordInstruction + fixInstruction + '\n\nTRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.\n\nArticle region: ' + region + regionInstruction + '\n\nGenerate ONLY the blog article fields. Return a single valid JSON object with exactly these keys and no others:\n\n{\n  "slug": "url-safe-lowercase-hyphenated-3-to-6-words",\n  "title": "SEO title 50-60 characters including primary keyword",\n  "excerpt": "compelling meta description max 160 characters",\n  "category": "exactly one of: Strategy, Psychology, Risk Management, Market Analysis, Fundamentals",\n  "tags": "comma-separated 4-6 relevant tags",\n  "readTime": "7 min read",\n  "body": "a complete SEO article as valid HTML using h2 and h3 tags. Write ONLY to the length the topic genuinely needs — thorough but never padded. Do NOT repeat yourself, restate points, or add filler to reach a word count: a tight, complete article outranks a long padded one, and Google does not reward length for its own sake. Depth must come from real substance, not volume. Include internal links to /bootcamp /vipdiscord /blog. End with CTA to join free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark."\n}\n\nCRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. No preamble. Start with { end with }.\nThe body field contains HTML - ensure all quotes inside HTML attributes use single quotes to avoid breaking JSON string parsing.';
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
