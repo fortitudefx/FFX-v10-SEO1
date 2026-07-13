@@ -3,6 +3,7 @@
 // CONDITIONALLY: rebuilds sitemap (no Google ping — indexing is via GSC Request-Indexing, manual)
 
 import { BASE, STATIC_PAGES, isIndexableArticle } from './_seo-pages.js';
+import { checkPublishAllowed } from '../lib/gate/verdict.js';
 
 // SH-3 (2026-07-10): post-publish sitemap self-check. After the sitemap PUT, re-fetch
 // the just-written sitemap and confirm THIS article's <loc> is present iff it is
@@ -46,6 +47,23 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ error: 'Missing required fields: slug, title, body' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    }
+
+    // ── QUALITY-GATE ENFORCEMENT (Step 1) — the SINGLE publish gate ─────────────
+    // Refuse to publish unless a PASSED gate verdict exists for this slug AND its
+    // content hash matches the body being published (content edited after gating
+    // cannot ride a stale pass — it must re-gate). Fail-closed: no verdict = no
+    // publish. This is what closes B1 (ungated content reaching a live YMYL page)
+    // and the silent-failure class — nothing indexable is written before this check.
+    if (env.FFX_KV) {
+      const gate = await checkPublishAllowed(env, slug, articleBody);
+      if (!gate.ok) {
+        console.error(`[FFX] PUBLISH BLOCKED by quality gate for ${slug}: ${gate.reason}`);
+        return new Response(JSON.stringify({ error: 'Quality gate: publish refused', slug, reason: gate.reason }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      console.log(`[FFX] Quality gate OK for ${slug}: ${gate.reason}`);
     }
 
     const rawDate = date || new Date().toISOString().split('T')[0];

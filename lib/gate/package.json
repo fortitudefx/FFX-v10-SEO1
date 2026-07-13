@@ -1,0 +1,5 @@
+{
+  "type": "module",
+  "private": true,
+  "description": "FFX quality gate — shared ESM module imported by ffx-consumer (worker) and functions/ (Pages). type:module lets Node run the deterministic checks offline; Cloudflare's bundler ignores this file."
+}

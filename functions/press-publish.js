@@ -6,7 +6,15 @@
 // 1. source:'queue' — content passed in body directly (first publish from queue)
 //    Cleans up queue-edits:{videoId} and removes from queue:index on success
 // 2. (default) — reads globalContent from published:{videoId} (republish from Press)
+//
+// QUALITY GATE (Step 1): this is the single point where the FINAL merged body is
+// assembled (queue-edits or regen staging already applied) before the publish chain.
+// We (re)gate here so edited content is re-scored and bound to its new hash — the
+// consumer's verdict only covers the as-generated body. A failing gate refuses the
+// WHOLE publish (article AND socials), so nothing ungated reaches any platform.
 // ─────────────────────────────────────────────────────────────────────────────
+import { runGate } from '../lib/gate/gate.js';
+import { writeVerdict, readVerdict, loadCorpus, hashContent } from '../lib/gate/verdict.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -99,6 +107,35 @@ if (videoId) {
     }
 
     console.log('[FFX Press Publish] Press republish — slug:', globalContent.slug);
+  }
+
+  // ── QUALITY GATE (Step 1) — ensure the FINAL merged body has a PASSING verdict
+  //    bound to its exact hash before ANYTHING publishes. Skips the paid re-gate
+  //    when the consumer's verdict already matches this body (fresh, unedited).
+  //    A failing/erroring gate refuses the whole publish — no article, no socials.
+  try {
+    const freshHash = await hashContent(globalContent.body || '');
+    const existing  = await readVerdict(env, globalContent.slug);
+    const alreadyPassed = existing && existing.status === 'passed' && existing.contentHash === freshHash;
+    if (!alreadyPassed) {
+      const corpus  = await loadCorpus(env);
+      const verdict = await runGate(
+        { slug: globalContent.slug, title: globalContent.title, tags: globalContent.tags, body: globalContent.body, targetQuery: globalContent.targetQuery || null },
+        { corpus, pageType: 'article' },
+        env
+      );
+      await writeVerdict(env, globalContent.slug, globalContent.body, verdict);
+      if (verdict.status !== 'passed') {
+        console.error('[FFX Press Publish] QUALITY GATE FAILED for', globalContent.slug, '—', verdict.reason);
+        return new Response(JSON.stringify({ error: 'Quality gate: publish refused', slug: globalContent.slug, reason: verdict.reason }), { status: 403, headers });
+      }
+      console.log('[FFX Press Publish] Re-gated final content — passed:', globalContent.slug, `(similarity ${verdict.similarity}, structural ${verdict.structural}, voice ${verdict.voice}, fabrication ${verdict.fabrication?.status})`);
+    } else {
+      console.log('[FFX Press Publish] Existing gate verdict matches body — skipping re-gate:', globalContent.slug);
+    }
+  } catch (gErr) {
+    console.error('[FFX Press Publish] Gate error (fail-closed — publish refused):', gErr.message);
+    return new Response(JSON.stringify({ error: 'Quality gate error — publish refused', slug: globalContent.slug, reason: gErr.message }), { status: 500, headers });
   }
 
   // ── Call publish-confirm ───────────────────────────────────────────────────

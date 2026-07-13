@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - 'ffx-consumer/**'
+      # The consumer bundles the shared quality gate (repo-root lib/gate) via a
+      # relative import, so gate changes must also redeploy the consumer worker.
+      - 'lib/**'
 
 jobs:
   deploy:

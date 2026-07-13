@@ -1,7 +1,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FFX Consumer Worker — Queue consumer
 // 4 Claude calls: Global Article, Global Platforms, Regional Article, Regional Platforms
+// + QUALITY GATE (Step 1): after the article is generated it is scored by the shared
+//   gate (lib/gate) and a verdict is written to gate:{slug}. publish.js REFUSES to
+//   publish anything without a passing verdict whose content hash matches. The gate
+//   is NON-FATAL to generation — a failing article is still stored so the operator
+//   sees WHY, but it cannot reach a live page until it passes.
 // ─────────────────────────────────────────────────────────────────────────────
+import { runGate } from '../lib/gate/gate.js';
+import { writeVerdict, loadCorpus } from '../lib/gate/verdict.js';
+
 export default {
   async queue(batch, env) {
     for (const message of batch.messages) {
@@ -65,6 +73,7 @@ async function processJob(job, env) {
   try { checkpoint = await env.FFX_KV.get(CHECKPOINT_KEY, { type: 'json' }).catch(function() { return null; }); } catch(e) {}
 
   let transcript, globalContent, globalArticle, selectedLinkedin, selectedDiscord, selectedX, regionName, regionIndex;
+  let gateVerdict = null;   // Step 1: quality-gate verdict, stamped onto the video record for the dashboard
 
   // ── REGIONAL DISABLED (Global-only, 2026-07-07) ──────────────────────────
   // WHY: regional English variants duplicate/cannibalize their global sibling and signal
@@ -271,10 +280,44 @@ async function processJob(job, env) {
     }
   }
 
+  // ── QUALITY GATE (Step 1) ──────────────────────────────────────────────────
+  // Score the generated article and write the verdict to gate:{slug}. This is the
+  // ONLY place generation-time gating happens; publish.js is the ONLY enforcement.
+  // NON-FATAL to generation (the record is still stored on a fail so the operator
+  // sees the reason) but FAIL-CLOSED for publishing — a gate infra error writes an
+  // explicit 'failed' verdict so nothing ungated can ever ride a missing verdict live.
+  await updateJob(env, jobId, videoId, 'processing', 'gate');
+  try {
+    let gateTargetQuery = null;
+    try {
+      const brief = await env.FFX_KV.get('intelligence:brief', { type: 'json' }).catch(() => null);
+      if (brief && brief.articleBrief && brief.articleBrief.targetQuery) gateTargetQuery = brief.articleBrief.targetQuery;
+    } catch {}
+    const corpus = await loadCorpus(env);
+    gateVerdict = await runGate(
+      { slug: globalContent.slug, title: globalContent.title, tags: globalContent.tags, body: globalContent.body, targetQuery: gateTargetQuery },
+      { corpus, pageType: 'article' },
+      env
+    );
+    await writeVerdict(env, globalContent.slug, globalContent.body, gateVerdict);
+    console.log('[FFX] Gate verdict for', globalContent.slug, '→', gateVerdict.status,
+      gateVerdict.reason || `(similarity ${gateVerdict.similarity}, structural ${gateVerdict.structural}, voice ${gateVerdict.voice}, fabrication ${gateVerdict.fabrication?.status})`);
+  } catch (gateErr) {
+    console.error('[FFX] Gate errored (fail-closed — article held from publish):', gateErr.message);
+    gateVerdict = { status: 'failed', reason: '[gate-error] ' + gateErr.message, fabrication: null, similarity: null, structural: null, voice: null };
+    try { await writeVerdict(env, globalContent.slug, globalContent.body, gateVerdict); } catch {}
+  }
+
   const videoRecord = {
     videoId, youtubeUrl,
     slug: globalContent.slug, title: globalContent.title,
     generatedAt: new Date().toISOString(), region: regionName,
+    gateStatus:      gateVerdict ? gateVerdict.status : 'ungated',
+    gateReason:      gateVerdict ? gateVerdict.reason : null,
+    gateFabrication: gateVerdict ? gateVerdict.fabrication : null,
+    gateSimilarity:  gateVerdict ? gateVerdict.similarity : null,
+    gateStructural:  gateVerdict ? gateVerdict.structural : null,
+    gateVoice:       gateVerdict ? gateVerdict.voice : null,
     platforms: {
       blog_global:   { status: 'generated', content: globalContent,   updatedAt: new Date().toISOString() },
       blog_regional: { status: 'generated', content: regionalContent, updatedAt: new Date().toISOString() },
@@ -712,11 +755,29 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
     }
   }
 
+  // ── VOICE ENFORCEMENT (article path) ────────────────────────────────────────
+  // Previously the banned-openings list and the intelligence:voice_calibration
+  // correction loop lived ONLY in the platform/social prompts. Wire them into the
+  // ARTICLE prompt too, so prevention (prompt) and the gate's banned-openings veto
+  // reinforce each other instead of the article path having neither.
+  let voiceRules = '\n\nVOICE RULES (absolute — this is the FortitudeFX brand, not a generic forex explainer):\n'
+    + '- Salman\'s register: direct, calm, experienced, institutional, slightly contrarian. Never motivational fluff. Maximum ONE exclamation mark in the whole article.\n'
+    + '- ABSOLUTELY BANNED OPENINGS — NEVER start the article, any heading, or any sentence with: "Most traders" (or any variation), "The reality is", "One thing I\'ve learned", "The market doesn\'t care", "This is why", "Here\'s the truth", "Trading is", "Many traders", "Many people".';
+  try {
+    if (env && env.FFX_KV) {
+      const cal = await env.FFX_KV.get('intelligence:voice_calibration', { type: 'json' }).catch(function(){ return null; });
+      if (cal && Array.isArray(cal.corrections) && cal.corrections.length) {
+        voiceRules += '\n- Voice calibration corrections (learned from Salman\'s own edits — apply to every draft):\n'
+          + cal.corrections.slice(0, 8).map(function(c){ return '  - ' + c; }).join('\n');
+      }
+    }
+  } catch (vcErr) { console.error('[FFX] voice_calibration read failed (non-fatal):', vcErr.message); }
+
   const regionInstruction = isRegional
     ? '\nREGIONAL TARGETING - THIS ARTICLE IS FOR: ' + region + '\nThis is the regional variant. The global slug is: ' + globalSlug + '.\nAppend the region to the slug: e.g. "trading-london-session-gcc".\nFrame examples, market session times, currency pairs, and cultural context specifically for ' + region + ' traders.\nKeep the core trading insight identical - only framing and examples shift.'
     : '';
 
-  const systemPrompt = 'You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.' + signalInjection + '\n\nTRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.\n\nArticle region: ' + region + regionInstruction + '\n\nGenerate ONLY the blog article fields. Return a single valid JSON object with exactly these keys and no others:\n\n{\n  "slug": "url-safe-lowercase-hyphenated-3-to-6-words",\n  "title": "SEO title 50-60 characters including primary keyword",\n  "excerpt": "compelling meta description max 160 characters",\n  "category": "exactly one of: Strategy, Psychology, Risk Management, Market Analysis, Fundamentals",\n  "tags": "comma-separated 4-6 relevant tags",\n  "readTime": "7 min read",\n  "body": "full 2000-word SEO article as valid HTML using h2 and h3 tags. Include internal links to /bootcamp /vipdiscord /blog. End with CTA to join free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark."\n}\n\nCRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. No preamble. Start with { end with }.\nThe body field contains HTML - ensure all quotes inside HTML attributes use single quotes to avoid breaking JSON string parsing.';
+  const systemPrompt = 'You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.' + signalInjection + voiceRules + '\n\nTRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.\n\nArticle region: ' + region + regionInstruction + '\n\nGenerate ONLY the blog article fields. Return a single valid JSON object with exactly these keys and no others:\n\n{\n  "slug": "url-safe-lowercase-hyphenated-3-to-6-words",\n  "title": "SEO title 50-60 characters including primary keyword",\n  "excerpt": "compelling meta description max 160 characters",\n  "category": "exactly one of: Strategy, Psychology, Risk Management, Market Analysis, Fundamentals",\n  "tags": "comma-separated 4-6 relevant tags",\n  "readTime": "7 min read",\n  "body": "full 2000-word SEO article as valid HTML using h2 and h3 tags. Include internal links to /bootcamp /vipdiscord /blog. End with CTA to join free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark."\n}\n\nCRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. No preamble. Start with { end with }.\nThe body field contains HTML - ensure all quotes inside HTML attributes use single quotes to avoid breaking JSON string parsing.';
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
