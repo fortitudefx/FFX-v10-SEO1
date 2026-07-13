@@ -513,6 +513,20 @@ async function processKeywordJob(job, env) {
     try { await writeVerdict(env, content.slug, content.body, gateVerdict); } catch {}
   }
 
+  // ── Social platforms — X (optimized 6-tweet thread) + LinkedIn/Discord (lean,
+  //    link back to the blog). ONE call, grounded in the finished article. Non-fatal.
+  let platforms = { linkedin: '', discord: '', tweets: [] };
+  try {
+    const blogUrl = 'https://fortitudefx.com/article?slug=' + content.slug;
+    platforms = await callClaudeKeywordPlatforms(content, kw, blogUrl, env.ANTHROPIC_API_KEY, env);
+    content.linkedin = platforms.linkedin;
+    content.discord  = platforms.discord;
+    platforms.tweets.forEach(function (t, i) { content['tweet' + (i + 1)] = t; });
+    console.log('[FFX][keyword] platforms — tweets:', platforms.tweets.length, '| linkedin:', platforms.linkedin.length, 'ch | discord:', platforms.discord.length, 'ch');
+  } catch (pErr) {
+    console.error('[FFX][keyword] platforms generation failed (non-fatal):', pErr.message);
+  }
+
   const record = {
     videoId, youtubeUrl: sourceUrl,
     slug: content.slug, title: content.title,
@@ -528,6 +542,9 @@ async function processKeywordJob(job, env) {
     gateQuotes:      gateVerdict ? gateVerdict.quotes : null,
     platforms: {
       blog_global: { status: 'generated', content, updatedAt: new Date().toISOString() },
+      x:        { status: 'generated', content: { tweets: platforms.tweets },     updatedAt: new Date().toISOString() },
+      linkedin: { status: 'generated', content: { text: platforms.linkedin },     updatedAt: new Date().toISOString() },
+      discord:  { status: 'generated', content: { text: platforms.discord },      updatedAt: new Date().toISOString() },
     },
   };
 
@@ -1093,6 +1110,65 @@ async function callClaudePlatforms(transcript, youtubeUrl, apiKey, linkedinForma
 
   console.log('[FFX] Platforms complete, region:', region);
   return parsed;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYWORD-MODE PLATFORMS — one call generates all social from the finished article.
+// X is the priority channel (optimized 6-tweet thread); LinkedIn + Discord are lean
+// hook-plus-link-back-to-blog (traffic drivers, not article pastes). Grounded in the
+// article body so nothing is fabricated. Returns { linkedin, discord, tweets:[6] }.
+// ─────────────────────────────────────────────────────────────────────────────
+async function callClaudeKeywordPlatforms(article, targetQuery, blogUrl, apiKey, env) {
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
+
+  // Reuse the live voice-calibration corrections so social matches Salman's voice.
+  let corrections = [];
+  try {
+    const cal = env && env.FFX_KV ? await env.FFX_KV.get('intelligence:voice_calibration', { type: 'json' }).catch(function(){ return null; }) : null;
+    if (cal && Array.isArray(cal.corrections)) corrections = cal.corrections.slice(0, 6);
+  } catch {}
+  const voiceLine = corrections.length ? '\nVoice corrections (apply): ' + corrections.join(' · ') : '';
+
+  const systemPrompt =
+    'You are the social engine for FortitudeFX (fortitudefx.com), a forex trading education brand built on the Catch The Wick mechanical entry system. Write in Salman\'s voice: direct, calm, experienced, institutional, lightly contrarian. Never hype.' + voiceLine +
+    '\n\nTRADEMARK: FortitudeFX, Catch The Wick, and 2 Candle. 1 Story. take the TM symbol on first use.' +
+    '\n\nABSOLUTELY BANNED — never start any tweet, line, or post with: "Most traders", "Many traders", "The reality is", "Here\'s the truth", "Trading is", "One thing I\'ve learned", "The market doesn\'t care".' +
+    '\n\nHARD RULES: Do not invent statistics, win-rates, or returns. Ground everything in the article below. This is YMYL — never imply guaranteed profit.' +
+    '\n\nTARGET KEYWORD: "' + targetQuery + '"    BLOG URL: ' + blogUrl +
+    '\n\nReturn ONE valid JSON object, no preamble, exactly these keys:\n' +
+    '{\n' +
+    '  "x_thread": ["t1","t2","t3","t4","t5","t6"],\n' +
+    '  "linkedin": "…",\n' +
+    '  "discord": "…"\n' +
+    '}\n\n' +
+    'X THREAD — THE PRIORITY. Exactly 6 tweets, each ≤ 275 characters, each on its own idea, flowing as a thread:\n' +
+    '- Tweet 1 = HOOK. Scroll-stopping and SPECIFIC about "' + targetQuery + '" — a concrete claim, a costly mistake, or a counter-intuitive truth from the article. No link, no hashtag. It must earn the expand. Not "Let\'s talk about…".\n' +
+    '- Tweets 2–5 = one concrete teaching point each, building the method step by step (setup → trigger → entry → risk). Short lines, a line break where it helps. Self-contained but sequential. No links.\n' +
+    '- Tweet 6 = PAYOFF in one line, then on new lines "Full breakdown 👇" and the BLOG URL. At most ONE hashtag, here only.\n' +
+    'Weave "' + targetQuery + '" in naturally (tweet 1 + at least one more). Plain text tweets.\n\n' +
+    'LINKEDIN — lean traffic driver (150–230 words): a strong first-line hook, then 3–5 short insight lines teaching "' + targetQuery + '" the FFX way (NOT a paste of the article, NO HTML), then a final line "Full breakdown: ' + blogUrl + '". 2–3 relevant hashtags at the very end only.\n\n' +
+    'DISCORD — casual community drop (50–100 words): share the single sharpest insight like you\'re dropping value in the server, then the blog link on its own line. Conversational, no hashtags.';
+
+  const plainArticle = (article.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 6000);
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: 'Article title: ' + (article.title || '') + '\n\nArticle:\n' + plainArticle }],
+    }),
+  });
+  if (!res.ok) throw new Error('Anthropic platforms ' + res.status + ': ' + await res.text());
+  const data = await res.json();
+  const raw = (data.content && data.content[0] && data.content[0].text || '').trim();
+  const first = raw.indexOf('{'), last = raw.lastIndexOf('}');
+  if (first === -1 || last === -1) throw new Error('No JSON in keyword platforms response');
+  const parsed = JSON.parse(raw.slice(first, last + 1));
+  const tweets = Array.isArray(parsed.x_thread) ? parsed.x_thread.filter(Boolean) : [];
+  return { linkedin: parsed.linkedin || '', discord: parsed.discord || '', tweets };
 }
 
 async function extractLibrary(transcript, youtubeUrl, videoTitle, videoId, apiKey) {
