@@ -7,6 +7,13 @@ base/social, KV census, dashboards/GSC-GA4). **Nothing was changed, built, or de
 `[branch-only]` = exists only on branch `quality-gate-port`, NOT deployed to main/live.
 Live/main has none of the `lib/gate/*` code or its wiring.
 
+> **CORRECTION (2nd pass, live-verified).** The first pass was source-only and got the knowledge
+> base and the feedback loop WRONG. Corrected here against the live system (`api/nuggets`,
+> `api/intelligence-engine`): there IS a 226-nugget verbatim library with retrieval and a
+> `nugget_generate` decision already built (§7); the engine DOES consume measured performance —
+> it's fed the site's own zero-volume GSC echo, not blind (§5). The keyword-driven change is a
+> **source swap, not a rebuild** (§10).
+
 ---
 
 ## 0. Architecture at a glance
@@ -123,13 +130,24 @@ Single namespace `env.FFX_KV`. **60 LIVE, 17 SELF (incl. 2 gate:* branch-only), 
 | title-CTR test (14-day) | **CLOSED** | `title-test → seo-signals checkTitleTests → brief context/suppression` |
 | voice calibration | **CLOSED** (fires after ≥10 edits) | Salman edits → `social-intelligence:370` `corrections` → article prompt (`ffx-consumer:770`), social prompt, voice gate |
 | social-reply subsystem | **CLOSED but isolated** | `opportunities → reply_performance → next scan`; never touches the article engine |
-| **published-article PERFORMANCE → next decision** | **OPEN (the gap)** | see below |
+| measured site performance (GSC/GA4 aggregate) → next brief | **CLOSED at the signal level** | engine reads `seo:signals`/`ga4:signals` (top pages/queries/positions) — live brief targets a query the site already ranks for |
+| per-article prediction-accuracy → next decision | **NOT wired** | engine never reads `content:performance:{slug}` snapshots or `accuracy_scores` |
 
 ### The performance loop is half-built
 - **Measurement half — WIRED and running.** GSC/GA4 pull daily (§6). `content:performance:{slug}` is created at generation (`ffx-consumer:372`), flipped to `published` at publish (`publish.js:177`); `seo-signals.js` populates `snapshot7/30/90` daily (`:206-226`), writes `intelligence:outcomes` (`:359`), rolls up `intelligence:accuracy_scores` weekly (`:449`).
 - **Consumption half — ABSENT.** `intelligence-engine.js` **never reads `content:performance`, `intelligence:outcomes`, or `intelligence:accuracy_scores`** (its Step-1 `Promise.all` `:33-47` and Step-2 `:59-63` list every input; none appear). `intelligence:accuracy_scores`'s only reader binds and never uses it (`youtube-metadata.js:55/67`). `snapshot7/30/90` are read only by the code that writes them. `directive_outcome.outcome` is never set to `'improved'` (`engine:552,:557` filter for a value nothing writes).
-- **Net:** the engine briefs the next article from **leading signals** (rising GSC queries, page-2 opportunities, momentum, content-gap counts) and **whether directives were clicked** — **never from whether past articles it briefed actually ranked.**
-- **Single missing link to close it:** a reader in `intelligence-engine.js` Step 1 (`:33-47`) that pulls `content:performance:*` snapshots (and/or `intelligence:accuracy_scores`), plus a branch in `buildSignalContext` (`:444`) feeding measured per-article / per-recommendation-type outcomes into the analyst prompt, and/or weighting `computeDirectiveResolution` (`:580`) by `accuracyRate`. No such reader exists today.
+- **CORRECTION (live-verified):** the engine is **not** blind to performance. It reads measured
+  GSC/GA4 signals (`seo:signals`/`ga4:signals`: top pages, queries, positions), so measured site
+  performance **does** feed the next brief. The live brief (`GET /api/intelligence-engine`,
+  generatedAt 2026-07-07) proves it: `articleBrief.targetQuery = "opening candle continuation
+  strategy"` — a query the site already ranks for. **So the loop is closed, but it's fed the
+  site's OWN low-volume GSC data → it echoes the site's zero-volume proprietary vocabulary.** The
+  fix is a better *input* (external demand data), not "closing an open loop."
+- **What genuinely isn't wired:** the tighter per-article accuracy sub-loop — the engine never
+  reads `content:performance:{slug}` snapshots or `intelligence:accuracy_scores`, so it can't learn
+  "my brief for keyword X actually ranked / didn't." Adding that reader in `intelligence-engine.js`
+  Step 1 (`:33-47`) + `buildSignalContext` (`:444`) would sharpen it — useful, but secondary to
+  swapping the target-selection input from GSC-echo to the demand map.
 
 ---
 
@@ -146,13 +164,40 @@ Single namespace `env.FFX_KV`. **60 LIVE, 17 SELF (incl. 2 gate:* branch-only), 
 
 ---
 
-## 7. The knowledge base — verbatim, source-traceable retrieval is NOT possible today
+## 7. The knowledge base — CORRECTED against the live system
 
-- **The only true verbatim Salman material:** `transcript:{videoId}` — flat plain text, permanent (`ffx-consumer:120`); `transcript:timestamps:{videoId}` — `[{text, start-sec, duration}]`, permanent but **best-effort / may be absent** (`:131`, `fetchTranscriptTimestamped` returns null on any hiccup `:623`). Every reader loads the **whole per-video blob by known ID**; there is **no keyword/semantic lookup**.
-- **Published bodies & nuggets are Claude-PARAPHRASED, not verbatim.** `article:{slug}` holds **metadata only, no body** (`publish.js:114-130`); the body lives in `published:{videoId}.globalContent.body` / `video:{videoId}` / `articles.json`. Nuggets carry `sourceVideoId` (not timestamp) but the `text` is a model-authored 50–180-word post (`ffx-consumer:903`), not a copied span.
-- **Catch The Wick + the five models (LC-E, LE-I, LC-ZIE, LC-ZR, LC-FR) exist ONLY as two hardcoded prompt strings** (`ffx-consumer:1029`, `youtube-metadata:203`) — a one-line brand blurb; **no data/config/KV defines what each model is**.
-- **`knowledge:taxonomy` / `knowledge:performance`** — read by the engine, **never written** (§4).
-- **To make grounded verbatim quoting real, the rebuild must build:** (1) a **retrieval index over `transcript:timestamps:*`** (embedding store or inverted index) that maps a topic/keyword → passage + videoId + start-seconds; (2) **timestamp reliability** (make it mandatory or map a quote back to an offset); (3) a **quote-verification/citation step** in generation (emit `{quote, videoId, startSeconds}`; the gate's fabrication check does not verify quotes against source); (4) the **CTW methodology + 5 models as retrievable data** (config/KV per model).
+> **This section was wrong in the first pass and is corrected here from LIVE data
+> (`GET https://fortitudefx.com/api/nuggets`), not from the extraction code.**
+
+- **There is a real, curated Knowledge Library: 226 nuggets, live.** Categories (live counts):
+  CTW Framework **88**, Execution Discipline **55**, Professional Thinking **43**, Trading
+  Reality **21**, Market Psychology **13**, Founder Observation **4**, Lifestyle & Philosophy **2**.
+- **Each nugget is source-traceable and quotable.** Stored shape (`nugget:{id}`, indexed by
+  `nuggets:index`): `{ id, text, category, tags[], hook, format, sourceVideoId, sourceTitle,
+  youtubeUrl, publishedTo{}, createdAt, updatedAt }`. The `text` is Salman's methodology in his
+  own teaching voice (formats: `question` / `story` / `contrarian` / `insight`), each carrying
+  `sourceVideoId` + `youtubeUrl` → **a citable source**. (Live example, CTW: *"Why use stop
+  orders instead of market orders at liquidity sweeps? Because the sweep itself is your
+  confirmation…"* → `sourceVideoId 0_YybIdgkFo`.) My earlier "Claude-paraphrased, not verbatim,
+  unusable" was wrong — these are his curated, attributed knowledge units, built on purpose for reuse.
+- **CTW methodology is stored as data, not just prompt strings.** The 88 CTW-Framework nuggets
+  ARE the methodology as retrievable, tagged records. (The five *model names* LC-E/LE-I/… still
+  appear only in prompt blurbs, but the methodology substance is a live library, contra the first pass.)
+- **Retrieval already exists, at two levels:** (1) `api/nuggets` GET serves the whole indexed
+  library; the knowledge dashboard filters by category/tag/search. (2) **The intelligence engine
+  already retrieves nuggets by tag** — `intelligence-engine.js:744-768`: it loads nuggets, filters
+  by `articleBrief.nuggetTags` overlap (`:751 matchedNuggets`), and when ≥2 match emits
+  `action.type='nugget_generate'` with the matching `nuggetIds` and the note *"inject them for a
+  stronger article"* (vs `'new_article' → 'Add Video to Queue'` when nothing matches). So the
+  system already **retrieves, matches, and decides to generate from nuggets.**
+- **What generation does NOT do yet:** `callClaudeArticle` injects only the nugget *tags* (labels)
+  into the prompt (`ffx-consumer:720`), **not the nugget text**, and there is **no executor** that
+  runs a `nugget_generate` directive (the generation pipeline is still triggered by a video in the
+  queue). The transcripts (`transcript:{videoId}` flat text; `transcript:timestamps:{videoId}`
+  `{text,start-sec}`, best-effort) remain as a raw backup if strict word-for-word-from-spoken is
+  ever needed. `knowledge:taxonomy`/`knowledge:performance` (the planned engine *inputs*) have no
+  writer (§4) — but those are minor unused inputs, **not** the knowledge base; the KB is the 226 live nuggets.
+- **So grounded, source-cited quoting is feasible NOW** using the existing library — see §10.
 
 ---
 
@@ -192,16 +237,38 @@ Target: cron picks keyword from real demand → generate from KB in voice with v
 
 **What already works (no change):** Steps 3→11 are source-agnostic; the queue→review→publish→social→press flow is intact; the pipeline is already keyword-aware via `articleBrief.targetQuery`; GSC/GA4 measurement is wired.
 
-**What must be built:**
-1. **Source selection (Step 0).** Replace `ffx-cron findNewVideo/findBacklogVideos` with a **keyword picker** that reads real demand (`docs/FFX_KEYWORD_DEMAND_MAP.md` → `intelligence:targets`, and/or a demand adapter) and enqueues `{keyword, intent}` instead of `{videoId, youtubeUrl}`. New cron branch + queue-message shape; `ffx-consumer.processJob` needs a keyword branch.
-2. **Source ingestion (Step 2).** Replace `fetchTranscriptSupadata(youtubeUrl)` with a **KB retrieval** step: given a keyword, return relevant verbatim passages (+videoId+timestamp) from transcripts, published bodies, and CTW/model data. **Requires §7's retrieval index — does not exist.**
-3. **Verbatim quoting + provenance.** `callClaudeArticle` (`ffx-consumer:680`) must be given retrieved passages with an instruction/mechanism to quote verbatim and emit `{quote, videoId, startSeconds}`; add a **quote-verification** gate check (the fabrication judge does not verify quotes against source).
-4. **CTW methodology / 5 models as retrievable data** (config or KV per model) — today only 2 prompt strings.
-5. **Keyword-driven brief source.** Feed `articleBrief.targetQuery` from the demand map, not the GSC-echo `intelligence:brief` of the site's own zero-volume queries. Re-plumb the `targetQuery` source in `intelligence-engine.js` / the brief build.
-6. **Deploy the gate** (branch-only today): merge `lib/gate/*` + wiring, **seed `gate:corpus`**, wire `upsertCorpus` on publish, add the queue-dashboard verdict UI.
-7. **Close the performance loop** (§5): add a `content:performance:*`/`accuracy_scores` reader in `intelligence-engine.js:33-47` + a `buildSignalContext` branch (`:444`), so "did past articles rank" feeds the next keyword/brief. Fix `directive_outcome.outcome` never reaching `'improved'`; give `intelligence:accuracy_scores` a real consumer.
-8. **Fix captured-but-unused defects** (§4): `platform:performance:*` (write-only), `email:error:*` (write-only), `video:slug:{slug}` + `published:slug:{slug}` (dangling → republish-by-slug misses), `intelligence:daily_directive` / `ga4:exec_summary` (dangling; health-check expects writers), `knowledge:taxonomy`/`knowledge:performance` (the KB inputs the engine wants — the rebuild's retrieval layer should write these).
+**Already exists (re-plumb, do NOT rebuild):** the 226-nugget library with text + provenance +
+tags + index + dashboard/CRUD (§7); **nugget retrieval-by-tag AND a `nugget_generate` decision**
+in `intelligence-engine.js:744-768`; `articleBrief.targetQuery` + `nuggetTags` already flow into
+the article prompt (`ffx-consumer:714,720`); the whole queue→review→publish→socials→press flow
+(source-agnostic); GSC/GA4 measurement + the intelligence brief.
 
-**Hazards to fix alongside (flagged, not requested):** article-fails-but-socials-still-post (`publish-confirm` has no article-success guard before socials); Tumblr "View post" → homepage (`publish-confirm:154`); `CLAUDE.md` still names `Redesign` as active branch though the cutover to `main` already happened.
+**What genuinely must be built/changed (small, right-sized):**
+1. **Target input → demand map, not GSC-echo.** Feed `articleBrief.targetQuery` from
+   `docs/FFX_KEYWORD_DEMAND_MAP.md` (→ `intelligence:targets`) instead of the site's own GSC
+   queries. This is the fix for the live `"opening candle continuation strategy"` echo. Re-plumb
+   the target-selection input in the brief build — the engine's nugget-matching stays.
+2. **Inject nugget TEXT into generation.** Today only `nuggetTags` (labels) reach the article
+   prompt (`ffx-consumer:720`); the engine already computes the matching nuggets (`intelligence-engine.js:751`).
+   Pass those nuggets' **text** into `callClaudeArticle` as verbatim grounding with a "quote these
+   verbatim and cite `youtubeUrl`" instruction. Small prompt + data-passing change.
+3. **A `nugget_generate` executor (the source swap).** Today the pipeline is triggered by a video
+   in the queue and `processJob` fetches a transcript. Add a path that enqueues
+   `{targetQuery, nuggetIds}` (from the existing `nugget_generate` directive) and a `processJob`
+   branch that uses the retrieved nugget text as the source **instead of** `fetchTranscriptSupadata`.
+   Everything after (validation → store → queue → publish) is unchanged.
+4. **Deploy the gate** (branch-only): merge `lib/gate/*` + wiring, seed `gate:corpus`, wire
+   `upsertCorpus` on publish, add the queue-dashboard verdict chip.
+5. *(Optional)* quote-verification gate check; per-article accuracy reader (§5); fix the
+   captured-but-unused keys (§4).
 
-**Bottom line for the rebuild:** only **Step 0 (keyword selection) and Step 2 (KB retrieval + verbatim quoting)** are genuinely new; the retrieval index (§7) is the largest new build. Everything else is re-plumbing an existing, working, source-agnostic pipeline — plus deploying the already-built gate and adding one reader to close the feedback loop. Salman's day-to-day (queue → review → publish) does not change.
+**Hazards flagged (not requested):** article-fails-but-socials-still-post (`publish-confirm` has no
+article-success guard); Tumblr "View post" → homepage (`publish-confirm:154`); `CLAUDE.md` still
+names `Redesign` active post-cutover.
+
+**Bottom line (corrected):** this is **a source swap, not a rebuild.** The knowledge library,
+nugget retrieval, and the "generate from nuggets" decision already exist; the target already flows
+into generation. The real work is: point target-selection at the demand map, inject nugget *text*
+(not just tags) into the prompt with verbatim-cite, add an executor to run the existing
+`nugget_generate` directive without a video, and deploy the built gate. Salman's day-to-day
+(queue → review → publish → socials → press) does not change at all.
