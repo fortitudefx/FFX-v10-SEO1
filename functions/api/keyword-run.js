@@ -15,6 +15,9 @@ import {
   retrieveNuggetIds, keywordId,
 } from '../../lib/keyword/select.js';
 import { ensureDemandMap, ensureCorpus } from '../../lib/keyword/seed.js';
+import { runGate } from '../../lib/gate/gate.js';
+import { loadCorpus, writeVerdict } from '../../lib/gate/verdict.js';
+import { loadNuggetTexts } from '../../lib/keyword/grounding.js';
 
 const HEADERS = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' };
 const json = (b, s = 200) => new Response(JSON.stringify(b, null, 2), { status: s, headers: HEADERS });
@@ -42,6 +45,38 @@ export async function onRequestPost(context) {
   const url = new URL(request.url);
   if (!env.FFX_KV) return json({ error: 'FFX_KV not bound' }, 500);
   if (!env.ffx_generate_queue) return json({ error: 'Queue binding ffx_generate_queue not found' }, 500);
+
+  // ── REGATE: re-run the gate on EXISTING article bodies (no regeneration) ────
+  // Use after tuning the gate — re-scores the stored bodies and rewrites the
+  // verdict + queue row, without burning a new generation or risking new prose.
+  if (url.searchParams.get('regate') === '1') {
+    const only = (url.searchParams.get('keywords') || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const corpus = await loadCorpus(env);
+    const queue = (await env.FFX_KV.get('queue:index', { type: 'json' }).catch(() => null)) || [];
+    const out = [];
+    const targetVids = only.length ? only.map(keywordId) : queue.filter(q => q.source === 'keyword').map(q => q.videoId);
+    for (const vid of targetVids) {
+      const rec = await env.FFX_KV.get(`video:${vid}`, { type: 'json' }).catch(() => null);
+      const content = rec && rec.platforms && rec.platforms.blog_global && rec.platforms.blog_global.content;
+      if (!content || !content.body) { out.push({ videoId: vid, error: 'no stored body' }); continue; }
+      const nuggets = await loadNuggetTexts(env, rec.nuggetIds || []);
+      const v = await runGate(
+        { slug: content.slug, title: content.title, tags: content.tags, body: content.body, targetQuery: rec.keyword },
+        { corpus, pageType: 'article', nuggetTexts: nuggets.map(n => n.text) },
+        env
+      );
+      await writeVerdict(env, content.slug, content.body, v);
+      rec.gateStatus = v.status; rec.gateReason = v.reason;
+      rec.gateFabrication = v.fabrication; rec.gateSimilarity = v.similarity;
+      rec.gateStructural = v.structural; rec.gateVoice = v.voice; rec.gateQuotes = v.quotes;
+      await env.FFX_KV.put(`video:${vid}`, JSON.stringify(rec));
+      const row = queue.find(q => q.videoId === vid);
+      if (row) row.gateStatus = v.status;
+      out.push({ videoId: vid, slug: content.slug, gate: v.status, reason: v.reason || null });
+    }
+    await env.FFX_KV.put('queue:index', JSON.stringify(queue));
+    return json({ regated: out.length, results: out });
+  }
 
   const n = Math.max(1, Math.min(10, parseInt(url.searchParams.get('n') || '2', 10) || 2));
   const dryRun = url.searchParams.get('dry') === '1';
