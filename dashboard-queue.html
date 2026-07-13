@@ -402,13 +402,27 @@ function buildQueueRow(item) {
   const videoId = item.videoId || '';
   const ytUrl   = item.youtubeUrl || '';
   const title   = item.title || '';
+  // SOURCE SWAP: keyword-mode rows are anchored by a demand SEO card, not a video
+  // thumbnail. Detected by item.source; video rows are unchanged.
+  const isKeyword = item.source === 'keyword';
   const row     = document.createElement('div');
   row.className = 'queue-row';
   row.dataset.videoid = videoId;
 
-  const thumbHtml = '<div class="row-thumb-wrap" style="width:200px;height:112px;">'
-    + '<img class="row-thumb" src="https://img.youtube.com/vi/'+videoId+'/mqdefault.jpg" '
-    + 'onerror="this.parentElement.innerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'" alt=""></div>';
+  // Anchor: video thumbnail (video mode) OR keyword SEO card (keyword mode).
+  const kd = (item.kd === 0 || item.kd) ? ('KD ' + item.kd) : 'KD —';
+  const vol = (item.volume === 0 || item.volume) ? (item.volume.toLocaleString() + '/mo') : '—';
+  const thumbHtml = isKeyword
+    ? '<div class="row-thumb-wrap kw-card" style="width:200px;height:112px;display:flex;flex-direction:column;justify-content:space-between;padding:12px;box-sizing:border-box;background:linear-gradient(135deg,rgba(248,113,113,0.10),rgba(255,255,255,0.03));border:1px solid rgba(248,113,113,0.22);border-radius:10px;">'
+      + '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:rgba(248,113,113,0.85);font-weight:600;">Keyword target</div>'
+      + '<div style="font-size:14px;line-height:1.25;color:rgba(255,255,255,0.92);font-weight:600;overflow:hidden;">'+escHtml(item.keyword || videoId)+'</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+      + '<span style="font-size:11px;padding:2px 7px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.72);">'+escHtml(vol)+'</span>'
+      + '<span style="font-size:11px;padding:2px 7px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.72);">'+escHtml(kd)+'</span>'
+      + '</div></div>'
+    : '<div class="row-thumb-wrap" style="width:200px;height:112px;">'
+      + '<img class="row-thumb" src="https://img.youtube.com/vi/'+videoId+'/mqdefault.jpg" '
+      + 'onerror="this.parentElement.innerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'" alt=""></div>';
 
   let badgeHtml = '', actionHtml = '';
   const isOrange = item.state === 'orange';
@@ -424,9 +438,10 @@ function buildQueueRow(item) {
   } else if (item.state === 'generating') {
     badgeHtml = '<span class="state-badge badge-generating">\u25cf Generating</span>';
   } else {
-    const src = (item.addedBy==='cron'||item.addedBy==='cron-new') ? 'Cron' : 'Manual';
+    // Keyword rows are enqueued automatically by the cron — no manual Generate.
+    const src = isKeyword ? 'Cron · keyword' : ((item.addedBy==='cron'||item.addedBy==='cron-new') ? 'Cron' : 'Manual');
     badgeHtml  = '<span class="state-badge badge-grey">'+src+'</span>';
-    actionHtml = '<br><button class="btn-gen-row" onclick="generateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Generate</button>';
+    actionHtml = isKeyword ? '' : '<br><button class="btn-gen-row" onclick="generateItem(event,\''+videoId+'\',\''+escHtml(ytUrl)+'\')">Generate</button>';
   }
 
   // Park button — always visible
@@ -444,11 +459,21 @@ function buildQueueRow(item) {
   const summary = document.createElement('div');
   summary.className = 'row-summary';
   summary.style.gridTemplateColumns = '200px 1fr 180px 140px'; summary.style.cursor = 'default';
+  // Meta line — keyword rows show cluster + nuggets + gate; video rows show slug + YT url.
+  const gateBadge = item.gateStatus
+    ? '<span class="row-slug" style="color:'+(item.gateStatus==='passed'?'rgba(74,222,128,0.85)':'rgba(248,113,113,0.85)')+';">gate: '+escHtml(item.gateStatus)+'</span>'
+    : '';
+  const metaHtml = isKeyword
+    ? '<div class="row-meta"><span class="region-tag region-global">Global</span>'
+      + (item.cluster ? '<span class="row-slug">'+escHtml(item.cluster)+'</span>' : '')
+      + (item.nuggetCount != null ? '<span class="row-slug">'+item.nuggetCount+' nuggets</span>' : '')
+      + gateBadge + '</div>'
+    : '<div class="row-meta"><span class="region-tag region-global">Global</span><span class="row-slug">'+escHtml(videoId)+'</span></div>'
+      + (ytUrl ? '<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '');
   summary.innerHTML = thumbHtml
     + '<div class="row-info">'
     + '<div class="row-title">'+(title ? escHtml(title) : '<span style="color:rgba(255,255,255,0.24);font-style:italic;font-size:14px;">Title loads after generation</span>')+'</div>'
-    + '<div class="row-meta"><span class="region-tag region-global">Global</span><span class="row-slug">'+escHtml(videoId)+'</span></div>'
-    + (ytUrl ? '<a class="row-yt-url" href="'+escHtml(ytUrl)+'" target="_blank" onclick="event.stopPropagation()">'+escHtml(ytUrl)+'</a>' : '')
+    + metaHtml
     + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:6px;justify-content:flex-start;padding-top:4px;">'
     + badgeHtml + actionHtml + parkBtn + reorderBtns

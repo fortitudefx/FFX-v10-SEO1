@@ -14,11 +14,21 @@
 // 6. Trigger intelligence engine
 // ─────────────────────────────────────────────────────────────────────────────
 
+import {
+  sourceMode, isDryRun, keywordsPerRun,
+  readDemandMap, writeDemandMap, selectTargets, markClaimed,
+  retrieveNuggetIds, keywordId,
+} from '../lib/keyword/select.js';
+
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 const QUEUE_KEY        = 'queue:index';
 const QUEUE_TARGET     = 10;
 const QUEUE_TOPUP_AT   = 3;
 const QUEUE_TOPUP_BY   = 7;
+
+// Alert Salman when the winnable demand-map runway drops to/below this many
+// distinct topics (he asked to be told when winnable targets run low).
+const WINNABLE_LOW_WATERMARK = 5;
 
 export default {
   async scheduled(event, env, ctx) {
@@ -64,41 +74,50 @@ async function runEngine(env) {
 
 async function runCron(env) {
   try {
-    console.log('[ffx-cron] Starting cron run');
+    const mode = sourceMode(env);
+    console.log('[ffx-cron] Starting cron run — SOURCE_MODE:', mode);
 
-    // ── Step 1: Check for new video uploaded in last 25hrs ────────────────
-    const newVideo = await findNewVideo(env);
-    if (newVideo) {
-      console.log('[ffx-cron] New video found:', newVideo.videoId, newVideo.title);
-      await addToQueueTop(env, newVideo);
-    }
-
-    // ── Step 2: Check queue length and top up if needed ───────────────────
-    const queue = await getQueue(env);
-    console.log('[ffx-cron] Current queue length:', queue.length);
-
-    if (queue.length === 0) {
-      console.log('[ffx-cron] Queue empty — pulling', QUEUE_TARGET, 'videos from back-catalogue');
-      const videos = await findBacklogVideos(env, QUEUE_TARGET, queue);
-      for (const v of videos) await addToQueueBottom(env, v);
-      console.log('[ffx-cron] Added', videos.length, 'videos to queue');
-    } else if (queue.length <= QUEUE_TOPUP_AT) {
-      console.log('[ffx-cron] Queue low (', queue.length, ') — topping up with', QUEUE_TOPUP_BY);
-      const videos = await findBacklogVideos(env, QUEUE_TOPUP_BY, queue);
-      for (const v of videos) await addToQueueBottom(env, v);
-      console.log('[ffx-cron] Added', videos.length, 'videos to queue');
+    if (mode === 'keyword') {
+      // ── Steps 1–3, KEYWORD SOURCE ──────────────────────────────────────
+      // Pick the next N winnable, distinct-topic targets from the demand map,
+      // ground them in Salman's nuggets, and enqueue. The video steps are
+      // skipped entirely; the shared signals steps (4–7) still run below.
+      await runKeywordSource(env);
     } else {
-      console.log('[ffx-cron] Queue healthy — no top-up needed');
-    }
+      // ── Step 1: Check for new video uploaded in last 25hrs ────────────────
+      const newVideo = await findNewVideo(env);
+      if (newVideo) {
+        console.log('[ffx-cron] New video found:', newVideo.videoId, newVideo.title);
+        await addToQueueTop(env, newVideo);
+      }
 
-    // ── Step 3: Trigger generation on first queue item ────────────────────
-    const updatedQueue = await getQueue(env);
-    if (!updatedQueue.length) {
-      console.log('[ffx-cron] Queue empty after top-up — all videos processed');
-    } else {
-      const firstItem = updatedQueue[0];
-      console.log('[ffx-cron] Triggering generation for:', firstItem.videoId, firstItem.title);
-      await triggerGeneration(env, firstItem);
+      // ── Step 2: Check queue length and top up if needed ───────────────────
+      const queue = await getQueue(env);
+      console.log('[ffx-cron] Current queue length:', queue.length);
+
+      if (queue.length === 0) {
+        console.log('[ffx-cron] Queue empty — pulling', QUEUE_TARGET, 'videos from back-catalogue');
+        const videos = await findBacklogVideos(env, QUEUE_TARGET, queue);
+        for (const v of videos) await addToQueueBottom(env, v);
+        console.log('[ffx-cron] Added', videos.length, 'videos to queue');
+      } else if (queue.length <= QUEUE_TOPUP_AT) {
+        console.log('[ffx-cron] Queue low (', queue.length, ') — topping up with', QUEUE_TOPUP_BY);
+        const videos = await findBacklogVideos(env, QUEUE_TOPUP_BY, queue);
+        for (const v of videos) await addToQueueBottom(env, v);
+        console.log('[ffx-cron] Added', videos.length, 'videos to queue');
+      } else {
+        console.log('[ffx-cron] Queue healthy — no top-up needed');
+      }
+
+      // ── Step 3: Trigger generation on first queue item ────────────────────
+      const updatedQueue = await getQueue(env);
+      if (!updatedQueue.length) {
+        console.log('[ffx-cron] Queue empty after top-up — all videos processed');
+      } else {
+        const firstItem = updatedQueue[0];
+        console.log('[ffx-cron] Triggering generation for:', firstItem.videoId, firstItem.title);
+        await triggerGeneration(env, firstItem);
+      }
     }
 
     // ── Step 4: Collect fresh SEO + GA4 signals ───────────────────────────
@@ -225,6 +244,123 @@ async function runCron(env) {
       message: `Cron run failed: ${err.message}\n\nStack: ${err.stack || 'no stack'}`,
     });
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYWORD SOURCE (SOURCE_MODE=keyword) — Steps 1–3 replacement
+// Pick the next N winnable, distinct-canonical-topic targets from demand:map,
+// ground each in Salman's nuggets, and enqueue a keyword job. One article per
+// canonical topic. The quality gate — not this cadence — is the control on what
+// ever reaches a live page. Nothing here publishes; jobs land in the queue for
+// Salman to review and publish.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function runKeywordSource(env) {
+  const map = await readDemandMap(env);
+  if (!map.length) {
+    console.error('[ffx-cron][keyword] demand:map is empty — run POST /api/seed-demand-map once. Skipping.');
+    await sendAlertEmail(env, {
+      subject: '[FFX Keyword] demand:map not seeded',
+      message: 'SOURCE_MODE=keyword but demand:map is empty. Seed it once via POST /api/seed-demand-map, then the cron will start generating.',
+    });
+    return;
+  }
+
+  const want = keywordsPerRun(env);
+  const dryRun = isDryRun(env);
+  const { picks, winnableRemaining, ambiguousRemaining } = selectTargets(map, want);
+
+  if (!picks.length) {
+    console.error('[ffx-cron][keyword] No winnable unclaimed targets left in demand:map.');
+    await sendAlertEmail(env, {
+      subject: '[FFX Keyword] Winnable targets exhausted',
+      message: 'The demand map has no winnable, unclaimed topics left to generate.\n\n'
+        + 'Ambiguous (manual-review) topics still available: ' + ambiguousRemaining + '.\n'
+        + 'Next: widen the demand map (DataForSEO discovery) or switch cadence to enrichment of existing pages.',
+    });
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  let enqueued = 0;
+  for (const target of picks) {
+    try {
+      const nuggetIds = await retrieveNuggetIds(env, target, 8);
+      const jobId = `${Date.now()}-${keywordId(target.keyword)}`;
+
+      await env.FFX_KV.put(`job:${jobId}`, JSON.stringify({
+        status: 'pending', keyword: target.keyword, targetQuery: target.keyword,
+        createdAt: nowIso, source: 'cron-keyword', dryRun,
+      }), { expirationTtl: 86400 });
+
+      await env.FFX_QUEUE.send({
+        jobId,
+        source: 'cron-keyword',
+        keyword: target.keyword,
+        targetQuery: target.keyword,
+        canonical: target.canonical,
+        cluster: target.cluster,
+        proprietaryTerm: target.proprietary_term,
+        nuggetTags: target.nugget_tags,
+        nuggetIds,
+        dryRun,
+      });
+
+      // Surface the target in the queue (SEO-card row) unless this is a dry run.
+      if (!dryRun) {
+        await addKeywordToQueueBottom(env, target, jobId, nuggetIds.length);
+      }
+
+      // Mark claimed in the map so no other run picks it up.
+      markClaimed(target, { at: nowIso });
+      enqueued++;
+      console.log('[ffx-cron][keyword] Enqueued:', target.keyword,
+        '| topic:', target.canonical, '| nuggets:', nuggetIds.length, dryRun ? '| DRY_RUN' : '');
+    } catch (e) {
+      console.error('[ffx-cron][keyword] Enqueue failed for', target.keyword, '—', e.message);
+    }
+  }
+
+  if (enqueued > 0) await writeDemandMap(env, map);
+  console.log('[ffx-cron][keyword] Enqueued', enqueued, 'of', want,
+    '| winnable topics remaining:', winnableRemaining);
+
+  // Runway alert — tell Salman before it runs dry.
+  if (winnableRemaining <= WINNABLE_LOW_WATERMARK || enqueued < want) {
+    await sendAlertEmail(env, {
+      subject: `[FFX Keyword] Winnable runway low — ${winnableRemaining} topics left`,
+      message: `Enqueued ${enqueued}/${want} today.\n\n`
+        + `Distinct WINNABLE topics still unclaimed: ${winnableRemaining} `
+        + `(~${(winnableRemaining / want).toFixed(1)} more weekdays at ${want}/day).\n`
+        + `Ambiguous (manual) topics: ${ambiguousRemaining}.\n\n`
+        + `Next step when this hits zero: widen the demand map, or drop cadence to enrichment.`,
+    });
+  }
+}
+
+// Keyword queue row — parallels addToQueueBottom but carries SEO-card fields so
+// dashboard-queue.html can render the demand target instead of a video thumbnail.
+async function addKeywordToQueueBottom(env, target, jobId, nuggetCount) {
+  const queue = await getQueue(env);
+  const vid = keywordId(target.keyword);
+  if (queue.some(item => item.videoId === vid)) return;
+  queue.push({
+    videoId:     vid,
+    source:      'keyword',
+    keyword:     target.keyword,
+    targetQuery: target.keyword,
+    canonical:   target.canonical,
+    cluster:     target.cluster,
+    volume:      target.volume,
+    kd:          target.kd,
+    nuggetCount: nuggetCount,
+    title:       target.keyword,   // replaced with the real title once generated
+    addedAt:     new Date().toISOString(),
+    addedBy:     'cron-keyword',
+    jobId,
+    wasGenerated: false,
+  });
+  await env.FFX_KV.put(QUEUE_KEY, JSON.stringify(queue));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

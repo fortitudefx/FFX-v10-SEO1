@@ -9,6 +9,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { runGate } from '../lib/gate/gate.js';
 import { writeVerdict, loadCorpus } from '../lib/gate/verdict.js';
+import { loadNuggetTexts, buildGrounding, keywordArticleInstruction } from '../lib/keyword/grounding.js';
+import { keywordId } from '../lib/keyword/select.js';
 
 export default {
   async queue(batch, env) {
@@ -40,6 +42,13 @@ async function processJob(job, env) {
   // Route newsletter jobs to separate handler
   if (job.type === 'newsletter') {
     await processNewsletterJob(job, env);
+    return;
+  }
+  // Route keyword-source jobs (SOURCE_MODE=keyword) to the keyword handler.
+  // Detected by the job shape the cron produces — no reliance on Worker env, so
+  // a video job can never be mis-routed. Video jobs fall through unchanged.
+  if (job.source === 'cron-keyword' || (job.targetQuery && !job.videoId)) {
+    await processKeywordJob(job, env);
     return;
   }
   const { jobId, videoId, youtubeUrl, existingSlug } = job;
@@ -426,6 +435,143 @@ async function processJob(job, env) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYWORD SOURCE JOB (SOURCE_MODE=keyword)
+// Generates ONE article from a demand-map target grounded in Salman's nuggets —
+// no transcript, no regional, no platform/library steps. Runs the SAME quality
+// gate as the video path, with quote-verification enabled (every blockquote must
+// trace verbatim to a nugget). On DRY_RUN the record goes to a preview key and
+// never enters the live queue, so it can never be published. The video path
+// (processJob above) is untouched.
+// ─────────────────────────────────────────────────────────────────────────────
+async function processKeywordJob(job, env) {
+  const { jobId, keyword, targetQuery, canonical, cluster, proprietaryTerm, nuggetTags, nuggetIds, dryRun } = job;
+  const kw = keyword || targetQuery;
+  const videoId = keywordId(kw);   // synthetic id → video:{id}/queue/gate plumbing works unchanged
+  console.log('[FFX][keyword] Processing:', jobId, '| keyword:', kw, dryRun ? '| DRY_RUN' : '');
+
+  // Idempotent — skip if already generated (mirrors the video path).
+  try {
+    const existing = await env.FFX_KV.get('video:' + videoId, { type: 'json' }).catch(function(){ return null; });
+    if (existing && existing.slug) {
+      console.log('[FFX][keyword] video:' + videoId + ' already exists — marking job complete');
+      await kvPut(env, 'job:' + jobId, JSON.stringify({ status: 'complete', videoId, keyword: kw, skipped: true, generatedAt: existing.generatedAt || new Date().toISOString() }), { expirationTtl: 86400 });
+      return;
+    }
+  } catch {}
+
+  await kvPut(env, 'lock:generating', JSON.stringify({ jobId, videoId, keyword: kw, startedAt: new Date().toISOString() }), { expirationTtl: 1800 });
+
+  const target = { keyword: kw, canonical, cluster, proprietary_term: proprietaryTerm, nugget_tags: nuggetTags };
+
+  // 1. Load nuggets + build grounding (no transcript in keyword mode).
+  await updateJob(env, jobId, videoId, 'processing', 'grounding');
+  let nuggets = [];
+  try { nuggets = await loadNuggetTexts(env, nuggetIds); }
+  catch (e) { console.error('[FFX][keyword] nugget load failed (non-fatal):', e.message); }
+  const hasNuggets = nuggets.length > 0;
+  const grounding  = buildGrounding(target, nuggets);
+  const sourceUrl  = (nuggets.find(function(n){ return n.youtubeUrl; }) || {}).youtubeUrl || null; // provenance/citation
+  console.log('[FFX][keyword] grounding built —', nuggets.length, 'nuggets', hasNuggets ? '' : '(NO-NUGGET path)');
+
+  // 2. Generate (keyword mode — nugget-grounded, verbatim-quote contract).
+  await updateJob(env, jobId, videoId, 'processing', 'article');
+  let article;
+  try {
+    article = await callClaudeArticle(grounding, sourceUrl, env.ANTHROPIC_API_KEY, 'Global', null, null, env,
+      { sourceMode: 'keyword', target, hasNuggets });
+  } catch (err) {
+    await failJob(env, jobId, videoId, 'article', formatClaudeError(err, 'Keyword article'), true);
+    return;
+  }
+  const content = Object.assign({}, article, { region: 'Global', regionLabel: 'Global', videoId, youtubeUrl: sourceUrl, keyword: kw });
+
+  // 3. Quality gate — quote-verify enabled (nuggetTexts passed). FAIL-CLOSED.
+  await updateJob(env, jobId, videoId, 'processing', 'gate');
+  let gateVerdict = null;
+  try {
+    const corpus = await loadCorpus(env);
+    gateVerdict = await runGate(
+      { slug: content.slug, title: content.title, tags: content.tags, body: content.body, targetQuery: kw },
+      { corpus, pageType: 'article', nuggetTexts: nuggets.map(function(n){ return n.text; }) },
+      env
+    );
+    await writeVerdict(env, content.slug, content.body, gateVerdict);
+    console.log('[FFX][keyword] Gate:', content.slug, '→', gateVerdict.status, gateVerdict.reason || '');
+  } catch (gateErr) {
+    console.error('[FFX][keyword] Gate errored (fail-closed):', gateErr.message);
+    gateVerdict = { status: 'failed', reason: '[gate-error] ' + gateErr.message };
+    try { await writeVerdict(env, content.slug, content.body, gateVerdict); } catch {}
+  }
+
+  const record = {
+    videoId, youtubeUrl: sourceUrl,
+    slug: content.slug, title: content.title,
+    source: 'keyword', keyword: kw, targetQuery: kw, canonical, cluster,
+    nuggetIds: Array.isArray(nuggetIds) ? nuggetIds : [], nuggetCount: nuggets.length, hasNuggets,
+    generatedAt: new Date().toISOString(), region: 'Global',
+    gateStatus:      gateVerdict ? gateVerdict.status : 'ungated',
+    gateReason:      gateVerdict ? gateVerdict.reason : null,
+    gateFabrication: gateVerdict ? gateVerdict.fabrication : null,
+    gateSimilarity:  gateVerdict ? gateVerdict.similarity : null,
+    gateStructural:  gateVerdict ? gateVerdict.structural : null,
+    gateVoice:       gateVerdict ? gateVerdict.voice : null,
+    gateQuotes:      gateVerdict ? gateVerdict.quotes : null,
+    platforms: {
+      blog_global: { status: 'generated', content, updatedAt: new Date().toISOString() },
+    },
+  };
+
+  // 4a. DRY_RUN — preview key only; never the live record/queue. Cannot publish.
+  if (dryRun) {
+    await kvPut(env, 'dryrun:keyword:' + content.slug, JSON.stringify(record));
+    await kvPut(env, 'job:' + jobId, JSON.stringify({ status: 'complete', videoId, keyword: kw, dryRun: true, slug: content.slug, gateStatus: record.gateStatus, generatedAt: record.generatedAt }), { expirationTtl: 86400 });
+    try { await env.FFX_KV.delete('lock:generating'); } catch {}
+    console.log('[FFX][keyword] DRY_RUN complete — preview at dryrun:keyword:' + content.slug);
+    return;
+  }
+
+  // 4b. Live — write the record + performance, mark the queue row generated.
+  try {
+    await kvPut(env, 'video:' + videoId, JSON.stringify(record)); // PERMANENT — no TTL
+  } catch (err) {
+    await failJob(env, jobId, videoId, 'kv_write', 'Storage write failed: ' + err.message + '. Please retry.', true);
+    return;
+  }
+
+  try {
+    const wordCount = content.body ? content.body.replace(/<[^>]+>/g, '').split(/\s+/).filter(Boolean).length : 0;
+    await env.FFX_KV.put('content:performance:' + content.slug, JSON.stringify({
+      slug: content.slug, videoId, youtubeUrl: sourceUrl, title: content.title,
+      contentPillar: content.category || 'Strategy', region: 'Global', wordCount,
+      targetQuery: kw, source: 'keyword', promptInjected: true,
+      generatedAt: new Date().toISOString(), publishedAt: null, status: 'generated',
+      snapshot7: null, snapshot30: null, snapshot90: null,
+    }));
+  } catch (e) { console.error('[FFX][keyword] content:performance failed (non-fatal):', e.message); }
+
+  try {
+    const queueRaw = await env.FFX_KV.get('queue:index', { type: 'json' });
+    if (Array.isArray(queueRaw)) {
+      const qi = queueRaw.findIndex(function(q){ return q.videoId === videoId; });
+      if (qi !== -1) {
+        queueRaw[qi].title        = content.title || queueRaw[qi].title;
+        queueRaw[qi].slug         = content.slug;
+        queueRaw[qi].gateStatus   = record.gateStatus;
+        queueRaw[qi].wasGenerated = true;
+        await env.FFX_KV.put('queue:index', JSON.stringify(queueRaw));
+      }
+    }
+  } catch (e) { console.error('[FFX][keyword] queue:index update failed (non-fatal):', e.message); }
+
+  await kvPut(env, 'job:' + jobId, JSON.stringify({ status: 'complete', videoId, keyword: kw, slug: content.slug, gateStatus: record.gateStatus, generatedAt: record.generatedAt }), { expirationTtl: 86400 });
+  try { await env.FFX_KV.delete('lock:generating'); } catch {}
+  console.log('[FFX][keyword] Job complete:', jobId, '| slug:', content.slug, '| gate:', record.gateStatus);
+
+  try { await sendCompletionEmail(env, sourceUrl, videoId, content.title); }
+  catch (e) { console.error('[FFX][keyword] completion email failed (non-fatal):', e.message); }
+}
+
 // ── Component 2: Fetch topically related published articles ───────────────
 // Reads articles:index, scores each candidate by IDF-weighted tag-word overlap
 // with the transcript (+ a full-phrase bonus), returns the top 3.
@@ -677,9 +823,12 @@ async function fetchTranscriptTimestamped(youtubeUrl, apiKey) {
   }
 }
 
-async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalSlug, existingSlug, env) {
+async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalSlug, existingSlug, env, opts) {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
   const isRegional = region !== 'Global';
+  opts = opts || {};
+  const isKeyword = opts.sourceMode === 'keyword';   // demand-driven, nugget-grounded
+  const kwTarget  = opts.target || null;
 
   // ── Component 2: Fetch related articles + Read intelligence signals ────
   let signalInjection = '';
@@ -777,7 +926,11 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
     ? '\nREGIONAL TARGETING - THIS ARTICLE IS FOR: ' + region + '\nThis is the regional variant. The global slug is: ' + globalSlug + '.\nAppend the region to the slug: e.g. "trading-london-session-gcc".\nFrame examples, market session times, currency pairs, and cultural context specifically for ' + region + ' traders.\nKeep the core trading insight identical - only framing and examples shift.'
     : '';
 
-  const systemPrompt = 'You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.' + signalInjection + voiceRules + '\n\nTRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.\n\nArticle region: ' + region + regionInstruction + '\n\nGenerate ONLY the blog article fields. Return a single valid JSON object with exactly these keys and no others:\n\n{\n  "slug": "url-safe-lowercase-hyphenated-3-to-6-words",\n  "title": "SEO title 50-60 characters including primary keyword",\n  "excerpt": "compelling meta description max 160 characters",\n  "category": "exactly one of: Strategy, Psychology, Risk Management, Market Analysis, Fundamentals",\n  "tags": "comma-separated 4-6 relevant tags",\n  "readTime": "7 min read",\n  "body": "full 2000-word SEO article as valid HTML using h2 and h3 tags. Include internal links to /bootcamp /vipdiscord /blog. End with CTA to join free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark."\n}\n\nCRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. No preamble. Start with { end with }.\nThe body field contains HTML - ensure all quotes inside HTML attributes use single quotes to avoid breaking JSON string parsing.';
+  // Keyword mode: append the demand-targeting + verbatim-quote + no-fabrication
+  // contract on top of the existing voice/trademark rules (which stay absolute).
+  const keywordInstruction = (isKeyword && kwTarget) ? keywordArticleInstruction(kwTarget, opts.hasNuggets !== false) : '';
+
+  const systemPrompt = 'You are the content engine for FortitudeFX (fortitudefx.com), a forex trading education brand built around the Catch The Wick mechanical entry system.' + signalInjection + voiceRules + keywordInstruction + '\n\nTRADEMARK RULE: FortitudeFX, Catch the Wick, and 2 Candle. 1 Story. must always include the TM symbol on first use.\n\nArticle region: ' + region + regionInstruction + '\n\nGenerate ONLY the blog article fields. Return a single valid JSON object with exactly these keys and no others:\n\n{\n  "slug": "url-safe-lowercase-hyphenated-3-to-6-words",\n  "title": "SEO title 50-60 characters including primary keyword",\n  "excerpt": "compelling meta description max 160 characters",\n  "category": "exactly one of: Strategy, Psychology, Risk Management, Market Analysis, Fundamentals",\n  "tags": "comma-separated 4-6 relevant tags",\n  "readTime": "7 min read",\n  "body": "full 2000-word SEO article as valid HTML using h2 and h3 tags. Include internal links to /bootcamp /vipdiscord /blog. End with CTA to join free Discord at https://discord.gg/fortitudefx. Maximum 1 exclamation mark."\n}\n\nCRITICAL: Return ONLY the raw JSON object. No markdown. No code fences. No preamble. Start with { end with }.\nThe body field contains HTML - ensure all quotes inside HTML attributes use single quotes to avoid breaking JSON string parsing.';
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -786,7 +939,9 @@ async function callClaudeArticle(transcript, youtubeUrl, apiKey, region, globalS
       model: 'claude-sonnet-4-5',
       max_tokens: 8000,
       system: systemPrompt,
-      messages: [{ role: 'user', content: 'Transcript:\n\n' + transcript + '\n\nVOICE: This is Salman speaking - founder of FortitudeFX. Write in his voice - direct, calm, experienced, institutional tone.' + (isRegional ? '\n\nREGIONAL: Write the ' + region + ' variant.' : '') }],
+      messages: [{ role: 'user', content: (isKeyword
+        ? transcript + '\n\nWrite the article for the target keyword above, grounded in the nuggets above. Quote at least two nuggets verbatim in <blockquote> tags and attribute them to Salman.\n\nVOICE: This is Salman speaking - founder of FortitudeFX. Write in his voice - direct, calm, experienced, institutional tone.'
+        : 'Transcript:\n\n' + transcript + '\n\nVOICE: This is Salman speaking - founder of FortitudeFX. Write in his voice - direct, calm, experienced, institutional tone.' + (isRegional ? '\n\nREGIONAL: Write the ' + region + ' variant.' : '')) }],
     }),
   });
 

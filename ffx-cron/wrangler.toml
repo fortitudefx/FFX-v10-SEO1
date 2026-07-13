@@ -24,3 +24,15 @@ binding = "FFX_QUEUE"
 
 [vars]
 YOUTUBE_CHANNEL_ID = "UConuNkzv83jBubkaQpXwXjQ"
+
+# ── SOURCE SWAP (video → keyword) ────────────────────────────────────────────
+# SOURCE_MODE = "keyword" : cron sources articles from the keyword demand map
+#                           (demand:map), grounded in Salman's nuggets.
+# SOURCE_MODE = "video"   : original behaviour — sources from the YouTube
+#                           back-catalogue. FLIP THIS ONE LINE to revert in
+#                           seconds; the video code path is fully intact.
+# KEYWORDS_PER_RUN        : keyword-mode articles per weekday run (2 = 10/week).
+# KEYWORD_DRY_RUN = "1"   : generate + gate but DO NOT add to the live queue
+#                           (preview only; nothing publishable). Unset = off.
+SOURCE_MODE = "keyword"
+KEYWORDS_PER_RUN = "2"
