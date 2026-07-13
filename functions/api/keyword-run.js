@@ -46,13 +46,44 @@ export async function onRequestPost(context) {
   const n = Math.max(1, Math.min(10, parseInt(url.searchParams.get('n') || '2', 10) || 2));
   const dryRun = url.searchParams.get('dry') === '1';
   const reseed = url.searchParams.get('reseed') === '1';
+  const force  = url.searchParams.get('force') === '1';
+  // Optional: regenerate specific keywords (comma-separated), ignoring claimed status.
+  const only = (url.searchParams.get('keywords') || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
   // Self-seed (idempotent).
   const seededMap = await ensureDemandMap(env, { force: reseed });
   const seededCorpus = await ensureCorpus(env, url.origin, fetch.bind(globalThis));
 
   const map = await readDemandMap(env);
-  const { picks, winnableRemaining, ambiguousRemaining } = selectTargets(map, n);
+
+  let picks, winnableRemaining, ambiguousRemaining;
+  if (only.length) {
+    // Targeted (re)generation of named keywords, regardless of claimed status.
+    picks = map.filter(r => only.includes((r.keyword || '').toLowerCase())).slice(0, n);
+    const openTopics = new Set(map.filter(r => r.verdict === 'WINNABLE' && (r.status || 'open') === 'open').map(r => r.canonical || r.keyword));
+    winnableRemaining = openTopics.size;
+    ambiguousRemaining = map.filter(r => r.verdict === 'AMBIGUOUS' && (r.status || 'open') === 'open').length;
+  } else {
+    ({ picks, winnableRemaining, ambiguousRemaining } = selectTargets(map, n));
+  }
+
+  // Force regen: clear the prior article + verdict so the consumer doesn't skip it.
+  if (force && picks.length) {
+    for (const t of picks) {
+      const vid = keywordId(t.keyword);
+      try {
+        const prev = await env.FFX_KV.get(`video:${vid}`, { type: 'json' }).catch(() => null);
+        const slug = prev && prev.slug;
+        await env.FFX_KV.delete(`video:${vid}`).catch(() => {});
+        if (slug) {
+          await env.FFX_KV.delete(`gate:${slug}`).catch(() => {});
+          await env.FFX_KV.delete(`content:performance:${slug}`).catch(() => {});
+        }
+      } catch {}
+      t.status = 'open'; t.article_slug = null; t.claimedAt = null; // allow re-claim
+    }
+    try { await env.FFX_KV.delete('lock:generating'); } catch {}
+  }
   if (!picks.length) {
     return json({
       seed: { demandMap: seededMap, corpus: seededCorpus },
@@ -85,7 +116,14 @@ export async function onRequestPost(context) {
 
     if (!dryRun) {
       const vid = keywordId(target.keyword);
-      if (!queue.some(q => q.videoId === vid)) {
+      const existingRow = queue.find(q => q.videoId === vid);
+      if (existingRow) {
+        // Regen: reset the row so the dashboard shows it working, not the stale verdict.
+        existingRow.wasGenerated = false;
+        existingRow.gateStatus = null;
+        existingRow.jobId = jobId;
+        existingRow.nuggetCount = nuggetIds.length;
+      } else {
         queue.push({
           videoId: vid, source: 'keyword', keyword: target.keyword, targetQuery: target.keyword,
           canonical: target.canonical, cluster: target.cluster, volume: target.volume, kd: target.kd,
