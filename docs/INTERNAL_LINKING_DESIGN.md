@@ -6,14 +6,30 @@ If the architecture is wrong, every article carries the mistake permanently.
 
 ## Audit of the 26 (today)
 
-- 70 article→article links, avg 2.7 out, but **relevance-greedy with no structure**:
-  chosen by `fetchRelatedArticles` on IDF-weighted tag/transcript overlap.
-- **6 orphans** (0 inbound) and **6 dead-ends** (0 outbound) — including the best article,
-  `how-to-prepare…london-open`, which is both.
-- **No render-time related zone** — `functions/article.js` ends with a Discord CTA only.
-- Links point *within a cannibalized corpus*, so the 8 opening-candle near-duplicates
-  interlink and read to Google as one thin body. **Linking and consolidation are the same
-  problem** — you cannot cleanly link duplicates; consolidate first, then link.
+Linking EXISTS — it is not absent, and it is more than baked in-body links. `functions/
+article.js` (SSR) renders, per article: the baked in-body links (`fetchRelatedArticles`,
+~2.7/article), a **request-time `article:links` "For further reading" injection**
+(`article.js:1041` — read from KV each request, inserted before the CTA), a **source-video
+link on every article** (`article.js:775`, `target=_blank`), a newsletter cross-link when
+present, and the Discord/Bootcamp CTA. A `content:link_graph` is maintained by
+`bulk-link-scan.js`.
+
+**Baked vs computed:** in-body links are **baked** at generation. The "For further reading"
+recommendations are **SSR-rendered per request but from a STORED list** (`article:links:
+{slug}`), populated by `bulk-link-scan.js` (manual POST, **writes a record per article — a
+write fan-out**). It does NOT query the live `articles:index` per request, so new articles do
+NOT auto-appear in older articles' recommendations until the scan is re-run. The SSR-no-churn
+property is present; the **zero-fan-out auto-growth property is not**.
+
+**What's actually wrong (verified in the graph):**
+- **6 orphans** (0 inbound) and **6 dead-ends** (0 outbound) — the best article,
+  `how-to-prepare…london-open`, is **both**, invisible to the internal graph.
+- The relevance-greedy selector **wires the 8 opening-candle duplicates to each other — 9
+  cross-links among them** — reading to Google as one interlinked body of thin content.
+  **Linking and consolidation are the same problem**: consolidate first, then link.
+- No hub-and-spoke / pillar structure; the graph is flat and lopsided.
+- Funnel: the off-site YouTube link renders **before** the CTA, and there is **no inline
+  email capture** anywhere in the flow.
 
 ## The cluster model (hub-and-spoke)
 
@@ -48,11 +64,15 @@ in-context. Rules enforced at generation:
   rewriting — protecting indexed pages from churn.
 
 **Layer 2 — render-time "related" zone (computed at request, zero write fan-out).**
+This is an UPGRADE of the existing `article:links` injection (`article.js:1041`), which is
+already SSR-per-request but renders a STORED list needing a manual `bulk-link-scan`
+write-fan-out to update. The upgrade: compute the set **live per request**.
 - `functions/article.js` renders a **"Continue in {cluster}"** zone after the body from the
   live `articles:index` + the cluster map: the pillar + the 2–3 most recent/relevant sibling
   spokes *currently published*.
 - Adding a new spoke makes it appear in its siblings' related zones on their next render —
-  **no rewriting any baked body.** The cluster's internal linking grows automatically.
+  **no rewriting any baked body and no per-article write.** The cluster's linking grows
+  automatically; `bulk-link-scan`'s write-fan-out is retired.
 
 Why both: Layer 1 carries the strongest SEO signal (in-context pillar link) and stays
 frozen; Layer 2 grows coverage without ever touching an indexed page.
@@ -78,14 +98,20 @@ One search visit must become 2–3 pages, then an email capture:
 3. **Inline email capture:** a cluster-relevant capture (joinfree / newsletter — "get the
    {cluster} playbook / weekly breakdowns") placed after the related zone, *then* the Discord
    CTA. Currently `joinfree` is only in nav/popup; this adds a contextual, in-flow capture.
+4. **Demote the source-video link.** It renders before the CTA today (`article.js:775`) — an
+   off-site off-ramp at the conversion moment. Keep it (E-E-A-T/provenance), but move it below
+   the related zone + email capture so the reader converts before leaving for YouTube.
 
-Funnel: search → article → pillar/sibling (2nd–3rd page) → email capture → Discord / bootcamp.
+Funnel: search → article → pillar/sibling (2nd–3rd page) → email capture → Discord / bootcamp
+(→ source video last, for the reader who still wants it).
 
 ## What this requires building (later, on approval)
 
 - A cluster map (KV `content:clusters` or a committed config): keyword/slug → cluster + pillar.
 - Generation change: bake the mandatory pillar up-link + ≤2 in-cluster sibling links (TF-IDF),
   replacing `fetchRelatedArticles`' whole-corpus tag scorer.
-- `functions/article.js`: the Layer-2 render-time related zone + inline email capture.
+- `functions/article.js`: upgrade the existing `article:links` injection into the Layer-2
+  live-computed "Continue in {cluster}" zone; add the inline email capture; demote the
+  source-video link below the CTA.
 - The consolidation pass (301s + pillar merges) — routed through overlap routing
   (`lib/gate/routing.js`), which already sends over-threshold overlaps to *enrich* the pillar.
