@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - 'ffx-cron/**'
+      # ffx-cron bundles lib/keyword + lib/gate (keyword source mode, self-seed),
+      # so a lib change must also redeploy this worker.
+      - 'lib/**'
 
 jobs:
   deploy:
