@@ -316,7 +316,7 @@ async function runKeywordSource(env) {
 
       // Surface the target in the queue (SEO-card row) unless this is a dry run.
       if (!dryRun) {
-        await addKeywordToQueueBottom(env, target, jobId, nuggetIds.length);
+        await addKeywordToQueueTop(env, target, jobId, nuggetIds.length);
       }
 
       // Mark claimed in the map so no other run picks it up.
@@ -346,13 +346,14 @@ async function runKeywordSource(env) {
   }
 }
 
-// Keyword queue row — parallels addToQueueBottom but carries SEO-card fields so
-// dashboard-queue.html can render the demand target instead of a video thumbnail.
-async function addKeywordToQueueBottom(env, target, jobId, nuggetCount) {
+// Keyword queue row — carries SEO-card fields so dashboard-queue.html renders the
+// demand target instead of a video thumbnail. New keyword articles go to the TOP
+// of the queue so the newest are the first thing surfaced for review.
+async function addKeywordToQueueTop(env, target, jobId, nuggetCount) {
   const queue = await getQueue(env);
   const vid = keywordId(target.keyword);
   if (queue.some(item => item.videoId === vid)) return;
-  queue.push({
+  queue.unshift({
     videoId:     vid,
     source:      'keyword',
     keyword:     target.keyword,

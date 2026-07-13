@@ -159,7 +159,7 @@ export async function onRequestPost(context) {
         existingRow.jobId = jobId;
         existingRow.nuggetCount = nuggetIds.length;
       } else {
-        queue.push({
+        queue.unshift({   // newest keyword articles to the TOP for review
           videoId: vid, source: 'keyword', keyword: target.keyword, targetQuery: target.keyword,
           canonical: target.canonical, cluster: target.cluster, volume: target.volume, kd: target.kd,
           nuggetCount: nuggetIds.length, title: target.keyword,
