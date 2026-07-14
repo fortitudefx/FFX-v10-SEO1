@@ -295,37 +295,39 @@ ${uniqueEntries.map(u => `  <url>
 </urlset>`;
 
       const sitemapUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/sitemap.xml?ref=${GITHUB_BRANCH}`;
-      const sitemapRes = await fetch(sitemapUrl, {
-        headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker' }
-      });
+      const sitemapContentB64 = (() => {
+        const bytes = new TextEncoder().encode(sitemapXml);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        return btoa(binary);
+      })();
 
-      let sitemapSha = null;
-      if (sitemapRes.ok) {
-        const sd = await sitemapRes.json();
-        sitemapSha = sd.sha;
+      // Retry on SHA conflict. Two publishes close together both read the same SHA;
+      // the second PUT 409s and (previously) was silently dropped, so its article
+      // never entered the sitemap. Re-read the latest SHA and retry so both land.
+      // The content is rebuilt from ALL article:* above, so a fresh-SHA retry writes
+      // the complete, current sitemap.
+      let sitemapPutOk = false;
+      let lastSitemapStatus = null;
+      for (let attempt = 1; attempt <= 3 && !sitemapPutOk; attempt++) {
+        let sitemapSha = null;
+        const shaRes = await fetch(sitemapUrl, { headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker' } });
+        if (shaRes.ok) { try { sitemapSha = (await shaRes.json()).sha; } catch {} }
+        const putRes = await fetch(sitemapUrl, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, 'User-Agent': 'FFX-Worker', 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `sitemap: add ${slug}`,
+            content: sitemapContentB64,
+            branch: GITHUB_BRANCH,
+            ...(sitemapSha && { sha: sitemapSha })
+          })
+        });
+        lastSitemapStatus = putRes.status;
+        if (putRes.ok) { sitemapPutOk = true; break; }
+        console.log('[FFX] sitemap.xml PUT attempt', attempt, 'failed status', putRes.status, attempt < 3 ? '— re-reading SHA + retrying' : '');
       }
-
-      const sitemapPutRes = await fetch(sitemapUrl, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${GITHUB_TOKEN}`,
-          'User-Agent': 'FFX-Worker',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: `sitemap: add ${slug}`,
-          content: (() => {
-            const bytes = new TextEncoder().encode(sitemapXml);
-            let binary = '';
-            for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-            return btoa(binary);
-          })(),
-          branch: GITHUB_BRANCH,
-          ...(sitemapSha && { sha: sitemapSha })
-        })
-      });
-      const sitemapPutOk = !!(sitemapPutRes && sitemapPutRes.ok);
-      console.log('[FFX] sitemap.xml PUT status:', sitemapPutRes && sitemapPutRes.status);
+      console.log('[FFX] sitemap.xml PUT final:', sitemapPutOk ? 'ok' : ('FAILED ' + lastSitemapStatus));
 
       // ── 2b. POST-PUT SELF-CHECK (SH-3) — the durable guard against a silently
       //        failed PUT. Re-fetches the just-written sitemap and confirms THIS
