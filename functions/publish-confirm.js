@@ -206,7 +206,12 @@ export async function onRequestPost(context) {
         return null;
       };
 
-      const videoId = extractVideoId(content.youtubeUrl || content.yt_url || '');
+      // Key the published record by the real content.videoId (e.g. kw-order-block)
+      // and only fall back to a URL-extracted id. Keyword articles have no
+      // youtubeUrl, so without this fallback they'd get videoId=null → no published
+      // record → invisible in the press dashboard, AND (previously) a stray URL keyed
+      // it under the WRONG video's id. content.videoId is authoritative.
+      const videoId = content.videoId || extractVideoId(content.youtubeUrl || content.yt_url || '') || null;
       const now = new Date();
       const dubaiTime = new Date(now.getTime() + (4 * 60 * 60 * 1000));
       const timestamp = dubaiTime.toISOString().replace('T', ' ').substring(0, 19);
@@ -274,6 +279,11 @@ export async function onRequestPost(context) {
           slug:            content.slug,
           title:           content.title || '',
           region:          content.region || 'Global',
+          // Carry the source so the press dashboard renders the keyword SEO card and
+          // the per-platform regen routes correctly (keyword vs video path).
+          source:          content.source || (String(videoId).startsWith('kw-') ? 'keyword' : undefined),
+          keyword:         content.keyword || null,
+          cluster:         content.cluster || null,
           updatedAt:       timestamp,
           globalContent:   content,
           regionalContent: regionalContent || null,

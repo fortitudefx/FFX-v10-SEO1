@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { callKeywordPlatforms } from '../../lib/keyword/platforms.js';
+import { keywordId } from '../../lib/keyword/select.js';
 
 const PLATFORM_FIELDS = {
   article:  ['body'],
@@ -43,10 +44,16 @@ export async function onRequestPost(context) {
   // ── Keyword items have NO transcript — route to the keyword regen path ────
   // (article → re-gated via the consumer; social → regenerated inline, committed
   // directly). Video items fall through to the transcript path below, unchanged.
+  // Detect keyword articles robustly. A PUBLISHED keyword article may be keyed by a
+  // real videoId extracted from a baked youtubeUrl (e.g. published:0_YybIdgkFo), so
+  // video:{videoId} won't exist — also check the PUBLISHED record's source. Without
+  // this, the press regen falls to the transcript path and silently regenerates from
+  // the WRONG video's transcript.
   const rec0 = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' }).catch(() => null);
-  const isKeyword = videoId.startsWith('kw-') || (rec0 && rec0.source === 'keyword');
+  const pub0 = await env.FFX_KV.get(`published:${videoId}`, { type: 'json' }).catch(() => null);
+  const isKeyword = videoId.startsWith('kw-') || (rec0 && rec0.source === 'keyword') || (pub0 && pub0.source === 'keyword');
   if (isKeyword) {
-    return await regenKeywordPlatform(videoId, platform, rec0, env, headers);
+    return await regenKeywordPlatform(videoId, platform, rec0, pub0, env, headers);
   }
 
   // ── 1. Pull transcript from permanent KV — no Supadata call ever ─────────
@@ -135,53 +142,78 @@ export async function onRequestOptions() {
 //  • x/linkedin/discord → regenerate that ONE platform inline and commit it
 //               directly to the record (non-gated; shows on next dashboard reload).
 // ─────────────────────────────────────────────────────────────────────────────
-async function regenKeywordPlatform(videoId, platform, rec, env, headers) {
-  if (!rec) return json({ error: 'Record not found for ' + videoId }, 404, headers);
-  const content = rec.platforms && rec.platforms.blog_global && rec.platforms.blog_global.content;
-  if (!content) return json({ error: 'No article content on record' }, 404, headers);
-  const slug = content.slug || rec.slug;
-  const kw   = rec.keyword || rec.targetQuery;
+async function regenKeywordPlatform(videoId, platform, videoRec, pubRec, env, headers) {
+  // The LIVE record is the published one if the article is published; otherwise the
+  // generation record. Pull the article content + keyword from whichever we have.
+  const live = pubRec || videoRec;
+  if (!live) return json({ error: 'Record not found for ' + videoId }, 404, headers);
+  const contentOf = (r) => r && (r.globalContent || (r.platforms && r.platforms.blog_global && r.platforms.blog_global.content) || r.content) || null;
+  const liveContent = contentOf(live);
+  if (!liveContent || !liveContent.body) return json({ error: 'No article content on record' }, 404, headers);
+  const slug = liveContent.slug || live.slug;
+  const kw   = live.keyword || (videoRec && videoRec.keyword) || (pubRec && pubRec.keyword);
+  const isPublished = !!pubRec;
 
   if (platform === 'article') {
+    // Article regen on a LIVE/published page would swap an indexed body without a
+    // re-gate/re-index cycle — fail loudly with the correct path instead.
+    if (isPublished) {
+      return json({ error: 'Article regeneration on a PUBLISHED page is not supported here (it would replace a live, indexed article body). Unpublish it, use "Regenerate Article" in the QUEUE (which re-gates), then republish.' }, 400, headers);
+    }
     if (!env.ffx_generate_queue) return json({ error: 'Queue binding ffx_generate_queue not found' }, 500, headers);
     const jobId = Date.now() + '-artregen-' + videoId;
     await env.FFX_KV.put('job:' + jobId, JSON.stringify({ status: 'pending', articleOnly: true, slug, createdAt: new Date().toISOString() }), { expirationTtl: 86400 });
     await env.ffx_generate_queue.send({
       jobId, source: 'cron-keyword', keyword: kw, targetQuery: kw,
-      canonical: rec.canonical, cluster: rec.cluster, nuggetTags: rec.nuggetTags || '',
-      nuggetIds: rec.nuggetIds || [], existingSlug: slug, articleOnly: true,
+      canonical: live.canonical, cluster: live.cluster, nuggetTags: live.nuggetTags || '',
+      nuggetIds: live.nuggetIds || [], existingSlug: slug, articleOnly: true,
     });
     return json({ success: true, queued: true, platform: 'article',
-      message: 'Article is regenerating and will be re-gated — social (X/LinkedIn/Discord) is untouched. Refresh this row in ~60s to see the new gate result.' }, 200, headers);
+      message: 'Article is regenerating and will be re-gated — social untouched. Refresh in ~60s.' }, 200, headers);
   }
 
-  if (platform === 'x' || platform === 'linkedin' || platform === 'discord') {
-    if (!env.ANTHROPIC_API_KEY) return json({ error: 'ANTHROPIC_API_KEY not set' }, 500, headers);
-    let p;
-    try {
-      const blogUrl = 'https://fortitudefx.com/article?slug=' + slug;
-      p = await callKeywordPlatforms(content, kw, blogUrl, env.ANTHROPIC_API_KEY, env);
-    } catch (e) { return json({ error: 'Regen failed: ' + e.message }, 500, headers); }
+  if (platform !== 'x' && platform !== 'linkedin' && platform !== 'discord') {
+    return json({ error: 'Platform not supported for keyword items: ' + platform }, 400, headers);
+  }
+  if (!env.ANTHROPIC_API_KEY) return json({ error: 'ANTHROPIC_API_KEY not set' }, 500, headers);
 
-    const now = new Date();
+  let p;
+  try {
+    p = await callKeywordPlatforms(liveContent, kw, 'https://fortitudefx.com/article?slug=' + slug, env.ANTHROPIC_API_KEY, env);
+  } catch (e) { return json({ error: 'Regen failed: ' + e.message }, 500, headers); }
+
+  // Apply to EVERY record that represents this article so the live page, press, and
+  // the generation record all stay in sync: the published record (what the live page
+  // + press read) and the generation record (video:kw-*, if it exists separately).
+  const now = new Date().toISOString();
+  const genRec = kw ? await env.FFX_KV.get('video:' + keywordId(kw), { type: 'json' }).catch(() => null) : null;
+  const targets = [];
+  if (pubRec)                                  targets.push({ key: 'published:' + videoId, rec: pubRec });
+  if (genRec)                                  targets.push({ key: 'video:' + keywordId(kw), rec: genRec });
+  if (videoRec && (!kw || videoId !== keywordId(kw))) targets.push({ key: 'video:' + videoId, rec: videoRec });
+
+  const apply = (rec) => {
+    const c = contentOf(rec) || {};
     rec.platforms = rec.platforms || {};
-    const fields = {};
     if (platform === 'x') {
-      for (let i = 0; i < 6; i++) { content['tweet' + (i + 1)] = p.tweets[i] || ''; fields['tweet' + (i + 1)] = p.tweets[i] || ''; }
-      rec.platforms.x = { status: 'generated', content: { tweets: p.tweets }, updatedAt: now.toISOString() };
+      for (let i = 0; i < 6; i++) c['tweet' + (i + 1)] = p.tweets[i] || '';
+      rec.platforms.x = { status: 'generated', content: { tweets: p.tweets }, updatedAt: now };
     } else if (platform === 'linkedin') {
-      content.linkedin = p.linkedin; fields.linkedin = p.linkedin;
-      rec.platforms.linkedin = { status: 'generated', content: { text: p.linkedin }, updatedAt: now.toISOString() };
+      c.linkedin = p.linkedin;
+      rec.platforms.linkedin = { status: 'generated', content: { text: p.linkedin }, updatedAt: now };
     } else {
-      content.discord = p.discord; fields.discord = p.discord;
-      rec.platforms.discord = { status: 'generated', content: { text: p.discord }, updatedAt: now.toISOString() };
+      c.discord = p.discord;
+      rec.platforms.discord = { status: 'generated', content: { text: p.discord }, updatedAt: now };
     }
-    rec.platforms.blog_global.content = content;
-    await env.FFX_KV.put('video:' + videoId, JSON.stringify(rec)); // direct commit — social is non-gated
-    return json({ success: true, platform, committed: true, fields, generatedAt: now.toISOString() }, 200, headers);
-  }
+  };
 
-  return json({ error: 'Platform not supported for keyword items: ' + platform }, 400, headers);
+  const updated = [];
+  for (const t of targets) {
+    try { apply(t.rec); await env.FFX_KV.put(t.key, JSON.stringify(t.rec)); updated.push(t.key); }
+    catch (e) { console.error('[FFX] keyword social regen write failed for', t.key, e.message); }
+  }
+  if (!updated.length) return json({ error: 'No record could be updated' }, 500, headers);
+  return json({ success: true, platform, committed: true, updated, generatedAt: now }, 200, headers);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

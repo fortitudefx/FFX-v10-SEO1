@@ -499,7 +499,7 @@ async function processKeywordJob(job, env) {
     await failJob(env, jobId, videoId, 'article', formatClaudeError(err, 'Keyword article'), true);
     return;
   }
-  const content = Object.assign({}, article, { region: 'Global', regionLabel: 'Global', videoId, youtubeUrl: sourceUrl, keyword: kw });
+  const content = Object.assign({}, article, { region: 'Global', regionLabel: 'Global', videoId, youtubeUrl: sourceUrl, keyword: kw, source: 'keyword', canonical, cluster });
 
   // 3. Quality gate — quote-verify enabled (nuggetTexts passed). FAIL-CLOSED.
   await updateJob(env, jobId, videoId, 'processing', 'gate');
