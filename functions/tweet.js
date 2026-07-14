@@ -76,7 +76,12 @@ export async function onRequestPost(context) {
   // Twitter only renders OG cards when the URL is the final element of a tweet
   // with no trailing text. Tweet2 (first reply) = highest visibility position.
   // Also ensure tweet6 (last tweet) keeps its YouTube URL clean.
-  if (tweets.length > 1) {
+  // Skip this injection when the THREAD already places the link intentionally
+  // (keyword threads carry the homepage in tweet 5 and the article link in tweet 6).
+  // Injecting a 3rd link into tweet 2 duplicates it and clutters a tweet not written
+  // for a link. Only auto-inject when NO tweet already contains a fortitudefx.com link.
+  const threadHasLink = tweets.some(t => /fortitudefx\.com/i.test(String(t || '')));
+  if (tweets.length > 1 && !threadHasLink) {
     const t2Content = tweets[1];
     // Only append if the canonical URL is not already at the end of tweet2
     const alreadyHasUrl = t2Content.trim().endsWith(canonicalUrl) ||

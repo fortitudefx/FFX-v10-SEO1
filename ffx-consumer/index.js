@@ -481,7 +481,12 @@ async function processKeywordJob(job, env) {
   catch (e) { console.error('[FFX][keyword] nugget load failed (non-fatal):', e.message); }
   const hasNuggets = nuggets.length > 0;
   const grounding  = buildGrounding(target, nuggets);
-  const sourceUrl  = (nuggets.find(function(n){ return n.youtubeUrl; }) || {}).youtubeUrl || null; // provenance/citation
+  // Keyword articles are composed from MULTIPLE nuggets across different videos —
+  // there is no single "source video", so we do NOT attach one (a first-nugget
+  // link is misleading, e.g. an order-block article pointing at an opening-candle
+  // video). article.js only renders the footer video when youtubeUrl is set, so
+  // null omits it cleanly. Provenance stays in the inline quote attributions.
+  const sourceUrl  = null;
   console.log('[FFX][keyword] grounding built —', nuggets.length, 'nuggets', hasNuggets ? '' : '(NO-NUGGET path)');
 
   // 2. Generate (keyword mode — nugget-grounded, verbatim-quote contract).

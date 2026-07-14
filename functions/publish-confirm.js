@@ -123,6 +123,15 @@ export async function onRequestPost(context) {
     }
   }
 
+  // ── Skip platforms with NO content ──────────────────────────────────────────
+  // A keyword article has no tumblr text; posting an empty platform just fails
+  // ("Article not found for slug"). Deselect empty platforms so they are neither
+  // posted nor counted as a failure (honest: shown as not_selected, not Error).
+  if (userSelected.tumblr   && !content.tumblr)                      { userSelected.tumblr = false;   status.tumblr = 'not_selected';   console.log('[FFX] tumblr skipped — no content'); }
+  if (userSelected.linkedin && !content.linkedin)                    { userSelected.linkedin = false; status.linkedin = 'not_selected'; console.log('[FFX] linkedin skipped — no content'); }
+  if (userSelected.discord  && !content.discord)                     { userSelected.discord = false;  status.discord = 'not_selected';  console.log('[FFX] discord skipped — no content'); }
+  if (userSelected.x        && !(content.tweet1 || content.tweet2))  { userSelected.x = false;        status.x = 'not_selected';        console.log('[FFX] x skipped — no tweets'); }
+
   // ── LinkedIn ──────────────────────────────────────────────────────────────
   if (userSelected.linkedin) {
     try {

@@ -141,6 +141,7 @@ if (videoId) {
   // ── Call publish-confirm ───────────────────────────────────────────────────
   const baseUrl = new URL(request.url).origin;
   let publishResult;
+  let partialWarning = null;
   try {
     const res = await fetch(`${baseUrl}/publish-confirm`, {
       method:  'POST',
@@ -150,13 +151,21 @@ if (videoId) {
 
     publishResult = await res.json();
 
-    if (!res.ok) {
+    // The ARTICLE is the anchor. Bail (and DON'T clean the queue) only if the
+    // article itself failed to publish. If the article published but an ancillary
+    // social (LinkedIn/Tumblr) failed, we STILL proceed: the article is live, so it
+    // belongs in press and must leave the queue — the failed social is surfaced as a
+    // warning to retry from the press dashboard. (Previously any 502 bailed here
+    // before cleanup, leaving the item in BOTH queue and press.)
+    const articleOk = publishResult.articlePublished === true || (res.ok && publishResult.success);
+    if (!articleOk) {
       return new Response(JSON.stringify({
         error: publishResult.error || `publish-confirm failed: ${res.status}`,
-      }), { status: 500, headers });
+      }), { status: res.status || 500, headers });
     }
+    if (!publishResult.success) partialWarning = publishResult.error; // article ok, some social failed
 
-    console.log('[FFX Press Publish] Result:', JSON.stringify(publishResult.status));
+    console.log('[FFX Press Publish] Result:', JSON.stringify(publishResult.status), partialWarning ? ('| partial: ' + partialWarning) : '');
 
   } catch (err) {
     return new Response(JSON.stringify({ error: `publish-confirm error: ${err.message}` }), { status: 500, headers });
@@ -184,6 +193,10 @@ if (videoId) {
     videoId: videoId || slug,
     slug:    globalContent.slug,
     status:  publishResult.status,
+    // Article published + removed from queue; a non-fatal social failure (if any)
+    // is surfaced so the dashboard can prompt a retry from the press side.
+    warning: partialWarning,
+    movedToPress: true,
   }), { status: 200, headers });
 }
 
