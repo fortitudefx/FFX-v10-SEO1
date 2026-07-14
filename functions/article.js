@@ -86,7 +86,7 @@ const GTAG         = `<!-- Google tag (gtag.js) -->
   gtag('js', new Date());
   gtag('config', 'G-Y056J2K2WK');
 </script>`;          // article.html 4-11
-const HEAD_TAIL    = `<meta name="theme-color" content="#0d0d14" />
+const HEAD_TAIL    = `<meta name="theme-color" content="#f6f3ec" />
 <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -102,20 +102,20 @@ const STYLE        = `<style>
 html { scroll-behavior: smooth; }
 body {
   font-family: 'Inter', sans-serif;
-  background: #0d0d14;
-  color: #e8e4de;
+  background: #f6f3ec;
+  color: #1c1b18;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ── Tokens ── */
 :root {
-  --gold: #C9A84C;
+  --gold: #8a6d1f;
   --orange: #E06B1A;
-  --dark: #0d0d14;
-  --dark-alt: #111118;
-  --cream: #e8e4de;
-  --cream-muted: rgba(232,228,222,0.5);
+  --dark: #f6f3ec;
+  --dark-alt: #efeae0;
+  --cream: #1c1b18;
+  --cream-muted: rgba(28,26,22,0.5);
   --gold-border: rgba(201,168,76,0.15);
 }
 
@@ -232,9 +232,9 @@ body {
   gap: 12px;
   margin: 40px 0;
   padding: 16px 22px;
-  border: 1px solid rgba(232,228,222,0.08);
+  border: 1px solid rgba(28,26,22,0.08);
   border-radius: 12px;
-  background: rgba(232,228,222,0.03);
+  background: rgba(28,26,22,0.03);
   color: var(--cream);
   text-decoration: none;
   font-size: 15px;
@@ -250,10 +250,11 @@ body {
 
 /* ── Article body typography ── */
 .article-body {
-  font-size: 17px;
-  font-weight: 300;
-  line-height: 1.85;
-  color: rgba(232,228,222,0.75);
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: rgba(28,26,22,0.9);
 }
 .article-body h2 {
   font-family: 'Playfair Display', serif;
@@ -303,7 +304,7 @@ body {
 }
 .article-body hr {
   border: none;
-  border-top: 1px solid rgba(232,228,222,0.08);
+  border-top: 1px solid rgba(28,26,22,0.08);
   margin: 40px 0;
 }
 .article-body img {
@@ -316,9 +317,9 @@ body {
 .article-sibling {
   margin: 40px 0;
   padding: 20px 24px;
-  border: 1px solid rgba(232,228,222,0.08);
+  border: 1px solid rgba(28,26,22,0.08);
   border-radius: 12px;
-  background: rgba(232,228,222,0.03);
+  background: rgba(28,26,22,0.03);
 }
 .article-sibling-label {
   font-size: 10px;
@@ -341,7 +342,7 @@ body {
 /* ── Divider ── */
 .article-divider {
   border: none;
-  border-top: 1px solid rgba(232,228,222,0.08);
+  border-top: 1px solid rgba(28,26,22,0.08);
   margin: 56px 0;
 }
 
@@ -389,7 +390,7 @@ body {
   align-items: center;
   font-size: 14px;
   font-weight: 600;
-  color: #0d0d14;
+  color: #f6f3ec;
   background: var(--gold);
   text-decoration: none;
   padding: 14px 28px;
@@ -397,7 +398,7 @@ body {
   transition: background 0.2s, transform 0.15s;
   letter-spacing: 0.02em;
 }
-.btn-primary:hover { background: #d4b05a; transform: translateY(-1px); }
+.btn-primary:hover { background: #a5842a; transform: translateY(-1px); }
 .btn-secondary {
   display: inline-flex;
   align-items: center;
@@ -408,11 +409,11 @@ body {
   text-decoration: none;
   padding: 13px 28px;
   border-radius: 100px;
-  border: 1px solid rgba(232,228,222,0.15);
+  border: 1px solid rgba(28,26,22,0.15);
   transition: all 0.2s;
   letter-spacing: 0.02em;
 }
-.btn-secondary:hover { border-color: rgba(232,228,222,0.35); color: var(--cream); }
+.btn-secondary:hover { border-color: rgba(28,26,22,0.35); color: var(--cream); }
 
 /* ── Loading / error ── */
 .article-loading {
@@ -459,7 +460,7 @@ body {
 /* ── Popup ── */
 #ffx-popup-overlay {
   position: fixed; inset: 0;
-  background: rgba(6,6,10,0.80);
+  background: rgba(246,243,236,0.80);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   z-index: 9998; display: flex; align-items: center; justify-content: center;
   padding: 20px; opacity: 0; visibility: hidden;
@@ -467,7 +468,7 @@ body {
 }
 #ffx-popup-overlay.is-open { opacity: 1; visibility: visible; }
 #ffx-popup {
-  background: #0d0d14;
+  background: #f6f3ec;
   border: 1px solid rgba(201,168,76,0.2);
   border-radius: 24px;
   padding: 44px 40px 36px;
@@ -485,38 +486,38 @@ body {
 #ffx-popup-close {
   position: absolute; top: 16px; right: 16px;
   width: 32px; height: 32px; border-radius: 50%;
-  background: rgba(232,228,222,0.05); border: 1px solid rgba(232,228,222,0.1);
-  color: rgba(232,228,222,0.45); font-size: 1.1rem; cursor: pointer;
+  background: rgba(28,26,22,0.05); border: 1px solid rgba(28,26,22,0.1);
+  color: rgba(28,26,22,0.45); font-size: 1.1rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.2s, color 0.2s;
 }
-#ffx-popup-close:hover { background: rgba(232,228,222,0.1); color: var(--cream); }
+#ffx-popup-close:hover { background: rgba(28,26,22,0.1); color: var(--cream); }
 .ffx-popup-sig { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(201,168,76,0.7); margin-bottom: 16px; }
 .ffx-popup-headline { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--cream); line-height: 1.35; letter-spacing: -0.02em; margin: 0 0 14px; }
 .ffx-popup-body { font-size: 14px; color: var(--cream-muted); line-height: 1.75; margin: 0 0 10px; }
-.ffx-popup-sign { font-size: 13px; color: rgba(232,228,222,0.3); font-style: italic; margin: 0 0 28px; }
-.ffx-popup-divider { height: 1px; background: rgba(232,228,222,0.07); margin: 0 0 24px; }
+.ffx-popup-sign { font-size: 13px; color: rgba(28,26,22,0.3); font-style: italic; margin: 0 0 28px; }
+.ffx-popup-divider { height: 1px; background: rgba(28,26,22,0.07); margin: 0 0 24px; }
 .ffx-popup-actions { display: flex; flex-direction: column; gap: 10px; }
 .ffx-popup-btn-primary {
   display: block; width: 100%; text-align: center;
   padding: 14px 24px; border-radius: 100px;
   background: var(--gold); border: none;
-  color: #0d0d14; font-size: 14px; font-weight: 700;
+  color: #f6f3ec; font-size: 14px; font-weight: 700;
   letter-spacing: 0.04em; text-decoration: none;
   font-family: 'Inter', sans-serif;
   transition: background 0.2s, transform 0.15s;
 }
-.ffx-popup-btn-primary:hover { background: #d4b05a; transform: translateY(-1px); }
+.ffx-popup-btn-primary:hover { background: #a5842a; transform: translateY(-1px); }
 .ffx-popup-btn-secondary {
   display: block; width: 100%; text-align: center;
   padding: 13px 24px; border-radius: 100px;
-  background: transparent; border: 1px solid rgba(232,228,222,0.14);
+  background: transparent; border: 1px solid rgba(28,26,22,0.14);
   color: var(--cream-muted); font-size: 14px; font-weight: 500;
   letter-spacing: 0.03em; text-decoration: none;
   font-family: 'Inter', sans-serif;
   transition: border-color 0.2s, color 0.2s, transform 0.15s;
 }
-.ffx-popup-btn-secondary:hover { border-color: rgba(232,228,222,0.3); color: var(--cream); transform: translateY(-1px); }
+.ffx-popup-btn-secondary:hover { border-color: rgba(28,26,22,0.3); color: var(--cream); transform: translateY(-1px); }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
@@ -587,7 +588,7 @@ const FOOTER       = `  <!-- Footer -->
     <div class="footer-bottom">
       <p class="footer-copy">© 2026 FortitudeFX<sup class="tm">™</sup> · All rights reserved · Dubai, UAE</p>
       <p class="footer-tm">Catch The Wick<sup class="tm">™</sup> · 2 Candles. 1 Story.<sup class="tm">™</sup></p>
-      <p class="footer-disclaimer" style="max-width:820px;margin:14px auto 0;font-size:11px;line-height:1.6;color:rgba(255,255,255,0.3);text-align:center;padding:0 16px;">Educational content only — not financial advice. FortitudeFX<sup class="tm">™</sup> provides trading education based on price-action methodology. Nothing here is financial, investment, or trading advice, or a recommendation to buy or sell any instrument. Trading forex carries a high level of risk and can result in the loss of some or all of your capital; it is not suitable for everyone. Past performance is not indicative of future results. Always do your own research and consider seeking advice from an independent, licensed financial professional before trading. You are solely responsible for your own trading decisions.</p>
+      <p class="footer-disclaimer" style="max-width:820px;margin:14px auto 0;font-size:11px;line-height:1.6;color:rgba(28,26,22,0.5);text-align:center;padding:0 16px;">Educational content only — not financial advice. FortitudeFX<sup class="tm">™</sup> provides trading education based on price-action methodology. Nothing here is financial, investment, or trading advice, or a recommendation to buy or sell any instrument. Trading forex carries a high level of risk and can result in the loss of some or all of your capital; it is not suitable for everyone. Past performance is not indicative of future results. Always do your own research and consider seeking advice from an independent, licensed financial professional before trading. You are solely responsible for your own trading decisions.</p>
     </div>
   </footer>`;        // article.html 481-508
 const POPUP_HTML   = `<!-- Back to top -->
@@ -784,7 +785,7 @@ function buildArticleInner(a) {
         '<a class="btn-secondary" href="bootcamp.html?utm_source=article&utm_medium=cta&utm_campaign=bootcamp&utm_content=' + attr(a.slug) + '">Explore the Bootcamp</a>' +
       '</div>' +
     '</div>' +
-    '<p class="article-foot-disclaimer" style="margin:40px 0 0;padding-top:24px;border-top:1px solid rgba(232,228,222,0.1);font-size:12px;line-height:1.7;color:rgba(232,228,222,0.45);">Educational content only — not financial advice. FortitudeFX<sup class="tm">™</sup> provides trading education based on price-action methodology. Nothing here is financial, investment, or trading advice, or a recommendation to buy or sell any instrument. Trading forex carries a high level of risk and can result in the loss of some or all of your capital; it is not suitable for everyone. Past performance is not indicative of future results. Always do your own research and consider seeking advice from an independent, licensed financial professional before trading. You are solely responsible for your own trading decisions.</p>'
+    '<p class="article-foot-disclaimer" style="margin:40px 0 0;padding-top:24px;border-top:1px solid rgba(28,26,22,0.1);font-size:12px;line-height:1.7;color:rgba(28,26,22,0.45);">Educational content only — not financial advice. FortitudeFX<sup class="tm">™</sup> provides trading education based on price-action methodology. Nothing here is financial, investment, or trading advice, or a recommendation to buy or sell any instrument. Trading forex carries a high level of risk and can result in the loss of some or all of your capital; it is not suitable for everyone. Past performance is not indicative of future results. Always do your own research and consider seeking advice from an independent, licensed financial professional before trading. You are solely responsible for your own trading decisions.</p>'
   );
 }
 
@@ -914,9 +915,9 @@ async function serveAsset(request, path, status, extraHeaders) {
   var msg = status === 404 ? 'This page does not exist.' : 'Temporarily unavailable. Please try again.';
   return new Response(
     '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>' + status + '</title>'
-    + '<meta name="robots" content="noindex, nofollow"></head><body style="background:#0d0d14;color:#e8e4de;'
+    + '<meta name="robots" content="noindex, nofollow"></head><body style="background:#f6f3ec;color:#1c1b18;'
     + 'font-family:sans-serif;text-align:center;padding:80px 24px;"><h1>' + status + '</h1><p>' + msg
-    + '</p><p><a href="/" style="color:#C9A84C;">Home</a></p></body></html>',
+    + '</p><p><a href="/" style="color:#8a6d1f;">Home</a></p></body></html>',
     { status: status, headers: headers }
   );
 }
