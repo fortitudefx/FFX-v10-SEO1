@@ -79,6 +79,33 @@ export async function onRequestPost(context) {
     return json({ regated: out.length, results: out });
   }
 
+  // ── PUBLISH BLOG (catch-up): publish already-generated, gate-PASSED keyword
+  //    articles to the BLOG ONLY (moves them to press; social stays manual). This is
+  //    the one-time catch-up for items generated before blog-auto-publish; the
+  //    consumer now does this automatically for new gate-passed articles.
+  if (url.searchParams.get('publishblog') === '1') {
+    const only = (url.searchParams.get('keywords') || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const queue = (await env.FFX_KV.get('queue:index', { type: 'json' }).catch(() => null)) || [];
+    const targets = queue.filter(q => q.source === 'keyword'
+      && (only.length ? only.includes((q.keyword || '').toLowerCase()) : q.gateStatus === 'passed'));
+    const out = [];
+    for (const q of targets) {
+      const rec = await env.FFX_KV.get(`video:${q.videoId}`, { type: 'json' }).catch(() => null);
+      const content = rec && rec.platforms && rec.platforms.blog_global && rec.platforms.blog_global.content;
+      if (!content) { out.push({ keyword: q.keyword, error: 'no content' }); continue; }
+      if ((rec.gateStatus || q.gateStatus) !== 'passed') { out.push({ keyword: q.keyword, skipped: 'gate not passed' }); continue; }
+      try {
+        const r = await fetch(`${url.origin}/press-publish`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ videoId: q.videoId, slug: content.slug, source: 'queue', platforms: { blog: true, x: false, linkedin: false, discord: false, tumblr: false }, content }),
+        });
+        const b = await r.json().catch(() => ({}));
+        out.push({ keyword: q.keyword, slug: content.slug, published: r.ok, status: r.status, warning: b.warning || b.error || null });
+      } catch (e) { out.push({ keyword: q.keyword, error: e.message }); }
+    }
+    return json({ publishedBlog: out.filter(o => o.published).length, note: 'Blog only — social stays manual in press.', results: out });
+  }
+
   // ── CLEAR SOURCE VIDEO: null the (misleading) footer youtubeUrl on keyword
   //    articles across every KV read key. No API, no regen — the video is a stored
   //    field, not part of the article body. article-content.js reads article:{slug}
