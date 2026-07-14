@@ -18,6 +18,7 @@ import { ensureDemandMap, ensureCorpus } from '../../lib/keyword/seed.js';
 import { runGate } from '../../lib/gate/gate.js';
 import { loadCorpus, writeVerdict } from '../../lib/gate/verdict.js';
 import { loadNuggetTexts } from '../../lib/keyword/grounding.js';
+import { callKeywordPlatforms } from '../../lib/keyword/platforms.js';
 
 const HEADERS = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' };
 const json = (b, s = 200) => new Response(JSON.stringify(b, null, 2), { status: s, headers: HEADERS });
@@ -76,6 +77,37 @@ export async function onRequestPost(context) {
     }
     await env.FFX_KV.put('queue:index', JSON.stringify(queue));
     return json({ regated: out.length, results: out });
+  }
+
+  // ── SOCIAL-ONLY REGEN: refresh X/LinkedIn/Discord on stored articles, WITHOUT
+  //    regenerating the article or touching the gate verdict. Cheap (1 call/item)
+  //    and safe — a gate-passed page stays passed. Defaults to all gate-passed
+  //    keyword items; ?keywords=a,b limits it.
+  if (url.searchParams.get('social') === '1') {
+    if (!env.ANTHROPIC_API_KEY) return json({ error: 'ANTHROPIC_API_KEY not set' }, 500);
+    const only = (url.searchParams.get('keywords') || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const queue = (await env.FFX_KV.get('queue:index', { type: 'json' }).catch(() => null)) || [];
+    const targets = queue.filter(q => q.source === 'keyword'
+      && (only.length ? only.includes((q.keyword || '').toLowerCase()) : q.gateStatus === 'passed'));
+    const out = [];
+    for (const q of targets) {
+      const rec = await env.FFX_KV.get(`video:${q.videoId}`, { type: 'json' }).catch(() => null);
+      const content = rec && rec.platforms && rec.platforms.blog_global && rec.platforms.blog_global.content;
+      if (!content || !content.body) { out.push({ videoId: q.videoId, error: 'no stored article' }); continue; }
+      try {
+        const blogUrl = 'https://fortitudefx.com/article?slug=' + content.slug;
+        const p = await callKeywordPlatforms(content, rec.keyword || q.keyword, blogUrl, env.ANTHROPIC_API_KEY, env);
+        content.linkedin = p.linkedin; content.discord = p.discord;
+        for (let i = 0; i < 6; i++) content['tweet' + (i + 1)] = p.tweets[i] || '';
+        rec.platforms.blog_global.content = content;
+        rec.platforms.x        = { status: 'generated', content: { tweets: p.tweets }, updatedAt: new Date().toISOString() };
+        rec.platforms.linkedin = { status: 'generated', content: { text: p.linkedin }, updatedAt: new Date().toISOString() };
+        rec.platforms.discord  = { status: 'generated', content: { text: p.discord },  updatedAt: new Date().toISOString() };
+        await env.FFX_KV.put(`video:${q.videoId}`, JSON.stringify(rec));
+        out.push({ videoId: q.videoId, keyword: rec.keyword || q.keyword, tweets: p.tweets.length, tweet5: p.tweets[4] || '', gateUntouched: rec.gateStatus });
+      } catch (e) { out.push({ videoId: q.videoId, error: e.message }); }
+    }
+    return json({ socialRegenerated: out.length, note: 'Article + gate untouched; social refreshed with tweet-5 homepage CTA.', results: out });
   }
 
   const n = Math.max(1, Math.min(10, parseInt(url.searchParams.get('n') || '2', 10) || 2));
