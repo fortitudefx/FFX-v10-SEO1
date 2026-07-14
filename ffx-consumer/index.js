@@ -454,7 +454,7 @@ async function processJob(job, env) {
 // (processJob above) is untouched.
 // ─────────────────────────────────────────────────────────────────────────────
 async function processKeywordJob(job, env) {
-  const { jobId, keyword, targetQuery, canonical, cluster, proprietaryTerm, nuggetTags, nuggetIds, dryRun, existingSlug, autopilot, fixDirective } = job;
+  const { jobId, keyword, targetQuery, canonical, cluster, proprietaryTerm, nuggetTags, nuggetIds, dryRun, existingSlug, autopilot, fixDirective, articleOnly } = job;
   const kw = keyword || targetQuery;
   const videoId = keywordId(kw);   // synthetic id → video:{id}/queue/gate plumbing works unchanged
   console.log('[FFX][keyword] Processing:', jobId, '| keyword:', kw, dryRun ? '| DRY_RUN' : '');
@@ -463,7 +463,7 @@ async function processKeywordJob(job, env) {
   // fixes intentionally regenerate an existing page, so they bypass the skip.
   try {
     const existing = await env.FFX_KV.get('video:' + videoId, { type: 'json' }).catch(function(){ return null; });
-    if (existing && existing.slug && !autopilot) {
+    if (existing && existing.slug && !autopilot && !articleOnly) {
       console.log('[FFX][keyword] video:' + videoId + ' already exists — marking job complete');
       await kvPut(env, 'job:' + jobId, JSON.stringify({ status: 'complete', videoId, keyword: kw, skipped: true, generatedAt: existing.generatedAt || new Date().toISOString() }), { expirationTtl: 86400 });
       return;
@@ -516,16 +516,35 @@ async function processKeywordJob(job, env) {
 
   // ── Social platforms — X (optimized 6-tweet thread) + LinkedIn/Discord (lean,
   //    link back to the blog). ONE call, grounded in the finished article. Non-fatal.
+  //    articleOnly: this is an ARTICLE-only regen (e.g. fixing a failed gate) — do
+  //    NOT regenerate social; preserve the existing platform content from the record.
   let platforms = { linkedin: '', discord: '', tweets: [] };
-  try {
-    const blogUrl = 'https://fortitudefx.com/article?slug=' + content.slug;
-    platforms = await callKeywordPlatforms(content, kw, blogUrl, env.ANTHROPIC_API_KEY, env);
-    content.linkedin = platforms.linkedin;
-    content.discord  = platforms.discord;
-    platforms.tweets.forEach(function (t, i) { content['tweet' + (i + 1)] = t; });
-    console.log('[FFX][keyword] platforms — tweets:', platforms.tweets.length, '| linkedin:', platforms.linkedin.length, 'ch | discord:', platforms.discord.length, 'ch');
-  } catch (pErr) {
-    console.error('[FFX][keyword] platforms generation failed (non-fatal):', pErr.message);
+  if (articleOnly) {
+    try {
+      const prior = await env.FFX_KV.get('video:' + videoId, { type: 'json' }).catch(function(){ return null; });
+      const pf = (prior && prior.platforms) || {};
+      const pc = (pf.blog_global && pf.blog_global.content) || {};
+      platforms = {
+        linkedin: (pf.linkedin && pf.linkedin.content && pf.linkedin.content.text) || pc.linkedin || '',
+        discord:  (pf.discord  && pf.discord.content  && pf.discord.content.text)  || pc.discord  || '',
+        tweets:   (pf.x        && pf.x.content        && pf.x.content.tweets)       || [],
+      };
+      content.linkedin = platforms.linkedin;
+      content.discord  = platforms.discord;
+      platforms.tweets.forEach(function (t, i) { content['tweet' + (i + 1)] = t; });
+      console.log('[FFX][keyword] articleOnly — preserved existing social (tweets:', platforms.tweets.length, ')');
+    } catch (e) { console.error('[FFX][keyword] articleOnly social-preserve failed (non-fatal):', e.message); }
+  } else {
+    try {
+      const blogUrl = 'https://fortitudefx.com/article?slug=' + content.slug;
+      platforms = await callKeywordPlatforms(content, kw, blogUrl, env.ANTHROPIC_API_KEY, env);
+      content.linkedin = platforms.linkedin;
+      content.discord  = platforms.discord;
+      platforms.tweets.forEach(function (t, i) { content['tweet' + (i + 1)] = t; });
+      console.log('[FFX][keyword] platforms — tweets:', platforms.tweets.length, '| linkedin:', platforms.linkedin.length, 'ch | discord:', platforms.discord.length, 'ch');
+    } catch (pErr) {
+      console.error('[FFX][keyword] platforms generation failed (non-fatal):', pErr.message);
+    }
   }
 
   const record = {

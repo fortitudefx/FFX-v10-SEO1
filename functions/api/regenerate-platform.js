@@ -8,6 +8,8 @@
 // User must hit Save to move content into pendingEdits permanently
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { callKeywordPlatforms } from '../../lib/keyword/platforms.js';
+
 const PLATFORM_FIELDS = {
   article:  ['body'],
   x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6'],
@@ -36,6 +38,15 @@ export async function onRequestPost(context) {
   if (!platform) return json({ error: 'platform is required' }, 400, headers);
   if (!PLATFORM_FIELDS[platform]) {
     return json({ error: `Unknown platform: ${platform}. Valid: ${Object.keys(PLATFORM_FIELDS).join(', ')}` }, 400, headers);
+  }
+
+  // ── Keyword items have NO transcript — route to the keyword regen path ────
+  // (article → re-gated via the consumer; social → regenerated inline, committed
+  // directly). Video items fall through to the transcript path below, unchanged.
+  const rec0 = await env.FFX_KV.get(`video:${videoId}`, { type: 'json' }).catch(() => null);
+  const isKeyword = videoId.startsWith('kw-') || (rec0 && rec0.source === 'keyword');
+  if (isKeyword) {
+    return await regenKeywordPlatform(videoId, platform, rec0, env, headers);
   }
 
   // ── 1. Pull transcript from permanent KV — no Supadata call ever ─────────
@@ -113,6 +124,64 @@ export async function onRequestOptions() {
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYWORD-ITEM PER-PLATFORM REGEN (no transcript)
+//  • article  → enqueue an article-only job to the consumer: it regenerates the
+//               article from the nuggets, RE-GATES it, and preserves the existing
+//               social. This is how you fix a failed-gate article WITHOUT touching
+//               X/LinkedIn/Discord. Async (re-gates); refresh the row after ~60s.
+//  • x/linkedin/discord → regenerate that ONE platform inline and commit it
+//               directly to the record (non-gated; shows on next dashboard reload).
+// ─────────────────────────────────────────────────────────────────────────────
+async function regenKeywordPlatform(videoId, platform, rec, env, headers) {
+  if (!rec) return json({ error: 'Record not found for ' + videoId }, 404, headers);
+  const content = rec.platforms && rec.platforms.blog_global && rec.platforms.blog_global.content;
+  if (!content) return json({ error: 'No article content on record' }, 404, headers);
+  const slug = content.slug || rec.slug;
+  const kw   = rec.keyword || rec.targetQuery;
+
+  if (platform === 'article') {
+    if (!env.ffx_generate_queue) return json({ error: 'Queue binding ffx_generate_queue not found' }, 500, headers);
+    const jobId = Date.now() + '-artregen-' + videoId;
+    await env.FFX_KV.put('job:' + jobId, JSON.stringify({ status: 'pending', articleOnly: true, slug, createdAt: new Date().toISOString() }), { expirationTtl: 86400 });
+    await env.ffx_generate_queue.send({
+      jobId, source: 'cron-keyword', keyword: kw, targetQuery: kw,
+      canonical: rec.canonical, cluster: rec.cluster, nuggetTags: rec.nuggetTags || '',
+      nuggetIds: rec.nuggetIds || [], existingSlug: slug, articleOnly: true,
+    });
+    return json({ success: true, queued: true, platform: 'article',
+      message: 'Article is regenerating and will be re-gated — social (X/LinkedIn/Discord) is untouched. Refresh this row in ~60s to see the new gate result.' }, 200, headers);
+  }
+
+  if (platform === 'x' || platform === 'linkedin' || platform === 'discord') {
+    if (!env.ANTHROPIC_API_KEY) return json({ error: 'ANTHROPIC_API_KEY not set' }, 500, headers);
+    let p;
+    try {
+      const blogUrl = 'https://fortitudefx.com/article?slug=' + slug;
+      p = await callKeywordPlatforms(content, kw, blogUrl, env.ANTHROPIC_API_KEY, env);
+    } catch (e) { return json({ error: 'Regen failed: ' + e.message }, 500, headers); }
+
+    const now = new Date();
+    rec.platforms = rec.platforms || {};
+    const fields = {};
+    if (platform === 'x') {
+      for (let i = 0; i < 6; i++) { content['tweet' + (i + 1)] = p.tweets[i] || ''; fields['tweet' + (i + 1)] = p.tweets[i] || ''; }
+      rec.platforms.x = { status: 'generated', content: { tweets: p.tweets }, updatedAt: now.toISOString() };
+    } else if (platform === 'linkedin') {
+      content.linkedin = p.linkedin; fields.linkedin = p.linkedin;
+      rec.platforms.linkedin = { status: 'generated', content: { text: p.linkedin }, updatedAt: now.toISOString() };
+    } else {
+      content.discord = p.discord; fields.discord = p.discord;
+      rec.platforms.discord = { status: 'generated', content: { text: p.discord }, updatedAt: now.toISOString() };
+    }
+    rec.platforms.blog_global.content = content;
+    await env.FFX_KV.put('video:' + videoId, JSON.stringify(rec)); // direct commit — social is non-gated
+    return json({ success: true, platform, committed: true, fields, generatedAt: now.toISOString() }, 200, headers);
+  }
+
+  return json({ error: 'Platform not supported for keyword items: ' + platform }, 400, headers);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
