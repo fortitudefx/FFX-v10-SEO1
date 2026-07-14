@@ -95,7 +95,7 @@ const TEMPLATE = `<!DOCTYPE html>
 {"@context":"https://schema.org","@type":"Blog","name":"FortitudeFX™ Blog","url":"https://fortitudefx.com/blog","description":"Forex trading strategy, price action analysis, risk management guides, and trader mindset articles from FortitudeFX™.","publisher":{"@type":"Organization","name":"FortitudeFX™","url":"https://fortitudefx.com"}}
 </script>
 
-<meta name="theme-color" content="#0d0d14" />
+<meta name="theme-color" content="#f6f3ec" />
 <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -112,21 +112,21 @@ const TEMPLATE = `<!DOCTYPE html>
 html { scroll-behavior: smooth; }
 body {
   font-family: 'Inter', sans-serif;
-  background: #0d0d14;
-  color: #e8e4de;
+  background: #f6f3ec;
+  color: #1c1b18;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ── Tokens ── */
 :root {
-  --gold: #C9A84C;
+  --gold: #8a6d1f;
   --orange: #E06B1A;
-  --dark: #0d0d14;
-  --dark-alt: #111118;
-  --cream: #e8e4de;
-  --cream-muted: rgba(232,228,222,0.5);
-  --cream-faint: rgba(232,228,222,0.08);
+  --dark: #f6f3ec;
+  --dark-alt: #efeae0;
+  --cream: #1c1b18;
+  --cream-muted: rgba(28,26,22,0.5);
+  --cream-faint: rgba(28,26,22,0.08);
   --gold-border: rgba(201,168,76,0.15);
   --gold-border-strong: rgba(201,168,76,0.3);
 }
@@ -210,7 +210,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(232,228,222,0.25);
+  color: rgba(28,26,22,0.25);
   min-width: 68px;
   flex-shrink: 0;
 }
@@ -220,9 +220,9 @@ body {
   font-weight: 500;
   padding: 5px 14px;
   border-radius: 100px;
-  border: 1px solid rgba(232,228,222,0.1);
+  border: 1px solid rgba(28,26,22,0.1);
   background: transparent;
-  color: rgba(232,228,222,0.4);
+  color: rgba(28,26,22,0.4);
   cursor: pointer;
   transition: all 0.15s;
   letter-spacing: 0.02em;
@@ -230,7 +230,7 @@ body {
 }
 .filter-btn:hover {
   border-color: rgba(201,168,76,0.3);
-  color: rgba(232,228,222,0.75);
+  color: rgba(28,26,22,0.75);
 }
 .filter-btn.active {
   background: rgba(201,168,76,0.1);
@@ -242,7 +242,7 @@ body {
 .blog-count {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(232,228,222,0.25);
+  color: rgba(28,26,22,0.25);
   margin-bottom: 24px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -323,13 +323,13 @@ body {
 .blog-item-date {
   font-size: 12px;
   font-weight: 400;
-  color: rgba(232,228,222,0.3);
+  color: rgba(28,26,22,0.3);
   white-space: nowrap;
 }
 .blog-item-read {
   font-size: 11px;
   font-weight: 500;
-  color: rgba(232,228,222,0.2);
+  color: rgba(28,26,22,0.2);
   white-space: nowrap;
   letter-spacing: 0.04em;
 }
@@ -402,7 +402,7 @@ body {
   align-items: center;
   font-size: 14px;
   font-weight: 600;
-  color: #0d0d14;
+  color: #f6f3ec;
   background: var(--gold);
   text-decoration: none;
   padding: 14px 28px;
@@ -410,7 +410,7 @@ body {
   transition: background 0.2s, transform 0.15s;
   letter-spacing: 0.02em;
 }
-.btn-nl-primary:hover { background: #d4b05a; transform: translateY(-1px); }
+.btn-nl-primary:hover { background: #a5842a; transform: translateY(-1px); }
 .btn-nl-secondary {
   display: inline-flex;
   align-items: center;
@@ -421,16 +421,16 @@ body {
   text-decoration: none;
   padding: 14px 28px;
   border-radius: 100px;
-  border: 1px solid rgba(232,228,222,0.15);
+  border: 1px solid rgba(28,26,22,0.15);
   transition: all 0.2s;
   letter-spacing: 0.02em;
 }
-.btn-nl-secondary:hover { border-color: rgba(232,228,222,0.35); color: var(--cream); }
+.btn-nl-secondary:hover { border-color: rgba(28,26,22,0.35); color: var(--cream); }
 
 /* ── Popup ── */
 #ffx-popup-overlay {
   position: fixed; inset: 0;
-  background: rgba(6,6,10,0.80);
+  background: rgba(246,243,236,0.80);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   z-index: 9998;
@@ -444,7 +444,7 @@ body {
 }
 #ffx-popup-overlay.is-open { opacity: 1; visibility: visible; }
 #ffx-popup {
-  background: #0d0d14;
+  background: #f6f3ec;
   border: 1px solid rgba(201,168,76,0.2);
   border-radius: 24px;
   padding: 44px 40px 36px;
@@ -467,9 +467,9 @@ body {
   position: absolute; top: 16px; right: 16px;
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: rgba(232,228,222,0.05);
-  border: 1px solid rgba(232,228,222,0.1);
-  color: rgba(232,228,222,0.45);
+  background: rgba(28,26,22,0.05);
+  border: 1px solid rgba(28,26,22,0.1);
+  color: rgba(28,26,22,0.45);
   font-size: 1.1rem;
   cursor: pointer;
   display: flex;
@@ -477,7 +477,7 @@ body {
   justify-content: center;
   transition: background 0.2s, color 0.2s;
 }
-#ffx-popup-close:hover { background: rgba(232,228,222,0.1); color: var(--cream); }
+#ffx-popup-close:hover { background: rgba(28,26,22,0.1); color: var(--cream); }
 .ffx-popup-sig {
   font-size: 10px;
   font-weight: 700;
@@ -504,13 +504,13 @@ body {
 }
 .ffx-popup-sign {
   font-size: 13px;
-  color: rgba(232,228,222,0.3);
+  color: rgba(28,26,22,0.3);
   font-style: italic;
   margin: 0 0 28px;
 }
 .ffx-popup-divider {
   height: 1px;
-  background: rgba(232,228,222,0.07);
+  background: rgba(28,26,22,0.07);
   margin: 0 0 24px;
 }
 .ffx-popup-actions { display: flex; flex-direction: column; gap: 10px; }
@@ -518,22 +518,22 @@ body {
   display: block; width: 100%; text-align: center;
   padding: 14px 24px; border-radius: 100px;
   background: var(--gold); border: none;
-  color: #0d0d14; font-size: 14px; font-weight: 700;
+  color: #f6f3ec; font-size: 14px; font-weight: 700;
   letter-spacing: 0.04em; text-decoration: none;
   transition: background 0.2s, transform 0.15s;
   font-family: 'Inter', sans-serif;
 }
-.ffx-popup-btn-primary:hover { background: #d4b05a; transform: translateY(-1px); }
+.ffx-popup-btn-primary:hover { background: #a5842a; transform: translateY(-1px); }
 .ffx-popup-btn-secondary {
   display: block; width: 100%; text-align: center;
   padding: 13px 24px; border-radius: 100px;
-  background: transparent; border: 1px solid rgba(232,228,222,0.14);
+  background: transparent; border: 1px solid rgba(28,26,22,0.14);
   color: var(--cream-muted); font-size: 14px; font-weight: 500;
   letter-spacing: 0.03em; text-decoration: none;
   transition: border-color 0.2s, color 0.2s, transform 0.15s;
   font-family: 'Inter', sans-serif;
 }
-.ffx-popup-btn-secondary:hover { border-color: rgba(232,228,222,0.3); color: var(--cream); transform: translateY(-1px); }
+.ffx-popup-btn-secondary:hover { border-color: rgba(28,26,22,0.3); color: var(--cream); transform: translateY(-1px); }
 
 /* ── Back to top ── */
 .back-to-top {
@@ -678,7 +678,7 @@ body {
     <div class="footer-bottom">
       <p class="footer-copy">© 2026 FortitudeFX<sup class="tm">™</sup> · All rights reserved · Dubai, UAE</p>
       <p class="footer-tm">Catch The Wick<sup class="tm">™</sup> · 2 Candles. 1 Story.<sup class="tm">™</sup></p>
-      <p class="footer-disclaimer" style="max-width:820px;margin:14px auto 0;font-size:11px;line-height:1.6;color:rgba(255,255,255,0.3);text-align:center;padding:0 16px;">Educational content only — not financial advice. FortitudeFX<sup class="tm">™</sup> provides trading education based on price-action methodology. Nothing here is financial, investment, or trading advice, or a recommendation to buy or sell any instrument. Trading forex carries a high level of risk and can result in the loss of some or all of your capital; it is not suitable for everyone. Past performance is not indicative of future results. Always do your own research and consider seeking advice from an independent, licensed financial professional before trading. You are solely responsible for your own trading decisions.</p>
+      <p class="footer-disclaimer" style="max-width:820px;margin:14px auto 0;font-size:11px;line-height:1.6;color:rgba(28,26,22,0.5);text-align:center;padding:0 16px;">Educational content only — not financial advice. FortitudeFX<sup class="tm">™</sup> provides trading education based on price-action methodology. Nothing here is financial, investment, or trading advice, or a recommendation to buy or sell any instrument. Trading forex carries a high level of risk and can result in the loss of some or all of your capital; it is not suitable for everyone. Past performance is not indicative of future results. Always do your own research and consider seeking advice from an independent, licensed financial professional before trading. You are solely responsible for your own trading decisions.</p>
     </div>
   </footer>
 
@@ -746,6 +746,18 @@ body {
   var allArticles   = [];
   var activeRegion   = 'All';
   var activeCategory = 'All';
+  var activeMonth    = 'All';
+
+  function monthKey(article) {
+    if (!article || !article.date) return null;
+    var d = new Date(article.date + 'T00:00:00');
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+  }
+  function matchMonth(article, filter) {
+    if (filter === 'All') return true;
+    return monthKey(article) === filter;
+  }
 
   function matchRegion(article, filter) {
     if (filter === 'All') return true;
@@ -765,7 +777,7 @@ body {
 
   function applyFilters() {
     var filtered = allArticles.filter(function(a) {
-      return matchRegion(a, activeRegion) && matchCategory(a, activeCategory);
+      return matchRegion(a, activeRegion) && matchCategory(a, activeCategory) && matchMonth(a, activeMonth);
     });
     renderArticles(filtered);
     document.querySelectorAll('.filter-btn[data-region]').forEach(function(btn) {
@@ -773,6 +785,9 @@ body {
     });
     document.querySelectorAll('.filter-btn[data-category]').forEach(function(btn) {
       btn.classList.toggle('active', btn.dataset.category === activeCategory);
+    });
+    document.querySelectorAll('.filter-btn[data-month]').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.month === activeMonth);
     });
   }
 
@@ -804,8 +819,25 @@ body {
       catRow.appendChild(btn);
     });
 
+    var monthRow = document.createElement('div');
+    monthRow.className = 'filter-row';
+    monthRow.innerHTML = '<span class="filter-label">Month</span>';
+    var seen = {};
+    var months = [];
+    allArticles.forEach(function(a) { var k = monthKey(a); if (k && !seen[k]) { seen[k] = 1; months.push(k); } });
+    months.sort(function(x, y) { return new Date('01 ' + y) - new Date('01 ' + x); });
+    ['All'].concat(months).forEach(function(m) {
+      var btn = document.createElement('button');
+      btn.className = 'filter-btn' + (m === 'All' ? ' active' : '');
+      btn.textContent = m;
+      btn.dataset.month = m;
+      btn.addEventListener('click', function() { activeMonth = m; applyFilters(); });
+      monthRow.appendChild(btn);
+    });
+
     container.appendChild(regionRow);
     container.appendChild(catRow);
+    container.appendChild(monthRow);
   }
 
   var list  = document.getElementById('blogList');

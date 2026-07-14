@@ -83,7 +83,11 @@ export async function onRequestPost(context) {
       } catch {}
       return null;
     };
-    const videoId = extractVideoId(youtubeUrl || yt_url || '');
+    // Keyword articles have no youtubeUrl → extractVideoId returns null. Fall back to
+    // the real content.videoId (e.g. kw-order-block) so article:{slug}.videoId links to
+    // published:{videoId} (which holds the body). Without this the article resolves to
+    // videoId='' and the page 503s (body unreachable).
+    const videoId = extractVideoId(youtubeUrl || yt_url || '') || body.videoId || null;
 
     // ── 1. Write article metadata to KV ────────────────────────────────────
     if (env.FFX_KV) {
