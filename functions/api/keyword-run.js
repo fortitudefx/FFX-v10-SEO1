@@ -103,7 +103,32 @@ export async function onRequestPost(context) {
         const r = await env.FFX_KV.get(key, { type: 'json' }).catch(() => null);
         if (r) { r.youtubeUrl = null; if (r.content) r.content.youtubeUrl = null; await env.FFX_KV.put(key, JSON.stringify(r)); patched.push(key); }
       }
-      out.push({ keyword: kw, slug, published: patched.includes(`article:${slug}`), keysPatched: patched });
+
+      // CRITICAL: a published article may be keyed under a DIFFERENT videoId (extracted
+      // from the baked youtubeUrl at publish time — e.g. published:0_YybIdgkFo instead
+      // of published:kw-order-block). The live page + press read THAT record. Find it
+      // by SLUG and fix it: null the video everywhere + tag it as keyword so the press
+      // dashboard renders the SEO card instead of the (wrong) video thumbnail.
+      const kwField = rec.keyword || kw;
+      let cursor;
+      do {
+        const res = await env.FFX_KV.list({ prefix: 'published:', cursor, limit: 1000 }).catch(() => ({ keys: [] }));
+        for (const k of (res.keys || [])) {
+          const pe = await env.FFX_KV.get(k.name, { type: 'json' }).catch(() => null);
+          if (pe && pe.slug === slug) {
+            pe.youtubeUrl = null;
+            if (pe.globalContent) pe.globalContent.youtubeUrl = null;
+            if (pe.content)       pe.content.youtubeUrl = null;
+            if (pe.platforms && pe.platforms.blog_global && pe.platforms.blog_global.content) pe.platforms.blog_global.content.youtubeUrl = null;
+            pe.source = 'keyword'; pe.keyword = kwField; pe.cluster = rec.cluster || ''; pe.gateStatus = rec.gateStatus || null;
+            await env.FFX_KV.put(k.name, JSON.stringify(pe));
+            patched.push(k.name);
+          }
+        }
+        cursor = res.list_complete ? null : res.cursor;
+      } while (cursor);
+
+      out.push({ keyword: kw, slug, keysPatched: patched });
     }
     return json({ clearedVideo: out.length, note: 'Footer source video removed from records (live page reads article:{slug} KV). No API used.', results: out });
   }
