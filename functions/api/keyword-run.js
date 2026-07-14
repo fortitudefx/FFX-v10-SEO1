@@ -79,6 +79,35 @@ export async function onRequestPost(context) {
     return json({ regated: out.length, results: out });
   }
 
+  // ── CLEAR SOURCE VIDEO: null the (misleading) footer youtubeUrl on keyword
+  //    articles across every KV read key. No API, no regen — the video is a stored
+  //    field, not part of the article body. article-content.js reads article:{slug}
+  //    (KV) first, so this fixes the LIVE page for published items too.
+  if (url.searchParams.get('clearvideo') === '1') {
+    const kws = (url.searchParams.get('keywords') || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (!kws.length) return json({ error: 'clearvideo needs ?keywords=a,b' }, 400);
+    const out = [];
+    for (const kw of kws) {
+      const vid = keywordId(kw);
+      const rec = await env.FFX_KV.get(`video:${vid}`, { type: 'json' }).catch(() => null);
+      if (!rec) { out.push({ keyword: kw, error: 'no record for ' + vid }); continue; }
+      const content = (rec.platforms && rec.platforms.blog_global && rec.platforms.blog_global.content) || {};
+      const slug = content.slug || rec.slug;
+      rec.youtubeUrl = null;
+      if (content) content.youtubeUrl = null;
+      if (rec.platforms && rec.platforms.blog_global) rec.platforms.blog_global.content = content;
+      await env.FFX_KV.put(`video:${vid}`, JSON.stringify(rec));
+      // Null across the other live-read keys (whichever exist).
+      const patched = ['video:' + vid];
+      for (const key of [`article:${slug}`, `published:${vid}`, `published:slug:${slug}`, `video:slug:${slug}`]) {
+        const r = await env.FFX_KV.get(key, { type: 'json' }).catch(() => null);
+        if (r) { r.youtubeUrl = null; if (r.content) r.content.youtubeUrl = null; await env.FFX_KV.put(key, JSON.stringify(r)); patched.push(key); }
+      }
+      out.push({ keyword: kw, slug, published: patched.includes(`article:${slug}`), keysPatched: patched });
+    }
+    return json({ clearedVideo: out.length, note: 'Footer source video removed from records (live page reads article:{slug} KV). No API used.', results: out });
+  }
+
   // ── SOCIAL-ONLY REGEN: refresh X/LinkedIn/Discord on stored articles, WITHOUT
   //    regenerating the article or touching the gate verdict. Cheap (1 call/item)
   //    and safe — a gate-passed page stays passed. Defaults to all gate-passed

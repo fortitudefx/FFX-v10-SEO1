@@ -160,6 +160,7 @@ function buildVideoRow(video) {
   const ytUrl    = video.youtubeUrl||video.globalContent?.youtubeUrl||video.content?.youtubeUrl||'';
   const isRealId = videoId && videoId.length <= 12;
   const thumbUrl = isRealId ? 'https://img.youtube.com/vi/'+videoId+'/mqdefault.jpg' : '';
+  const isKeyword = videoId.startsWith('kw-') || video.source === 'keyword';
   const date     = formatDate(video.updatedAt||'');
   const region   = video.region||'Global';
   const platforms= video.platforms||{};
@@ -168,9 +169,19 @@ function buildVideoRow(video) {
   const hasTitleTest = !!pending.title;
 
   const summary = document.createElement('div'); summary.className='row-summary'; summary.style.cursor='default';
-  const thumbHtml = thumbUrl
-    ? '<div class="row-thumb-wrap"><img class="row-thumb" src="'+thumbUrl+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'"></div>'
-    : '<div class="row-thumb-wrap"><div class="row-thumb-placeholder">No thumb</div></div>';
+  // Keyword-source articles show a demand SEO card (keyword · cluster · gate), not a
+  // video thumbnail — mirrors the queue dashboard. Video articles keep the thumbnail.
+  const thumbHtml = isKeyword
+    ? '<div class="row-thumb-wrap" style="display:flex;flex-direction:column;justify-content:space-between;padding:12px;box-sizing:border-box;background:linear-gradient(135deg,rgba(248,113,113,0.10),rgba(255,255,255,0.03));border:1px solid rgba(248,113,113,0.22);border-radius:10px;">'
+      + '<div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:rgba(248,113,113,0.85);font-weight:600;">Keyword target</div>'
+      + '<div style="font-size:13px;line-height:1.25;color:rgba(255,255,255,0.92);font-weight:600;overflow:hidden;">'+escHtml(video.keyword||currentTitle)+'</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+      + (video.cluster ? '<span style="font-size:11px;padding:2px 7px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.72);">'+escHtml(video.cluster)+'</span>' : '')
+      + (video.gateStatus ? '<span style="font-size:11px;padding:2px 7px;border-radius:6px;background:rgba(255,255,255,0.08);color:'+(video.gateStatus==='passed'?'rgba(74,222,128,0.9)':'rgba(248,113,113,0.9)')+';">gate: '+escHtml(video.gateStatus)+'</span>' : '')
+      + '</div></div>'
+    : (thumbUrl
+      ? '<div class="row-thumb-wrap"><img class="row-thumb" src="'+thumbUrl+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'row-thumb-placeholder\\\'>No thumb</div>\'"></div>'
+      : '<div class="row-thumb-wrap"><div class="row-thumb-placeholder">No thumb</div></div>');
 
   // ── SURGICAL CHANGE 1: Title is now editable ──────────────────────────
   summary.innerHTML = thumbHtml

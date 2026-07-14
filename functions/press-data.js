@@ -62,6 +62,19 @@ export async function onRequestGet(context) {
       }
     }
 
+    // Enrich keyword-source articles with the fields the SEO card needs (the press
+    // dashboard renders a keyword card instead of a video thumbnail for these).
+    for (const v of videos) {
+      if ((v.videoId || '').startsWith('kw-') || v.source === 'keyword') {
+        const rec = await env.FFX_KV.get(`video:${v.videoId}`, { type: 'json' }).catch(() => null);
+        v.source     = 'keyword';
+        v.keyword    = v.keyword    || (rec && rec.keyword)    || '';
+        v.cluster    = v.cluster    || (rec && rec.cluster)    || '';
+        v.gateStatus = v.gateStatus || (rec && rec.gateStatus) || null;
+        v.nuggetCount = (v.nuggetCount != null) ? v.nuggetCount : (rec && rec.nuggetCount);
+      }
+    }
+
     videos.sort((a, b) => {
       const dateA = new Date(a.updatedAt || 0).getTime();
       const dateB = new Date(b.updatedAt || 0).getTime();
