@@ -10,7 +10,7 @@
 import { runGate } from '../lib/gate/gate.js';
 import { writeVerdict, loadCorpus } from '../lib/gate/verdict.js';
 import { loadNuggetTexts, buildGrounding, keywordArticleInstruction } from '../lib/keyword/grounding.js';
-import { keywordId } from '../lib/keyword/select.js';
+import { keywordId, headTopic, takenTopics, readDemandMap } from '../lib/keyword/select.js';
 import { callKeywordPlatforms } from '../lib/keyword/platforms.js';
 
 export default {
@@ -506,9 +506,18 @@ async function processKeywordJob(job, env) {
   let gateVerdict = null;
   try {
     const corpus = await loadCorpus(env);
+    // Intent-level duplicate guard. Best-effort: if the map can't be read the
+    // guard is simply absent and the gate behaves exactly as before.
+    let topicGuard = null;
+    try {
+      const dmap = await readDemandMap(env);
+      if (dmap.length) topicGuard = { topic: headTopic(canonical || kw), taken: takenTopics(dmap, kw) };
+    } catch (tgErr) {
+      console.error('[FFX][keyword] topicGuard unavailable (non-fatal):', tgErr.message);
+    }
     gateVerdict = await runGate(
       { slug: content.slug, title: content.title, tags: content.tags, body: content.body, targetQuery: kw },
-      { corpus, pageType: 'article', nuggetTexts: nuggets.map(function(n){ return n.text; }) },
+      { corpus, pageType: 'article', nuggetTexts: nuggets.map(function(n){ return n.text; }), topicGuard },
       env
     );
     await writeVerdict(env, content.slug, content.body, gateVerdict);

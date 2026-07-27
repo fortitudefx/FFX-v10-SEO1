@@ -339,6 +339,47 @@ body {
 }
 .article-sibling a:hover { opacity: 0.75; }
 
+/* ── Related reading (internal linking) ── */
+.article-related {
+  margin: 48px 0 8px;
+  padding: 24px 28px;
+  border: 1px solid rgba(28,26,22,0.08);
+  border-radius: 12px;
+  background: rgba(28,26,22,0.02);
+}
+.article-related-heading {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cream-muted);
+  margin: 0 0 16px;
+}
+.article-related-list { list-style: none; margin: 0; padding: 0; }
+.article-related-item { padding: 12px 0; border-top: 1px solid rgba(28,26,22,0.06); }
+.article-related-item:first-child { border-top: 0; padding-top: 0; }
+.article-related-item a {
+  display: block;
+  font-size: 16px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--gold);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.article-related-item a:hover { opacity: 0.75; }
+.article-related-excerpt {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(28,26,22,0.55);
+}
+@media (max-width: 600px) {
+  .article-related { padding: 20px; }
+  .article-related-item a { font-size: 15px; }
+}
+
 /* ── Divider ── */
 .article-divider {
   border: none;
@@ -748,6 +789,71 @@ function buildJsonLd(a, url) {
 }
 
 // ── Article body markup (reproduces article.html:674-708 exactly) ───────────────
+// ── RELATED ARTICLES (internal linking) ─────────────────────────────────────
+// WHY: before this, the article template emitted ZERO links to other articles —
+// 33 of 45 live pages had none and the maximum was 1. Every article was a dead
+// end reachable only from /blog, so no link equity moved laterally and Google had
+// no internal signal for which of several same-topic pages was primary.
+// HOW: deterministic (no LLM, no extra subrequest) — scored off articles:index,
+// which the page already has access to. Tag overlap dominates, then title-token
+// overlap, then same-category. Self, regionals and drafts are excluded so we never
+// link to a noindex URL. Purely additive: no related → no module, never throws.
+var REL_STOP = { 'the':1,'and':1,'for':1,'that':1,'this':1,'with':1,'your':1,'you':1,'are':1,'how':1,'why':1,'what':1,'when':1,'not':1,'but':1,'from':1,'has':1,'have':1,'will':1,'can':1,'into':1,'its':1,'forex':1,'trading':1,'trade':1,'why':1 };
+
+function relTokens(s) {
+  var out = [], w = String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/);
+  for (var i = 0; i < w.length; i++) if (w[i].length >= 3 && !REL_STOP[w[i]]) out.push(w[i]);
+  return out;
+}
+
+function pickRelated(index, current, n) {
+  if (!Array.isArray(index) || !current) return [];
+  var curTags = {}, t = Array.isArray(current.tags) ? current.tags : [];
+  for (var i = 0; i < t.length; i++) curTags[String(t[i]).toLowerCase().trim()] = 1;
+  var curTitle = {}, ct = relTokens(current.title);
+  for (var j = 0; j < ct.length; j++) curTitle[ct[j]] = 1;
+
+  var scored = [];
+  for (var k = 0; k < index.length; k++) {
+    var e = index[k];
+    if (!e || !e.slug || !e.title) continue;
+    if (e.slug === current.slug) continue;                       // never self-link
+    if (e.region && e.region !== 'Global') continue;             // never link a noindex regional
+    if (e.draft) continue;
+
+    var score = 0, et = Array.isArray(e.tags) ? e.tags : [];
+    for (var m = 0; m < et.length; m++) if (curTags[String(et[m]).toLowerCase().trim()]) score += 3;
+    var etok = relTokens(e.title), seen = {};
+    for (var p = 0; p < etok.length; p++) {
+      if (curTitle[etok[p]] && !seen[etok[p]]) { score += 1; seen[etok[p]] = 1; }
+    }
+    if (e.category && current.category && e.category === current.category) score += 0.5;
+    if (score > 0) scored.push({ e: e, score: score, date: e.date || '' });
+  }
+  // Highest relevance first; newer wins ties so the module stays fresh.
+  scored.sort(function (x, y) { return (y.score - x.score) || (x.date < y.date ? 1 : -1); });
+  return scored.slice(0, n || 4).map(function (s) { return s.e; });
+}
+
+function buildRelated(a) {
+  var rel = Array.isArray(a.related) ? a.related : [];
+  if (!rel.length) return '';
+  var items = '';
+  for (var i = 0; i < rel.length; i++) {
+    items +=
+      '<li class="article-related-item">' +
+        '<a href="/article?slug=' + attr(rel[i].slug) + '">' + htmlText(rel[i].title) + '</a>' +
+        (rel[i].excerpt ? '<span class="article-related-excerpt">' + htmlText(String(rel[i].excerpt).slice(0, 120)) + '</span>' : '') +
+      '</li>';
+  }
+  return (
+    '<nav class="article-related ffx-reveal ffx-reveal-delay-2" aria-labelledby="related-heading">' +
+      '<h2 id="related-heading" class="article-related-heading">Related reading</h2>' +
+      '<ul class="article-related-list">' + items + '</ul>' +
+    '</nav>'
+  );
+}
+
 function buildArticleInner(a) {
   var sibling = '';
   if (a.siblingSlug) {
@@ -775,6 +881,7 @@ function buildArticleInner(a) {
     '<div class="article-body ffx-reveal ffx-reveal-delay-2">' + (a.body || '') + '</div>' +
     (a.youtubeUrl ? '<a class="article-source-video ffx-reveal ffx-reveal-delay-2" href="' + attr(a.youtubeUrl) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg><span>Watch the original video on YouTube</span><span class="article-source-arrow">&rarr;</span></a>' : '') +
     sibling +
+    buildRelated(a) +
     '<hr class="article-divider ffx-reveal ffx-reveal-delay-2">' +
     '<div class="article-cta ffx-reveal ffx-reveal-delay-3">' +
       '<span class="article-cta-kicker">Free Community</span>' +
@@ -790,14 +897,16 @@ function buildArticleInner(a) {
 }
 
 // ── Assemble the full page ──────────────────────────────────────────────────────
-// Cap the document <title> at ≤60 chars: prefer "Title | SITE", drop the brand
-// suffix if that overflows, and word-boundary-truncate a very long headline.
+// Prefer "Title | SITE" when it fits in ~60 chars, else the bare headline.
+// The headline itself is NEVER truncated: Google truncates the SERP *display* at
+// ~60 chars but still reads the whole tag for relevance, so cutting here only
+// destroyed keywords (13 of 45 live titles were losing their tail to a "…",
+// e.g. "…Definition and…" dropping "Execution"). Length control belongs at the
+// headline-writing step, not at render.
 function capTitle(title) {
   var t    = String(title || '').trim();
   var full = t + ' | ' + SITE;
-  if (full.length <= 60) return full;
-  if (t.length <= 60) return t;
-  return t.slice(0, 59).replace(/\s+\S*$/, '') + '…';
+  return (full.length <= 60) ? full : t;
 }
 
 // Fallback meta description when excerpt is empty: derive from the body text,
@@ -1215,6 +1324,19 @@ export async function onRequestGet(context) {
         }
       }
     } catch (e) { /* leave null → noindex-only, self-canonical (safe default) */ }
+  }
+
+  // ── RELATED ARTICLES ─────────────────────────────────────────────────────
+  // Attach lateral internal links from articles:index. Strictly best-effort and
+  // strictly additive: any failure leaves a.related unset, buildRelated() emits
+  // nothing, and the page renders exactly as it did before. Regionals get no
+  // module — they are noindex and must not pass equity around.
+  a.related = [];
+  if (!(a.region && a.region !== 'Global') && !a.draft) {
+    try {
+      var relIndex = await context.env.FFX_KV.get('articles:index', { type: 'json' });
+      a.related = pickRelated(relIndex, a, 4);
+    } catch (e) { a.related = []; }
   }
 
   // BUILD fully in memory…
