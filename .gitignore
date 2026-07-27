@@ -1,0 +1,13 @@
+# Secrets — NEVER commit. Local credential files for scripts and `wrangler dev`.
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+*.local
+
+# Wrangler build/state
+.wrangler/
+node_modules/
+
+# OS noise
+.DS_Store

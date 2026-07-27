@@ -35,6 +35,10 @@
 // article-content.js is strictly read-only (only env.FFX_KV.get).
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Topic-consolidation map lives in the shared SEO module so the canonical tag
+// emitted here and the sitemap's indexability filter can never drift apart.
+import { consolidationTarget } from './_seo-pages.js';
+
 const SITE    = 'FortitudeFX™';
 const OG_IMG  = 'https://fortitudefx.com/og-fortitudefx.png';
 const IMG_ALT = 'FortitudeFX — Catch The Wick mechanical forex trading system';
@@ -820,6 +824,9 @@ function pickRelated(index, current, n) {
     if (e.slug === current.slug) continue;                       // never self-link
     if (e.region && e.region !== 'Global') continue;             // never link a noindex regional
     if (e.draft) continue;
+    if (consolidationTarget(e.slug)) continue;                   // never link a merged duplicate —
+                                                                 // internal links must point at the
+                                                                 // canonical page, not away from it
 
     var score = 0, et = Array.isArray(e.tags) ? e.tags : [];
     for (var m = 0; m < et.length; m++) if (curTags[String(et[m]).toLowerCase().trim()]) score += 3;
@@ -939,6 +946,17 @@ function buildPage(a) {
   var canonicalUrl = (isRegional && a._consolidateTo)
                    ? (BASE + '/article?slug=' + a._consolidateTo)
                    : url;
+
+  // ── TOPIC CONSOLIDATION (see functions/_seo-pages.js CONSOLIDATED) ─────────
+  // A merged duplicate points its canonical at the cluster survivor and KEEPS
+  // index,follow. The canonical alone tells Google to fold this page's signal
+  // into the survivor; adding noindex would contradict it and risk the signal
+  // being discarded instead of transferred. Drafts and regionals are resolved
+  // above and are never overridden here.
+  if (!a.draft && !isRegional) {
+    var mergeTo = consolidationTarget(a.slug);
+    if (mergeTo) canonicalUrl = BASE + '/article?slug=' + mergeTo;
+  }
   var inner     = buildArticleInner(a);
   var jsonld    = buildJsonLd(a, url);
   var hreflang  = isRegional ? '' : buildHreflang(a, url);  // noindex regional: no self hreflang alternate
