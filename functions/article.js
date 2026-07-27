@@ -841,6 +841,13 @@ function buildJsonLd(a, url) {
 function buildVideoObject(a, url) {
   var m = a._videoMeta;
   if (!a.videoId || !m || !m.uploadDate) return null;
+  // The video must be SURFACED on the page, not merely described in markup —
+  // Google treats VideoObject for a video the user cannot reach as spammy
+  // structured data. a.youtubeUrl is what renders the visible video link, so no
+  // link means no schema. (Caught by a live audit: order-block-blue-box had a
+  // resolvable videoId but no youtubeUrl, so it emitted schema for a video that
+  // appeared nowhere on the page.)
+  if (!a.youtubeUrl) return null;
   var v = {
     '@context': 'https://schema.org',
     '@type': 'VideoObject',
