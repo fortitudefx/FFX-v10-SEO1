@@ -20,8 +20,8 @@ Both branches are live in the code. The video path (`processJob`,
 
 1. **Selection** — in keyword mode the cron replaces Steps 1–3 (find video / top up
    queue / trigger) with `runKeywordSource()`: it takes the next `KEYWORDS_PER_RUN`
-   (=2) **winnable, unclaimed, distinct-canonical-topic** targets from `demand:map`,
-   marks them claimed, and enqueues one keyword job each. 2/weekday × 5 = **10/week**.
+   (=1) **winnable, unclaimed, distinct-canonical-topic** targets from `demand:map`,
+   marks them claimed, and enqueues one keyword job each. 1/weekday × 5 = **5/week**.
    The shared signals/intelligence steps (4–7) still run in both modes.
 2. **Grounding** — the consumer's new `processKeywordJob` skips the transcript and
    builds the article around the target keyword + the matched nuggets
@@ -46,7 +46,7 @@ without Salman pressing publish (`publish.js` still the sole enforcement point).
 - `lib/keyword/seed-data.js` — the committed, deploy-time seed: the 94 useful rows
   (WINNABLE+AMBIGUOUS+AI_CANNIBALIZED; 141 DEAD dropped), each with a `canonical`
   topic so one article is made per distinct topic and variants become enrichment.
-- **Runway:** 22 distinct winnable topics ≈ **~2 weeks at 10/week of net-new**, then
+- **Runway:** 22 distinct winnable topics ≈ **~4 weeks at 5/week of net-new**, then
   the cron emails you (`WINNABLE_LOW_WATERMARK`) and, when dry, alerts to widen the
   map or drop to enrichment. Keyword *variants* of a claimed topic are never spawned
   as new articles (that is what cannibalised the first 26).

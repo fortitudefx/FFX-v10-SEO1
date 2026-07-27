@@ -31,8 +31,8 @@ YOUTUBE_CHANNEL_ID = "UConuNkzv83jBubkaQpXwXjQ"
 # SOURCE_MODE = "video"   : original behaviour — sources from the YouTube
 #                           back-catalogue. FLIP THIS ONE LINE to revert in
 #                           seconds; the video code path is fully intact.
-# KEYWORDS_PER_RUN        : keyword-mode articles per weekday run (2 = 10/week).
+# KEYWORDS_PER_RUN        : keyword-mode articles per weekday run (1 = 5/week).
 # KEYWORD_DRY_RUN = "1"   : generate + gate but DO NOT add to the live queue
 #                           (preview only; nothing publishable). Unset = off.
 SOURCE_MODE = "keyword"
-KEYWORDS_PER_RUN = "2"
+KEYWORDS_PER_RUN = "1"
