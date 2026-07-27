@@ -20,6 +20,7 @@ import {
   retrieveNuggetIds, keywordId,
 } from '../lib/keyword/select.js';
 import { ensureDemandMap, ensureCorpus } from '../lib/keyword/seed.js';
+import { ensureVideoMeta } from '../lib/video/meta.js';
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 const QUEUE_KEY        = 'queue:index';
@@ -157,6 +158,18 @@ async function runCron(env) {
         console.log('[ffx-cron] Triggering generation for:', firstItem.videoId, firstItem.title);
         await triggerGeneration(env, firstItem);
       }
+    }
+
+    // ── Step 3b: Self-seed video metadata (VideoObject schema) ────────────
+    // Runs regardless of GENERATION_PAUSED — it publishes nothing, it only
+    // caches real YouTube uploadDate/duration so /article can emit VideoObject
+    // instead of omitting it. No-op once populated. Never throws.
+    try {
+      const vm = await ensureVideoMeta(env);
+      if (vm.seeded) console.log('[ffx-cron] videometa:index seeded —', vm.resolved, 'of', vm.requested, 'videos resolved');
+      else if (vm.reason !== 'already populated') console.log('[ffx-cron] videometa not seeded:', vm.reason);
+    } catch (e) {
+      console.error('[ffx-cron] videometa self-seed failed (non-fatal):', e.message);
     }
 
     // ── Step 4: Collect fresh SEO + GA4 signals ───────────────────────────
