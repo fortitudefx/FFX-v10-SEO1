@@ -100,7 +100,23 @@ async function runCron(env) {
     const mode = sourceMode(env);
     console.log('[ffx-cron] Starting cron run — SOURCE_MODE:', mode);
 
-    if (mode === 'keyword') {
+    // ── GENERATION PAUSE (2026-07-28) ─────────────────────────────────────
+    // Skips ONLY article sourcing (steps 1–3). The signals/intelligence steps
+    // (4–7) still run, so dashboards, GA4/SEO signals and the brief stay fresh
+    // while generation is stopped — pulling the cron triggers instead would have
+    // silently killed all of that too.
+    //
+    // WHY PAUSED: after head-topic dedup the demand map has 3 distinct winnable
+    // topics left (17 real topics, 14 already published). Generating into an
+    // almost-empty bank produces duplicates and burns the Googlebot crawl budget
+    // (~26 requests/day) that the 21-page canonical consolidation needs for
+    // recrawling. Resume by removing GENERATION_PAUSED from ffx-cron/wrangler.toml
+    // once the demand map has been widened.
+    const paused = String(env.GENERATION_PAUSED || '') === '1';
+
+    if (paused) {
+      console.log('[ffx-cron] GENERATION_PAUSED=1 — skipping article sourcing (steps 1-3). Signals steps 4-7 still run.');
+    } else if (mode === 'keyword') {
       // ── Steps 1–3, KEYWORD SOURCE ──────────────────────────────────────
       // Pick the next N winnable, distinct-topic targets from the demand map,
       // ground them in Salman's nuggets, and enqueue. The video steps are

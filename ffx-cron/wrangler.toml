@@ -34,5 +34,13 @@ YOUTUBE_CHANNEL_ID = "UConuNkzv83jBubkaQpXwXjQ"
 # KEYWORDS_PER_RUN        : keyword-mode articles per weekday run (1 = 5/week).
 # KEYWORD_DRY_RUN = "1"   : generate + gate but DO NOT add to the live queue
 #                           (preview only; nothing publishable). Unset = off.
+# GENERATION_PAUSED = "1" : skip article sourcing (steps 1-3) ONLY. The signals /
+#                           intelligence steps (4-7) keep running, so dashboards and
+#                           the brief stay fresh. Delete this line to resume.
+#   Paused 2026-07-28: after head-topic dedup only 3 distinct winnable topics remain
+#   (17 real topics, 14 published). Generating now yields duplicates and competes for
+#   the ~26 Googlebot requests/day the canonical consolidation needs. Resume once the
+#   demand map is widened (prop-firm / broker entity discovery).
+GENERATION_PAUSED = "1"
 SOURCE_MODE = "keyword"
 KEYWORDS_PER_RUN = "1"

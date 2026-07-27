@@ -760,6 +760,42 @@ function buildHreflang(a, url) {
 }
 
 // ── JSON-LD (reproduces article.html:616-647: Article + BreadcrumbList) ──────────
+// ── E-E-A-T ENTITY LINKING ──────────────────────────────────────────────────
+// The author node was previously just { name, url }, which gave Google no way to
+// connect "Salman Khan" on this site to the FortitudeFX YouTube channel and social
+// profiles where the expertise is actually demonstrated. Forex education is YMYL,
+// where Google applies its strictest experience/expertise standards, so the entity
+// link is worth real weight. sameAs is the standard mechanism for asserting
+// "these profiles are the same entity as this one".
+var FFX_PROFILES = [
+  'https://www.youtube.com/@FortitudeFX',
+  'https://x.com/_fortitudefx',
+  'https://instagram.com/fortitudefx_official',
+  'https://tiktok.com/@fortitudefx_official'
+];
+
+var AUTHOR = {
+  '@type': 'Person',
+  name: 'Salman Khan',
+  url: BASE + '/about',
+  jobTitle: 'Forex Trader and Trading Educator',
+  worksFor: { '@type': 'Organization', name: SITE, url: BASE },
+  knowsAbout: [
+    'Forex trading', 'Price action trading', 'Smart money concepts',
+    'Liquidity sweeps', 'Market structure', 'Risk management',
+    'Proprietary trading firm challenges'
+  ],
+  sameAs: FFX_PROFILES
+};
+
+var PUBLISHER = {
+  '@type': 'Organization',
+  name: SITE,
+  url: BASE,
+  logo: { '@type': 'ImageObject', url: OG_IMG },
+  sameAs: FFX_PROFILES
+};
+
 function buildJsonLd(a, url) {
   var article = {
     '@context': 'https://schema.org',
@@ -770,11 +806,8 @@ function buildJsonLd(a, url) {
     datePublished: a.date,
     dateModified: a.updatedAt || a.date,
     wordCount: a.body ? a.body.replace(/<[^>]+>/g, '').split(/\s+/).length : 0,
-    author: { '@type': 'Person', name: 'Salman Khan', url: BASE + '/about' },
-    publisher: {
-      '@type': 'Organization', name: SITE, url: BASE,
-      logo: { '@type': 'ImageObject', url: OG_IMG }
-    },
+    author: AUTHOR,
+    publisher: PUBLISHER,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     url: url,
     keywords: Array.isArray(a.tags) ? a.tags.join(', ') : (a.tags || '')
@@ -788,8 +821,40 @@ function buildJsonLd(a, url) {
       { '@type': 'ListItem', position: 3, name: a.title, item: url }
     ]
   };
+  // ── VideoObject ───────────────────────────────────────────────────────────
+  // Every article is built from a source YouTube video, but none of them declared
+  // it. Video schema makes these pages eligible for Google's video tab and video
+  // carousels — a separate, far less contested surface than the ten blue links,
+  // and one where a real video library is a genuine asset.
+  //
+  // Emitted ONLY from cached real API values (see functions/api/video-meta.js).
+  // uploadDate is required by Google and the article's publish date is NOT the
+  // video's upload date, so a missing entry means no VideoObject rather than a
+  // fabricated one.
+  var video = buildVideoObject(a, url);
+
   return '<script type="application/ld+json">' + jsonLdSafe(article) + '</script>\n'
+       + (video ? '<script type="application/ld+json">' + jsonLdSafe(video) + '</script>\n' : '')
        + '<script type="application/ld+json">' + jsonLdSafe(breadcrumb) + '</script>';
+}
+
+function buildVideoObject(a, url) {
+  var m = a._videoMeta;
+  if (!a.videoId || !m || !m.uploadDate) return null;
+  var v = {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: m.title || a.title,
+    description: m.description || a.excerpt || a.title,
+    thumbnailUrl: 'https://i.ytimg.com/vi/' + a.videoId + '/maxresdefault.jpg',
+    uploadDate: m.uploadDate,
+    embedUrl: 'https://www.youtube.com/embed/' + a.videoId,
+    contentUrl: a.youtubeUrl || ('https://www.youtube.com/watch?v=' + a.videoId),
+    publisher: PUBLISHER,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url }
+  };
+  if (m.duration) v.duration = m.duration;   // ISO-8601 — drives the duration badge
+  return v;
 }
 
 // ── Article body markup (reproduces article.html:674-708 exactly) ───────────────
@@ -1355,6 +1420,17 @@ export async function onRequestGet(context) {
       var relIndex = await context.env.FFX_KV.get('articles:index', { type: 'json' });
       a.related = pickRelated(relIndex, a, 4);
     } catch (e) { a.related = []; }
+  }
+
+  // ── VIDEO METADATA (for VideoObject schema) ──────────────────────────────
+  // Cached real YouTube values, built by /api/video-meta. Best-effort: no entry
+  // (or an unreadable map) simply means no VideoObject is emitted for this page.
+  a._videoMeta = null;
+  if (a.videoId) {
+    try {
+      var vmeta = await context.env.FFX_KV.get('videometa:index', { type: 'json' });
+      if (vmeta && vmeta[a.videoId]) a._videoMeta = vmeta[a.videoId];
+    } catch (e) { a._videoMeta = null; }
   }
 
   // BUILD fully in memory…
