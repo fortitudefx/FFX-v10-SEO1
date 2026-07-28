@@ -186,15 +186,26 @@ async function runCron(env) {
         const pa = await paRes.json();
         console.log('[ffx-cron] Portfolio audit:', pa.verdict,
           '| failed:', pa.counts && pa.counts.failed, 'warned:', pa.counts && pa.counts.warned);
-        if (pa.verdict === 'fail') {
-          const lines = (pa.checks || [])
-            .filter(c => c.status === 'fail')
-            .map(c => `• [${c.id}] ${c.summary}` + (c.detail ? `\n    ${JSON.stringify(c.detail).slice(0, 400)}` : ''));
+        // Alert on CHANGE, never on steady state. demand_runway stays 'fail' for as
+        // long as generation is deliberately paused; emailing that every weekday
+        // would train the alert to be ignored, defeating the purpose.
+        const isNew = Array.isArray(pa.newIssues) && pa.newIssues.length > 0;
+        const fixed = Array.isArray(pa.resolvedIssues) && pa.resolvedIssues.length > 0;
+        if (isNew || fixed) {
+          const byId = Object.fromEntries((pa.checks || []).map(c => [c.id, c]));
+          const lines = (pa.newIssues || []).map(id => {
+            const c = byId[id] || {};
+            return `• [${id}] ${c.summary || ''}` + (c.detail ? `\n    ${JSON.stringify(c.detail).slice(0, 400)}` : '');
+          });
           await sendAlertEmail(env, {
-            subject: '[FFX] Portfolio audit FAILED — ' + lines.length + ' issue(s)',
-            message: 'The cross-article portfolio audit failed. These are problems no per-article gate can see.\n\n'
-              + lines.join('\n\n')
-              + `\n\nCanonical articles: ${pa.portfolio && pa.portfolio.canonicalArticles} of ${pa.portfolio && pa.portfolio.liveArticles} live`
+            subject: isNew
+              ? `[FFX] Portfolio audit — ${pa.newIssues.length} NEW issue(s)`
+              : '[FFX] Portfolio audit — issue(s) resolved',
+            message: (isNew
+                ? 'New cross-article problems appeared. These are defects no per-article gate can see.\n\n' + lines.join('\n\n')
+                : '')
+              + (fixed ? `\n\nResolved since last run: ${pa.resolvedIssues.join(', ')}` : '')
+              + `\n\nPortfolio: ${pa.portfolio && pa.portfolio.canonicalArticles} canonical of ${pa.portfolio && pa.portfolio.liveArticles} live`
               + '\n\nFull report: https://fortitudefx.com/api/portfolio-audit',
           });
         }

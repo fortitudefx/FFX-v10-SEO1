@@ -212,6 +212,20 @@ export async function onRequestPost(context) {
   if (!env.FFX_KV) return json({ error: 'FFX_KV not bound' }, 500);
   try {
     const result = await runAudit(env);
+
+    // ── CHANGE DETECTION ────────────────────────────────────────────────────
+    // A check that fails every day for a reason you already know is noise, and
+    // noise trains you to ignore the alert — which would defeat the entire point
+    // of this endpoint. demand_runway will sit at 'fail' for as long as generation
+    // is deliberately paused. So the cron alerts on CHANGE, not on state:
+    // newIssues lists checks that were not failing on the previous run.
+    const prev = await env.FFX_KV.get(STATUS_KEY, { type: 'json' }).catch(() => null);
+    const prevFailing = new Set(((prev && prev.checks) || []).filter(c => c.status === 'fail').map(c => c.id));
+    const nowFailing = result.checks.filter(c => c.status === 'fail').map(c => c.id);
+    result.newIssues = nowFailing.filter(id => !prevFailing.has(id));
+    result.resolvedIssues = [...prevFailing].filter(id => !nowFailing.includes(id));
+    result.changed = result.newIssues.length > 0 || result.resolvedIssues.length > 0;
+
     await env.FFX_KV.put(STATUS_KEY, JSON.stringify(result));   // PERMANENT — dashboard reads it
     return json(result);
   } catch (err) {
