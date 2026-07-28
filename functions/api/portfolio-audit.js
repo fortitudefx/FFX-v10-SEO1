@@ -141,24 +141,36 @@ function checkVideoSchema(withVideo, videoMeta) {
 
 async function runAudit(env) {
   const index = await env.FFX_KV.get('articles:index', { type: 'json' }).catch(() => null);
-  const articles = Array.isArray(index) ? index.filter(a => a && a.slug && a.title) : [];
-  if (!articles.length) throw new Error('articles:index empty or unreadable');
+  const rawArticles = Array.isArray(index) ? index.filter(a => a && a.slug && a.title) : [];
+  if (!rawArticles.length) throw new Error('articles:index empty or unreadable');
+
+  // articles:index does NOT carry region/draft — functions/articles.js:19 merges
+  // them in from article:{slug}, and the live renderer decides robots from that
+  // record too. Reading the raw index alone counted all 14 regional variants as
+  // canonical (38 instead of 24) and reported their by-design near-duplicate
+  // titles as cannibalization. Enrich first, exactly as /articles does.
+  const withVideo = [];
+  const articles = [];
+  for (const a of rawArticles) {
+    let meta = null;
+    try { meta = await env.FFX_KV.get('article:' + a.slug, { type: 'json' }); } catch { /* keep index values */ }
+    const merged = {
+      ...a,
+      region: (meta && meta.region) || a.region || 'Global',
+      draft: !!((meta && meta.draft) || a.draft),
+    };
+    articles.push(merged);
+    if (meta && meta.videoId && meta.youtubeUrl) withVideo.push({ slug: a.slug, videoId: meta.videoId, region: merged.region, draft: merged.draft });
+  }
 
   const liveSlugs = new Set(articles.map(a => a.slug));
   // Canonical = indexable AND not merged away. This is the set Google actually counts.
   const canon = articles.filter(a => isIndexableArticle(a) && !consolidationTarget(a.slug));
+  const canonSlugs = new Set(canon.map(a => a.slug));
 
   const map = await readDemandMap(env).catch(() => []);
   const videoMeta = (await env.FFX_KV.get('videometa:index', { type: 'json' }).catch(() => null)) || {};
-
-  // Which articles actually carry a video (needs the per-article record).
-  const withVideo = [];
-  for (const a of canon) {
-    try {
-      const meta = await env.FFX_KV.get('article:' + a.slug, { type: 'json' });
-      if (meta && meta.videoId && meta.youtubeUrl) withVideo.push({ slug: a.slug, videoId: meta.videoId });
-    } catch { /* skip */ }
-  }
+  const canonWithVideo = withVideo.filter(v => canonSlugs.has(v.slug));
 
   const checks = [
     checkTopicCollision(canon),
@@ -166,7 +178,7 @@ async function runAudit(env) {
     checkInternalLinks(articles, canon),
     checkRunway(map),
     checkConsolidation(liveSlugs),
-    checkVideoSchema(withVideo, videoMeta),
+    checkVideoSchema(canonWithVideo, videoMeta),
   ];
 
   const failed = checks.filter(c => c.status === 'fail').length;
@@ -178,8 +190,10 @@ async function runAudit(env) {
     counts: { failed, warned, passed: checks.length - failed - warned },
     portfolio: {
       liveArticles: articles.length,
+      indexableArticles: articles.filter(isIndexableArticle).length,
       canonicalArticles: canon.length,
       mergedAway: Object.keys(CONSOLIDATED).length,
+      regionalNoindex: articles.filter(a => a.region && a.region !== 'Global').length,
     },
     checks,
   };
