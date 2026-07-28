@@ -172,6 +172,39 @@ async function runCron(env) {
       console.error('[ffx-cron] videometa self-seed failed (non-fatal):', e.message);
     }
 
+    // ── Step 3c: Portfolio audit ──────────────────────────────────────────
+    // The cross-article checks no per-article gate can make (cannibalization,
+    // zero-demand topics, orphan pages, demand runway, consolidation integrity,
+    // video-schema drift). Runs regardless of GENERATION_PAUSED — it is pure
+    // analysis, and a paused site can still drift.
+    //
+    // This exists so portfolio problems REPORT THEMSELVES. Every defect it checks
+    // for was previously found by reading GSC months after the damage.
+    try {
+      const paRes = await fetch('https://fortitudefx.com/api/portfolio-audit', { method: 'POST' });
+      if (paRes.ok) {
+        const pa = await paRes.json();
+        console.log('[ffx-cron] Portfolio audit:', pa.verdict,
+          '| failed:', pa.counts && pa.counts.failed, 'warned:', pa.counts && pa.counts.warned);
+        if (pa.verdict === 'fail') {
+          const lines = (pa.checks || [])
+            .filter(c => c.status === 'fail')
+            .map(c => `• [${c.id}] ${c.summary}` + (c.detail ? `\n    ${JSON.stringify(c.detail).slice(0, 400)}` : ''));
+          await sendAlertEmail(env, {
+            subject: '[FFX] Portfolio audit FAILED — ' + lines.length + ' issue(s)',
+            message: 'The cross-article portfolio audit failed. These are problems no per-article gate can see.\n\n'
+              + lines.join('\n\n')
+              + `\n\nCanonical articles: ${pa.portfolio && pa.portfolio.canonicalArticles} of ${pa.portfolio && pa.portfolio.liveArticles} live`
+              + '\n\nFull report: https://fortitudefx.com/api/portfolio-audit',
+          });
+        }
+      } else {
+        console.error('[ffx-cron] Portfolio audit HTTP', paRes.status);
+      }
+    } catch (e) {
+      console.error('[ffx-cron] Portfolio audit error (non-fatal):', e.message);
+    }
+
     // ── Step 4: Collect fresh SEO + GA4 signals ───────────────────────────
     console.log('[ffx-cron] Collecting SEO signals...');
     try {

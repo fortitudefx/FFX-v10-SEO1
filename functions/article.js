@@ -38,6 +38,7 @@
 // Topic-consolidation map lives in the shared SEO module so the canonical tag
 // emitted here and the sitemap's indexability filter can never drift apart.
 import { consolidationTarget } from './_seo-pages.js';
+import { pickRelated } from '../lib/related/pick.js';
 
 const SITE    = 'FortitudeFX™';
 const OG_IMG  = 'https://fortitudefx.com/og-fortitudefx.png';
@@ -904,45 +905,8 @@ function buildVideoObject(a, url) {
 // which the page already has access to. Tag overlap dominates, then title-token
 // overlap, then same-category. Self, regionals and drafts are excluded so we never
 // link to a noindex URL. Purely additive: no related → no module, never throws.
-var REL_STOP = { 'the':1,'and':1,'for':1,'that':1,'this':1,'with':1,'your':1,'you':1,'are':1,'how':1,'why':1,'what':1,'when':1,'not':1,'but':1,'from':1,'has':1,'have':1,'will':1,'can':1,'into':1,'its':1,'forex':1,'trading':1,'trade':1,'why':1 };
-
-function relTokens(s) {
-  var out = [], w = String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/);
-  for (var i = 0; i < w.length; i++) if (w[i].length >= 3 && !REL_STOP[w[i]]) out.push(w[i]);
-  return out;
-}
-
-function pickRelated(index, current, n) {
-  if (!Array.isArray(index) || !current) return [];
-  var curTags = {}, t = Array.isArray(current.tags) ? current.tags : [];
-  for (var i = 0; i < t.length; i++) curTags[String(t[i]).toLowerCase().trim()] = 1;
-  var curTitle = {}, ct = relTokens(current.title);
-  for (var j = 0; j < ct.length; j++) curTitle[ct[j]] = 1;
-
-  var scored = [];
-  for (var k = 0; k < index.length; k++) {
-    var e = index[k];
-    if (!e || !e.slug || !e.title) continue;
-    if (e.slug === current.slug) continue;                       // never self-link
-    if (e.region && e.region !== 'Global') continue;             // never link a noindex regional
-    if (e.draft) continue;
-    if (consolidationTarget(e.slug)) continue;                   // never link a merged duplicate —
-                                                                 // internal links must point at the
-                                                                 // canonical page, not away from it
-
-    var score = 0, et = Array.isArray(e.tags) ? e.tags : [];
-    for (var m = 0; m < et.length; m++) if (curTags[String(et[m]).toLowerCase().trim()]) score += 3;
-    var etok = relTokens(e.title), seen = {};
-    for (var p = 0; p < etok.length; p++) {
-      if (curTitle[etok[p]] && !seen[etok[p]]) { score += 1; seen[etok[p]] = 1; }
-    }
-    if (e.category && current.category && e.category === current.category) score += 0.5;
-    if (score > 0) scored.push({ e: e, score: score, date: e.date || '' });
-  }
-  // Highest relevance first; newer wins ties so the module stays fresh.
-  scored.sort(function (x, y) { return (y.score - x.score) || (x.date < y.date ? 1 : -1); });
-  return scored.slice(0, n || 4).map(function (s) { return s.e; });
-}
+// Scorer lives in lib/related/pick.js so the portfolio audit reports orphans
+// using the SAME scoring the renderer emits — see the import at the top.
 
 // ── VIDEO EMBED (click-to-load facade) ──────────────────────────────────────
 // Every one of these articles is written from a YouTube video, but the page only
@@ -1509,7 +1473,7 @@ export async function onRequestGet(context) {
   if (!(a.region && a.region !== 'Global') && !a.draft) {
     try {
       var relIndex = await context.env.FFX_KV.get('articles:index', { type: 'json' });
-      a.related = pickRelated(relIndex, a, 4);
+      a.related = pickRelated(relIndex, a, 4, consolidationTarget);
     } catch (e) { a.related = []; }
   }
 
