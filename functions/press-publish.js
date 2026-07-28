@@ -102,6 +102,37 @@ if (videoId) {
   }
 }
 
+// ── Merge pendingEdits — the staged-edit channel (save-edits.js) ─────────────
+// BUG (found 2026-07-28): this never happened. press-publish read globalContent
+// and published it verbatim, while publish-confirm.js:269 DELETED the pending
+// fields on success because the platform "published". Net effect: any edit staged
+// via the dashboard's "Edited — republish" flow was silently discarded, and the
+// old content was republished over it. It cost a full enrichment run to surface.
+//
+// Applied AFTER the regen merge so an explicit human/enrichment edit outranks
+// machine-regenerated content, and only for fields whose platform is actually
+// being published — an unpublished platform keeps its staged edit for next time.
+if (publishedEntry && publishedEntry.pendingEdits) {
+  const PENDING_FIELD_MAP = {
+    blog:     ['body', 'title', 'excerpt'],
+    x:        ['tweet1','tweet2','tweet3','tweet4','tweet5','tweet6','x_thread'],
+    linkedin: ['linkedin'],
+    discord:  ['discord'],
+    tumblr:   ['tumblr'],
+  };
+  const applied = [];
+  for (const [platform, fields] of Object.entries(PENDING_FIELD_MAP)) {
+    if (!platforms[platform]) continue;
+    for (const f of fields) {
+      if (publishedEntry.pendingEdits[f] !== undefined) {
+        globalContent[f] = publishedEntry.pendingEdits[f];
+        applied.push(f);
+      }
+    }
+  }
+  if (applied.length) console.log('[FFX Press Publish] Applied pendingEdits:', applied.join(', '));
+}
+
     if (!globalContent || !globalContent.slug) {
       return new Response(JSON.stringify({ error: 'Full content not found in published record. Please regenerate.' }), { status: 400, headers });
     }
