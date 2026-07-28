@@ -144,14 +144,15 @@ export async function onRequestPost(context) {
   } catch { /* non-fatal — the corpus check below still runs */ }
 
   // 5. THE SAME GATES AS ANY NEW ARTICLE. Fail closed — write nothing.
-  // similarityBody = the new sections only (see gate.js BLOCK 2). Thin, voice,
-  // quotes and fabrication are still judged on the full merged body.
+  // addedBody = the new sections only. Duplication AND quote verification judge
+  // just what this run added; thin, voice and anti-fabrication still judge the
+  // full merged body, where they belong.
   let verdict;
   try {
     const corpus = await loadCorpus(env);
     verdict = await runGate(
       { slug, title: pub.title, tags: [], body: mergedBody, targetQuery: entry.headKeyword },
-      { corpus, pageType: 'article', nuggetTexts: nuggets.map(n => n.text), similarityBody: sections },
+      { corpus, pageType: 'article', nuggetTexts: nuggets.map(n => n.text), addedBody: sections },
       env
     );
   } catch (err) {
