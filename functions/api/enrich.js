@@ -95,6 +95,22 @@ export async function onRequestPost(context) {
   const pub = await loadPublished(env, slug);
   if (!pub || !pub.body) return json({ error: `no published body found for "${slug}"` }, 404);
 
+  // 2b. BATCHING — asking for all 23 sections in one call timed out the Worker
+  // (Cloudflare returned a bare 502 before the function could answer). Small
+  // batches keep each request well inside limits.
+  //
+  // Resumability falls out of the body itself: a target whose keyword already
+  // appears in the live body has been covered, so it is skipped. Re-POSTing the
+  // same slug therefore continues where the last call stopped, and a repeat call
+  // after completion is a no-op. No progress state to store or corrupt.
+  const bodyLower = pub.body.toLowerCase();
+  const remaining = entry.targets.filter(t => !bodyLower.includes(t.keyword.toLowerCase()));
+  if (!remaining.length) {
+    return json({ slug, staged: false, complete: true, note: 'Every planned section already appears in this page.' });
+  }
+  const batchSize = Math.max(1, Math.min(8, parseInt(url.searchParams.get('batch') || '4', 10) || 4));
+  const batch = remaining.slice(0, batchSize);
+
   // 3. Ground in Salman's own words
   let nuggets = [];
   try {
@@ -105,7 +121,7 @@ export async function onRequestPost(context) {
   // 4. Generate
   let sections;
   try {
-    sections = await generateSections({ title: pub.title, body: pub.body }, entry.targets, nuggets, env.ANTHROPIC_API_KEY);
+    sections = await generateSections({ title: pub.title, body: pub.body }, batch, nuggets, env.ANTHROPIC_API_KEY);
   } catch (err) {
     return json({ error: 'generation failed: ' + err.message }, 502);
   }
@@ -133,7 +149,7 @@ export async function onRequestPost(context) {
   }
 
   if (preview) {
-    return json({ slug, staged: false, preview: true, gate: verdict, targets: entry.targets, sections });
+    return json({ slug, staged: false, preview: true, gate: verdict, generated: batch, remainingAfter: remaining.length - batch.length, sections });
   }
 
   // 6. Stage to pendingEdits — never globalContent.
@@ -152,8 +168,10 @@ export async function onRequestPost(context) {
     slug,
     staged: true,
     kvKey: pub.key,
-    sectionsAdded: entry.targets.length,
-    addedVolume: entry.addedVolume,
+    sectionsAdded: batch.length,
+    addedVolume: batch.reduce((n, t) => n + t.volume, 0),
+    remainingAfter: remaining.length - batch.length,
+    keywords: batch.map(t => t.keyword),
     bodyBefore: pub.body.length,
     bodyAfter: mergedBody.length,
     gate: { status: verdict.status, similarity: verdict.similarity, voice: verdict.voice, wordCount: verdict.wordCount },
