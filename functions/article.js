@@ -229,28 +229,8 @@ body {
 }
 .article-byline a:hover { color: var(--cream); }
 
-/* ── Source video link ── */
-.article-source-video {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 40px 0;
-  padding: 16px 22px;
-  border: 1px solid rgba(28,26,22,0.08);
-  border-radius: 12px;
-  background: rgba(28,26,22,0.03);
-  color: var(--cream);
-  text-decoration: none;
-  font-size: 15px;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-.article-source-video:hover {
-  border-color: var(--gold-border);
-  background: rgba(201,168,76,0.05);
-}
-.article-source-video svg { width: 22px; height: 22px; color: var(--gold); flex-shrink: 0; }
-.article-source-video .article-source-arrow { margin-left: auto; color: var(--gold); }
+/* (.article-source-video removed 2026-07-28 — the link-out was replaced by the
+   click-to-load video embed below; no markup referenced these rules any more.) */
 
 /* ── Article body typography ── */
 .article-body {
@@ -342,6 +322,56 @@ body {
   transition: opacity 0.2s;
 }
 .article-sibling a:hover { opacity: 0.75; }
+
+/* ── Video embed (click-to-load facade) ── */
+/* The 16:9 box reserves space before the thumbnail loads, so adding video causes
+   NO cumulative layout shift. The iframe replaces the facade inside the same box. */
+.article-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 40px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+.article-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.article-video-facade {
+  position: absolute;
+  inset: 0;
+  display: block;
+  cursor: pointer;
+  text-decoration: none;
+}
+.article-video-thumb {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease, opacity 0.3s ease;
+}
+.article-video-facade:hover .article-video-thumb { transform: scale(1.03); opacity: 0.85; }
+.article-video-play {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 68px; height: 48px;
+  pointer-events: none;
+}
+.article-video-play svg { width: 100%; height: 100%; display: block; }
+.article-video-play .yt-bg { fill: #212121; fill-opacity: 0.8; transition: fill 0.2s, fill-opacity 0.2s; }
+.article-video-facade:hover .article-video-play .yt-bg { fill: #f00; fill-opacity: 1; }
+.article-video-facade:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.article-video-label {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 28px 20px 14px;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0));
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .article-video-thumb, .article-video-play .yt-bg { transition: none; }
+  .article-video-facade:hover .article-video-thumb { transform: none; }
+}
 
 /* ── Related reading (internal linking) ── */
 .article-related {
@@ -914,6 +944,60 @@ function pickRelated(index, current, n) {
   return scored.slice(0, n || 4).map(function (s) { return s.e; });
 }
 
+// ── VIDEO EMBED (click-to-load facade) ──────────────────────────────────────
+// Every one of these articles is written from a YouTube video, but the page only
+// ever LINKED to it. Two reasons that changed:
+//   1. Google's VideoObject guidance expects the video to be playable ON the page.
+//      Marking up a video the visitor cannot play is a grey area we were sitting in.
+//   2. Sending readers to YouTube ends the session; playing in place keeps it.
+//
+// FACADE, not a raw iframe: a bare YouTube <iframe> pulls ~1MB of player JS on
+// EVERY page load and would damage Core Web Vitals across 23 pages. Here only a
+// thumbnail loads; the iframe is injected on click, so the cost is paid solely by
+// visitors who actually want the video.
+//
+// PROGRESSIVE ENHANCEMENT: the facade is a real <a> to the watch URL. With JS
+// disabled — and for any crawler — it stays exactly the link it was before, so
+// nothing is hidden behind script. JS intercepts the click and swaps in the player.
+//
+// No CSP is set on this site (checked _headers), so youtube-nocookie.com and
+// i.ytimg.com need no header changes. nocookie is used so no YouTube tracking
+// cookie is set unless the visitor presses play.
+function buildVideoEmbed(a) {
+  if (!a.youtubeUrl || !a.videoId) return '';
+  var vid   = attr(a.videoId);
+  var title = htmlText((a._videoMeta && a._videoMeta.title) || a.title || 'FortitudeFX video');
+  return (
+    '<div class="article-video ffx-reveal ffx-reveal-delay-2">' +
+      '<a class="article-video-facade" href="' + attr(a.youtubeUrl) + '" target="_blank" rel="noopener"' +
+         ' data-ffx-embed="https://www.youtube-nocookie.com/embed/' + vid + '?autoplay=1&rel=0"' +
+         ' aria-label="Play video: ' + title + '">' +
+        '<img class="article-video-thumb" src="https://i.ytimg.com/vi/' + vid + '/maxresdefault.jpg"' +
+             ' alt="' + title + '" width="1280" height="720" loading="lazy" decoding="async"' +
+             ' onerror="this.onerror=null;this.src=\'https://i.ytimg.com/vi/' + vid + '/hqdefault.jpg\'">' +
+        '<span class="article-video-play" aria-hidden="true">' +
+          '<svg viewBox="0 0 68 48"><path class="yt-bg" d="M66.5 7.7a8.6 8.6 0 0 0-6-6.1C55.2 0 34 0 34 0S12.8 0 7.5 1.6a8.6 8.6 0 0 0-6 6.1A89.7 89.7 0 0 0 0 24a89.7 89.7 0 0 0 1.5 16.3 8.6 8.6 0 0 0 6 6.1C12.8 48 34 48 34 48s21.2 0 26.5-1.6a8.6 8.6 0 0 0 6-6.1A89.7 89.7 0 0 0 68 24a89.7 89.7 0 0 0-1.5-16.3z"/><path d="M45 24 27 14v20z" fill="#fff"/></svg>' +
+        '</span>' +
+        '<span class="article-video-label">Watch the original video</span>' +
+      '</a>' +
+    '</div>' +
+    // Wholly defensive: one video per article, so query the element directly
+    // rather than relying on document.currentScript (null under some parsers).
+    // Every step is guarded — if anything is missing the facade stays a plain
+    // link to YouTube, which is the pre-existing behaviour.
+    '<script>(function(){try{' +
+    'var f=document.querySelector(".article-video");if(!f)return;' +
+    'var a=f.querySelector(".article-video-facade");if(!a)return;' +
+    'var u=a.getAttribute("data-ffx-embed");if(!u)return;' +
+    'a.addEventListener("click",function(e){e.preventDefault();' +
+    'var i=document.createElement("iframe");i.src=u;' +
+    'i.title=a.getAttribute("aria-label")||"Video";' +
+    'i.allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture";' +
+    'i.setAttribute("allowfullscreen","");i.setAttribute("frameborder","0");' +
+    'f.innerHTML="";f.appendChild(i);});}catch(err){}})();</script>'
+  );
+}
+
 function buildRelated(a) {
   var rel = Array.isArray(a.related) ? a.related : [];
   if (!rel.length) return '';
@@ -958,7 +1042,7 @@ function buildArticleInner(a) {
       '<div class="article-byline">By <a href="/about">Salman Khan</a></div>' +
     '</div>' +
     '<div class="article-body ffx-reveal ffx-reveal-delay-2">' + (a.body || '') + '</div>' +
-    (a.youtubeUrl ? '<a class="article-source-video ffx-reveal ffx-reveal-delay-2" href="' + attr(a.youtubeUrl) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .6 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg><span>Watch the original video on YouTube</span><span class="article-source-arrow">&rarr;</span></a>' : '') +
+    buildVideoEmbed(a) +
     sibling +
     buildRelated(a) +
     '<hr class="article-divider ffx-reveal ffx-reveal-delay-2">' +
