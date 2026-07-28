@@ -103,8 +103,27 @@ export async function onRequestPost(context) {
   // appears in the live body has been covered, so it is skipped. Re-POSTing the
   // same slug therefore continues where the last call stopped, and a repeat call
   // after completion is a no-op. No progress state to store or corrupt.
-  const bodyLower = pub.body.toLowerCase();
-  const remaining = entry.targets.filter(t => !bodyLower.includes(t.keyword.toLowerCase()));
+  // Coverage is tracked EXPLICITLY on the record, not inferred from the body.
+  // Inferring failed: the check looked for the keyword phrase verbatim, but the
+  // model writes natural headings, so an awkward query like "what is a order
+  // block" never appeared and the target was re-generated on every batch — the
+  // order-block page took the same three questions three times before the thin
+  // check finally caught the repetition.
+  // ?reset=1 discards staged enrichment and starts again from the live body.
+  // Needed after a bad run — the order-block page accumulated duplicate sections
+  // before explicit tracking existed. Only ever clears pendingEdits; globalContent
+  // (what is actually live) is untouched.
+  if (url.searchParams.get('reset') === '1') {
+    const r = pub.record;
+    if (r.pendingEdits) delete r.pendingEdits.body;
+    r.enrichedTargets = [];
+    if (Array.isArray(r.editedFields)) r.editedFields = r.editedFields.filter(f => f !== 'body');
+    await env.FFX_KV.put(pub.key, JSON.stringify(r));
+    return json({ slug, reset: true, note: 'Staged enrichment cleared. The live page was never touched. Re-run to rebuild.' });
+  }
+
+  const covered = new Set(Array.isArray(pub.record.enrichedTargets) ? pub.record.enrichedTargets : []);
+  const remaining = entry.targets.filter(t => !covered.has(t.keyword));
   if (!remaining.length) {
     return json({ slug, staged: false, complete: true, note: 'Every planned section already appears in this page.' });
   }
@@ -177,6 +196,7 @@ export async function onRequestPost(context) {
   rec.pendingEdits.body = mergedBody;
   if (!Array.isArray(rec.editedFields)) rec.editedFields = [];
   if (!rec.editedFields.includes('body')) rec.editedFields.push('body');
+  rec.enrichedTargets = [...covered, ...batch.map(t => t.keyword)];
   rec.updatedAt = new Date().toISOString();
   rec.enrichedAt = rec.updatedAt;
   await env.FFX_KV.put(pub.key, JSON.stringify(rec));
