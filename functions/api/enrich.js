@@ -24,12 +24,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { buildEnrichmentPlan, planByPriority } from '../../lib/enrich/plan.js';
-import { generateSections, mergeSections } from '../../lib/enrich/generate.js';
+import { generateSections, mergeSections, phraseOverlap } from '../../lib/enrich/generate.js';
 import { readDemandMap, retrieveNuggetIds } from '../../lib/keyword/select.js';
 import { loadNuggetTexts } from '../../lib/keyword/grounding.js';
 import { runGate } from '../../lib/gate/gate.js';
 import { loadCorpus, writeVerdict } from '../../lib/gate/verdict.js';
-import { termVector, buildIdf, tfidfCosine } from '../../lib/gate/similarity.js';
 
 const HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -133,12 +132,11 @@ export async function onRequestPost(context) {
   // new sections against the EXISTING body, which the corpus check cannot do
   // (a page is always excluded from its own similarity corpus).
   try {
-    const idf = buildIdf([termVector(pub.body)]);
-    const selfSim = tfidfCosine(termVector(sections), termVector(pub.body), idf);
-    if (selfSim > 0.55) {
+    const overlap = phraseOverlap(sections, pub.body);
+    if (overlap > 0.30) {
       return json({
         slug, staged: false,
-        gate: { status: 'failed', reason: `[self-repetition] new sections ${Math.round(selfSim * 100) / 100} similar to the existing body — restating, not adding` },
+        gate: { status: 'failed', reason: `[self-repetition] ${Math.round(overlap * 100)}% of the new text's phrasing already appears in the article — restating, not adding` },
         note: 'Nothing was written — the live page is untouched.',
         sectionsPreview: sections.slice(0, 1200),
       }, 422);
