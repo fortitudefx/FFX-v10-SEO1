@@ -318,6 +318,15 @@
       <!-- Left: SEO Package -->
       <div class="yt-seo-column">
 
+        <!-- SEO AUDIT — validation against YouTube's hard limits -->
+        <div class="yt-panel-card" id="seoAuditCard" style="display:none;">
+          <div class="yt-panel-header">
+            <span class="yt-panel-title">SEO Audit</span>
+            <span id="seoAuditVerdict" style="font-size:10px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;"></span>
+          </div>
+          <div id="seoAuditBody" style="font-size:12px;line-height:1.7;"></div>
+        </div>
+
         <!-- TITLE -->
         <div class="yt-panel-card">
           <div class="yt-panel-header">
@@ -525,6 +534,17 @@
 
     <!-- Channel stat cards -->
     <div class="yt-channel-stats" id="channelStatsRow" style="display:none;"></div>
+
+    <!-- Channel catalogue — full upload history, powers title-pattern learning -->
+    <div class="yt-perf-panel" style="margin-bottom:18px;">
+      <div class="yt-perf-header">
+        <span class="yt-perf-title">Channel Catalogue — Title Pattern Learning</span>
+        <button class="btn-refresh-kpis" id="syncCatalogBtn" onclick="syncChannelCatalog()">&#8635; Sync Channel Catalogue</button>
+      </div>
+      <div id="catalogSummary" style="padding:14px 16px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.7;">
+        Loading&hellip;
+      </div>
+    </div>
 
     <!-- Performance panel -->
     <div class="yt-perf-panel">
@@ -1145,9 +1165,58 @@ async function regenHookOnly() {
   }
 }
 
+// ── Render the SEO audit panel ────────────────────────────────────────────
+// Shows what the generator repaired automatically and what still needs a human
+// before upload. Hidden entirely for packages generated before this existed.
+function renderSeoAudit(audit) {
+  var card = document.getElementById('seoAuditCard');
+  if (!card) return;
+  if (!audit) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  var verdict = document.getElementById('seoAuditVerdict');
+  if (audit.passed) {
+    verdict.textContent = '✓ Passed';
+    verdict.style.color = '#3ecf8e';
+  } else {
+    verdict.textContent = '⚠ ' + audit.errors.length + ' issue' + (audit.errors.length === 1 ? '' : 's');
+    verdict.style.color = '#ff6b6b';
+  }
+
+  var m = audit.metrics || {};
+  var html = '<div style="color:rgba(255,255,255,0.40);margin-bottom:10px;">'
+    + 'Title ' + m.titleLength + '/60 &middot; '
+    + 'Tags ' + m.tagCount + ' (' + m.tagCharLength + '/500 chars) &middot; '
+    + 'Chapters ' + m.chapterCount + ' &middot; '
+    + 'Description ' + m.descriptionWords + ' words'
+    + '</div>';
+
+  var section = function(items, colour, label) {
+    if (!items || !items.length) return '';
+    return '<div style="margin-bottom:8px;"><div style="font-size:9px;font-weight:700;letter-spacing:0.12em;'
+      + 'text-transform:uppercase;color:' + colour + ';margin-bottom:4px;">' + label + '</div>'
+      + items.map(function(t) {
+          return '<div style="color:rgba(255,255,255,0.60);margin-bottom:3px;">&bull; ' + t + '</div>';
+        }).join('')
+      + '</div>';
+  };
+
+  html += section(audit.errors,   '#ff6b6b', 'Fix before upload');
+  html += section(audit.repaired, '#c9a84c', 'Auto-corrected');
+  html += section(audit.warnings, 'rgba(255,255,255,0.35)', 'Advisory');
+
+  if (audit.passed && !audit.repaired.length && !audit.warnings.length) {
+    html += '<div style="color:#3ecf8e;">Clean — within every YouTube limit.</div>';
+  }
+
+  document.getElementById('seoAuditBody').innerHTML = html;
+}
+
 // ── Render full SEO output ────────────────────────────────────────────────
 function renderOutput(meta, pubData) {
   _currentMeta = meta;
+
+  renderSeoAudit(meta.seoAudit);
 
   // Title
   var titleText = meta.primaryTitle || '';
@@ -1870,6 +1939,8 @@ async function loadPerformanceTab() {
   var tableBody = document.getElementById('perfTableBody');
   tableBody.innerHTML = '<div class="yt-loading">Loading\u2026</div>';
 
+  loadCatalogSummary();
+
   try {
     var res  = await fetch('/api/youtube-signals');
     var data = await res.json();
@@ -1980,6 +2051,71 @@ async function refreshAllKPIs() {
     setTimeout(function() { btn.disabled = false; btn.innerHTML = '&#8635; Refresh All KPIs'; }, 3000);
     loadPerformanceTab();
   } catch(err) { btn.disabled = false; btn.innerHTML = '&#8635; Refresh All KPIs'; alert('Network error: ' + err.message); }
+}
+
+// ── Channel catalogue ─────────────────────────────────────────────────────
+// Syncs EVERY public upload (not just FFX-generated ones) so title-pattern
+// learning has a real sample. Scores on views-per-day vs the channel median.
+async function syncChannelCatalog() {
+  var btn = document.getElementById('syncCatalogBtn');
+  btn.disabled = true;
+  btn.innerHTML = '&#8635; Syncing…';
+  try {
+    var res  = await fetch('/api/youtube-catalog', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    var data = await res.json();
+    if (!res.ok || data.error) {
+      btn.disabled = false; btn.innerHTML = '&#8635; Sync Channel Catalogue';
+      alert('Catalogue sync failed: ' + (data.error || 'Unknown error'));
+      return;
+    }
+    btn.innerHTML = '✓ Synced ' + (data.catalog && data.catalog.totalVideos || 0) + ' videos';
+    setTimeout(function() { btn.disabled = false; btn.innerHTML = '&#8635; Sync Channel Catalogue'; }, 3000);
+    renderCatalogSummary(data.catalog);
+  } catch(err) {
+    btn.disabled = false; btn.innerHTML = '&#8635; Sync Channel Catalogue';
+    alert('Network error: ' + err.message);
+  }
+}
+
+async function loadCatalogSummary() {
+  try {
+    var res  = await fetch('/api/youtube-catalog');
+    var data = await res.json();
+    renderCatalogSummary(data && data.catalog);
+  } catch(err) {
+    var el = document.getElementById('catalogSummary');
+    if (el) el.textContent = 'Could not load catalogue.';
+  }
+}
+
+function renderCatalogSummary(cat) {
+  var el = document.getElementById('catalogSummary');
+  if (!el) return;
+  if (!cat) {
+    el.innerHTML = '<span style="color:rgba(255,255,255,0.40);">Not yet synced. '
+      + 'Title-pattern learning is running on FFX-generated videos only — hit '
+      + '<strong>Sync Channel Catalogue</strong> to bring your full upload history in.</span>';
+    return;
+  }
+  var patterns = (cat.patterns && cat.patterns.openingWord || []).slice(0, 4);
+  var patternHtml = patterns.length
+    ? patterns.map(function(p) {
+        var colour = p.medianPerf >= 1 ? '#3ecf8e' : 'rgba(255,255,255,0.45)';
+        return '<span style="color:' + colour + ';">' + p.value + ' ' + p.medianPerf + 'x</span> <span style="color:rgba(255,255,255,0.25);">(n=' + p.count + ')</span>';
+      }).join(' &middot; ')
+    : '<span style="color:rgba(255,255,255,0.30);">not enough samples yet</span>';
+
+  el.innerHTML =
+      '<div><strong style="color:rgba(255,255,255,0.80);">' + cat.totalVideos + '</strong> videos synced &middot; '
+    + '<strong style="color:rgba(255,255,255,0.80);">' + cat.scoredCount + '</strong> scored for title patterns '
+    + '<span style="color:rgba(255,255,255,0.30);">(long-form, 7+ days old)</span>'
+    + (cat.shortsCount ? ' &middot; ' + cat.shortsCount + ' Shorts excluded' : '')
+    + '</div>'
+    + '<div>Channel median: <strong style="color:rgba(255,255,255,0.80);">' + cat.medianViewsPerDay + '</strong> views/day '
+    + '<span style="color:rgba(255,255,255,0.30);">&middot; ' + cat.medianViews + ' median lifetime views</span></div>'
+    + '<div style="margin-top:6px;">Opening words: ' + patternHtml + '</div>'
+    + '<div style="margin-top:6px;color:rgba(255,255,255,0.28);font-size:11px;">Last synced '
+    + new Date(cat.fetchedAt).toLocaleString() + '</div>';
 }
 
 async function refreshSingleVideo(videoId, btn) {

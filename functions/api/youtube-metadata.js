@@ -57,6 +57,7 @@ export async function onRequestPost(context) {
       ytTitleLearning,
       ytAnalyticsSignals,
       ytSearchGlobalSignals,
+      channelCatalog,
     ] = await Promise.all([
       env.FFX_KV.get(`transcript:${videoId}`,            { type: 'text' }).catch(() => null),
       env.FFX_KV.get(`transcript:timestamps:${videoId}`, { type: 'json' }).catch(() => null),
@@ -69,6 +70,7 @@ export async function onRequestPost(context) {
       env.FFX_KV.get('youtube:title:learning',           { type: 'json' }).catch(() => null),
       env.FFX_KV.get('youtube:analytics:signals',        { type: 'json' }).catch(() => null),
       env.FFX_KV.get('youtube:search:global:signals',    { type: 'json' }).catch(() => null),
+      env.FFX_KV.get('youtube:channel:catalog',          { type: 'json' }).catch(() => null),
     ]);
 
     if (!transcript || transcript.trim().length < 100) {
@@ -193,6 +195,23 @@ export async function onRequestPost(context) {
     // ── Track which signals are available ────────────────────────────────
     const signalsAvailable = [];
 
+    // ── Transcript for the prompt ────────────────────────────────────────
+    // Previously truncated at 2500 chars, so title/description/tags were derived
+    // from roughly the first 4 minutes of video. Now the whole transcript goes in.
+    // Only absurdly long transcripts are trimmed, and then from the middle — the
+    // opening hook and the closing payoff are both SEO-load-bearing.
+    const TRANSCRIPT_CAP = 120000;
+    let transcriptForPrompt;
+    if (transcript.length <= TRANSCRIPT_CAP) {
+      transcriptForPrompt = transcript;
+    } else {
+      const head = transcript.slice(0, Math.floor(TRANSCRIPT_CAP * 0.6));
+      const tail = transcript.slice(-Math.floor(TRANSCRIPT_CAP * 0.4));
+      transcriptForPrompt = head
+        + '\n\n[... middle section omitted for length — opening and closing retained ...]\n\n'
+        + tail;
+    }
+
     // ── BUILD CONTEXT — weighted priority order ──────────────────────────
     let ctx = `You are generating the optimal YouTube metadata package for FortitudeFX.
 
@@ -215,44 +234,86 @@ Video ID: ${videoId}
 YouTube URL: ${ytUrl}
 Paired article: ${articleUrl}
 
-TRANSCRIPT (first 2500 chars — source of truth for content):
-${transcript.slice(0, 2500)}${transcript.length > 2500 ? '\n[...transcript continues...]' : ''}
+FULL TRANSCRIPT — the single source of truth for every claim below.
+The title, description bullets and tags MUST come from what Salman actually says here,
+not from the opening minutes alone. The strongest hook is often mid-video.
+${transcriptForPrompt}
 `;
 
-    // ── SIGNAL WEIGHT 1: YOUR YouTube channel performance data (highest weight) ──
-    if (Array.isArray(ytTitleLearning) && ytTitleLearning.length > 0) {
-      signalsAvailable.push('youtube_channel_learning');
+    // ── SIGNAL WEIGHT 1: FULL CHANNEL CATALOGUE (highest authority signal) ──
+    // Every public upload, scored on views-per-day against the channel MEDIAN so a
+    // 2-year-old video does not beat a 2-week-old one purely on age.
+    if (channelCatalog && channelCatalog.scoredCount >= 10) {
+      signalsAvailable.push('youtube_channel_catalog');
+      ctx += `\n${'='.repeat(60)}\nWEIGHT 1 — YOUR FULL CHANNEL CATALOGUE (strongest signal)\n`;
+      ctx += `${channelCatalog.scoredCount} long-form videos scored on views-per-day against your channel median (${channelCatalog.medianViewsPerDay}/day).\n`;
+      ctx += `A ratio of 1.0 = exactly median. 2.0 = double the median. 0.5 = half.\n`;
+      ctx += `${'='.repeat(60)}\n`;
+
+      if (channelCatalog.topPerformers && channelCatalog.topPerformers.length) {
+        ctx += `YOUR BEST-PERFORMING TITLES (highest views/day vs median):\n`;
+        channelCatalog.topPerformers.forEach(v => {
+          ctx += `  ✓ ${v.performanceRatio}x — "${v.title}" (${v.viewCount} views over ${v.ageDays}d)\n`;
+        });
+      }
+
+      if (channelCatalog.bottomPerformers && channelCatalog.bottomPerformers.length) {
+        ctx += `YOUR WEAKEST-PERFORMING TITLES:\n`;
+        channelCatalog.bottomPerformers.forEach(v => {
+          ctx += `  ✗ ${v.performanceRatio}x — "${v.title}" (${v.viewCount} views over ${v.ageDays}d)\n`;
+        });
+      }
+
+      const p = channelCatalog.patterns || {};
+      const renderPattern = (label, rows) => {
+        if (!rows || !rows.length) return;
+        ctx += `${label}:\n`;
+        rows.slice(0, 6).forEach(r => {
+          ctx += `  ${r.value} — ${r.medianPerf}x median performance (n=${r.count})\n`;
+        });
+      };
+      ctx += `\nTITLE PATTERN ANALYSIS (median performance ratio per pattern, n = sample size):\n`;
+      renderPattern('Opening word', p.openingWord);
+      renderPattern('Title length', p.lengthBucket);
+      renderPattern('Numerals', p.hasNumber);
+      renderPattern('Question vs statement', p.hasQuestion);
+      renderPattern('Colon split', p.hasColon);
+      renderPattern('ALL-CAPS word', p.hasCaps);
+
+      ctx += `\nINSTRUCTION: This is measured evidence from YOUR audience — it outranks every\n`;
+      ctx += `other signal below. Favour patterns above 1.0x and avoid those below. Ignore any\n`;
+      ctx += `pattern with n < 5; the sample is too small to act on.\n`;
+    } else if (channelCatalog) {
+      ctx += `\nWEIGHT 1 — CHANNEL CATALOGUE: only ${channelCatalog.scoredCount || 0} scored videos — too few for reliable title patterns. Ignore.\n`;
+    } else {
+      ctx += `\nWEIGHT 1 — CHANNEL CATALOGUE: not yet synced. Run POST /api/youtube-catalog.\n`;
+    }
+
+    // ── SIGNAL WEIGHT 1B: FFX-attributed titles (did the suggested title win?) ──
+    // Separate from the catalogue above: this is the only source that knows WHICH
+    // suggested title was used. Suppressed below 3 samples — with n=1 a video is
+    // compared against itself and always reads as a failure.
+    if (Array.isArray(ytTitleLearning) && ytTitleLearning.length >= 3) {
+      signalsAvailable.push('youtube_ffx_attribution');
       const winners = ytTitleLearning.filter(t => t.beatAverage);
       const losers  = ytTitleLearning.filter(t => t.beatAverage === false);
-      ctx += `\n${'='.repeat(60)}\nWEIGHT 1 — YOUR CHANNEL PERFORMANCE (highest authority signal)\nBased on ${ytTitleLearning.length} published videos measured against YOUR channel average.\n${'='.repeat(60)}\n`;
+      ctx += `\n${'='.repeat(60)}\nWEIGHT 1B — FFX-GENERATED TITLE ATTRIBUTION\n`;
+      ctx += `${ytTitleLearning.length} videos published through this system, tracking which suggested title was used.\n${'='.repeat(60)}\n`;
 
       if (winners.length > 0) {
-        ctx += `WHAT BEAT YOUR CHANNEL AVERAGE VIEWS:\n`;
+        ctx += `SUGGESTIONS THAT BEAT AVERAGE:\n`;
         winners.slice(0, 5).forEach(t => {
           ctx += `  ✓ "${t.actualTitle}" — ${(t.viewsVsAvgPct > 0 ? '+' : '')}${t.viewsVsAvgPct}% vs avg`;
-          if (t.visualScene) ctx += ` | Scene: ${t.visualScene}`;
           if (t.thumbnailHook) ctx += ` | Hook: "${t.thumbnailHook}"`;
           ctx += '\n';
         });
-        // Opening word patterns from winners
-        const winWords = {};
-        winners.forEach(w => { if (w.titleStartsWithWord) winWords[w.titleStartsWithWord] = (winWords[w.titleStartsWithWord]||0)+1; });
-        const topWords = Object.entries(winWords).sort((a,b)=>b[1]-a[1]).slice(0,3);
-        if (topWords.length) ctx += `Title opening words that win on YOUR channel: ${topWords.map(e=>e[0]).join(', ')}\n`;
       }
-
       if (losers.length > 0) {
-        ctx += `WHAT UNDERPERFORMED ON YOUR CHANNEL:\n`;
+        ctx += `SUGGESTIONS THAT UNDERPERFORMED:\n`;
         losers.slice(0, 3).forEach(t => {
           ctx += `  ✗ "${t.actualTitle}" — ${t.viewsVsAvgPct}% vs avg\n`;
         });
-        const loseWords = {};
-        losers.forEach(l => { if (l.titleStartsWithWord) loseWords[l.titleStartsWithWord] = (loseWords[l.titleStartsWithWord]||0)+1; });
-        const bottomWords = Object.entries(loseWords).sort((a,b)=>b[1]-a[1]).slice(0,3);
-        if (bottomWords.length) ctx += `Opening words that underperform: ${bottomWords.map(e=>e[0]).join(', ')}\n`;
       }
-
-      ctx += `INSTRUCTION: Apply winning patterns above to this video's title. This is evidence from YOUR channel — treat it as the strongest signal.\n`;
     }
 
     // ── SIGNAL WEIGHT 2: YouTube Analytics (search vs suggested, actual YT search queries) ──
@@ -425,18 +486,43 @@ ${'='.repeat(60)}
 GENERATE YOUTUBE METADATA PACKAGE
 ${'='.repeat(60)}
 
+DUAL-PLATFORM SEO MANDATE — read before generating anything:
+This package must rank in TWO different search engines with different ranking logic.
+
+  YOUTUBE SEARCH ranks on: exact keyword match in the title, keyword density and
+  semantic coverage across the full description, chapter titles (indexed as key
+  moments), tags, and — above all — click-through rate and watch time. Keywords must
+  appear EARLY. YouTube reads roughly the first 150 characters of the description as
+  the primary relevance signal.
+
+  GOOGLE SEARCH surfaces this video in three places: the Video tab, the "Key moments"
+  carousel (built directly from your chapter timestamps), and the main blue-link
+  results via the paired article. Google reads the FULL description as page text and
+  weights natural-language phrasing and semantic depth over keyword repetition.
+
+  RESOLUTION: front-load exact-match keywords for YouTube; carry semantic variants and
+  natural phrasing through the body for Google. Never keyword-stuff — YouTube demotes
+  it and Google ignores it. Every keyword must read as something Salman would say.
+
 TITLE RULES:
-- Under 60 characters (YouTube truncates at 60 in search results)
+- HARD LIMIT 60 characters. 50-60 is the sweet spot. Never exceed 60 — YouTube truncates.
 - Must be grounded in the transcript content — do not invent topics
 - TITLE KEYWORD PRIORITY ORDER:
-  1. If YouTube Analytics shows exact queries people use to find YOUR videos → use that phrasing
-  2. If ytTitleLearning shows a winning opening word pattern → apply it
+  1. If YouTube Analytics shows exact queries people use to find YOUR videos → use that phrasing verbatim
+  2. If the WEIGHT 1 catalogue shows a title pattern above 1.0x with n >= 5 → apply it
   3. If competitor titles show a dominant format for this niche → use it as structure reference
-  4. Derive YouTube equivalent of the GSC targetQuery (shorter, more direct)
-  5. Default to transcript's core insight as the title hook
-- Primary keyword in first 3 words
+  4. Derive the YouTube equivalent of the GSC targetQuery (shorter, more direct)
+  5. Default to the transcript's core insight as the title hook
+- PRIMARY KEYWORD MUST APPEAR IN THE FIRST 3 WORDS. This is non-negotiable for YouTube
+  search ranking — it is the single highest-weight on-page factor.
+- The keyword must be a phrase a retail forex trader would actually type into YouTube
+  ("momentum candle", "stop hunt", "liquidity sweep") — not internal CTW jargon alone.
+- No clickbait, no ALL-CAPS shouting, no "2026" year-padding unless the content is
+  genuinely time-bound.
 - Salman's voice — personal, specific, never third-party agency tone
-- Suggest 1 primary title + 2 alternatives with reasoning
+- Suggest 1 primary title + 2 alternatives with reasoning. The 2 alternatives must test
+  genuinely DIFFERENT angles (e.g. pain-point vs mechanism vs outcome) — not reworded
+  versions of the primary.
 
 DESCRIPTION RULES:
 - First 125 characters must hook immediately — Salman's direct voice, core insight, no preamble
@@ -466,29 +552,70 @@ DESCRIPTION RULES:
 - Weave rising search queries naturally into the hook or body — not forced
 - The — bullet format is NON-NEGOTIABLE. Never collapse bullets into a paragraph.
 
+DESCRIPTION SEO DEPTH — required for Google to rank the video and the paired article:
+- The description body must total AT LEAST 250 words before the chapter block. A thin
+  description is the most common reason a well-titled video fails to rank on Google.
+- The PRIMARY KEYWORD must appear in the first 150 characters (YouTube's relevance
+  window), then 2-4 more times naturally across the body. Never more — that is stuffing.
+- Include 3-5 SEMANTIC VARIANTS of the primary keyword spread through the body. Example
+  for a momentum-candle video: "momentum candle", "large-bodied candle", "continuation
+  candle", "displacement candle", "the candle that breaks structure". Google rewards
+  this coverage; YouTube uses it to match long-tail queries.
+- After the bullet list, add a 2-4 sentence paragraph in Salman's voice expanding on the
+  single most important mechanic in the video. This paragraph is what Google indexes as
+  the substance of the page — it is not filler.
+- Name specific instruments, sessions, timeframes and CTW model codes wherever the
+  transcript mentions them. Specificity is what wins long-tail search.
+- Never repeat the title verbatim as the first line.
+
 CHAPTER GENERATION RULES — MANDATORY:
 ${chapterContext ? `You have timestamped transcript data above. USE IT to generate accurate chapter markers.
+
+Chapters are a DUAL-PLATFORM SEO asset, not a convenience feature. YouTube indexes
+chapter titles as searchable key moments, and Google builds its "Key moments" carousel
+directly from them — that carousel is often how a video earns a blue-link position.
+
 - Generate 5-8 chapters that reflect the actual video structure
-- First chapter MUST be 0:00 Introduction
-- Use the timestamps from the transcript to identify topic transitions
+- YouTube's HARD REQUIREMENTS — violating any of these disables chapters entirely:
+  1. The first chapter MUST be exactly 0:00
+  2. There must be AT LEAST 3 chapters
+  3. Every chapter must be AT LEAST 10 seconds long — never place two markers closer
+     than 10 seconds apart
+  4. Timestamps must run in ascending order
+- CHAPTER TITLES ARE KEYWORDS. Write them as phrases people search, not as labels.
+  Weak: "Introduction" / "Part 2" / "The Setup"
+  Strong: "What The Momentum Candle Signals" / "Where Most Traders Enter Too Early"
+- The first chapter is the exception — keep it short and orienting, but still specific
+  (e.g. "0:00 The Setup In One Sentence" rather than bare "Introduction").
+- Do not repeat the same keyword in every chapter title — vary the phrasing to cover
+  more long-tail queries.
 - Format EXACTLY as YouTube requires (copy-paste ready):
-  0:00 Introduction
+  0:00 Chapter Title
   1:24 Chapter Title
   3:47 Chapter Title
   (etc.)
-- Place the chapter block where [CHAPTERS] appears in the description structure` : 
+- Place the chapter block where [CHAPTERS] appears in the description structure` :
 `No timestamped transcript available for this video.
 Place [TIMESTAMPS] in the description where chapters will go.
 Add note: "⚠ Add chapter timestamps after upload."
 Chapters will be available on next generation once timestamps are stored.`}
 
 TAGS RULES:
-- 15-20 tags maximum
-- Priority order: brand tags → methodology tags → video-specific tags → question tags
-- Always include: FortitudeFX, Catch the Wick, forex trading, price action, forex strategy, Salman Khan forex
-- Add 8-10 specific tags from this video's exact content
-- Include question-format tags: "what is momentum candle", "how to trade momentum candle" (adapt to actual topic)
-- Include both short-tail (forex trading) and long-tail (catch the wick momentum candle strategy) tags
+- 15-20 tags. HARD LIMIT: the tags joined with commas must total UNDER 450 characters
+  (YouTube's ceiling is 500 and rejects the whole set if exceeded — stay under 450).
+- Keep every individual tag under 30 characters. YouTube ignores longer ones.
+- Tag order matters — YouTube weights the first few most. Lead with the SINGLE most
+  important exact-match keyword for this specific video, NOT with the brand.
+- Structure:
+  1. The primary keyword, exactly as it appears in the title (position 1)
+  2. 2-3 close variants of that primary keyword
+  3. 6-8 specific tags drawn from this video's actual content
+  4. 2-3 question-format tags matching real search behaviour
+     ("what is a momentum candle", "how to trade stop hunts")
+  5. Brand and methodology tags LAST: FortitudeFX, Catch the Wick, Salman Khan forex
+  6. Broad category tags to close: forex trading, price action, forex strategy
+- Mix short-tail (forex trading) and long-tail (catch the wick momentum candle entry).
+- Never repeat the same phrase across multiple tags — each must earn its slot.
 
 THUMBNAIL RULES:
 
@@ -592,7 +719,14 @@ ${ytSearchGlobalSignals && ytSearchGlobalSignals.competitorTitles
   ? 'Competitor titles for this niche: ' + ytSearchGlobalSignals.competitorTitles.slice(0,5).map(function(t){return '"'+t.title+'"';}).join(', ')
   : ''}
 
-` + ctx.slice(ctx.indexOf('THUMBNAIL RULES:'));
+` + (function() {
+        // Slice ONLY the thumbnail rules. Previously this ran to the end of ctx,
+        // dragging in the full package's JSON schema alongside the thumbnail-only
+        // schema appended below — the model received two conflicting output specs.
+        const start = ctx.indexOf('THUMBNAIL RULES:');
+        const end   = ctx.indexOf('Return ONLY a valid JSON object:', start);
+        return end === -1 ? ctx.slice(start) : ctx.slice(start, end);
+      })();
 
       const thumbRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -604,7 +738,7 @@ ${ytSearchGlobalSignals && ytSearchGlobalSignals.competitorTitles
         body: JSON.stringify({
           model:      ANTHROPIC_MODEL,
           max_tokens: 1200,
-          messages:   [{ role: 'user', content: thumbCtx + '\n\nReturn ONLY a valid JSON object:\n{\n  "thumbnailConcept": {\n    "forexElement": "letter A-H and exact phrase chosen",\n    "textOverlay": "3 WORD ALL CAPS HOOK",\n    "leonardoPrompt": "complete filled template with [FOREX_ELEMENT] replaced",\n    "searchQueryInformed": "which search query informed the hook",\n    "reasoning": "one sentence CTR psychology explanation"\n  }\n}\nCRITICAL: Return ONLY raw JSON. Start with { end with }.' }],
+          messages:   [{ role: 'user', content: thumbCtx + '\n\nReturn ONLY a valid JSON object:\n{\n  "thumbnailConcept": {\n    "textOverlay": "3 WORD ALL CAPS HOOK — specific curiosity gap from transcript",\n    "leonardoPrompt": "the complete prompt using the template above — Visual Story filled from transcript, Psychology selected, all other sections copied exactly",\n    "searchQueryInformed": "which YouTube search query informed the hook text",\n    "reasoning": "one sentence — why this visual story + hook will stop a retail forex trader mid-scroll"\n  }\n}\nCRITICAL: Return ONLY raw JSON. Start with { end with }.' }],
         }),
       });
 
@@ -679,12 +813,19 @@ ${ytSearchGlobalSignals && ytSearchGlobalSignals.competitorTitles
       throw new Error('Claude response missing required fields');
     }
 
+    // ── Validate + repair against YouTube's hard limits ──────────────────
+    // The prompt asks for these limits; nothing previously enforced them, so an
+    // over-length title or an invalid chapter block reached the clipboard silently.
+    metadata.seoAudit = validateSeoPackage(metadata);
+
     // Enrich metadata
     metadata.videoId          = videoId;
     metadata.youtubeUrl       = ytUrl;
     metadata.generatedAt      = new Date().toISOString();
     metadata.signalsUsed      = signalsAvailable;
-    metadata.hasTimestamps    = Array.isArray(transcriptTimestamps) && transcriptTimestamps.length > 0;
+    // Must use resolvedTimestamps, not transcriptTimestamps — when timestamps are
+    // fetched fresh in this run, chapters generate but the original KV read is empty.
+    metadata.hasTimestamps    = Array.isArray(resolvedTimestamps) && resolvedTimestamps.length > 0;
     metadata.apiKeyConfigured = false; // Leonardo not yet integrated
 
     // Write to KV permanently
@@ -720,6 +861,148 @@ ${ytSearchGlobalSignals && ytSearchGlobalSignals.competitorTitles
     console.error('[youtube-metadata] Error:', err.message);
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
   }
+}
+
+// ── Parse a YouTube chapter timestamp ("1:24" or "1:02:03") into seconds ──
+function parseTimestamp(ts) {
+  const parts = String(ts).trim().split(':').map(Number);
+  if (parts.some(isNaN)) return null;
+  if (parts.length === 2) return (parts[0] * 60) + parts[1];
+  if (parts.length === 3) return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+  return null;
+}
+
+// ── Validate and repair the generated package against YouTube's hard limits ──
+// Mutates `meta` in place where a safe automatic repair exists; returns a report
+// so the dashboard can show exactly what was adjusted and what still needs a human.
+function validateSeoPackage(meta) {
+  const errors   = [];  // blocks a clean upload — needs attention
+  const warnings = [];  // suboptimal but usable
+  const repaired = [];  // fixed automatically
+
+  // ── Title: 60 char hard ceiling ──
+  const title = String(meta.primaryTitle || '');
+  if (title.length > 60) {
+    const alts = (meta.titleAlternatives || [])
+      .filter(a => a && a.title && a.title.length <= 60);
+    if (alts.length) {
+      // Promote the best in-limit alternative rather than truncating mid-word
+      const promoted = alts[0];
+      meta.titleAlternatives = (meta.titleAlternatives || [])
+        .filter(a => a !== promoted)
+        .concat([{ title: title, reasoning: 'Original primary — ' + title.length + ' chars, over the 60 limit' }]);
+      meta.primaryTitle = promoted.title;
+      repaired.push('Primary title was ' + title.length + ' chars (limit 60). Promoted in-limit alternative "' + promoted.title + '"; original moved to alternatives.');
+    } else {
+      errors.push('Primary title is ' + title.length + ' chars — exceeds YouTube\'s 60 char limit and no alternative fits. Shorten before uploading.');
+    }
+  } else if (title.length < 30) {
+    warnings.push('Primary title is only ' + title.length + ' chars — short titles carry fewer ranking keywords.');
+  }
+
+  // ── Tags: 500 char ceiling (we target 450), 30 chars each ──
+  if (Array.isArray(meta.tags)) {
+    const before = meta.tags.length;
+    meta.tags = meta.tags.filter(t => typeof t === 'string' && t.trim().length > 0);
+
+    // Trim from the END — tag order is deliberate, broad category tags sit last
+    let dropped = 0;
+    while (meta.tags.length > 1 && meta.tags.join(',').length > 450) {
+      meta.tags.pop();
+      dropped++;
+    }
+    if (dropped > 0) {
+      repaired.push('Dropped ' + dropped + ' trailing tag(s) to stay under YouTube\'s 500 char tag limit (now ' + meta.tags.join(',').length + ' chars).');
+    }
+    if (meta.tags.length > 20) {
+      repaired.push('Trimmed tag list from ' + meta.tags.length + ' to 20.');
+      meta.tags = meta.tags.slice(0, 20);
+    }
+    if (before !== meta.tags.length && dropped === 0) {
+      repaired.push('Removed ' + (before - meta.tags.length) + ' empty tag entries.');
+    }
+
+    // Report oversize tags only after trimming, so the warning reflects what ships
+    const oversize = meta.tags.filter(t => t.length > 30);
+    if (oversize.length) {
+      warnings.push(oversize.length + ' tag(s) exceed 30 chars and may be ignored by YouTube: ' + oversize.join(', '));
+    }
+  }
+
+  // ── Chapters: first at 0:00, min 3, ascending, min 10s apart ──
+  if (Array.isArray(meta.chapters) && meta.chapters.length > 0) {
+    const parsed = meta.chapters.map(c => {
+      const s = String(c);
+      const sp = s.indexOf(' ');
+      const stamp = sp === -1 ? s : s.slice(0, sp);
+      return { raw: s, seconds: parseTimestamp(stamp), label: sp === -1 ? '' : s.slice(sp + 1).trim() };
+    });
+
+    const malformed = parsed.filter(p => p.seconds === null);
+    if (malformed.length) {
+      errors.push(malformed.length + ' chapter line(s) are not in "M:SS Title" format: ' + malformed.map(m => m.raw).join(' | '));
+    }
+
+    const valid = parsed.filter(p => p.seconds !== null).sort((a, b) => a.seconds - b.seconds);
+
+    if (valid.length && valid[0].seconds !== 0) {
+      errors.push('First chapter is at ' + valid[0].raw + ', not 0:00. YouTube disables chapters entirely unless the first marker is 0:00.');
+    }
+
+    // Drop any marker less than 10s after the previous one — YouTube's minimum
+    const spaced = [];
+    let droppedClose = 0;
+    valid.forEach(p => {
+      if (!spaced.length || (p.seconds - spaced[spaced.length - 1].seconds) >= 10) {
+        spaced.push(p);
+      } else {
+        droppedClose++;
+      }
+    });
+    if (droppedClose > 0) {
+      repaired.push('Removed ' + droppedClose + ' chapter marker(s) spaced under YouTube\'s 10-second minimum.');
+    }
+
+    if (spaced.length < 3) {
+      errors.push('Only ' + spaced.length + ' valid chapter(s) — YouTube requires at least 3 to show chapters at all.');
+    }
+
+    const genericLabels = spaced.filter(p => /^(introduction|intro|part \d|outro|conclusion|the setup)$/i.test(p.label));
+    if (genericLabels.length) {
+      warnings.push(genericLabels.length + ' chapter title(s) are generic and carry no search keywords: ' + genericLabels.map(g => g.label).join(', '));
+    }
+
+    meta.chapters = spaced.map(p => p.raw);
+  }
+
+  // ── Description ──
+  const full = (meta.description && meta.description.full) || '';
+  const hook = (meta.description && meta.description.hook) || '';
+  if (hook.length > 150) {
+    warnings.push('Description hook is ' + hook.length + ' chars — only ~125 show before "Show more".');
+  }
+  const bodyWords = full.split(/\s+/).filter(Boolean).length;
+  if (bodyWords < 150) {
+    warnings.push('Description is only ~' + bodyWords + ' words. Thin descriptions rank poorly on Google — 250+ is the target.');
+  }
+  if (full && !/fortitudefx\.com/i.test(full)) {
+    errors.push('Description is missing the fortitudefx.com link — the video cannot pass authority to the paired article.');
+  }
+
+  return {
+    passed:   errors.length === 0,
+    errors:   errors,
+    warnings: warnings,
+    repaired: repaired,
+    metrics: {
+      titleLength:   String(meta.primaryTitle || '').length,
+      tagCount:      Array.isArray(meta.tags) ? meta.tags.length : 0,
+      tagCharLength: Array.isArray(meta.tags) ? meta.tags.join(',').length : 0,
+      chapterCount:  Array.isArray(meta.chapters) ? meta.chapters.length : 0,
+      hookLength:    hook.length,
+      descriptionWords: bodyWords,
+    },
+  };
 }
 
 function formatSeconds(seconds) {
