@@ -4,11 +4,22 @@
 // rarely need this; it stays as a manual seed/inspect tool.
 //
 // No key — it only ever writes demand:map from committed data (no user input, no
-// article, no live page, nothing publishable). Refuses to clobber a seeded map
-// unless &force=1 (re-seeding resets claimed/done status). GET returns the map's
-// open/claimed/winnable counts so you can check runway any time.
+// article, no live page, nothing publishable).
+//   &append=1  — ADDITIVE. Carries only NEW topics from seed-data.js into an
+//                already-live map; every existing row (open/claimed/done) is left
+//                untouched. This is how an approved demand-map widening
+//                (scripts/demand/merge.py) actually reaches production — the
+//                plain POST below refuses once a map exists, specifically so a
+//                routine re-run of this endpoint can never reset live state.
+//   &force=1   — DESTRUCTIVE. Full overwrite; resets every row's status to
+//                'open', which makes the cron re-select and re-generate every
+//                already-published topic (selectTargets only knows a topic is
+//                taken via its row's own status — see select.js takenTopics).
+//                Use append, not force, to land new keywords.
+// GET returns the map's open/claimed/winnable counts so you can check runway any time.
 
 import { SEED_TARGETS, WINNABLE_TOPIC_COUNT } from '../../lib/keyword/seed-data.js';
+import { appendDemandTargets } from '../../lib/keyword/seed.js';
 
 const DEMAND_MAP_KEY = 'demand:map';
 
@@ -40,12 +51,20 @@ export async function onRequestGet(context) {
   return json({ seeded: true, live: summarise(existing) }, 200, HEADERS);
 }
 
-// POST — seed (or, with &force=1, re-seed) demand:map from the committed data.
+// POST — seed, append (&append=1), or re-seed (&force=1) demand:map.
 export async function onRequestPost(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   if (!env.FFX_KV) return json({ error: 'FFX_KV not bound' }, 500, HEADERS);
+  const append = url.searchParams.get('append') === '1';
   const force = url.searchParams.get('force') === '1';
+
+  if (append) {
+    const result = await appendDemandTargets(env);
+    const live = await env.FFX_KV.get(DEMAND_MAP_KEY, { type: 'json' }).catch(() => null);
+    return json({ ...result, live: Array.isArray(live) ? summarise(live) : null }, 200, HEADERS);
+  }
+
   const existing = await env.FFX_KV.get(DEMAND_MAP_KEY, { type: 'json' }).catch(() => null);
   if (Array.isArray(existing) && existing.length && !force) {
     return json({

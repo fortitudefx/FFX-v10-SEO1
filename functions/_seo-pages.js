@@ -106,12 +106,13 @@ export const CONSOLIDATED = {
   'fractal-trading-strategy-multiple-timeframes':             'fractal-price-action-multi-timeframe-strategy',
 };
 
-// Consolidated URLs stay in the sitemap DURING the merge window — Googlebot has to
+// Consolidated URLs stayed in the sitemap DURING the merge window — Googlebot had to
 // recrawl them to SEE the canonical tag, and this domain gets ~26 Googlebot
-// requests/day, so we want them advertised until the merge lands. Flip to true once
-// GSC reports them as "Duplicate, Google chose a different canonical" (2-6 weeks);
-// after that a sitemap should list canonical URLs only.
-export const DROP_CONSOLIDATED_FROM_SITEMAP = false;
+// requests/day, so they were advertised until the merge landed. Flipped true
+// 2026-10-26: GSC now reports 13 of these as "Alternate page with proper canonical
+// tag" — the merge has landed. The sitemap lists canonical (indexable) URLs only
+// from here on, freeing that crawl budget for the 24 pages that can actually rank.
+export const DROP_CONSOLIDATED_FROM_SITEMAP = true;
 
 // The survivor a duplicate canonicalises to, or null when the slug is not merged.
 // Self-references and chains (A→B→C) are refused so a bad edit can never point a
