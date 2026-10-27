@@ -633,15 +633,17 @@ async function processKeywordJob(job, env) {
     } catch (e) { console.error('[FFX][keyword][autopilot] publish error (non-fatal):', e.message); }
   }
 
-  // BLOG AUTO-PUBLISH (ongoing) — a gate-PASSED new article goes live on the blog
-  // automatically (BLOG ONLY, sitemap rebuilt) and moves to the press dashboard,
-  // where social (X/LinkedIn/Discord) is published MANUALLY. Salman is never the
-  // bottleneck for the blog. Gate-failed articles are never auto-published. Kill
-  // switch: env.BLOG_AUTOPUBLISH='0'.
+  // BLOG + X AUTO-PUBLISH (ongoing) — a gate-PASSED new article goes live on the
+  // blog automatically (sitemap rebuilt) and X auto-posts alongside it (2026-10-27:
+  // Salman asked not to be a bottleneck on X either). LinkedIn/Discord/Tumblr stay
+  // MANUAL from the press dashboard — a deliberate, separate decision, not an
+  // oversight. Gate-failed articles are never auto-published, to X or the blog.
+  // Kill switches: env.BLOG_AUTOPUBLISH='0' (stops both), env.X_AUTOPUBLISH='0'
+  // (stops just X, blog keeps auto-publishing).
   if (!autopilot && !articleOnly && gateVerdict && gateVerdict.status === 'passed' && env.BLOG_AUTOPUBLISH !== '0') {
     try {
       const pub = await publishBlogOnly(env, videoId, content);
-      console.log('[FFX][keyword] blog auto-publish', content.slug, pub.ok ? 'OK → moved to press (social manual)' : ('FAILED ' + pub.status + ' ' + pub.body));
+      console.log('[FFX][keyword] blog+X auto-publish', content.slug, pub.ok ? 'OK → moved to press (LinkedIn/Discord/Tumblr manual)' : ('FAILED ' + pub.status + ' ' + pub.body));
     } catch (e) { console.error('[FFX][keyword] blog auto-publish error (non-fatal):', e.message); }
   }
 
@@ -825,15 +827,21 @@ async function kvPut(env, key, value, options) {
 // AUTOPILOT auto-republish — a fix regeneration that PASSED the gate is published
 // to the SAME URL via /publish (which re-enforces the gate: a fix can never lower
 // quality). Only ever called for job.autopilot === true on a passing verdict.
-// BLOG-ONLY auto-publish for a gate-passed article. Goes through /press-publish so
+// BLOG + X auto-publish for a gate-passed article. Goes through /press-publish so
 // it (a) publishes the blog via /publish (rebuilds sitemap.xml, gate re-enforced),
-// (b) writes the published record → appears in the press dashboard, and (c) removes
-// the item from the queue (moves queue → press). Social is NOT posted — X/LinkedIn/
-// Discord stay for manual publishing from the press dashboard.
+// (b) posts X (unless env.X_AUTOPUBLISH='0'), (c) writes the published record →
+// appears in the press dashboard, and (d) removes the item from the queue (moves
+// queue → press). LinkedIn/Discord/Tumblr stay for manual publishing from the
+// press dashboard — not touched by this change.
 async function publishBlogOnly(env, videoId, content) {
+  // X auto-posts alongside the blog unless explicitly killed (env.X_AUTOPUBLISH='0').
+  // Safe to leave on even when an article has no tweet copy: publish-confirm.js
+  // deselects an empty platform to 'not_selected' rather than erroring, so a
+  // missing tweet1 just skips X for that article instead of failing anything.
+  const xAutoPublish = env.X_AUTOPUBLISH !== '0';
   const payload = {
     videoId, slug: content.slug, source: 'queue',
-    platforms: { blog: true, x: false, linkedin: false, discord: false, tumblr: false },
+    platforms: { blog: true, x: xAutoPublish, linkedin: false, discord: false, tumblr: false },
     content,
   };
   const res = await fetch('https://fortitudefx.com/press-publish', {
